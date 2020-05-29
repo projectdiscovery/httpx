@@ -7,7 +7,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/projectdiscovery/httpx)](https://goreportcard.com/report/github.com/projectdiscovery/httpx)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/projectdiscovery/httpx/issues)
 
-httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library. 
+httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library, it is designed to maintain the result reliability with increased threads.
 
 # Resources
 - [Resources](#resources)
@@ -27,8 +27,10 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 </h1>
 
  - Simple and modular code base making it easy to contribute.
- - Fast And fully configurable flags to probe mutiple elements
- - Supports vhost, urls, ports, title, content-length, status-code, response-body probbing. 
+ - Fast And fully configurable flags to probe mutiple elements.
+ - Supports vhost, urls, ports, title, content-length, status-code, response-body probbing.
+ - Smart auto fallback between http and https.
+ - Supports hosts and URLs as input.
  - Handles edge cases doing retries, backoffs etc for handling WAFs.
 
 # Usage
@@ -242,6 +244,4 @@ You can simply use `jq` to filter out the json results as per your interest.
 
 httpX is made with 🖤 by the [projectdiscovery](https://projectdiscovery.io) team. Community contributions have made the project what it is. See the **[Thanks.md](https://github.com/projectdiscovery/httpx/blob/master/THANKS.md)** file for more details. Do also check out these similar awesome projects that may fit in your workflow:
 
-[https://github.com/tomnomnom/httprobe](https://github.com/tomnomnom/httprobe)</br>
-
-
+Probing feature is inspired by [@tomnomnom/httprobe](https://github.com/tomnomnom/httprobe) work :heart:
