@@ -119,7 +119,7 @@ sys	0m8.528s
 
 ### Running httpx with stdin  
 
-This will run the tool against all the hosts in `hosts.txt` and returns the matched results. 
+This will run the tool against all the hosts in `hosts.txt` and returns the alive hosts. 
 
 ```bash
 > cat hosts.txt | httpx 
@@ -148,7 +148,7 @@ https://support.hackerone.com
 
 ### Running httpx with file input  
 
-This will run the tool against all the hosts in `urls.txt` and returns the matched results. 
+This will run the tool against all the hosts in `hosts.txt` and returns the alive hosts. 
 
 ```bash
 > httpx -l hosts.txt
