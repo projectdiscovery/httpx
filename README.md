@@ -152,8 +152,6 @@ This will run the tool against all the hosts in `hosts.txt` and returns the matc
 ```bash
 > httpx -l hosts.txt
 
-root@b0x:~/httpx# httpx -l hosts.txt 
-
     __    __  __       _  __
    / /_  / /_/ /_____ | |/ /
   / __ \/ __/ __/ __ \|   / 
@@ -180,7 +178,7 @@ https://support.hackerone.com
 
 
 ```bash
-> subfinder -d hackerone.com -silent | httpx httpx -title -content-length -status-code
+> subfinder -d hackerone.com -silent | httpx -title -content-length -status-code
 
 
     __    __  __       _  __
