@@ -134,6 +134,7 @@ This will run the tool against all the hosts in `urls.txt` and returns the match
 
 [WRN] Use with caution. You are responsible for your actions
 [WRN] Developers assume no liability and are not responsible for any misuse or damage.
+
 https://mta-sts.managed.hackerone.com
 https://mta-sts.hackerone.com
 https://mta-sts.forwarding.hackerone.com
@@ -164,6 +165,7 @@ root@b0x:~/httpx# httpx -l hosts.txt
 
 [WRN] Use with caution. You are responsible for your actions
 [WRN] Developers assume no liability and are not responsible for any misuse or damage.
+
 https://docs.hackerone.com
 https://mta-sts.hackerone.com
 https://mta-sts.managed.hackerone.com
@@ -193,6 +195,7 @@ https://support.hackerone.com
 
 [WRN] Use with caution. You are responsible for your actions
 [WRN] Developers assume no liability and are not responsible for any misuse or damage.
+
 https://mta-sts.forwarding.hackerone.com [404] [9339] [Page not found · GitHub Pages]
 https://mta-sts.hackerone.com [404] [9339] [Page not found · GitHub Pages]
 https://mta-sts.managed.hackerone.com [404] [9339] [Page not found · GitHub Pages]
