@@ -88,13 +88,14 @@ httpx requires go1.13+ to install successfully. Run the following command to get
 
 In order to update the tool, you can use -u flag with `go get` command.
 
-# Running httpX to probe `2967` hosts
+# Running httpX to probe `7614` hosts
 
 ```bash 
-> chaos -d oath.cloud -count -silent 
-2967
+> chaos -d uber.com -count -silent 
 
-> time chaos -d oath.cloud -silent | httpx -status-code -content-length -title -store-response -threads 100 -json | wc 
+7614
+
+> time chaos -d uber.com -silent | httpx -status-code -content-length -title -store-response  -json | wc 
 
     __    __  __       _  __
    / /_  / /_/ /_____ | |/ /
@@ -107,11 +108,12 @@ In order to update the tool, you can use -u flag with `go get` command.
 
 [WRN] Use with caution. You are responsible for your actions
 [WRN] Developers assume no liability and are not responsible for any misuse or damage.
-196
 
-real	0m52.159s
-user	0m4.084s
-sys	0m3.880s
+210
+
+real	0m47.679s
+user	0m7.912s
+sys	0m8.528s
 ```
 
 ### Running httpx with stdin  
