@@ -16,7 +16,7 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 - [Installation Instructions](#installation-instructions)
     - [From Binary](#from-binary)
     - [From Source](#from-source)
-- [Running httpx](#running-httpx-to-probe-2967-hosts)
+- [Running httpx](#running-httpx-to-probe-7614-hosts)
 - [Thanks](#thanks)
 
  # Features
