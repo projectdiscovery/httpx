@@ -88,7 +88,7 @@ httpx requires go1.13+ to install successfully. Run the following command to get
 
 In order to update the tool, you can use -u flag with `go get` command.
 
-# Running httpX to probe `7614` hosts
+# Running httpx to probe `7614` hosts
 
 ```bash 
 > chaos -d uber.com -count -silent 
@@ -177,7 +177,7 @@ https://support.hackerone.com
 ```
 
 
-### Using httpX with subfinder/chaos and any other similar tool.
+### Using httpx with subfinder/chaos and any other similar tool.
 
 
 ```bash
@@ -207,7 +207,7 @@ https://hackerone.com [301] [92] []
 https://resources.hackerone.com [301] [0] []
 ```
 
-### Running httpX with json output
+### Running httpx with json output
 
 ```bash
 > chaos -d hackerone.com -silent | httpx -json
@@ -244,6 +244,6 @@ You can simply use `jq` to filter out the json results as per your interest.
 
 # Thanks
 
-httpX is made with 🖤 by the [projectdiscovery](https://projectdiscovery.io) team. Community contributions have made the project what it is. See the **[Thanks.md](https://github.com/projectdiscovery/httpx/blob/master/THANKS.md)** file for more details.
+httpx is made with 🖤 by the [projectdiscovery](https://projectdiscovery.io) team. Community contributions have made the project what it is. See the **[Thanks.md](https://github.com/projectdiscovery/httpx/blob/master/THANKS.md)** file for more details.
 
 Probing is inspired by the work of [@tomnomnom/httprobe](https://github.com/tomnomnom/httprobe) :heart:
