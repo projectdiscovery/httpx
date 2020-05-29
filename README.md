@@ -114,7 +114,7 @@ user	0m4.084s
 sys	0m3.880s
 ```
 
-### Running httpx with stnin  
+### Running httpx with stdin  
 
 This will run the tool against all the hosts in `urls.txt` and returns the matched results. 
 
