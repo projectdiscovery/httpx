@@ -7,7 +7,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/projectdiscovery/httpx)](https://goreportcard.com/report/github.com/projectdiscovery/httpx)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/projectdiscovery/httpx/issues)
 
-httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using [retryablehttp-go library](https://github.com/projectdiscovery/retryablehttp-go) library. 
+httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library. 
 
 # Resources
 - [Resources](#resources)
@@ -17,7 +17,6 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
     - [From Binary](#from-binary)
     - [From Source](#from-source)
 - [Running httpx](#running-httpx)
-    - [Running httpx with a single template.](#running-httpx)
 - [Thanks](#thanks)
 
  # Features
@@ -73,7 +72,7 @@ This will display help for the tool. Here are all the switches it supports.
 The installation is easy. You can download the pre-built binaries for your platform from the [Releases](https://github.com/projectdiscovery/httpx/releases/) page. Extract them using tar, move it to your `$PATH`and you're ready to go.
 
 ```bash
-> tar -xzvf httpx-linux-amd64.tar.gz
+> tar -xvf httpx-linux-amd64.tar
 > mv httpx-linux-amd64 /usr/bin/httpx
 > httpx -h
 ```
@@ -88,13 +87,13 @@ httpx requires go1.13+ to install successfully. Run the following command to get
 
 In order to update the tool, you can use -u flag with `go get` command.
 
-# Running httpX to probe `2967` hosts
+# Running httpX to probe `7614` hosts
 
 ```bash 
-> chaos -d oath.cloud -count -silent 
-2967
+> chaos -d uber.com -count -silent 
+7614
 
-> time chaos -d oath.cloud -silent | httpx -status-code -content-length -title -store-response -threads 100 -json | wc 
+> time chaos -d uber.com -silent | httpx -status-code -content-length -title -store-response -threads 100 -json | wc 
 
     __    __  __       _  __
    / /_  / /_/ /_____ | |/ /
@@ -107,16 +106,17 @@ In order to update the tool, you can use -u flag with `go get` command.
 
 [WRN] Use with caution. You are responsible for your actions
 [WRN] Developers assume no liability and are not responsible for any misuse or damage.
-196
 
-real	0m52.159s
-user	0m4.084s
-sys	0m3.880s
+210
+
+real	0m36.952s
+user	0m7.976s
+sys	0m7.884s
 ```
 
 ### Running httpx with stnin  
 
-This will run the tool against all the hosts in `urls.txt` and returns the matched results. 
+This will run the tool against all the hosts in `hosts.txt` and returns the matched results. 
 
 ```bash
 > cat hosts.txt | httpx 
@@ -144,7 +144,7 @@ https://support.hackerone.com
 
 ### Running httpx with file input  
 
-This will run the tool against all the hosts in `urls.txt` and returns the matched results. 
+This will run the tool against all the hosts in `hosts.txt` and returns the matched results. 
 
 ```bash
 > httpx -l hosts.txt
