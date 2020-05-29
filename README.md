@@ -16,7 +16,7 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 - [Installation Instructions](#installation-instructions)
     - [From Binary](#from-binary)
     - [From Source](#from-source)
-- [Running httpx](#running-httpx)
+- [Running httpx](#running-httpx-to-probe-7614-hosts)
 - [Thanks](#thanks)
 
  # Features
@@ -91,6 +91,7 @@ In order to update the tool, you can use -u flag with `go get` command.
 
 ```bash 
 > chaos -d uber.com -count -silent 
+
 7614
 
 > time chaos -d uber.com -silent | httpx -status-code -content-length -title -store-response -threads 100 -json | wc 
