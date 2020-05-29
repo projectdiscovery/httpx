@@ -146,10 +146,12 @@ func (h *HTTPX) AddFilter(f Filter) {
 // NewRequest from url
 func (h *HTTPX) NewRequest(method, URL string) (req *retryablehttp.Request, err error) {
 	req, err = retryablehttp.NewRequest(method, URL, nil)
+	if err != nil {
+		return
+	}
 
 	// set default user agent
 	req.Header.Set("User-Agent", h.Options.DefaultUserAgent)
-
 	return
 }
 

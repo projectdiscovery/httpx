@@ -207,9 +207,8 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%d]", resp.ContentLength))
 	}
 
-	title := ""
+	title := httpx.ExtractTitle(resp)
 	if scanopts.OutputTitle {
-		title = httpx.ExtractTitle(resp)
 		builder.WriteString(fmt.Sprintf(" [%s]", title))
 	}
 
