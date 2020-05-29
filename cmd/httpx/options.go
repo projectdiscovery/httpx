@@ -62,7 +62,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Silent, "silent", false, "Silent mode")
 	flag.BoolVar(&options.Version, "version", false, "Show version of httpx")
 	flag.BoolVar(&options.Verbose, "verbose", false, "Verbose Mode")
-	flag.BoolVar(&options.NoColor, "no-color", true, "No Color")
+	flag.BoolVar(&options.NoColor, "no-color", false, "No Color")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
