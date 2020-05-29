@@ -7,7 +7,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/projectdiscovery/httpx)](https://goreportcard.com/report/github.com/projectdiscovery/httpx)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/projectdiscovery/httpx/issues)
 
-httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using [retryablehttp library](https://github.com/projectdiscovery/retryablehttp-go) library, it is designed to maintain the result reliability with increased threads. 
+httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library, it is designed to maintain the result reliability with increased threads. 
 
 # Resources
 - [Resources](#resources)
