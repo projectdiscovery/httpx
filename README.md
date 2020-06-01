@@ -46,7 +46,7 @@ This will display help for the tool. Here are all the switches it supports.
 | -H                 | Custom Header input                                   | httpx -H 'x-bug-bounty: hacker'                    |
 | -follow-redirects  | Follow URL redirects (default false)                  | httpx -follow-redirects                            |
 | -http-proxy        | URL of the proxy server                               | httpx -http-proxy hxxp://proxy-host:80             |
-| -l                 | File to save output result (optional)                 | httpx -o output.txt                                |
+| -l                 | File containing host/urls to process                   | httpx -l hosts.txt                                |
 | -no-color          | Disable colors in the output.                         | httpx -no-color                                    |
 | -o                 | File to save output result (optional)                 | httpx -o output.txt                                |
 | -json              | Prints all the probes in JSON format (default false)  | httpx -json                                        |
