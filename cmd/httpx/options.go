@@ -27,7 +27,6 @@ type Options struct {
 	StoreResponse    bool
 	StoreResponseDir string
 	HttpProxy        string
-	SocksProxy       string
 	JSONOutput       bool
 	InputFile        string
 	Method           string
