@@ -8,6 +8,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/microcosm-cc/bluemonday"
@@ -77,6 +78,7 @@ func New(options *Options) (*HTTPX, error) {
 
 // Do http request
 func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
+	start := time.Now()
 	var (
 		resp Response
 	)
@@ -84,6 +86,8 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	elapsed := time.Since(start)
 
 	rawresp, err := httputil.DumpResponse(httpresp, true)
 	if err != nil {
@@ -113,6 +117,8 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	resp.Words = len(strings.Split(respbodystr, " "))
 	// number of lines
 	resp.Lines = len(strings.Split(respbodystr, "\n"))
+
+	resp.Duration = elapsed
 
 	return &resp, nil
 }

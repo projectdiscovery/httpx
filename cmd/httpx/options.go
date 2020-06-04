@@ -14,7 +14,6 @@ import (
 type Options struct {
 	RawRequestFile   string
 	VHost            bool
-	Smuggling        bool
 	ExtractTitle     bool
 	StatusCode       bool
 	ContentLength    bool
@@ -36,6 +35,8 @@ type Options struct {
 	Version          bool
 	Verbose          bool
 	NoColor          bool
+	ResponseTime     bool
+	Smuggling        bool
 }
 
 // ParseOptions parses the command line options for application
@@ -63,6 +64,8 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Version, "version", false, "Show version of httpx")
 	flag.BoolVar(&options.Verbose, "verbose", false, "Verbose Mode")
 	flag.BoolVar(&options.NoColor, "no-color", false, "No Color")
+	flag.BoolVar(&options.ResponseTime, "response-time", false, "Response Time")
+	flag.BoolVar(&options.Smuggling, "smuggling", false, "Smuggling (Experimental)")
 	flag.Parse()
 
 	// Read the inputs and configure the logging

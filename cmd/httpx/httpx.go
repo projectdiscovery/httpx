@@ -52,7 +52,10 @@ func main() {
 	scanopts.OutputContentLength = options.ContentLength
 	scanopts.StoreResponse = options.StoreResponse
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
+	scanopts.ResponseTime = options.ResponseTime
 	scanopts.Method = options.Method
+	scanopts.Timeout = httpxOptions.Timeout
+	scanopts.Smuggling = options.Smuggling
 
 	// Try to create output folder if it doesnt exist
 	if options.StoreResponse && options.StoreResponseDir != "" && options.StoreResponseDir != "." {
@@ -147,11 +150,14 @@ func main() {
 type scanOptions struct {
 	Method                 string
 	VHost                  bool
+	Smuggling              bool
 	OutputTitle            bool
 	OutputStatusCode       bool
 	OutputContentLength    bool
 	StoreResponse          bool
+	ResponseTime           bool
 	StoreResponseDirectory string
+	Timeout                time.Duration
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions, output chan Result) {
@@ -207,6 +213,10 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%d]", resp.ContentLength))
 	}
 
+	if scanopts.ResponseTime {
+		builder.WriteString(fmt.Sprintf(" [%s]", resp.Duration.String()))
+	}
+
 	title := httpx.ExtractTitle(resp)
 	if scanopts.OutputTitle {
 		builder.WriteString(fmt.Sprintf(" [%s]", title))
@@ -218,6 +228,19 @@ retry:
 		isvhost, _ = hp.IsVirtualHost(req)
 		if isvhost {
 			builder.WriteString(" [vhost]")
+		}
+	}
+
+	// check for smuggling
+	issmuggable := false
+	if scanopts.Smuggling {
+		smugglingPort := 80
+		if protocol == "https" {
+			smugglingPort = 443
+		}
+		issmuggable, err = hp.IsSmugglable(protocol, domain, smugglingPort, scanopts.Method, resp.Duration, scanopts.Timeout)
+		if issmuggable {
+			builder.WriteString(" [smuggable]")
 		}
 	}
 

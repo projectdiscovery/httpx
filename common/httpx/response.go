@@ -1,5 +1,7 @@
 package httpx
 
+import "time"
+
 // Response contains the response to a server
 type Response struct {
 	StatusCode    int
@@ -9,4 +11,5 @@ type Response struct {
 	Raw           string
 	Words         int
 	Lines         int
+	Duration      time.Duration
 }

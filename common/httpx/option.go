@@ -16,8 +16,7 @@ type Options struct {
 	FollowRedirects  bool
 	DefaultUserAgent string
 
-	HttpProxy  string
-	SocksProxy string
+	HttpProxy string
 
 	// VHOSTs options
 	VHostIgnoreStatusCode    bool
