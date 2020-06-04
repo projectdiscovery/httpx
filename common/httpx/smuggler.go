@@ -108,7 +108,7 @@ func (h *HTTPX) differentialprobeTECL(method string, host string) string {
 
 func headersToString(headers map[string]string) (rawheaders string) {
 	for name, value := range headers {
-		rawheaders += fmt.Sprintf("%s: %s", name, value)
+		rawheaders += fmt.Sprintf("%s: %s\n", name, value)
 	}
 
 	return rawheaders
