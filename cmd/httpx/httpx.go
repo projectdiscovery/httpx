@@ -14,6 +14,7 @@ import (
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httpx"
+	"github.com/projectdiscovery/httpx/common/iputil"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/remeh/sizedwaitgroup"
 )
@@ -111,29 +112,29 @@ func main() {
 	}
 
 	for sc.Scan() {
-		target := stringz.TrimProtocol(sc.Text())
+		for target := range targets(stringz.TrimProtocol(sc.Text())) {
+			// if no custom ports specified then test the default ones
+			if len(customport.Ports) == 0 {
+				wg.Add()
+				go func(target string) {
+					defer wg.Done()
+					analyze(hp, protocol, target, 0, &scanopts, output)
+				}(target)
+			}
 
-		// if no custom ports specified then test the default ones
-		if len(customport.Ports) == 0 {
-			wg.Add()
-			go func(target string) {
-				defer wg.Done()
-				analyze(hp, protocol, target, 0, &scanopts, output)
-			}(target)
-		}
+			// the host name shouldn't have any semicolon - in case remove the port
+			semicolonPosition := strings.LastIndex(target, ":")
+			if semicolonPosition > 0 {
+				target = target[:semicolonPosition]
+			}
 
-		// the host name shouldn't have any semicolon - in case remove the port
-		semicolonPosition := strings.LastIndex(target, ":")
-		if semicolonPosition > 0 {
-			target = target[:semicolonPosition]
-		}
-
-		for port := range customport.Ports {
-			wg.Add()
-			go func(port int) {
-				defer wg.Done()
-				analyze(hp, protocol, target, port, &scanopts, output)
-			}(port)
+			for port := range customport.Ports {
+				wg.Add()
+				go func(port int) {
+					defer wg.Done()
+					analyze(hp, protocol, target, port, &scanopts, output)
+				}(port)
+			}
 		}
 	}
 
@@ -142,6 +143,29 @@ func main() {
 	close(output)
 
 	wgoutput.Wait()
+}
+
+// returns all the targets within a cidr range or the single target
+func targets(target string) chan string {
+	results := make(chan string)
+	go func() {
+		defer close(results)
+
+		// test if the target is a cidr
+		if iputil.IsCidr(target) {
+			cidrIps, err := iputil.Ips(target)
+			if err != nil {
+				return
+			}
+			for _, ip := range cidrIps {
+				results <- ip
+			}
+		} else {
+			results <- target
+		}
+
+	}()
+	return results
 }
 
 type scanOptions struct {
