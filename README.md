@@ -53,7 +53,7 @@ This will display help for the tool. Here are all the switches it supports.
 | -vhost             | Probes to detect vhost from list of subdomains        | httpx -vhost                                       |
 | -threads           | Number of threads (default 50)                        | httpx - threads 100                                |
 | -ports             | Ports ranges to probe (nmap syntax: eg 1,2-10,11)     | httpx -ports 80,443,100-200                        |
-| -title             | Prints title of page if avaiable                      | httpx -title                                       |
+| -title             | Prints title of page if available                      | httpx -title                                       |
 | -content-length    | Prints content length in the output                   | httpx -content-length                              |
 | -status-code       | Prints status code in the output                      | httpx -status-code                                 |
 | -store-response    | Store response as domain.txt                          | httpx -store-response                              |
