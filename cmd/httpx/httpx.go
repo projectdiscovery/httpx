@@ -223,7 +223,8 @@ retry:
 
 	// store responses in directory
 	if scanopts.StoreResponse {
-		responsePath := path.Join(scanopts.StoreResponseDirectory, domain+".txt")
+		var domainFile = strings.Replace(domain, "/", "_", -1) + ".txt"
+		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 		err := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
 		if err != nil {
 			gologger.Fatalf("Could not write response, at path '%s', to disc.", responsePath)
