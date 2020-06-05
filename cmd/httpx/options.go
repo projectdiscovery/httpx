@@ -12,30 +12,31 @@ import (
 
 // Options contains configuration options for chaos client.
 type Options struct {
-	RawRequestFile   string
-	VHost            bool
-	Smuggling        bool
-	ExtractTitle     bool
-	StatusCode       bool
-	ContentLength    bool
-	Retries          int
-	Threads          int
-	Timeout          int
-	CustomHeaders    customheader.CustomHeaders
-	CustomPorts      customport.CustomPorts
-	Output           string
-	FollowRedirects  bool
-	StoreResponse    bool
-	StoreResponseDir string
-	HttpProxy        string
-	SocksProxy       string
-	JSONOutput       bool
-	InputFile        string
-	Method           string
-	Silent           bool
-	Version          bool
-	Verbose          bool
-	NoColor          bool
+	RawRequestFile     string
+	VHost              bool
+	Smuggling          bool
+	ExtractTitle       bool
+	StatusCode         bool
+	ContentLength      bool
+	Retries            int
+	Threads            int
+	Timeout            int
+	CustomHeaders      customheader.CustomHeaders
+	CustomPorts        customport.CustomPorts
+	Output             string
+	FollowRedirects    bool
+	StoreResponse      bool
+	StoreResponseDir   string
+	HttpProxy          string
+	SocksProxy         string
+	JSONOutput         bool
+	InputFile          string
+	Method             string
+	Silent             bool
+	Version            bool
+	Verbose            bool
+	NoColor            bool
+	OutputServerHeader bool
 }
 
 // ParseOptions parses the command line options for application
@@ -63,6 +64,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Version, "version", false, "Show version of httpx")
 	flag.BoolVar(&options.Verbose, "verbose", false, "Verbose Mode")
 	flag.BoolVar(&options.NoColor, "no-color", false, "No Color")
+	flag.BoolVar(&options.OutputServerHeader, "web-server", false, "Prints out the Server header content")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
