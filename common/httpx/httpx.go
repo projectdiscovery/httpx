@@ -85,6 +85,8 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 		return nil, err
 	}
 
+	resp.Headers = httpresp.Header.Clone()
+
 	rawresp, err := httputil.DumpResponse(httpresp, true)
 	if err != nil {
 		return nil, err

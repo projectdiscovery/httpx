@@ -54,6 +54,7 @@ func main() {
 	scanopts.StoreResponse = options.StoreResponse
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
 	scanopts.Method = options.Method
+	scanopts.OutputServerHeader = options.OutputServerHeader
 
 	// Try to create output folder if it doesnt exist
 	if options.StoreResponse && options.StoreResponseDir != "" && options.StoreResponseDir != "." {
@@ -79,7 +80,7 @@ func main() {
 			defer f.Close()
 		}
 		for r := range output {
-			if r.Error != nil {
+			if r.err != nil {
 				continue
 			}
 			row := r.str
@@ -176,6 +177,7 @@ type scanOptions struct {
 	OutputContentLength    bool
 	StoreResponse          bool
 	StoreResponseDirectory string
+	OutputServerHeader     bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions, output chan Result) {
@@ -188,7 +190,7 @@ retry:
 
 	req, err := hp.NewRequest(scanopts.Method, URL)
 	if err != nil {
-		output <- Result{URL: URL, Error: err}
+		output <- Result{URL: URL, err: err}
 		return
 	}
 
@@ -196,7 +198,7 @@ retry:
 
 	resp, err := hp.Do(req)
 	if err != nil {
-		output <- Result{URL: URL, Error: err}
+		output <- Result{URL: URL, err: err}
 		if !retried {
 			if protocol == "https" {
 				protocol = "http"
@@ -236,6 +238,11 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", title))
 	}
 
+	serverHeader := resp.GetHeader("Server")
+	if scanopts.OutputServerHeader {
+		builder.WriteString(fmt.Sprintf(" [%s]", serverHeader))
+	}
+
 	// check for virtual host
 	isvhost := false
 	if scanopts.VHost {
@@ -251,7 +258,7 @@ retry:
 		ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
 	}
 
-	output <- Result{URL: fullURL, ContentLength: resp.ContentLength, StatusCode: resp.StatusCode, Title: title, str: builder.String(), VHost: isvhost}
+	output <- Result{URL: fullURL, ContentLength: resp.ContentLength, StatusCode: resp.StatusCode, Title: title, str: builder.String(), VHost: isvhost, WebServer: serverHeader}
 }
 
 // Result of a scan
@@ -261,8 +268,9 @@ type Result struct {
 	StatusCode    int    `json:"status-code"`
 	Title         string `json:"title"`
 	str           string
-	Error         error `json:"error"`
-	VHost         bool  `json:"vhost"`
+	err           error
+	VHost         bool   `json:"vhost"`
+	WebServer     string `json:"webserver"`
 }
 
 // JSON the result
