@@ -56,7 +56,8 @@ This will display help for the tool. Here are all the switches it supports.
 | -ports             | Ports ranges to probe (nmap syntax: eg 1,2-10,11)     | httpx -ports 80,443,100-200                        |
 | -title             | Prints title of page if available                      | httpx -title                                       |
 | -content-length    | Prints content length in the output                   | httpx -content-length                              |
-| -status-code       | Prints status code in the output                      | httpx -status-code                                 |
+| -status-code       | Prints status code in the output                    | httpx -status-code                                 |
+| -web-server       | Prints running web sever if available                      | httpx -status-code                                 |
 | -store-response    | Store response as domain.txt                          | httpx -store-response                              |
 | -store-response-dir| Directory to store response (default current path)    | httpx -store-response-dir output                   | 
 | -retries           | Number of retries                                     | httpx -retries                                     |
@@ -177,7 +178,7 @@ https://support.hackerone.com
 ### Running httpx with CIDR input   
 
 ```bash
-root@b0x:~/# echo 173.0.84.0/24 | httpx 
+> echo 173.0.84.0/24 | httpx 
 
     __    __  __       _  __
    / /_  / /_/ /_____ | |/ /
@@ -257,14 +258,14 @@ https://resources.hackerone.com [301] [0] []
 [WRN] Use with caution. You are responsible for your actions
 [WRN] Developers assume no liability and are not responsible for any misuse or damage.
 
-{"url":"https://mta-sts.forwarding.hackerone.com","content-length":9339,"status-code":404,"title":"","error":null,"vhost":false}
-{"url":"https://mta-sts.hackerone.com","content-length":9339,"status-code":404,"title":"","error":null,"vhost":false}
-{"url":"https://docs.hackerone.com","content-length":65444,"status-code":200,"title":"","error":null,"vhost":false}
-{"url":"https://mta-sts.managed.hackerone.com","content-length":9339,"status-code":404,"title":"","error":null,"vhost":false}
-{"url":"https://support.hackerone.com","content-length":489,"status-code":301,"title":"","error":null,"vhost":false}
-{"url":"https://resources.hackerone.com","content-length":0,"status-code":301,"title":"","error":null,"vhost":false}
-{"url":"https://api.hackerone.com","content-length":7791,"status-code":200,"title":"","error":null,"vhost":false}
-{"url":"https://www.hackerone.com","content-length":54166,"status-code":200,"title":"","error":null,"vhost":false}
+{"url":"https://mta-sts.managed.hackerone.com","content-length":9339,"status-code":404,"title":"Page not found · GitHub Pages","vhost":false,"webserver":"GitHub.com"}
+{"url":"https://mta-sts.forwarding.hackerone.com","content-length":9339,"status-code":404,"title":"Page not found · GitHub Pages","vhost":false,"webserver":"GitHub.com"}
+{"url":"https://mta-sts.hackerone.com","content-length":9339,"status-code":404,"title":"Page not found · GitHub Pages","vhost":false,"webserver":"GitHub.com"}
+{"url":"https://docs.hackerone.com","content-length":65781,"status-code":200,"title":"HackerOne Platform Documentation","vhost":false,"webserver":"GitHub.com"}
+{"url":"https://api.hackerone.com","content-length":7791,"status-code":200,"title":"HackerOne API","vhost":false,"webserver":"cloudflare"}
+{"url":"https://support.hackerone.com","content-length":98,"status-code":301,"title":"","vhost":false,"webserver":"cloudflare"}
+{"url":"https://resources.hackerone.com","content-length":0,"status-code":301,"title":"","vhost":false,"webserver":""}
+{"url":"https://www.hackerone.com","content-length":54136,"status-code":200,"title":"Bug Bounty - Hacker Powered Security Testing | HackerOne","vhost":false,"webserver":"cloudflare"}
 
 ```
 
