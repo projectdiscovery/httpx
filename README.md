@@ -46,7 +46,8 @@ This will display help for the tool. Here are all the switches it supports.
 | -H                 | Custom Header input                                   | httpx -H 'x-bug-bounty: hacker'                    |
 | -follow-redirects  | Follow URL redirects (default false)                  | httpx -follow-redirects                            |
 | -http-proxy        | URL of the proxy server                               | httpx -http-proxy hxxp://proxy-host:80             |
-| -l                 | File containing host/urls to process                   | httpx -l hosts.txt                                |
+| -l                 | File containing host/urls to process                  | httpx -l hosts.txt                                |
+| -l                 | File containing CIDR to process                       | httpx -l cidr.txt                                |
 | -no-color          | Disable colors in the output.                         | httpx -no-color                                    |
 | -o                 | File to save output result (optional)                 | httpx -o output.txt                                |
 | -json              | Prints all the probes in JSON format (default false)  | httpx -json                                        |
@@ -171,6 +172,42 @@ https://www.hackerone.com
 https://resources.hackerone.com
 https://api.hackerone.com
 https://support.hackerone.com
+```
+
+### Running httpx with CIDR input   
+
+```bash
+root@b0x:~/# echo 173.0.84.0/24 | httpx 
+
+    __    __  __       _  __
+   / /_  / /_/ /_____ | |/ /
+  / __ \/ __/ __/ __ \|   / 
+ / / / / /_/ /_/ /_/ /   |  
+/_/ /_/\__/\__/ .___/_/|_|  
+             /_/            
+
+		projectdiscovery.io
+
+[WRN] Use with caution. You are responsible for your actions
+[WRN] Developers assume no liability and are not responsible for any misuse or damage.
+https://173.0.84.29
+https://173.0.84.43
+https://173.0.84.31
+https://173.0.84.44
+https://173.0.84.12
+https://173.0.84.4
+https://173.0.84.36
+https://173.0.84.45
+https://173.0.84.14
+https://173.0.84.25
+https://173.0.84.46
+https://173.0.84.24
+https://173.0.84.32
+https://173.0.84.9
+https://173.0.84.13
+https://173.0.84.6
+https://173.0.84.16
+https://173.0.84.34
 ```
 
 
