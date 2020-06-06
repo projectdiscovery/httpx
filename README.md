@@ -57,7 +57,7 @@ This will display help for the tool. Here are all the switches it supports.
 | -title             | Prints title of page if available                      | httpx -title                                       |
 | -content-length    | Prints content length in the output                   | httpx -content-length                              |
 | -status-code       | Prints status code in the output                    | httpx -status-code                                 |
-| -web-server       | Prints running web sever if available                      | httpx -status-code                                 |
+| -web-server       | Prints running web sever if available                 | httpx -web-server                               |
 | -store-response    | Store response as domain.txt                          | httpx -store-response                              |
 | -store-response-dir| Directory to store response (default current path)    | httpx -store-response-dir output                   | 
 | -retries           | Number of retries                                     | httpx -retries                                     |
