@@ -55,6 +55,7 @@ func main() {
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
 	scanopts.Method = options.Method
 	scanopts.OutputServerHeader = options.OutputServerHeader
+	scanopts.ResponseInStdout = options.responseInStdout
 
 	// Try to create output folder if it doesnt exist
 	if options.StoreResponse && options.StoreResponseDir != "" && options.StoreResponseDir != "." {
@@ -178,6 +179,7 @@ type scanOptions struct {
 	StoreResponse          bool
 	StoreResponseDirectory string
 	OutputServerHeader     bool
+	ResponseInStdout	   bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions, output chan Result) {
@@ -243,6 +245,11 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", serverHeader))
 	}
 
+	var serverResponseRaw = ""
+	if scanopts.ResponseInStdout {
+		serverResponseRaw = resp.Raw
+	}
+
 	// check for virtual host
 	isvhost := false
 	if scanopts.VHost {
@@ -262,7 +269,7 @@ retry:
 		}
 	}
 
-	output <- Result{URL: fullURL, ContentLength: resp.ContentLength, StatusCode: resp.StatusCode, Title: title, str: builder.String(), VHost: isvhost, WebServer: serverHeader}
+	output <- Result{URL: fullURL, ContentLength: resp.ContentLength, StatusCode: resp.StatusCode, Title: title, str: builder.String(), VHost: isvhost, WebServer: serverHeader, Response: serverResponseRaw}
 }
 
 // Result of a scan
@@ -275,6 +282,7 @@ type Result struct {
 	err           error
 	VHost         bool   `json:"vhost"`
 	WebServer     string `json:"webserver"`
+	Response      string `json:"serverResponse,omitempty"`
 }
 
 // JSON the result

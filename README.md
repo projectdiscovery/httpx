@@ -66,6 +66,7 @@ This will display help for the tool. Here are all the switches it supports.
 | -verbose           | Verbose Mode                                          | httpx -verbose                                     |
 | -version           | Prints current version of the httpx                   | httpx -version                                     |
 | -x                 | Request Method (default 'GET')                        | httpx -x HEAD                                      |
+| -response-in-stdout  | Include response in stdout (only works with -json)   | httpx -response-in-stdout                         |
 
 
 # Installation Instructions
