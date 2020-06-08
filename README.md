@@ -30,7 +30,7 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
  - Fast And fully configurable flags to probe mutiple elements.
  - Supports vhost, urls, ports, title, content-length, status-code, response-body probbing.
  - Smart auto fallback from https to http as default. 
- - Supports hosts and URLs as input.
+ - Supports hosts, URLs and CIDR as input.
  - Handles edge cases doing retries, backoffs etc for handling WAFs.
 
 # Usage
@@ -47,7 +47,8 @@ This will display help for the tool. Here are all the switches it supports.
 | -follow-redirects  | Follow URL redirects (default false)                  | httpx -follow-redirects                            |
 | -follow-host-redirects  | Follow URL redirects only when staying on the same host (default false)  | httpx -follow-host-redirects                                                                                                                         |
 | -http-proxy        | URL of the proxy server                               | httpx -http-proxy hxxp://proxy-host:80             |
-| -l                 | File containing host/urls to process                   | httpx -l hosts.txt                                |
+| -l                 | File containing host/urls to process                  | httpx -l hosts.txt                                |
+| -l                 | File containing CIDR to process                       | httpx -l cidr.txt                                |
 | -no-color          | Disable colors in the output.                         | httpx -no-color                                    |
 | -o                 | File to save output result (optional)                 | httpx -o output.txt                                |
 | -json              | Prints all the probes in JSON format (default false)  | httpx -json                                        |
@@ -56,7 +57,8 @@ This will display help for the tool. Here are all the switches it supports.
 | -ports             | Ports ranges to probe (nmap syntax: eg 1,2-10,11)     | httpx -ports 80,443,100-200                        |
 | -title             | Prints title of page if available                      | httpx -title                                       |
 | -content-length    | Prints content length in the output                   | httpx -content-length                              |
-| -status-code       | Prints status code in the output                      | httpx -status-code                                 |
+| -status-code       | Prints status code in the output                    | httpx -status-code                                 |
+| -web-server       | Prints running web sever if available                 | httpx -web-server                               |
 | -store-response    | Store response as domain.txt                          | httpx -store-response                              |
 | -store-response-dir| Directory to store response (default current path)    | httpx -store-response-dir output                   | 
 | -retries           | Number of retries                                     | httpx -retries                                     |
@@ -174,6 +176,42 @@ https://api.hackerone.com
 https://support.hackerone.com
 ```
 
+### Running httpx with CIDR input   
+
+```bash
+> echo 173.0.84.0/24 | httpx 
+
+    __    __  __       _  __
+   / /_  / /_/ /_____ | |/ /
+  / __ \/ __/ __/ __ \|   / 
+ / / / / /_/ /_/ /_/ /   |  
+/_/ /_/\__/\__/ .___/_/|_|  
+             /_/            
+
+		projectdiscovery.io
+
+[WRN] Use with caution. You are responsible for your actions
+[WRN] Developers assume no liability and are not responsible for any misuse or damage.
+https://173.0.84.29
+https://173.0.84.43
+https://173.0.84.31
+https://173.0.84.44
+https://173.0.84.12
+https://173.0.84.4
+https://173.0.84.36
+https://173.0.84.45
+https://173.0.84.14
+https://173.0.84.25
+https://173.0.84.46
+https://173.0.84.24
+https://173.0.84.32
+https://173.0.84.9
+https://173.0.84.13
+https://173.0.84.6
+https://173.0.84.16
+https://173.0.84.34
+```
+
 
 ### Using httpX with subfinder/chaos and any other similar tool.
 
@@ -221,14 +259,14 @@ https://resources.hackerone.com [301] [0] []
 [WRN] Use with caution. You are responsible for your actions
 [WRN] Developers assume no liability and are not responsible for any misuse or damage.
 
-{"url":"https://mta-sts.forwarding.hackerone.com","content-length":9339,"status-code":404,"title":"","error":null,"vhost":false}
-{"url":"https://mta-sts.hackerone.com","content-length":9339,"status-code":404,"title":"","error":null,"vhost":false}
-{"url":"https://docs.hackerone.com","content-length":65444,"status-code":200,"title":"","error":null,"vhost":false}
-{"url":"https://mta-sts.managed.hackerone.com","content-length":9339,"status-code":404,"title":"","error":null,"vhost":false}
-{"url":"https://support.hackerone.com","content-length":489,"status-code":301,"title":"","error":null,"vhost":false}
-{"url":"https://resources.hackerone.com","content-length":0,"status-code":301,"title":"","error":null,"vhost":false}
-{"url":"https://api.hackerone.com","content-length":7791,"status-code":200,"title":"","error":null,"vhost":false}
-{"url":"https://www.hackerone.com","content-length":54166,"status-code":200,"title":"","error":null,"vhost":false}
+{"url":"https://mta-sts.managed.hackerone.com","content-length":9339,"status-code":404,"title":"Page not found · GitHub Pages","vhost":false,"webserver":"GitHub.com"}
+{"url":"https://mta-sts.forwarding.hackerone.com","content-length":9339,"status-code":404,"title":"Page not found · GitHub Pages","vhost":false,"webserver":"GitHub.com"}
+{"url":"https://mta-sts.hackerone.com","content-length":9339,"status-code":404,"title":"Page not found · GitHub Pages","vhost":false,"webserver":"GitHub.com"}
+{"url":"https://docs.hackerone.com","content-length":65781,"status-code":200,"title":"HackerOne Platform Documentation","vhost":false,"webserver":"GitHub.com"}
+{"url":"https://api.hackerone.com","content-length":7791,"status-code":200,"title":"HackerOne API","vhost":false,"webserver":"cloudflare"}
+{"url":"https://support.hackerone.com","content-length":98,"status-code":301,"title":"","vhost":false,"webserver":"cloudflare"}
+{"url":"https://resources.hackerone.com","content-length":0,"status-code":301,"title":"","vhost":false,"webserver":""}
+{"url":"https://www.hackerone.com","content-length":54136,"status-code":200,"title":"Bug Bounty - Hacker Powered Security Testing | HackerOne","vhost":false,"webserver":"cloudflare"}
 
 ```
 

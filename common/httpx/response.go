@@ -1,5 +1,9 @@
 package httpx
 
+import (
+	"strings"
+)
+
 // Response contains the response to a server
 type Response struct {
 	StatusCode    int
@@ -9,4 +13,14 @@ type Response struct {
 	Raw           string
 	Words         int
 	Lines         int
+}
+
+// GetHeader value
+func (r *Response) GetHeader(name string) string {
+	v, ok := r.Headers[name]
+	if ok {
+		return strings.Join(v, " ")
+	}
+
+	return ""
 }

@@ -14,6 +14,7 @@ import (
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httpx"
+	"github.com/projectdiscovery/httpx/common/iputil"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/remeh/sizedwaitgroup"
 )
@@ -54,6 +55,7 @@ func main() {
 	scanopts.StoreResponse = options.StoreResponse
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
 	scanopts.Method = options.Method
+	scanopts.OutputServerHeader = options.OutputServerHeader
 
 	// Try to create output folder if it doesnt exist
 	if options.StoreResponse && options.StoreResponseDir != "" && options.StoreResponseDir != "." {
@@ -79,7 +81,7 @@ func main() {
 			defer f.Close()
 		}
 		for r := range output {
-			if r.Error != nil {
+			if r.err != nil {
 				continue
 			}
 			row := r.str
@@ -112,29 +114,29 @@ func main() {
 	}
 
 	for sc.Scan() {
-		target := stringz.TrimProtocol(sc.Text())
+		for target := range targets(stringz.TrimProtocol(sc.Text())) {
+			// if no custom ports specified then test the default ones
+			if len(customport.Ports) == 0 {
+				wg.Add()
+				go func(target string) {
+					defer wg.Done()
+					analyze(hp, protocol, target, 0, &scanopts, output)
+				}(target)
+			}
 
-		// if no custom ports specified then test the default ones
-		if len(customport.Ports) == 0 {
-			wg.Add()
-			go func(target string) {
-				defer wg.Done()
-				analyze(hp, protocol, target, 0, &scanopts, output)
-			}(target)
-		}
+			// the host name shouldn't have any semicolon - in case remove the port
+			semicolonPosition := strings.LastIndex(target, ":")
+			if semicolonPosition > 0 {
+				target = target[:semicolonPosition]
+			}
 
-		// the host name shouldn't have any semicolon - in case remove the port
-		semicolonPosition := strings.LastIndex(target, ":")
-		if semicolonPosition > 0 {
-			target = target[:semicolonPosition]
-		}
-
-		for port := range customport.Ports {
-			wg.Add()
-			go func(port int) {
-				defer wg.Done()
-				analyze(hp, protocol, target, port, &scanopts, output)
-			}(port)
+			for port := range customport.Ports {
+				wg.Add()
+				go func(port int) {
+					defer wg.Done()
+					analyze(hp, protocol, target, port, &scanopts, output)
+				}(port)
+			}
 		}
 	}
 
@@ -145,6 +147,29 @@ func main() {
 	wgoutput.Wait()
 }
 
+// returns all the targets within a cidr range or the single target
+func targets(target string) chan string {
+	results := make(chan string)
+	go func() {
+		defer close(results)
+
+		// test if the target is a cidr
+		if iputil.IsCidr(target) {
+			cidrIps, err := iputil.Ips(target)
+			if err != nil {
+				return
+			}
+			for _, ip := range cidrIps {
+				results <- ip
+			}
+		} else {
+			results <- target
+		}
+
+	}()
+	return results
+}
+
 type scanOptions struct {
 	Method                 string
 	VHost                  bool
@@ -153,6 +178,7 @@ type scanOptions struct {
 	OutputContentLength    bool
 	StoreResponse          bool
 	StoreResponseDirectory string
+	OutputServerHeader     bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions, output chan Result) {
@@ -165,7 +191,7 @@ retry:
 
 	req, err := hp.NewRequest(scanopts.Method, URL)
 	if err != nil {
-		output <- Result{URL: URL, Error: err}
+		output <- Result{URL: URL, err: err}
 		return
 	}
 
@@ -173,7 +199,7 @@ retry:
 
 	resp, err := hp.Do(req)
 	if err != nil {
-		output <- Result{URL: URL, Error: err}
+		output <- Result{URL: URL, err: err}
 		if !retried {
 			if protocol == "https" {
 				protocol = "http"
@@ -213,6 +239,11 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", title))
 	}
 
+	serverHeader := resp.GetHeader("Server")
+	if scanopts.OutputServerHeader {
+		builder.WriteString(fmt.Sprintf(" [%s]", serverHeader))
+	}
+
 	// check for virtual host
 	isvhost := false
 	if scanopts.VHost {
@@ -224,11 +255,15 @@ retry:
 
 	// store responses in directory
 	if scanopts.StoreResponse {
-		responsePath := path.Join(scanopts.StoreResponseDirectory, domain+".txt")
-		ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
+		var domainFile = strings.Replace(domain, "/", "_", -1) + ".txt"
+		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
+		err := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
+		if err != nil {
+			gologger.Fatalf("Could not write response, at path '%s', to disc.", responsePath)
+		}
 	}
 
-	output <- Result{URL: fullURL, ContentLength: resp.ContentLength, StatusCode: resp.StatusCode, Title: title, str: builder.String(), VHost: isvhost}
+	output <- Result{URL: fullURL, ContentLength: resp.ContentLength, StatusCode: resp.StatusCode, Title: title, str: builder.String(), VHost: isvhost, WebServer: serverHeader}
 }
 
 // Result of a scan
@@ -238,8 +273,9 @@ type Result struct {
 	StatusCode    int    `json:"status-code"`
 	Title         string `json:"title"`
 	str           string
-	Error         error `json:"error"`
-	VHost         bool  `json:"vhost"`
+	err           error
+	VHost         bool   `json:"vhost"`
+	WebServer     string `json:"webserver"`
 }
 
 // JSON the result
