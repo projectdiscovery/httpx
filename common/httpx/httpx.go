@@ -56,10 +56,9 @@ func New(options *Options) (*HTTPX, error) {
 			var oldHost = previousRequest[0].URL.Host
 			if newHost != oldHost{
 				return http.ErrUseLastResponse // Tell the http client to not follow redirect
-			} else {
-				// Go through with the redirect
-				return nil
-			}
+			} 
+			return nil
+			
 		}
 	}
 
