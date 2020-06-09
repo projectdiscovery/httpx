@@ -37,7 +37,8 @@ type Options struct {
 	Verbose            bool
 	NoColor            bool
 	OutputServerHeader bool
-	responseInStdout bool
+	responseInStdout   bool
+	FollowHostRedirects	 bool
 }
 
 // ParseOptions parses the command line options for application
@@ -57,6 +58,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.StoreResponse, "store-response", false, "Store Response as domain.txt")
 	flag.StringVar(&options.StoreResponseDir, "store-response-dir", ".", "Store Response Directory (default current directory)")
 	flag.BoolVar(&options.FollowRedirects, "follow-redirects", false, "Follow Redirects")
+	flag.BoolVar(&options.FollowHostRedirects, "follow-host-redirects", false, "Only follow redirects on the same host")
 	flag.StringVar(&options.HttpProxy, "http-proxy", "", "Http Proxy")
 	flag.BoolVar(&options.JSONOutput, "json", false, "JSON Output")
 	flag.StringVar(&options.InputFile, "l", "", "File containing domains")
