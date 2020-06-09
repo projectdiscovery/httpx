@@ -14,6 +14,7 @@ type Options struct {
 
 	CustomHeaders    map[string]string
 	FollowRedirects  bool
+	FollowHostRedirects bool
 	DefaultUserAgent string
 
 	HttpProxy  string

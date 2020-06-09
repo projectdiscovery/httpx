@@ -24,6 +24,7 @@ type HTTPX struct {
 	CustomHeaders map[string]string
 }
 
+
 // New httpx instance
 func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
@@ -39,11 +40,26 @@ func New(options *Options) (*HTTPX, error) {
 	retryablehttpOptions.RetryMax = httpx.Options.RetryMax
 
 	var redirectFunc = func(_ *http.Request, _ []*http.Request) error {
-		return http.ErrUseLastResponse
+		return http.ErrUseLastResponse // Tell the http client to not follow redirect
 	}
 
-	if httpx.Options.FollowRedirects {
+	if httpx.Options.FollowRedirects{
+		// Follow redirects
 		redirectFunc = nil
+	}
+
+	if httpx.Options.FollowHostRedirects{
+		// Only follow redirects on the same host
+		redirectFunc = func(redirectedRequest *http.Request, previousRequest []*http.Request) error { // timo
+			// Check if we get a redirect to a differen host
+			var newHost = redirectedRequest.URL.Host
+			var oldHost = previousRequest[0].URL.Host
+			if newHost != oldHost{
+				return http.ErrUseLastResponse // Tell the http client to not follow redirect
+			} 
+			return nil
+			
+		}
 	}
 
 	transport := &http.Transport{
