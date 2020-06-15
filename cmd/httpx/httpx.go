@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -56,6 +57,7 @@ func main() {
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
 	scanopts.Method = options.Method
 	scanopts.OutputServerHeader = options.OutputServerHeader
+	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
 
 	// Try to create output folder if it doesnt exist
@@ -180,7 +182,8 @@ type scanOptions struct {
 	StoreResponse          bool
 	StoreResponseDirectory string
 	OutputServerHeader     bool
-	ResponseInStdout	   bool
+	OutputWithNoColor      bool
+	ResponseInStdout       bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions, output chan Result) {
@@ -229,16 +232,56 @@ retry:
 	builder.WriteString(fullURL)
 
 	if scanopts.OutputStatusCode {
-		builder.WriteString(fmt.Sprintf(" [%d]", resp.StatusCode))
+		builder.WriteString(" [")
+
+		if !scanopts.OutputWithNoColor {
+			// Color the status code based on its value
+			switch {
+			case resp.StatusCode >= 200 && resp.StatusCode < 300:
+				builder.WriteString("\033[38;2;0;128;0m")
+			case resp.StatusCode >= 300 && resp.StatusCode < 400:
+				builder.WriteString("\033[38;2;255;165;0m")
+			case resp.StatusCode >= 400 && resp.StatusCode < 500:
+				builder.WriteString("\033[38;2;255;0;0m")
+			case resp.StatusCode > 500:
+				builder.WriteString("\033[38;2;255;255;0m")
+			}
+		}
+
+		builder.WriteString(strconv.Itoa(resp.StatusCode))
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString("\u001b[0m")
+		}
+		builder.WriteRune(']')
 	}
 
 	if scanopts.OutputContentLength {
-		builder.WriteString(fmt.Sprintf(" [%d]", resp.ContentLength))
+		builder.WriteString(" [")
+
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString("\033[38;2;138;43;226m")
+		}
+		builder.WriteString(strconv.Itoa(resp.ContentLength))
+
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString("\u001b[0m")
+		}
+		builder.WriteRune(']')
 	}
 
 	title := httpx.ExtractTitle(resp)
 	if scanopts.OutputTitle {
-		builder.WriteString(fmt.Sprintf(" [%s]", title))
+		builder.WriteString(" [")
+
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString("\033[38;2;34;215;211m")
+		}
+		builder.WriteString(title)
+
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString("\u001b[0m")
+		}
+		builder.WriteRune(']')
 	}
 
 	serverHeader := resp.GetHeader("Server")

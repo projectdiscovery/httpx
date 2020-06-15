@@ -12,33 +12,33 @@ import (
 
 // Options contains configuration options for chaos client.
 type Options struct {
-	RawRequestFile     string
-	VHost              bool
-	Smuggling          bool
-	ExtractTitle       bool
-	StatusCode         bool
-	ContentLength      bool
-	Retries            int
-	Threads            int
-	Timeout            int
-	CustomHeaders      customheader.CustomHeaders
-	CustomPorts        customport.CustomPorts
-	Output             string
-	FollowRedirects    bool
-	StoreResponse      bool
-	StoreResponseDir   string
-	HttpProxy          string
-	SocksProxy         string
-	JSONOutput         bool
-	InputFile          string
-	Method             string
-	Silent             bool
-	Version            bool
-	Verbose            bool
-	NoColor            bool
-	OutputServerHeader bool
-	responseInStdout   bool
-	FollowHostRedirects	 bool
+	RawRequestFile      string
+	VHost               bool
+	Smuggling           bool
+	ExtractTitle        bool
+	StatusCode          bool
+	ContentLength       bool
+	Retries             int
+	Threads             int
+	Timeout             int
+	CustomHeaders       customheader.CustomHeaders
+	CustomPorts         customport.CustomPorts
+	Output              string
+	FollowRedirects     bool
+	StoreResponse       bool
+	StoreResponseDir    string
+	HttpProxy           string
+	SocksProxy          string
+	JSONOutput          bool
+	InputFile           string
+	Method              string
+	Silent              bool
+	Version             bool
+	Verbose             bool
+	NoColor             bool
+	OutputServerHeader  bool
+	responseInStdout    bool
+	FollowHostRedirects bool
 }
 
 // ParseOptions parses the command line options for application
