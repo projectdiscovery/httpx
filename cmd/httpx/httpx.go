@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/logrusorgru/aurora"
 	"github.com/projectdiscovery/gologger"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
@@ -233,38 +234,30 @@ retry:
 
 	if scanopts.OutputStatusCode {
 		builder.WriteString(" [")
-
 		if !scanopts.OutputWithNoColor {
 			// Color the status code based on its value
 			switch {
 			case resp.StatusCode >= 200 && resp.StatusCode < 300:
-				builder.WriteString("\033[38;2;0;128;0m")
+				builder.WriteString(aurora.Green(strconv.Itoa(resp.StatusCode)).String())
 			case resp.StatusCode >= 300 && resp.StatusCode < 400:
-				builder.WriteString("\033[38;2;255;165;0m")
+				builder.WriteString(aurora.Yellow(strconv.Itoa(resp.StatusCode)).String())
 			case resp.StatusCode >= 400 && resp.StatusCode < 500:
-				builder.WriteString("\033[38;2;255;0;0m")
+				builder.WriteString(aurora.Red(strconv.Itoa(resp.StatusCode)).String())
 			case resp.StatusCode > 500:
-				builder.WriteString("\033[38;2;255;255;0m")
+				builder.WriteString(aurora.Bold(aurora.Yellow(strconv.Itoa(resp.StatusCode))).String())
 			}
-		}
-
-		builder.WriteString(strconv.Itoa(resp.StatusCode))
-		if !scanopts.OutputWithNoColor {
-			builder.WriteString("\u001b[0m")
+		} else {
+			builder.WriteString(strconv.Itoa(resp.StatusCode))
 		}
 		builder.WriteRune(']')
 	}
 
 	if scanopts.OutputContentLength {
 		builder.WriteString(" [")
-
 		if !scanopts.OutputWithNoColor {
-			builder.WriteString("\033[38;2;138;43;226m")
-		}
-		builder.WriteString(strconv.Itoa(resp.ContentLength))
-
-		if !scanopts.OutputWithNoColor {
-			builder.WriteString("\u001b[0m")
+			builder.WriteString(aurora.Magenta(strconv.Itoa(resp.ContentLength)).String())
+		} else {
+			builder.WriteString(strconv.Itoa(resp.ContentLength))
 		}
 		builder.WriteRune(']')
 	}
@@ -272,14 +265,10 @@ retry:
 	title := httpx.ExtractTitle(resp)
 	if scanopts.OutputTitle {
 		builder.WriteString(" [")
-
 		if !scanopts.OutputWithNoColor {
-			builder.WriteString("\033[38;2;34;215;211m")
-		}
-		builder.WriteString(title)
-
-		if !scanopts.OutputWithNoColor {
-			builder.WriteString("\u001b[0m")
+			builder.WriteString(aurora.Cyan(title).String())
+		} else {
+			builder.WriteString(title)
 		}
 		builder.WriteRune(']')
 	}
