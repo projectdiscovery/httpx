@@ -7,7 +7,7 @@ require (
 	github.com/coocood/freecache v1.1.0
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381
-	github.com/microcosm-cc/bluemonday v1.0.2
+	github.com/microcosm-cc/bluemonday v1.0.3
 	github.com/miekg/dns v1.1.29
 	github.com/projectdiscovery/gologger v1.0.0
 	github.com/projectdiscovery/retryablehttp-go v1.0.1
