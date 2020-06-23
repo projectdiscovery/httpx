@@ -16,7 +16,13 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 - [Installation Instructions](#installation-instructions)
     - [From Binary](#from-binary)
     - [From Source](#from-source)
-- [Running httpx](#running-httpx-to-probe-7614-hosts)
+- [Running httpX to probe `7614` hosts](#running-httpx-to-probe-7614-hosts)
+    - [Running httpx with stdin](#running-httpx-with-stdin)
+    - [Running httpx with file input](#running-httpx-with-file-input)
+    - [Running httpx with CIDR input](#running-httpx-with-cidr-input)
+    - [Using httpX with subfinder/chaos and any other similar tool.](#using-httpx-with-subfinderchaos-and-any-other-similar-tool)
+    - [Running httpX with json output](#running-httpx-with-json-output)
+  - [Todo](#todo)
 - [Thanks](#thanks)
 
  # Features
@@ -68,6 +74,7 @@ This will display help for the tool. Here are all the switches it supports.
 | -version           | Prints current version of the httpx                   | httpx -version                                     |
 | -x                 | Request Method (default 'GET')                        | httpx -x HEAD                                      |
 | -response-in-stdout  | Include response in stdout (only works with -json)   | httpx -response-in-stdout                         |
+| -websocket         | Prints if a websocket is exposed                       | httpx -websocket                         |
 
 
 # Installation Instructions
