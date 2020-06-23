@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/httpx/common/cache"
+	"github.com/projectdiscovery/httpx/common/httputilz"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 )
 
@@ -23,7 +23,6 @@ type HTTPX struct {
 	htmlPolicy    *bluemonday.Policy
 	CustomHeaders map[string]string
 }
-
 
 // New httpx instance
 func New(options *Options) (*HTTPX, error) {
@@ -43,22 +42,22 @@ func New(options *Options) (*HTTPX, error) {
 		return http.ErrUseLastResponse // Tell the http client to not follow redirect
 	}
 
-	if httpx.Options.FollowRedirects{
+	if httpx.Options.FollowRedirects {
 		// Follow redirects
 		redirectFunc = nil
 	}
 
-	if httpx.Options.FollowHostRedirects{
+	if httpx.Options.FollowHostRedirects {
 		// Only follow redirects on the same host
 		redirectFunc = func(redirectedRequest *http.Request, previousRequest []*http.Request) error { // timo
 			// Check if we get a redirect to a differen host
 			var newHost = redirectedRequest.URL.Host
 			var oldHost = previousRequest[0].URL.Host
-			if newHost != oldHost{
+			if newHost != oldHost {
 				return http.ErrUseLastResponse // Tell the http client to not follow redirect
-			} 
+			}
 			return nil
-			
+
 		}
 	}
 
@@ -103,18 +102,23 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 
 	resp.Headers = httpresp.Header.Clone()
 
-	rawresp, err := httputil.DumpResponse(httpresp, true)
+	// httputil.DumpResponse does not handle websockets
+	rawresp, err := httputilz.DumpResponse(httpresp)
 	if err != nil {
 		return nil, err
 	}
 
 	resp.Raw = string(rawresp)
 
-	respbody, err := ioutil.ReadAll(httpresp.Body)
-	if err != nil {
-		return nil, err
+	var respbody []byte
+	// websockets don't have a readable body
+	if httpresp.StatusCode != 101 {
+		var err error
+		respbody, err = ioutil.ReadAll(httpresp.Body)
+		if err != nil {
+			return nil, err
+		}
 	}
-
 	respbodystr := string(respbody)
 
 	// check if we need to strip html

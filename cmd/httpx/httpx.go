@@ -294,6 +294,12 @@ retry:
 		}
 	}
 
+	// web socket
+	isWebSocket := resp.StatusCode == 101
+	if isWebSocket {
+		builder.WriteString(" [websocket]")
+	}
+
 	// store responses in directory
 	if scanopts.StoreResponse {
 		var domainFile = strings.Replace(domain, "/", "_", -1) + ".txt"
@@ -304,7 +310,7 @@ retry:
 		}
 	}
 
-	output <- Result{URL: fullURL, ContentLength: resp.ContentLength, StatusCode: resp.StatusCode, Title: title, str: builder.String(), VHost: isvhost, WebServer: serverHeader, Response: serverResponseRaw}
+	output <- Result{URL: fullURL, ContentLength: resp.ContentLength, StatusCode: resp.StatusCode, Title: title, str: builder.String(), VHost: isvhost, WebServer: serverHeader, Response: serverResponseRaw, WebSocket: isWebSocket}
 }
 
 // Result of a scan
@@ -318,6 +324,7 @@ type Result struct {
 	VHost         bool   `json:"vhost"`
 	WebServer     string `json:"webserver"`
 	Response      string `json:"serverResponse,omitempty"`
+	WebSocket     bool   `json:"websocket,omitempty"`
 }
 
 // JSON the result
