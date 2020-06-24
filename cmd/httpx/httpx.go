@@ -62,6 +62,7 @@ func main() {
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
+	scanopts.OutputWebSocket = options.OutputWebSocket
 
 	// Try to create output folder if it doesnt exist
 	if options.StoreResponse && options.StoreResponseDir != "" && options.StoreResponseDir != "." {
@@ -185,6 +186,7 @@ type scanOptions struct {
 	StoreResponse          bool
 	StoreResponseDirectory string
 	OutputServerHeader     bool
+	OutputWebSocket        bool
 	OutputWithNoColor      bool
 	ResponseInStdout       bool
 }
@@ -296,7 +298,7 @@ retry:
 
 	// web socket
 	isWebSocket := resp.StatusCode == 101
-	if isWebSocket {
+	if scanopts.OutputWebSocket && isWebSocket {
 		builder.WriteString(" [websocket]")
 	}
 
@@ -363,6 +365,7 @@ type Options struct {
 	Verbose             bool
 	NoColor             bool
 	OutputServerHeader  bool
+	OutputWebSocket     bool
 	responseInStdout    bool
 	FollowHostRedirects bool
 }
@@ -394,6 +397,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Verbose, "verbose", false, "Verbose Mode")
 	flag.BoolVar(&options.NoColor, "no-color", false, "No Color")
 	flag.BoolVar(&options.OutputServerHeader, "web-server", false, "Prints out the Server header content")
+	flag.BoolVar(&options.OutputWebSocket, "websocket", false, "Prints out if the server exposes a websocket")
 	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Server response directly in the tool output (-json only)")
 	flag.Parse()
 
