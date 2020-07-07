@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -88,6 +89,13 @@ func main() {
 			}
 			defer f.Close()
 		}
+		
+		f.WriteString("[\n")
+		defer func() {
+			f.Seek(-2, io.SeekEnd)
+			f.WriteString("\n]")
+		}()
+		
 		for r := range output {
 			if r.err != nil {
 				continue
@@ -97,10 +105,8 @@ func main() {
 				row = r.JSON()
 			}
 
-			fmt.Println(row)
-			if f != nil {
-				f.WriteString(row + "\n")
-			}
+			gologger.Printf(row + "\n")
+			f.WriteString(row + ",\n")
 		}
 	}(output)
 
