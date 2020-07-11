@@ -16,6 +16,7 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 - [Installation Instructions](#installation-instructions)
     - [From Binary](#from-binary)
     - [From Source](#from-source)
+    - [From Github](#from-github)
 - [Running httpX to probe `7614` hosts](#running-httpx-to-probe-7614-hosts)
     - [Running httpx with stdin](#running-httpx-with-stdin)
     - [Running httpx with file input](#running-httpx-with-file-input)
@@ -96,6 +97,16 @@ httpx requires go1.13+ to install successfully. Run the following command to get
 
 ```bash
 > GO111MODULE=on go get -u -v github.com/projectdiscovery/httpx/cmd/httpx
+```
+
+### From Github
+
+```bash
+git clone https://github.com/projectdiscovery/httpx.git
+cd httpx/cmd/httpx
+go build .
+mv httpx /usr/local/bin/
+httpx -h
 ```
 
 In order to update the tool, you can use -u flag with `go get` command.
