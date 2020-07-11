@@ -355,7 +355,7 @@ type Options struct {
 	FollowRedirects     bool
 	StoreResponse       bool
 	StoreResponseDir    string
-	HttpProxy           string
+	Proxy           string
 	SocksProxy          string
 	JSONOutput          bool
 	InputFile           string
@@ -388,7 +388,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.StoreResponseDir, "store-response-dir", ".", "Store Response Directory (default current directory)")
 	flag.BoolVar(&options.FollowRedirects, "follow-redirects", false, "Follow Redirects")
 	flag.BoolVar(&options.FollowHostRedirects, "follow-host-redirects", false, "Only follow redirects on the same host")
-	flag.StringVar(&options.HttpProxy, "http-proxy", "", "Http Proxy")
+	flag.StringVar(&options.Proxy, "proxy", "", "Proxy, eg socks5://127.0.0.1:9050")
 	flag.BoolVar(&options.JSONOutput, "json", false, "JSON Output")
 	flag.StringVar(&options.InputFile, "l", "", "File containing domains")
 	flag.StringVar(&options.Method, "x", "GET", "Request Method")
