@@ -70,8 +70,8 @@ func New(options *Options) (*HTTPX, error) {
 		DisableKeepAlives: true,
 	}
 
-	if httpx.Options.HttpProxy != "" {
-		proxyURL, err := url.Parse(httpx.Options.HttpProxy)
+	if httpx.Options.Proxy != "" {
+		proxyURL, err := url.Parse(httpx.Options.Proxy)
 		if err != nil {
 			return nil, err
 		}
