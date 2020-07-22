@@ -34,6 +34,7 @@ func main() {
 	httpxOptions.FollowHostRedirects = options.FollowHostRedirects
 	httpxOptions.HttpProxy = options.HttpProxy
 
+	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
 	for _, customHeader := range options.CustomHeaders {
 		tokens := strings.Split(customHeader, ":")
@@ -41,8 +42,10 @@ func main() {
 		if len(tokens) < 2 {
 			continue
 		}
+		key = strings.TrimSpace(tokens[0])
+		value = strings.TrimSpace(tokens[1])
 
-		httpxOptions.CustomHeaders[tokens[0]] = tokens[1]
+		httpxOptions.CustomHeaders[key] = value
 	}
 
 	hp, err := httpx.New(&httpxOptions)
