@@ -174,6 +174,8 @@ func (h *HTTPX) NewRequest(method, URL string) (req *retryablehttp.Request, err 
 
 	// set default user agent
 	req.Header.Set("User-Agent", h.Options.DefaultUserAgent)
+	// set default encoding to accept utf8
+	req.Header.Add("Accept-Charset", "utf-8")
 	return
 }
 
