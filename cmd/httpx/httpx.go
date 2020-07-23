@@ -68,6 +68,7 @@ func main() {
 	scanopts.ResponseInStdout = options.responseInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
 	scanopts.TlsProbe = options.TLSProbe
+	scanopts.RequestURI = options.RequestURI
 
 	// Try to create output folder if it doesnt exist
 	if options.StoreResponse && options.StoreResponseDir != "" && options.StoreResponseDir != "." {
@@ -226,12 +227,13 @@ type scanOptions struct {
 	OutputWithNoColor      bool
 	ResponseInStdout       bool
 	TlsProbe               bool
+	RequestURI             string
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions) Result {
 	retried := false
 retry:
-	URL := fmt.Sprintf("%s://%s", protocol, domain)
+	URL := fmt.Sprintf("%s://%s%s", protocol, domain, scanopts.RequestURI)
 	if port > 0 {
 		URL = fmt.Sprintf("%s:%d", URL, port)
 	}
@@ -416,6 +418,7 @@ type Options struct {
 	responseInStdout    bool
 	FollowHostRedirects bool
 	TLSProbe            bool
+	RequestURI          string
 }
 
 // ParseOptions parses the command line options for application
@@ -448,6 +451,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.OutputWebSocket, "websocket", false, "Prints out if the server exposes a websocket")
 	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Server response directly in the tool output (-json only)")
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
+	flag.StringVar(&options.RequestURI, "path", "", "Request Path")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
