@@ -13,6 +13,7 @@ type Response struct {
 	Raw           string
 	Words         int
 	Lines         int
+	TlsData       *TlsData
 }
 
 // GetHeader value

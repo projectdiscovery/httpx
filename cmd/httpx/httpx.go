@@ -67,6 +67,7 @@ func main() {
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
+	scanopts.TlsProbe = options.TLSProbe
 
 	// Try to create output folder if it doesnt exist
 	if options.StoreResponse && options.StoreResponseDir != "" && options.StoreResponseDir != "." {
@@ -125,30 +126,7 @@ func main() {
 	}
 
 	for sc.Scan() {
-		for target := range targets(stringz.TrimProtocol(sc.Text())) {
-			// if no custom ports specified then test the default ones
-			if len(customport.Ports) == 0 {
-				wg.Add()
-				go func(target string) {
-					defer wg.Done()
-					analyze(hp, protocol, target, 0, &scanopts, output)
-				}(target)
-			}
-
-			// the host name shouldn't have any semicolon - in case remove the port
-			semicolonPosition := strings.LastIndex(target, ":")
-			if semicolonPosition > 0 {
-				target = target[:semicolonPosition]
-			}
-
-			for port := range customport.Ports {
-				wg.Add()
-				go func(port int) {
-					defer wg.Done()
-					analyze(hp, protocol, target, port, &scanopts, output)
-				}(port)
-			}
-		}
+		process(sc.Text(), &wg, hp, protocol, scanopts, output)
 	}
 
 	wg.Wait()
@@ -158,11 +136,65 @@ func main() {
 	wgoutput.Wait()
 }
 
+func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts scanOptions, output chan Result) {
+	for target := range targets(stringz.TrimProtocol(t)) {
+		// if no custom ports specified then test the default ones
+		if len(customport.Ports) == 0 {
+			wg.Add()
+			go func(target string) {
+				defer wg.Done()
+				r := analyze(hp, protocol, target, 0, &scanopts)
+				output <- r
+				if scanopts.TlsProbe && r.TlsData != nil {
+					scanopts.TlsProbe = false
+					for _, tt := range r.TlsData.DNSNames {
+						process(tt, wg, hp, protocol, scanopts, output)
+					}
+					for _, tt := range r.TlsData.CommonName {
+						process(tt, wg, hp, protocol, scanopts, output)
+					}
+				}
+			}(target)
+		}
+
+		// the host name shouldn't have any semicolon - in case remove the port
+		semicolonPosition := strings.LastIndex(target, ":")
+		if semicolonPosition > 0 {
+			target = target[:semicolonPosition]
+		}
+
+		for port := range customport.Ports {
+			wg.Add()
+			go func(port int) {
+				defer wg.Done()
+				r := analyze(hp, protocol, target, port, &scanopts)
+				output <- r
+				if scanopts.TlsProbe && r.TlsData != nil {
+					scanopts.TlsProbe = false
+					for _, tt := range r.TlsData.DNSNames {
+						process(tt, wg, hp, protocol, scanopts, output)
+					}
+					for _, tt := range r.TlsData.CommonName {
+						process(tt, wg, hp, protocol, scanopts, output)
+					}
+				}
+			}(port)
+		}
+	}
+}
+
 // returns all the targets within a cidr range or the single target
 func targets(target string) chan string {
 	results := make(chan string)
 	go func() {
 		defer close(results)
+
+		// A valid target does not contain:
+		// *
+		// spaces
+		if strings.ContainsAny(target, " *") {
+			return
+		}
 
 		// test if the target is a cidr
 		if iputil.IsCidr(target) {
@@ -193,9 +225,10 @@ type scanOptions struct {
 	OutputWebSocket        bool
 	OutputWithNoColor      bool
 	ResponseInStdout       bool
+	TlsProbe               bool
 }
 
-func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions, output chan Result) {
+func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions) Result {
 	retried := false
 retry:
 	URL := fmt.Sprintf("%s://%s", protocol, domain)
@@ -205,15 +238,13 @@ retry:
 
 	req, err := hp.NewRequest(scanopts.Method, URL)
 	if err != nil {
-		output <- Result{URL: URL, err: err}
-		return
+		return Result{URL: URL, err: err}
 	}
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
 
 	resp, err := hp.Do(req)
 	if err != nil {
-		output <- Result{URL: URL, err: err}
 		if !retried {
 			if protocol == "https" {
 				protocol = "http"
@@ -223,7 +254,7 @@ retry:
 			retried = true
 			goto retry
 		}
-		return
+		return Result{URL: URL, err: err}
 	}
 
 	var fullURL string
@@ -316,7 +347,18 @@ retry:
 		}
 	}
 
-	output <- Result{URL: fullURL, ContentLength: resp.ContentLength, StatusCode: resp.StatusCode, Title: title, str: builder.String(), VHost: isvhost, WebServer: serverHeader, Response: serverResponseRaw, WebSocket: isWebSocket}
+	return Result{
+		URL:           fullURL,
+		ContentLength: resp.ContentLength,
+		StatusCode:    resp.StatusCode,
+		Title:         title,
+		str:           builder.String(),
+		VHost:         isvhost,
+		WebServer:     serverHeader,
+		Response:      serverResponseRaw,
+		WebSocket:     isWebSocket,
+		TlsData:       resp.TlsData,
+	}
 }
 
 // Result of a scan
@@ -327,10 +369,11 @@ type Result struct {
 	Title         string `json:"title"`
 	str           string
 	err           error
-	VHost         bool   `json:"vhost"`
-	WebServer     string `json:"webserver"`
-	Response      string `json:"serverResponse,omitempty"`
-	WebSocket     bool   `json:"websocket,omitempty"`
+	VHost         bool           `json:"vhost"`
+	WebServer     string         `json:"webserver"`
+	Response      string         `json:"serverResponse,omitempty"`
+	WebSocket     bool           `json:"websocket,omitempty"`
+	TlsData       *httpx.TlsData `json:"tls,omitempty"`
 }
 
 // JSON the result
@@ -372,6 +415,7 @@ type Options struct {
 	OutputWebSocket     bool
 	responseInStdout    bool
 	FollowHostRedirects bool
+	TLSProbe            bool
 }
 
 // ParseOptions parses the command line options for application
@@ -403,6 +447,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.OutputServerHeader, "web-server", false, "Prints out the Server header content")
 	flag.BoolVar(&options.OutputWebSocket, "websocket", false, "Prints out if the server exposes a websocket")
 	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Server response directly in the tool output (-json only)")
+	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
