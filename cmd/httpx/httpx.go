@@ -189,6 +189,13 @@ func targets(target string) chan string {
 	go func() {
 		defer close(results)
 
+		// A valid target does not contain:
+		// *
+		// spaces
+		if strings.ContainsAny(target, " *") {
+			return
+		}
+
 		// test if the target is a cidr
 		if iputil.IsCidr(target) {
 			cidrIps, err := iputil.Ips(target)
