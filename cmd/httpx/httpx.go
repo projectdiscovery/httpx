@@ -263,9 +263,9 @@ retry:
 
 	if resp.StatusCode >= 0 {
 		if port > 0 {
-			fullURL = fmt.Sprintf("%s://%s:%d", protocol, domain, port)
+			fullURL = fmt.Sprintf("%s://%s:%d%s", protocol, domain, port, scanopts.RequestURI)
 		} else {
-			fullURL = fmt.Sprintf("%s://%s", protocol, domain)
+			fullURL = fmt.Sprintf("%s://%s%s", protocol, domain, scanopts.RequestURI)
 		}
 	}
 
