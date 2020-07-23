@@ -8,12 +8,29 @@ import (
 )
 
 // ExtractTitle from a response
-func ExtractTitle(r *Response) string {
+func ExtractTitle(r *Response) (title string) {
 	var re = regexp.MustCompile(`(?im)<\s*title *>(.*?)<\s*/\s*title>`)
 	for _, match := range re.FindAllString(r.Raw, -1) {
-		return html.UnescapeString(trimTitleTags(match))
+		title = html.UnescapeString(trimTitleTags(match))
+		break
 	}
-	return ""
+
+	// Non UTF-8
+	if contentTypes, ok := r.Headers["Content-Type"]; ok {
+		contentType := strings.Join(contentTypes, ";")
+
+		// special cases
+		if strings.Contains(contentType, "charset=GB2312") {
+			titleUtf8, err := Decodegbk([]byte(title))
+			if err != nil {
+				return
+			}
+
+			return string(titleUtf8)
+		}
+	}
+
+	return
 }
 
 func trimTitleTags(title string) string {
