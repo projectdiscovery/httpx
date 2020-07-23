@@ -134,6 +134,9 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	// number of lines
 	resp.Lines = len(strings.Split(respbodystr, "\n"))
 
+	// extracts TLS data if any
+	resp.TlsData = h.TlsGrab(httpresp)
+
 	return &resp, nil
 }
 

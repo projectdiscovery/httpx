@@ -316,7 +316,18 @@ retry:
 		}
 	}
 
-	output <- Result{URL: fullURL, ContentLength: resp.ContentLength, StatusCode: resp.StatusCode, Title: title, str: builder.String(), VHost: isvhost, WebServer: serverHeader, Response: serverResponseRaw, WebSocket: isWebSocket}
+	output <- Result{
+		URL:           fullURL,
+		ContentLength: resp.ContentLength,
+		StatusCode:    resp.StatusCode,
+		Title:         title,
+		str:           builder.String(),
+		VHost:         isvhost,
+		WebServer:     serverHeader,
+		Response:      serverResponseRaw,
+		WebSocket:     isWebSocket,
+		TlsData:       resp.TlsData,
+	}
 }
 
 // Result of a scan
@@ -327,10 +338,11 @@ type Result struct {
 	Title         string `json:"title"`
 	str           string
 	err           error
-	VHost         bool   `json:"vhost"`
-	WebServer     string `json:"webserver"`
-	Response      string `json:"serverResponse,omitempty"`
-	WebSocket     bool   `json:"websocket,omitempty"`
+	VHost         bool           `json:"vhost"`
+	WebServer     string         `json:"webserver"`
+	Response      string         `json:"serverResponse,omitempty"`
+	WebSocket     bool           `json:"websocket,omitempty"`
+	TlsData       *httpx.TlsData `json:"tls,omitempty"`
 }
 
 // JSON the result
