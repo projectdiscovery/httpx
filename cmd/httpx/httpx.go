@@ -19,6 +19,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/httpx/common/iputil"
+	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/remeh/sizedwaitgroup"
 )
@@ -98,6 +99,21 @@ func main() {
 			if r.err != nil {
 				continue
 			}
+
+			// apply matchers and filters
+			if len(options.filterStatusCode) > 0 && slice.IntSliceContains(options.filterStatusCode, r.StatusCode) {
+				continue
+			}
+			if len(options.filterContentLength) > 0 && slice.IntSliceContains(options.filterContentLength, r.ContentLength) {
+				continue
+			}
+			if len(options.matchStatusCode) > 0 && !slice.IntSliceContains(options.matchStatusCode, r.StatusCode) {
+				continue
+			}
+			if len(options.matchContentLength) > 0 && !slice.IntSliceContains(options.matchContentLength, r.ContentLength) {
+				continue
+			}
+
 			row := r.str
 			if options.JSONOutput {
 				row = r.JSON()
@@ -403,37 +419,45 @@ func (r *Result) JSON() string {
 
 // Options contains configuration options for chaos client.
 type Options struct {
-	RawRequestFile      string
-	VHost               bool
-	Smuggling           bool
-	ExtractTitle        bool
-	StatusCode          bool
-	ContentLength       bool
-	Retries             int
-	Threads             int
-	Timeout             int
-	CustomHeaders       customheader.CustomHeaders
-	CustomPorts         customport.CustomPorts
-	Output              string
-	FollowRedirects     bool
-	StoreResponse       bool
-	StoreResponseDir    string
-	HttpProxy           string
-	SocksProxy          string
-	JSONOutput          bool
-	InputFile           string
-	Method              string
-	Silent              bool
-	Version             bool
-	Verbose             bool
-	NoColor             bool
-	OutputServerHeader  bool
-	OutputWebSocket     bool
-	responseInStdout    bool
-	FollowHostRedirects bool
-	TLSProbe            bool
-	RequestURI          string
-	OutputContentType   bool
+	RawRequestFile            string
+	VHost                     bool
+	Smuggling                 bool
+	ExtractTitle              bool
+	StatusCode                bool
+	ContentLength             bool
+	Retries                   int
+	Threads                   int
+	Timeout                   int
+	CustomHeaders             customheader.CustomHeaders
+	CustomPorts               customport.CustomPorts
+	Output                    string
+	FollowRedirects           bool
+	StoreResponse             bool
+	StoreResponseDir          string
+	HttpProxy                 string
+	SocksProxy                string
+	JSONOutput                bool
+	InputFile                 string
+	Method                    string
+	Silent                    bool
+	Version                   bool
+	Verbose                   bool
+	NoColor                   bool
+	OutputServerHeader        bool
+	OutputWebSocket           bool
+	responseInStdout          bool
+	FollowHostRedirects       bool
+	TLSProbe                  bool
+	RequestURI                string
+	OutputContentType         bool
+	OutputMatchStatusCode     string
+	matchStatusCode           []int
+	OutputMatchContentLength  string
+	matchContentLength        []int
+	OutputFilterStatusCode    string
+	filterStatusCode          []int
+	OutputFilterContentLength string
+	filterContentLength       []int
 }
 
 // ParseOptions parses the command line options for application
@@ -468,6 +492,10 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
 	flag.StringVar(&options.RequestURI, "path", "", "Request Path")
 	flag.BoolVar(&options.OutputContentType, "content-type", false, "Prints out the Content-Type header value")
+	flag.StringVar(&options.OutputMatchStatusCode, "mc", "", "match status code")
+	flag.StringVar(&options.OutputMatchStatusCode, "ml", "", "match content length")
+	flag.StringVar(&options.OutputFilterStatusCode, "fc", "", "filter status code")
+	flag.StringVar(&options.OutputFilterContentLength, "fl", "", "filter content length")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
@@ -488,6 +516,20 @@ func ParseOptions() *Options {
 func (options *Options) validateOptions() {
 	if options.InputFile != "" && !fileutil.FileExists(options.InputFile) {
 		gologger.Fatalf("File %s does not exist!\n", options.InputFile)
+	}
+
+	var err error
+	if options.matchStatusCode, err = stringz.StringToSliceInt(options.OutputMatchStatusCode); err != nil {
+		gologger.Fatalf("Invalid value for match status code option: %s\n", err)
+	}
+	if options.matchContentLength, err = stringz.StringToSliceInt(options.OutputMatchContentLength); err != nil {
+		gologger.Fatalf("Invalid value for match content length option: %s\n", err)
+	}
+	if options.filterStatusCode, err = stringz.StringToSliceInt(options.OutputFilterStatusCode); err != nil {
+		gologger.Fatalf("Invalid value for filter status code option: %s\n", err)
+	}
+	if options.filterContentLength, err = stringz.StringToSliceInt(options.OutputFilterContentLength); err != nil {
+		gologger.Fatalf("Invalid value for filter content length option: %s\n", err)
 	}
 }
 
