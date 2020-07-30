@@ -71,7 +71,7 @@ func main() {
 	scanopts.RequestURI = options.RequestURI
 
 	// Try to create output folder if it doesnt exist
-	if options.StoreResponse && options.StoreResponseDir != "" && options.StoreResponseDir != "." {
+	if options.StoreResponse && !fileutil.FolderExists(options.StoreResponseDir) {
 		if err := os.MkdirAll(options.StoreResponseDir, os.ModePerm); err != nil {
 			gologger.Fatalf("Could not create output directory '%s': %s\n", options.StoreResponseDir, err)
 		}
@@ -435,8 +435,8 @@ func ParseOptions() *Options {
 	flag.Var(&options.CustomHeaders, "H", "Custom Header")
 	flag.Var(&options.CustomPorts, "ports", "ports range (nmap syntax: eg 1,2-10,11)")
 	flag.BoolVar(&options.ContentLength, "content-length", false, "Content Length")
-	flag.BoolVar(&options.StoreResponse, "store-response", false, "Store Response as domain.txt")
-	flag.StringVar(&options.StoreResponseDir, "store-response-dir", ".", "Store Response Directory (default current directory)")
+	flag.BoolVar(&options.StoreResponse, "sr", false, "Store Response as domain.txt")
+	flag.StringVar(&options.StoreResponseDir, "store-response-dir", "output", "Store Response Directory (default 'output directory)")
 	flag.BoolVar(&options.FollowRedirects, "follow-redirects", false, "Follow Redirects")
 	flag.BoolVar(&options.FollowHostRedirects, "follow-host-redirects", false, "Only follow redirects on the same host")
 	flag.StringVar(&options.HttpProxy, "http-proxy", "", "Http Proxy, eg http://127.0.0.1:8080")
