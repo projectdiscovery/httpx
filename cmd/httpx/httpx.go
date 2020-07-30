@@ -68,6 +68,7 @@ func main() {
 	scanopts.ResponseInStdout = options.responseInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
 	scanopts.TlsProbe = options.TLSProbe
+	scanopts.RequestURI = options.RequestURI
 
 	// Try to create output folder if it doesnt exist
 	if options.StoreResponse && options.StoreResponseDir != "" && options.StoreResponseDir != "." {
@@ -226,12 +227,13 @@ type scanOptions struct {
 	OutputWithNoColor      bool
 	ResponseInStdout       bool
 	TlsProbe               bool
+	RequestURI             string
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions) Result {
 	retried := false
 retry:
-	URL := fmt.Sprintf("%s://%s", protocol, domain)
+	URL := fmt.Sprintf("%s://%s%s", protocol, domain, scanopts.RequestURI)
 	if port > 0 {
 		URL = fmt.Sprintf("%s:%d", URL, port)
 	}
@@ -261,9 +263,9 @@ retry:
 
 	if resp.StatusCode >= 0 {
 		if port > 0 {
-			fullURL = fmt.Sprintf("%s://%s:%d", protocol, domain, port)
+			fullURL = fmt.Sprintf("%s://%s:%d%s", protocol, domain, port, scanopts.RequestURI)
 		} else {
-			fullURL = fmt.Sprintf("%s://%s", protocol, domain)
+			fullURL = fmt.Sprintf("%s://%s%s", protocol, domain, scanopts.RequestURI)
 		}
 	}
 
@@ -339,7 +341,7 @@ retry:
 
 	// store responses in directory
 	if scanopts.StoreResponse {
-		var domainFile = strings.Replace(domain, "/", "_", -1) + ".txt"
+		var domainFile = strings.Replace(domain+scanopts.RequestURI, "/", "_", -1) + ".txt"
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 		err := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
 		if err != nil {
@@ -416,6 +418,7 @@ type Options struct {
 	responseInStdout    bool
 	FollowHostRedirects bool
 	TLSProbe            bool
+	RequestURI          string
 }
 
 // ParseOptions parses the command line options for application
@@ -448,6 +451,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.OutputWebSocket, "websocket", false, "Prints out if the server exposes a websocket")
 	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Server response directly in the tool output (-json only)")
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
+	flag.StringVar(&options.RequestURI, "path", "", "Request Path")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
