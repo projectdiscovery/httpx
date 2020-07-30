@@ -341,7 +341,7 @@ retry:
 
 	// store responses in directory
 	if scanopts.StoreResponse {
-		var domainFile = strings.Replace(domain, "/", "_", -1) + ".txt"
+		var domainFile = strings.Replace(domain+scanopts.RequestURI, "/", "_", -1) + ".txt"
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 		err := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
 		if err != nil {
