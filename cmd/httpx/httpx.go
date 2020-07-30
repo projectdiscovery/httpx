@@ -69,6 +69,7 @@ func main() {
 	scanopts.OutputWebSocket = options.OutputWebSocket
 	scanopts.TlsProbe = options.TLSProbe
 	scanopts.RequestURI = options.RequestURI
+	scanopts.OutputContentType = options.OutputContentType
 
 	// Try to create output folder if it doesnt exist
 	if options.StoreResponse && !fileutil.FolderExists(options.StoreResponseDir) {
@@ -228,6 +229,7 @@ type scanOptions struct {
 	ResponseInStdout       bool
 	TlsProbe               bool
 	RequestURI             string
+	OutputContentType      bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions) Result {
@@ -303,6 +305,16 @@ retry:
 		builder.WriteRune(']')
 	}
 
+	if scanopts.OutputContentType {
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(resp.GetHeader("Content-Type")).String())
+		} else {
+			builder.WriteString(resp.GetHeader("content-type"))
+		}
+		builder.WriteRune(']')
+	}
+
 	title := httpx.ExtractTitle(resp)
 	if scanopts.OutputTitle {
 		builder.WriteString(" [")
@@ -353,6 +365,7 @@ retry:
 		URL:           fullURL,
 		ContentLength: resp.ContentLength,
 		StatusCode:    resp.StatusCode,
+		ContentType:   resp.GetHeader("Content-Type"),
 		Title:         title,
 		str:           builder.String(),
 		VHost:         isvhost,
@@ -375,6 +388,7 @@ type Result struct {
 	WebServer     string         `json:"webserver"`
 	Response      string         `json:"serverResponse,omitempty"`
 	WebSocket     bool           `json:"websocket,omitempty"`
+	ContentType   string         `json:"content-type,omitempty"`
 	TlsData       *httpx.TlsData `json:"tls,omitempty"`
 }
 
@@ -419,6 +433,7 @@ type Options struct {
 	FollowHostRedirects bool
 	TLSProbe            bool
 	RequestURI          string
+	OutputContentType   bool
 }
 
 // ParseOptions parses the command line options for application
@@ -452,6 +467,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Server response directly in the tool output (-json only)")
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
 	flag.StringVar(&options.RequestURI, "path", "", "Request Path")
+	flag.BoolVar(&options.OutputContentType, "content-type", false, "Prints out the Content-Type header value")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
