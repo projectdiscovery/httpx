@@ -27,10 +27,11 @@ func (r *Response) GetHeader(name string) string {
 }
 
 // GetHeaderPart with offset
-func (r *Response) GetHeaderPart(name string, at int) string {
+func (r *Response) GetHeaderPart(name string, sep string) string {
 	v, ok := r.Headers[name]
-	if ok && at < len(v) {
-		return v[at]
+	if ok && len(v) > 0 {
+		tokens := strings.SplitN(strings.Join(v, " "), sep, 1)
+		return tokens[0]
 	}
 
 	return ""
