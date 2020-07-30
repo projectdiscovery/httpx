@@ -475,7 +475,7 @@ func ParseOptions() *Options {
 	flag.Var(&options.CustomPorts, "ports", "ports range (nmap syntax: eg 1,2-10,11)")
 	flag.BoolVar(&options.ContentLength, "content-length", false, "Content Length")
 	flag.BoolVar(&options.StoreResponse, "sr", false, "Store Response as domain.txt")
-	flag.StringVar(&options.StoreResponseDir, "store-response-dir", "output", "Store Response Directory (default 'output directory)")
+	flag.StringVar(&options.StoreResponseDir, "srd", "output", "Store Response Directory (default 'output directory)")
 	flag.BoolVar(&options.FollowRedirects, "follow-redirects", false, "Follow Redirects")
 	flag.BoolVar(&options.FollowHostRedirects, "follow-host-redirects", false, "Only follow redirects on the same host")
 	flag.StringVar(&options.HttpProxy, "http-proxy", "", "Http Proxy, eg http://127.0.0.1:8080")
