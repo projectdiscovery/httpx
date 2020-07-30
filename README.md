@@ -48,34 +48,41 @@ httpx -h
 
 This will display help for the tool. Here are all the switches it supports.
 
-| Flag                    | Description                                           | Example                                            |
-|------------------------ |-------------------------------------------------------|----------------------------------------------------|
-| -H                 | Custom Header input                                   | httpx -H 'x-bug-bounty: hacker'                    |
-| -follow-redirects  | Follow URL redirects (default false)                  | httpx -follow-redirects                            |
-| -follow-host-redirects  | Follow URL redirects only when staying on the same host (default false)  | httpx -follow-host-redirects|
-| -http-proxy        | URL of the proxy server                               | httpx -http-proxy hxxp://proxy-host:80             |
-| -l                 | File containing host/urls to process                  | httpx -l hosts.txt                                |
-| -l                 | File containing CIDR to process                       | httpx -l cidr.txt                                |
-| -no-color          | Disable colors in the output.                         | httpx -no-color                                    |
-| -o                 | File to save output result (optional)                 | httpx -o output.txt                                |
-| -json              | Prints all the probes in JSON format (default false)  | httpx -json                                        |
-| -vhost             | Probes to detect vhost from list of subdomains        | httpx -vhost                                       |
-| -threads           | Number of threads (default 50)                        | httpx - threads 100                                |
-| -ports             | Ports ranges to probe (nmap syntax: eg 1,2-10,11)     | httpx -ports 80,443,100-200                        |
-| -title             | Prints title of page if available                     | httpx -title                                       |
-| -content-length    | Prints content length in the output                   | httpx -content-length                              |
-| -status-code       | Prints status code in the output                      | httpx -status-code                                 |
-| -web-server        | Prints running web sever if available                 | httpx -web-server                               |
-| -store-response    | Store response as domain.txt                          | httpx -store-response                              |
-| -store-response-dir| Directory to store response (default current path)    | httpx -store-response-dir output                   | 
-| -retries           | Number of retries                                     | httpx -retries                                     |
-| -silent            | Prints only results in the output                     | httpx -silent                                      |
-| -timeout           | Timeout in seconds (default 5)                        | httpx -timeout 10                                  |
-| -verbose           | Verbose Mode                                          | httpx -verbose                                     |
-| -version           | Prints current version of the httpx                   | httpx -version                                     |
-| -x                 | Request Method (default 'GET')                        | httpx -x HEAD                                      |
-| -response-in-json  | Include response in stdout (only works with -json)    | httpx -response-in-json                       |
-| -websocket         | Prints if a websocket is exposed                      | httpx -websocket                         |
+| Flag                    | Description                                             | Example                                            |
+|------------------------ |-------------------------------------------------------  |----------------------------------------------------|
+| -H                      | Custom Header input                                     | httpx -H 'x-bug-bounty: hacker'                    |
+| -follow-redirects       | Follow URL redirects (default false)                    | httpx -follow-redirects                            |
+| -follow-host-redirects  | Follow URL redirects only on same host(default false)   | httpx -follow-host-redirects                       |
+| -http-proxy             | URL of the proxy server                                 | httpx -http-proxy hxxp://proxy-host:80             |
+| -l                      | File containing host/urls to process                    | httpx -l hosts.txt                                 |
+| -l                      | File containing CIDR to process                         | httpx -l cidr.txt                                  |
+| -no-color               | Disable colors in the output.                           | httpx -no-color                                    |
+| -o                      | File to save output result (optional)                   | httpx -o output.txt                                |
+| -json                   | Prints all the probes in JSON format (default false)    | httpx -json                                        |
+| -vhost                  | Probes to detect vhost from list of subdomains          | httpx -vhost                                       |
+| -threads                | Number of threads (default 50)                          | httpx -threads 100                                 |
+| -ports                  | Ports ranges to probe (nmap syntax: eg 1,2-10,11)       | httpx -ports 80,443,100-200                        |
+| -title                  | Prints title of page if available                       | httpx -title                                       |
+| -path                   | Request path/file                                       | httpx -path /api                                   |
+| -content-length         | Prints content length in the output                     | httpx -content-length                              |
+| -ml                     | Match content length in the output                      | httpx -content-length -ml 125                      |
+| -fl                     | Filter content length in the output                     | httpx -content-length -fl 0,43                     |
+| -status-code            | Prints status code in the output                        | httpx -status-code                                 |
+| -mc                     | Match status code in the output                         | httpx -status-code -mc 200,302                     |
+| -fc                     | Filter status code in the output                        | httpx -status-code -fc 404,500                     |
+| -tls-probe              | Send HTTP probes on the extracted TLS domains           | httpx -tls-probe                                   |
+| -content-type           | Prints content-type                                     | httpx -content-type                                |
+| -web-server             | Prints running web sever if available                   | httpx -web-server                                  |
+| -sr                     | Store response as domain.txt                            | httpx -store-response                              |
+| -srd                    | Directory to store response (default current path)      | httpx -store-response-dir output                   | 
+| -retries                | Number of retries                                       | httpx -retries                                     |
+| -silent                 | Prints only results in the output                       | httpx -silent                                      |
+| -timeout                | Timeout in seconds (default 5)                          | httpx -timeout 10                                  |
+| -verbose                | Verbose Mode                                            | httpx -verbose                                     |
+| -version                | Prints current version of the httpx                     | httpx -version                                     |
+| -x                      | Request Method (default 'GET')                          | httpx -x HEAD                                      |
+| -response-in-json       | Include response in stdout (only works with -json)      | httpx -response-in-json                            |
+| -websocket              | Prints if a websocket is exposed                        | httpx -websocket                                   |
 
 
 # Installation Instructions
@@ -87,7 +94,7 @@ The installation is easy. You can download the pre-built binaries for your platf
 
 ```bash
 > tar -xvf httpx-linux-amd64.tar
-> mv httpx-linux-amd64 /usr/bin/httpx
+> mv httpx-linux-amd64 /usr/local/bin/httpx
 > httpx -h
 ```
 
