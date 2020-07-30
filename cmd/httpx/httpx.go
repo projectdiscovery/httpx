@@ -308,7 +308,7 @@ retry:
 	if scanopts.OutputContentType {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Magenta(resp.GetHeader("Content-Type")).String())
+			builder.WriteString(aurora.Magenta(resp.GetHeaderPart("Content-Type", 0)).String())
 		} else {
 			builder.WriteString(resp.GetHeader("content-type"))
 		}
@@ -365,7 +365,7 @@ retry:
 		URL:           fullURL,
 		ContentLength: resp.ContentLength,
 		StatusCode:    resp.StatusCode,
-		ContentType:   resp.GetHeader("Content-Type"),
+		ContentType:   resp.GetHeaderPart("Content-Type", 0),
 		Title:         title,
 		str:           builder.String(),
 		VHost:         isvhost,

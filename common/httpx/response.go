@@ -25,3 +25,13 @@ func (r *Response) GetHeader(name string) string {
 
 	return ""
 }
+
+// GetHeaderPart with offset
+func (r *Response) GetHeaderPart(name string, at int) string {
+	v, ok := r.Headers[name]
+	if ok && at < len(v) {
+		return v[at]
+	}
+
+	return ""
+}
