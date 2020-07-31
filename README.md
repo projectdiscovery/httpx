@@ -49,13 +49,12 @@ httpx -h
 This will display help for the tool. Here are all the switches it supports.
 
 | Flag                    | Description                                             | Example                                            |
-|------------------------ |-------------------------------------------------------  |----------------------------------------------------|
+|-------------------------|---------------------------------------------------------|----------------------------------------------------|
 | -H                      | Custom Header input                                     | httpx -H 'x-bug-bounty: hacker'                    |
 | -follow-redirects       | Follow URL redirects (default false)                    | httpx -follow-redirects                            |
 | -follow-host-redirects  | Follow URL redirects only on same host(default false)   | httpx -follow-host-redirects                       |
 | -http-proxy             | URL of the proxy server                                 | httpx -http-proxy hxxp://proxy-host:80             |
-| -l                      | File containing host/urls to process                    | httpx -l hosts.txt                                 |
-| -l                      | File containing CIDR to process                         | httpx -l cidr.txt                                  |
+| -l                      | File containing HOST/URLs/CIDR to process               | httpx -l hosts.txt                                 |
 | -no-color               | Disable colors in the output.                           | httpx -no-color                                    |
 | -o                      | File to save output result (optional)                   | httpx -o output.txt                                |
 | -json                   | Prints all the probes in JSON format (default false)    | httpx -json                                        |
@@ -73,8 +72,8 @@ This will display help for the tool. Here are all the switches it supports.
 | -tls-probe              | Send HTTP probes on the extracted TLS domains           | httpx -tls-probe                                   |
 | -content-type           | Prints content-type                                     | httpx -content-type                                |
 | -web-server             | Prints running web sever if available                   | httpx -web-server                                  |
-| -sr                     | Store response as domain.txt                            | httpx -store-response                              |
-| -srd                    | Directory to store response (default current path)      | httpx -store-response-dir output                   | 
+| -sr                     | Store responses to file (default false)                 | httpx -store-response                              |
+| -srd                    | Directory to store response (default output)            | httpx -store-response-dir output                   | 
 | -retries                | Number of retries                                       | httpx -retries                                     |
 | -silent                 | Prints only results in the output                       | httpx -silent                                      |
 | -timeout                | Timeout in seconds (default 5)                          | httpx -timeout 10                                  |
