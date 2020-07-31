@@ -326,7 +326,7 @@ retry:
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Magenta(resp.GetHeaderPart("Content-Type", ";")).String())
 		} else {
-			builder.WriteString(resp.GetHeader("content-type"))
+			builder.WriteString(resp.GetHeaderPart("Content-Type", ";"))
 		}
 		builder.WriteRune(']')
 	}
