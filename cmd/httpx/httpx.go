@@ -44,7 +44,7 @@ func main() {
 			continue
 		}
 		key = strings.TrimSpace(tokens[0])
-		value = strings.TrimSpace(tokens[1])
+		value = strings.TrimSpace(strings.Join(tokens[1:],""))
 
 		httpxOptions.CustomHeaders[key] = value
 	}
