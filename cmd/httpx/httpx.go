@@ -381,6 +381,7 @@ retry:
 		URL:           fullURL,
 		ContentLength: resp.ContentLength,
 		StatusCode:    resp.StatusCode,
+		Location:      resp.GetHeaderPart("Location", ";"),
 		ContentType:   resp.GetHeaderPart("Content-Type", ";"),
 		Title:         title,
 		str:           builder.String(),
@@ -397,6 +398,7 @@ type Result struct {
 	URL           string `json:"url"`
 	ContentLength int    `json:"content-length"`
 	StatusCode    int    `json:"status-code"`
+	Location      string `json:"location"`
 	Title         string `json:"title"`
 	str           string
 	err           error
