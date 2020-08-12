@@ -60,6 +60,7 @@ func main() {
 	scanopts.VHost = options.VHost
 	scanopts.OutputTitle = options.ExtractTitle
 	scanopts.OutputStatusCode = options.StatusCode
+	scanopts.OutputLocation = options.Location
 	scanopts.OutputContentLength = options.ContentLength
 	scanopts.StoreResponse = options.StoreResponse
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
@@ -236,6 +237,7 @@ type scanOptions struct {
 	VHost                  bool
 	OutputTitle            bool
 	OutputStatusCode       bool
+    OutputLocation         bool
 	OutputContentLength    bool
 	StoreResponse          bool
 	StoreResponseDirectory string
@@ -307,6 +309,16 @@ retry:
 			}
 		} else {
 			builder.WriteString(strconv.Itoa(resp.StatusCode))
+		}
+		builder.WriteRune(']')
+	}
+
+	if scanopts.OutputLocation {
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(resp.GetHeaderPart("Location", ";")).String())
+		} else {
+			builder.WriteString(resp.GetHeaderPart("Location", ";"))
 		}
 		builder.WriteRune(']')
 	}
@@ -426,6 +438,7 @@ type Options struct {
 	Smuggling                 bool
 	ExtractTitle              bool
 	StatusCode                bool
+	Location                  bool
 	ContentLength             bool
 	Retries                   int
 	Threads                   int
@@ -473,6 +486,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.VHost, "vhost", false, "Check for VHOSTs")
 	flag.BoolVar(&options.ExtractTitle, "title", false, "Extracts title")
 	flag.BoolVar(&options.StatusCode, "status-code", false, "Extracts status code")
+	flag.BoolVar(&options.Location, "location", false, "Extracts location header")
 	flag.Var(&options.CustomHeaders, "H", "Custom Header")
 	flag.Var(&options.CustomPorts, "ports", "ports range (nmap syntax: eg 1,2-10,11)")
 	flag.BoolVar(&options.ContentLength, "content-length", false, "Extracts content length")
