@@ -1,3 +1,9 @@
+[![GitHub Release](https://img.shields.io/github/release/projectdiscovery/httpx)](https://github.com/projectdiscovery/httpx/releases)
+[![GitHub Release Date](https://img.shields.io/github/release-date/projectdiscovery/httpx)](https://github.com/projectdiscovery/httpx/releases/latest)
+[![Follow on Twitter](https://img.shields.io/twitter/follow/pdiscoveryio.svg?logo=twitter)](https://twitter.com/pdiscoveryio)
+[![Chat on Discord](https://img.shields.io/discord/695645237418131507.svg?logo=discord)](https://discord.gg/KECAGdH)
+[![Docker Images](https://img.shields.io/docker/pulls/projectdiscovery/httpx.svg)](https://hub.docker.com/r/projectdiscovery/httpx)
+
 <h1 align="left">
   <img src="static/httpx-logo.png" alt="httpx" width="200px"></a>
   <br>
@@ -102,7 +108,7 @@ The installation is easy. You can download the pre-built binaries for your platf
 httpx requires go1.13+ to install successfully. Run the following command to get the repo - 
 
 ```bash
-> GO111MODULE=on go get -u -v github.com/projectdiscovery/httpx/cmd/httpx
+> GO111MODULE=auto go get -u -v github.com/projectdiscovery/httpx/cmd/httpx
 ```
 
 ### From Github
