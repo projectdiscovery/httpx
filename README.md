@@ -1,9 +1,3 @@
-[![GitHub Release](https://img.shields.io/github/release/projectdiscovery/httpx)](https://github.com/projectdiscovery/httpx/releases)
-[![GitHub Release Date](https://img.shields.io/github/release-date/projectdiscovery/httpx)](https://github.com/projectdiscovery/httpx/releases/latest)
-[![Follow on Twitter](https://img.shields.io/twitter/follow/pdiscoveryio.svg?logo=twitter)](https://twitter.com/pdiscoveryio)
-[![Chat on Discord](https://img.shields.io/discord/695645237418131507.svg?logo=discord)](https://discord.gg/KECAGdH)
-[![Docker Images](https://img.shields.io/docker/pulls/projectdiscovery/httpx.svg)](https://hub.docker.com/r/projectdiscovery/httpx)
-
 <h1 align="left">
   <img src="static/httpx-logo.png" alt="httpx" width="200px"></a>
   <br>
@@ -12,6 +6,10 @@
 [![License](https://img.shields.io/badge/license-MIT-_red.svg)](https://opensource.org/licenses/MIT)
 [![Go Report Card](https://goreportcard.com/badge/github.com/projectdiscovery/httpx)](https://goreportcard.com/report/github.com/projectdiscovery/httpx)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/projectdiscovery/httpx/issues)
+[![GitHub Release](https://img.shields.io/github/release/projectdiscovery/httpx)](https://github.com/projectdiscovery/httpx/releases)
+[![Follow on Twitter](https://img.shields.io/twitter/follow/pdiscoveryio.svg?logo=twitter)](https://twitter.com/pdiscoveryio)
+[![Docker Images](https://img.shields.io/docker/pulls/projectdiscovery/httpx.svg)](https://hub.docker.com/r/projectdiscovery/httpx)
+[![Chat on Discord](https://img.shields.io/discord/695645237418131507.svg?logo=discord)](https://discord.gg/KECAGdH)
 
 httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library, it is designed to maintain the result reliability with increased threads.
 
