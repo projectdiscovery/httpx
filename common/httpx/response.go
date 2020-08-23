@@ -14,6 +14,7 @@ type Response struct {
 	Words         int
 	Lines         int
 	TlsData       *TlsData
+	CspData       *CspData
 }
 
 // GetHeader value
