@@ -254,7 +254,7 @@ func targets(target string) chan string {
 
 		// test if the target is a cidr
 		if iputil.IsCidr(target) {
-			cidrIps, err := mapcidr.Ips(target)
+			cidrIps, err := mapcidr.IPAddresses(target)
 			if err != nil {
 				return
 			}
