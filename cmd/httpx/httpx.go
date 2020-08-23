@@ -23,6 +23,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/mapcidr"
+	"github.com/projectdiscovery/rawhttp"
 	"github.com/remeh/sizedwaitgroup"
 )
 
@@ -76,6 +77,14 @@ func main() {
 		}
 		scanopts.RequestBody = rrBody
 		options.rawRequest = string(rawRequest)
+	}
+
+	// disable automatic host header for rawhttp if manually specified
+	if options.Unsafe {
+		_, ok := httpxOptions.CustomHeaders["Host"]
+		if ok {
+			rawhttp.AutomaticHostHeader(false)
+		}
 	}
 
 	scanopts.Method = options.Method
