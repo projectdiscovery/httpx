@@ -12,6 +12,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/httpx/common/cache"
 	"github.com/projectdiscovery/httpx/common/httputilz"
+	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 )
 
@@ -92,7 +93,15 @@ func New(options *Options) (*HTTPX, error) {
 
 // Do http request
 func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
-	httpresp, err := h.client.Do(req)
+	var (
+		httpresp *http.Response
+		err      error
+	)
+	if h.Options.Unsafe {
+		httpresp, err = h.doUnsafe(req)
+	} else {
+		httpresp, err = h.client.Do(req)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -134,10 +143,19 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	// number of lines
 	resp.Lines = len(strings.Split(respbodystr, "\n"))
 
-	// extracts TLS data if any
-	resp.TlsData = h.TlsGrab(httpresp)
+	if !h.Options.Unsafe {
+		// extracts TLS data if any
+		resp.TlsData = h.TlsGrab(httpresp)
+	}
+
+	resp.CspData = h.CspGrab(httpresp)
 
 	return &resp, nil
+}
+
+// Do http request
+func (h *HTTPX) doUnsafe(req *retryablehttp.Request) (*http.Response, error) {
+	return rawhttp.Dor(req)
 }
 
 // Verify the http calls and apply-cascade all the filters, as soon as one matches it returns true

@@ -12,10 +12,11 @@ type Options struct {
 	// RetryMax is the maximum number of retries
 	RetryMax int
 
-	CustomHeaders    map[string]string
-	FollowRedirects  bool
+	CustomHeaders       map[string]string
+	FollowRedirects     bool
 	FollowHostRedirects bool
-	DefaultUserAgent string
+	DefaultUserAgent    string
+	Unsafe              bool
 
 	HttpProxy  string
 	SocksProxy string
@@ -36,6 +37,7 @@ var DefaultOptions = Options{
 	Threads:  25,
 	Timeout:  30 * time.Second,
 	RetryMax: 5,
+	Unsafe:   false,
 	// VHOSTs options
 	VHostIgnoreStatusCode:    false,
 	VHostIgnoreContentLength: true,
