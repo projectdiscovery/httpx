@@ -137,7 +137,7 @@ func main() {
 		}
 		for r := range output {
 			if r.err != nil {
-				//log.Println(r.err)
+				gologger.Debugf("Failure '%s': %s\n", r.URL, r.err)
 				continue
 			}
 
@@ -160,7 +160,7 @@ func main() {
 				row = r.JSON()
 			}
 
-			fmt.Println(row)
+			gologger.Silentf("%s\n", row)
 			if f != nil {
 				f.WriteString(row + "\n")
 			}
@@ -535,6 +535,7 @@ type Options struct {
 	rawRequest                string
 	Unsafe                    bool
 	RequestBody               string
+	Debug                     bool
 }
 
 // ParseOptions parses the command line options for application
@@ -578,6 +579,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.InputRawRequest, "request", "", "File containing raw request")
 	flag.BoolVar(&options.Unsafe, "unsafe", false, "Send raw requests skipping golang normalization")
 	flag.StringVar(&options.RequestBody, "body", "", "Request Body")
+	flag.BoolVar(&options.Debug, "debug", false, "Debug mode")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
@@ -624,6 +626,9 @@ func (options *Options) configureOutput() {
 	// If the user desires verbose output, show verbose output
 	if options.Verbose {
 		gologger.MaxLevel = gologger.Verbose
+	}
+	if options.Debug {
+		gologger.MaxLevel = gologger.Debug
 	}
 	if options.NoColor {
 		gologger.UseColors = false
