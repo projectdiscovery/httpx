@@ -10,10 +10,12 @@ require (
 	github.com/miekg/dns v1.1.31
 	github.com/projectdiscovery/gologger v1.0.1
 	github.com/projectdiscovery/mapcidr v0.0.4
-	github.com/projectdiscovery/rawhttp v0.0.0-20200823205626-d8c41f52a087
+	github.com/projectdiscovery/rawhttp v0.0.0-20200825153041-19146aae6d84
 	github.com/projectdiscovery/retryablehttp-go v1.0.1
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.2.1
+	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
 	golang.org/x/net v0.0.0-20200822124328-c89045814202
+	golang.org/x/sys v0.0.0-20200824131525-c12d262b63d8 // indirect
 	golang.org/x/text v0.3.3
 )

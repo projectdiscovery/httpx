@@ -18,11 +18,12 @@ import (
 
 // HTTPX represent an instance of the library client
 type HTTPX struct {
-	client        *retryablehttp.Client
-	Filters       []Filter
-	Options       *Options
-	htmlPolicy    *bluemonday.Policy
-	CustomHeaders map[string]string
+	client          *retryablehttp.Client
+	Filters         []Filter
+	Options         *Options
+	htmlPolicy      *bluemonday.Policy
+	CustomHeaders   map[string]string
+	RequestOverride *RequestOverride
 }
 
 // New httpx instance
@@ -87,6 +88,7 @@ func New(options *Options) (*HTTPX, error) {
 
 	httpx.htmlPolicy = bluemonday.NewPolicy()
 	httpx.CustomHeaders = httpx.Options.CustomHeaders
+	httpx.RequestOverride = &options.RequestOverride
 
 	return httpx, nil
 }
@@ -153,9 +155,17 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	return &resp, nil
 }
 
+type RequestOverride struct {
+	URIPath string
+}
+
 // Do http request
 func (h *HTTPX) doUnsafe(req *retryablehttp.Request) (*http.Response, error) {
-	return rawhttp.Dor(req)
+	method := req.Method
+	headers := req.Header
+	url := req.URL.String()
+	body := req.Body
+	return rawhttp.DoRaw(method, url, h.RequestOverride.URIPath, headers, body)
 }
 
 // Verify the http calls and apply-cascade all the filters, as soon as one matches it returns true
