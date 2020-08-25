@@ -14,10 +14,7 @@ func FileExists(filename string) bool {
 // FolderExists checks if a folder exists
 func FolderExists(folderpath string) bool {
 	_, err := os.Stat(folderpath)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return true
+	return !os.IsNotExist(err)
 }
 
 // HasStdin determines if the user has piped input
