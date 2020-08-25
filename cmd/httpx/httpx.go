@@ -37,6 +37,7 @@ func main() {
 	httpxOptions.FollowHostRedirects = options.FollowHostRedirects
 	httpxOptions.HttpProxy = options.HttpProxy
 	httpxOptions.Unsafe = options.Unsafe
+	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
@@ -302,9 +303,13 @@ type scanOptions struct {
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions) Result {
 	retried := false
 retry:
-	URL := fmt.Sprintf("%s://%s%s", protocol, domain, scanopts.RequestURI)
+	URL := fmt.Sprintf("%s://%s", protocol, domain)
 	if port > 0 {
-		URL = fmt.Sprintf("%s://%s:%d%s", protocol, domain, port, scanopts.RequestURI)
+		URL = fmt.Sprintf("%s://%s:%d", protocol, domain, port)
+	}
+
+	if !scanopts.Unsafe {
+		URL += scanopts.RequestURI
 	}
 
 	req, err := hp.NewRequest(scanopts.Method, URL)

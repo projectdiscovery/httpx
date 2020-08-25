@@ -17,6 +17,7 @@ type Options struct {
 	FollowHostRedirects bool
 	DefaultUserAgent    string
 	Unsafe              bool
+	RequestOverride     RequestOverride
 
 	HttpProxy  string
 	SocksProxy string
