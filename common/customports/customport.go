@@ -26,7 +26,7 @@ func (c *CustomPorts) Set(value string) error {
 	// splits on comma
 	potentialPorts := strings.Split(value, ",")
 
-	// check if port is a single integer value or needs to be expanded futher
+	// check if port is a single integer value or needs to be expanded further
 	for _, potentialPort := range potentialPorts {
 		potentialRange := strings.Split(strings.TrimSpace(potentialPort), "-")
 		// it's a single port?
