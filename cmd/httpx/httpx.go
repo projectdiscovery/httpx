@@ -112,6 +112,7 @@ func main() {
 	scanopts.OutputContentType = options.OutputContentType
 	scanopts.RequestBody = options.RequestBody
 	scanopts.Unsafe = options.Unsafe
+	scanopts.HTTP2Probe = options.HTTP2Probe
 
 	// Try to create output folder if it doesnt exist
 	if options.StoreResponse && !fileutil.FolderExists(options.StoreResponseDir) {
@@ -298,6 +299,7 @@ type scanOptions struct {
 	OutputContentType      bool
 	RequestBody            string
 	Unsafe                 bool
+	HTTP2Probe             bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions) Result {
@@ -436,6 +438,15 @@ retry:
 		builder.WriteString(" [websocket]")
 	}
 
+	var http2 bool
+	// if requested probes for http2
+	if scanopts.HTTP2Probe {
+		http2 = hp.SupportHTTP2(protocol, scanopts.Method, URL)
+		if http2 {
+			builder.WriteString(" [http2]")
+		}
+	}
+
 	// store responses in directory
 	if scanopts.StoreResponse {
 		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
@@ -464,6 +475,7 @@ retry:
 		WebSocket:     isWebSocket,
 		TlsData:       resp.TlsData,
 		CspData:       resp.CspData,
+		HTTP2:         http2,
 	}
 }
 
@@ -483,6 +495,7 @@ type Result struct {
 	ContentType   string         `json:"content-type,omitempty"`
 	TlsData       *httpx.TlsData `json:"tls,omitempty"`
 	CspData       *httpx.CspData `json:"csp,omitempty"`
+	HTTP2         bool           `json:"http2,omitempty"`
 }
 
 // JSON the result
@@ -541,6 +554,7 @@ type Options struct {
 	Unsafe                    bool
 	RequestBody               string
 	Debug                     bool
+	HTTP2Probe                bool
 }
 
 // ParseOptions parses the command line options for application
@@ -585,6 +599,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Unsafe, "unsafe", false, "Send raw requests skipping golang normalization")
 	flag.StringVar(&options.RequestBody, "body", "", "Request Body")
 	flag.BoolVar(&options.Debug, "debug", false, "Debug mode")
+	flag.BoolVar(&options.HTTP2Probe, "http2", false, "HTTP2 probe")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
