@@ -97,6 +97,10 @@ func main() {
 	scanopts.OutputContentLength = options.ContentLength
 	scanopts.StoreResponse = options.StoreResponse
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
+	// Set default verb to GET if none is chosen
+	if scanopts.Method == "" && options.Method == "" {
+		options.Method = "GET"
+	}
 	if options.Method != "" {
 		scanopts.Method = options.Method
 	}
@@ -112,6 +116,7 @@ func main() {
 	scanopts.OutputContentType = options.OutputContentType
 	scanopts.RequestBody = options.RequestBody
 	scanopts.Unsafe = options.Unsafe
+	scanopts.Pipeline = options.Pipeline
 
 	// Try to create output folder if it doesnt exist
 	if options.StoreResponse && !fileutil.FolderExists(options.StoreResponseDir) {
@@ -298,6 +303,7 @@ type scanOptions struct {
 	OutputContentType      bool
 	RequestBody            string
 	Unsafe                 bool
+	Pipeline               bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions) Result {
@@ -436,6 +442,14 @@ retry:
 		builder.WriteString(" [websocket]")
 	}
 
+	pipeline := false
+	if scanopts.Pipeline {
+		pipeline = hp.SupportPipeline(protocol, scanopts.Method, domain, port)
+		if pipeline {
+			builder.WriteString(" [pipeline]")
+		}
+	}
+
 	// store responses in directory
 	if scanopts.StoreResponse {
 		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
@@ -464,6 +478,7 @@ retry:
 		WebSocket:     isWebSocket,
 		TlsData:       resp.TlsData,
 		CspData:       resp.CspData,
+		Pipeline:      pipeline,
 	}
 }
 
@@ -483,6 +498,7 @@ type Result struct {
 	ContentType   string         `json:"content-type,omitempty"`
 	TlsData       *httpx.TlsData `json:"tls,omitempty"`
 	CspData       *httpx.CspData `json:"csp,omitempty"`
+	Pipeline      bool           `json:"pipeline,omitempty"`
 }
 
 // JSON the result
@@ -541,6 +557,7 @@ type Options struct {
 	Unsafe                    bool
 	RequestBody               string
 	Debug                     bool
+	Pipeline                  bool
 }
 
 // ParseOptions parses the command line options for application
@@ -585,6 +602,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Unsafe, "unsafe", false, "Send raw requests skipping golang normalization")
 	flag.StringVar(&options.RequestBody, "body", "", "Request Body")
 	flag.BoolVar(&options.Debug, "debug", false, "Debug mode")
+	flag.BoolVar(&options.Pipeline, "pipeline", false, "HTTP1.1 Pipeline")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
