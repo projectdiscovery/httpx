@@ -5,11 +5,7 @@ import "net"
 // IsCidr determines if the given ip is a cidr range
 func IsCidr(ip string) bool {
 	_, _, err := net.ParseCIDR(ip)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 // IsIP determines if the given string is a valid ip

@@ -117,7 +117,7 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 		return nil, err
 	}
 
-	resp.Raw = string(rawresp)
+	resp.Raw = rawresp
 
 	var respbody []byte
 	// websockets don't have a readable body

@@ -39,7 +39,7 @@ func NewDialer(options Options) (DialerFunc, error) {
 				finalIps = append(finalIps, ip)
 			}
 		}
-		if err != nil || len(finalIps) <= 0 {
+		if err != nil || len(finalIps) == 0 {
 			return nil, &NoAddressFoundError{}
 		} // Dial to the IPs finally.
 		for _, ip := range ips {
