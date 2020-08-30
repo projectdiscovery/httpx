@@ -495,7 +495,7 @@ type Result struct {
 	ContentType   string         `json:"content-type,omitempty"`
 	TlsData       *httpx.TlsData `json:"tls,omitempty"`
 	CspData       *httpx.CspData `json:"csp,omitempty"`
-	HTTP2         bool           `json:"http2,omitempty"`
+	HTTP2         bool           `json:"http2"`
 }
 
 // JSON the result
