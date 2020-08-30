@@ -15,6 +15,8 @@ type Response struct {
 	Lines         int
 	TlsData       *TlsData
 	CspData       *CspData
+	Http2         bool
+	Pipeline      bool
 }
 
 // GetHeader value
