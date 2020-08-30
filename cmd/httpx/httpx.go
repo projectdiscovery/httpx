@@ -71,7 +71,7 @@ func main() {
 		if err != nil {
 			gologger.Fatalf("Could not parse raw request: %s\n", err)
 		}
-		scanopts.Method = rrMethod
+		scanopts.Methods = append(scanopts.Methods, rrMethod)
 		scanopts.RequestURI = rrPath
 		for name, value := range rrHeaders {
 			httpxOptions.CustomHeaders[name] = value
@@ -88,7 +88,12 @@ func main() {
 		}
 	}
 
-	scanopts.Method = options.Method
+	if options.Methods != "" {
+		scanopts.Methods = append(scanopts.Methods, strings.Split(options.Methods, ",")...)
+	}
+	if len(scanopts.Methods) == 0 {
+		scanopts.Methods = append(scanopts.Methods, "GET")
+	}
 	protocol := "https"
 	scanopts.VHost = options.VHost
 	scanopts.OutputTitle = options.ExtractTitle
@@ -97,13 +102,6 @@ func main() {
 	scanopts.OutputContentLength = options.ContentLength
 	scanopts.StoreResponse = options.StoreResponse
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
-	// Set default verb to GET if none is chosen
-	if scanopts.Method == "" && options.Method == "" {
-		options.Method = "GET"
-	}
-	if options.Method != "" {
-		scanopts.Method = options.Method
-	}
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
@@ -117,7 +115,10 @@ func main() {
 	scanopts.RequestBody = options.RequestBody
 	scanopts.Unsafe = options.Unsafe
 	scanopts.Pipeline = options.Pipeline
-  scanopts.HTTP2Probe = options.HTTP2Probe
+	scanopts.HTTP2Probe = options.HTTP2Probe
+	scanopts.OutputMethod = options.OutputMethod
+	if len(scanopts.Methods) > 0 {
+		scanopts.OutputMethod = true
 
 	// Try to create output folder if it doesnt exist
 	if options.StoreResponse && !fileutil.FolderExists(options.StoreResponseDir) {
@@ -206,27 +207,29 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 	for target := range targets(stringz.TrimProtocol(t)) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
-			wg.Add()
-			go func(target string) {
-				defer wg.Done()
-				r := analyze(hp, protocol, target, 0, &scanopts)
-				output <- r
-				if scanopts.TlsProbe && r.TlsData != nil {
-					scanopts.TlsProbe = false
-					for _, tt := range r.TlsData.DNSNames {
-						process(tt, wg, hp, protocol, scanopts, output)
+			for _, method := range scanopts.Methods {
+				wg.Add()
+				go func(target, method string) {
+					defer wg.Done()
+					r := analyze(hp, protocol, target, 0, method, &scanopts)
+					output <- r
+					if scanopts.TlsProbe && r.TlsData != nil {
+						scanopts.TlsProbe = false
+						for _, tt := range r.TlsData.DNSNames {
+							process(tt, wg, hp, protocol, scanopts, output)
+						}
+						for _, tt := range r.TlsData.CommonName {
+							process(tt, wg, hp, protocol, scanopts, output)
+						}
 					}
-					for _, tt := range r.TlsData.CommonName {
-						process(tt, wg, hp, protocol, scanopts, output)
+					if scanopts.CspProbe && r.CspData != nil {
+						scanopts.CspProbe = false
+						for _, tt := range r.CspData.Domains {
+							process(tt, wg, hp, protocol, scanopts, output)
+						}
 					}
-				}
-				if scanopts.CspProbe && r.CspData != nil {
-					scanopts.CspProbe = false
-					for _, tt := range r.CspData.Domains {
-						process(tt, wg, hp, protocol, scanopts, output)
-					}
-				}
-			}(target)
+				}(target, method)
+			}
 		}
 
 		// the host name shouldn't have any semicolon - in case remove the port
@@ -236,21 +239,23 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 		}
 
 		for port := range customport.Ports {
-			wg.Add()
-			go func(port int) {
-				defer wg.Done()
-				r := analyze(hp, protocol, target, port, &scanopts)
-				output <- r
-				if scanopts.TlsProbe && r.TlsData != nil {
-					scanopts.TlsProbe = false
-					for _, tt := range r.TlsData.DNSNames {
-						process(tt, wg, hp, protocol, scanopts, output)
+			for _, method := range scanopts.Methods {
+				wg.Add()
+				go func(port int, method string) {
+					defer wg.Done()
+					r := analyze(hp, protocol, target, port, method, &scanopts)
+					output <- r
+					if scanopts.TlsProbe && r.TlsData != nil {
+						scanopts.TlsProbe = false
+						for _, tt := range r.TlsData.DNSNames {
+							process(tt, wg, hp, protocol, scanopts, output)
+						}
+						for _, tt := range r.TlsData.CommonName {
+							process(tt, wg, hp, protocol, scanopts, output)
+						}
 					}
-					for _, tt := range r.TlsData.CommonName {
-						process(tt, wg, hp, protocol, scanopts, output)
-					}
-				}
-			}(port)
+				}(port, method)
+			}
 		}
 	}
 }
@@ -286,7 +291,7 @@ func targets(target string) chan string {
 }
 
 type scanOptions struct {
-	Method                 string
+	Methods                []string
 	VHost                  bool
 	OutputTitle            bool
 	OutputStatusCode       bool
@@ -297,6 +302,7 @@ type scanOptions struct {
 	OutputServerHeader     bool
 	OutputWebSocket        bool
 	OutputWithNoColor      bool
+	OutputMethod           bool
 	ResponseInStdout       bool
 	TlsProbe               bool
 	CspProbe               bool
@@ -308,7 +314,7 @@ type scanOptions struct {
 	HTTP2Probe             bool
 }
 
-func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, scanopts *scanOptions) Result {
+func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, method string, scanopts *scanOptions) Result {
 	retried := false
 retry:
 	URL := fmt.Sprintf("%s://%s", protocol, domain)
@@ -320,7 +326,7 @@ retry:
 		URL += scanopts.RequestURI
 	}
 
-	req, err := hp.NewRequest(scanopts.Method, URL)
+	req, err := hp.NewRequest(method, URL)
 	if err != nil {
 		return Result{URL: URL, err: err}
 	}
@@ -384,6 +390,16 @@ retry:
 			builder.WriteString(aurora.Magenta(resp.GetHeaderPart("Location", ";")).String())
 		} else {
 			builder.WriteString(resp.GetHeaderPart("Location", ";"))
+		}
+		builder.WriteRune(']')
+	}
+
+	if scanopts.OutputMethod {
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(method).String())
+		} else {
+			builder.WriteString(method)
 		}
 		builder.WriteRune(']')
 	}
@@ -456,7 +472,7 @@ retry:
 	var http2 bool
 	// if requested probes for http2
 	if scanopts.HTTP2Probe {
-		http2 = hp.SupportHTTP2(protocol, scanopts.Method, URL)
+		http2 = hp.SupportHTTP2(protocol, method, URL)
 		if http2 {
 			builder.WriteString(" [http2]")
 		}
@@ -492,7 +508,9 @@ retry:
 		CspData:       resp.CspData,
 		Pipeline:      pipeline,
 		HTTP2:         http2,
+		Method:        method,
 	}
+
 }
 
 // Result of a scan
@@ -513,6 +531,7 @@ type Result struct {
 	CspData       *httpx.CspData `json:"csp,omitempty"`
 	Pipeline      bool           `json:"pipeline,omitempty"`
 	HTTP2         bool           `json:"http2"`
+	Method        string         `json:"method"`
 }
 
 // JSON the result
@@ -545,7 +564,7 @@ type Options struct {
 	SocksProxy                string
 	JSONOutput                bool
 	InputFile                 string
-	Method                    string
+	Methods                   string
 	Silent                    bool
 	Version                   bool
 	Verbose                   bool
@@ -554,6 +573,7 @@ type Options struct {
 	OutputWebSocket           bool
 	responseInStdout          bool
 	FollowHostRedirects       bool
+	OutputMethod              bool
 	TLSProbe                  bool
 	CSPProbe                  bool
 	RequestURI                string
@@ -597,7 +617,8 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.HttpProxy, "http-proxy", "", "HTTP Proxy, eg http://127.0.0.1:8080")
 	flag.BoolVar(&options.JSONOutput, "json", false, "JSON Output")
 	flag.StringVar(&options.InputFile, "l", "", "File containing domains")
-	flag.StringVar(&options.Method, "x", "", "Request Method")
+	flag.StringVar(&options.Methods, "x", "", "Request Methods")
+	flag.BoolVar(&options.OutputMethod, "method", false, "Output method")
 	flag.BoolVar(&options.Silent, "silent", false, "Silent mode")
 	flag.BoolVar(&options.Version, "version", false, "Show version of httpx")
 	flag.BoolVar(&options.Verbose, "verbose", false, "Verbose Mode")
