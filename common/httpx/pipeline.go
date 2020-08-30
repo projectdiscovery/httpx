@@ -14,10 +14,15 @@ import (
 // and reading back responses expecting at least 2 with HTTP/1.1 or HTTP/1.0
 func (h *HTTPX) SupportPipeline(protocol, method, host string, port int) bool {
 	addr := host
+	if port == 0 {
+		port = 80
+		if protocol == "https" {
+			port = 443
+		}
+	}
 	if port > 0 {
 		addr = fmt.Sprintf("%s:%d", host, port)
 	}
-
 	// dummy method while awaiting for full rawhttp implementation
 	dummyReq := fmt.Sprintf("%s / HTTP/1.1\nHost: %s\n\n", method, addr)
 	conn, err := pipelineDial(protocol, addr)
@@ -38,6 +43,7 @@ func (h *HTTPX) SupportPipeline(protocol, method, host string, port int) bool {
 		if _, err := conn.Read(reply); err != nil {
 			break
 		}
+
 		// The check is very naive, but it works most of the times
 		for _, s := range strings.Split(string(reply), "\n\n") {
 			if strings.Contains(s, "HTTP/1.1") || strings.Contains(s, "HTTP/1.0") {
