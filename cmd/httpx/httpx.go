@@ -120,87 +120,88 @@ func main() {
 	if len(scanopts.Methods) > 0 {
 		scanopts.OutputMethod = true
 
-	// Try to create output folder if it doesnt exist
-	if options.StoreResponse && !fileutil.FolderExists(options.StoreResponseDir) {
-		if err := os.MkdirAll(options.StoreResponseDir, os.ModePerm); err != nil {
-			gologger.Fatalf("Could not create output directory '%s': %s\n", options.StoreResponseDir, err)
+		// Try to create output folder if it doesnt exist
+		if options.StoreResponse && !fileutil.FolderExists(options.StoreResponseDir) {
+			if err := os.MkdirAll(options.StoreResponseDir, os.ModePerm); err != nil {
+				gologger.Fatalf("Could not create output directory '%s': %s\n", options.StoreResponseDir, err)
+			}
 		}
-	}
 
-	// output routine
-	wgoutput := sizedwaitgroup.New(1)
-	wgoutput.Add()
-	output := make(chan Result)
-	go func(output chan Result) {
-		defer wgoutput.Done()
+		// output routine
+		wgoutput := sizedwaitgroup.New(1)
+		wgoutput.Add()
+		output := make(chan Result)
+		go func(output chan Result) {
+			defer wgoutput.Done()
 
-		var f *os.File
-		if options.Output != "" {
-			var err error
-			f, err = os.Create(options.Output)
+			var f *os.File
+			if options.Output != "" {
+				var err error
+				f, err = os.Create(options.Output)
+				if err != nil {
+					gologger.Fatalf("Could not create output file '%s': %s\n", options.Output, err)
+				}
+				defer f.Close()
+			}
+			for r := range output {
+				if r.err != nil {
+					gologger.Debugf("Failure '%s': %s\n", r.URL, r.err)
+					continue
+				}
+
+				// apply matchers and filters
+				if len(options.filterStatusCode) > 0 && slice.IntSliceContains(options.filterStatusCode, r.StatusCode) {
+					continue
+				}
+				if len(options.filterContentLength) > 0 && slice.IntSliceContains(options.filterContentLength, r.ContentLength) {
+					continue
+				}
+				if len(options.matchStatusCode) > 0 && !slice.IntSliceContains(options.matchStatusCode, r.StatusCode) {
+					continue
+				}
+				if len(options.matchContentLength) > 0 && !slice.IntSliceContains(options.matchContentLength, r.ContentLength) {
+					continue
+				}
+
+				row := r.str
+				if options.JSONOutput {
+					row = r.JSON()
+				}
+
+				gologger.Silentf("%s\n", row)
+				if f != nil {
+					f.WriteString(row + "\n")
+				}
+			}
+		}(output)
+
+		wg := sizedwaitgroup.New(options.Threads)
+		var sc *bufio.Scanner
+
+		// check if file has been provided
+		if fileutil.FileExists(options.InputFile) {
+			finput, err := os.Open(options.InputFile)
 			if err != nil {
-				gologger.Fatalf("Could not create output file '%s': %s\n", options.Output, err)
+				gologger.Fatalf("Could read input file '%s': %s\n", options.InputFile, err)
 			}
-			defer f.Close()
+			defer finput.Close()
+			sc = bufio.NewScanner(finput)
+		} else if fileutil.HasStdin() {
+			sc = bufio.NewScanner(os.Stdin)
+		} else {
+			gologger.Fatalf("No input provided")
 		}
-		for r := range output {
-			if r.err != nil {
-				gologger.Debugf("Failure '%s': %s\n", r.URL, r.err)
-				continue
-			}
 
-			// apply matchers and filters
-			if len(options.filterStatusCode) > 0 && slice.IntSliceContains(options.filterStatusCode, r.StatusCode) {
-				continue
-			}
-			if len(options.filterContentLength) > 0 && slice.IntSliceContains(options.filterContentLength, r.ContentLength) {
-				continue
-			}
-			if len(options.matchStatusCode) > 0 && !slice.IntSliceContains(options.matchStatusCode, r.StatusCode) {
-				continue
-			}
-			if len(options.matchContentLength) > 0 && !slice.IntSliceContains(options.matchContentLength, r.ContentLength) {
-				continue
-			}
-
-			row := r.str
-			if options.JSONOutput {
-				row = r.JSON()
-			}
-
-			gologger.Silentf("%s\n", row)
-			if f != nil {
-				f.WriteString(row + "\n")
-			}
+		for sc.Scan() {
+			process(sc.Text(), &wg, hp, protocol, scanopts, output)
 		}
-	}(output)
 
-	wg := sizedwaitgroup.New(options.Threads)
-	var sc *bufio.Scanner
+		wg.Wait()
 
-	// check if file has been provided
-	if fileutil.FileExists(options.InputFile) {
-		finput, err := os.Open(options.InputFile)
-		if err != nil {
-			gologger.Fatalf("Could read input file '%s': %s\n", options.InputFile, err)
-		}
-		defer finput.Close()
-		sc = bufio.NewScanner(finput)
-	} else if fileutil.HasStdin() {
-		sc = bufio.NewScanner(os.Stdin)
-	} else {
-		gologger.Fatalf("No input provided")
+		close(output)
+
+		wgoutput.Wait()
 	}
-
-	for sc.Scan() {
-		process(sc.Text(), &wg, hp, protocol, scanopts, output)
-	}
-
-	wg.Wait()
-
-	close(output)
-
-	wgoutput.Wait()
 }
 
 func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts scanOptions, output chan Result) {
@@ -460,14 +461,13 @@ retry:
 		builder.WriteString(" [websocket]")
 	}
 
-
 	pipeline := false
 	if scanopts.Pipeline {
-		pipeline = hp.SupportPipeline(protocol, scanopts.Method, domain, port)
+		pipeline = hp.SupportPipeline(protocol, method, domain, port)
 		if pipeline {
 			builder.WriteString(" [pipeline]")
-    }
-  }
+		}
+	}
 
 	var http2 bool
 	// if requested probes for http2

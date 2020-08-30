@@ -24,8 +24,8 @@ github.com/projectdiscovery/gologger v1.0.1 h1:FzoYQZnxz9DCvSi/eg5A6+ET4CQ0CDUs2
 github.com/projectdiscovery/gologger v1.0.1/go.mod h1:Ok+axMqK53bWNwDSU1nTNwITLYMXMdZtRc8/y1c7sWE=
 github.com/projectdiscovery/mapcidr v0.0.4 h1:2vBSjkmbQASAcO/m2L/dhdulMVu2y9HdyWOrWYJ74rU=
 github.com/projectdiscovery/mapcidr v0.0.4/go.mod h1:ALOIj6ptkWujNoX8RdQwB2mZ+kAmKuLJBq9T5gR5wG0=
-github.com/projectdiscovery/rawhttp v0.0.0-20200825153041-19146aae6d84 h1:2aO1hZXYAh/UIboBqXyBJ17bHnEWa3y/5rCrIUYqfD0=
-github.com/projectdiscovery/rawhttp v0.0.0-20200825153041-19146aae6d84/go.mod h1:RkML6Yq6hf4z2wAUXisa15al4bS+wuJnlhM5ZOfn9k4=
+github.com/projectdiscovery/rawhttp v0.0.0-20200830154207-1d82476d6442 h1:06LrG4cDuRRCYnjpRUGSyffOwAMV/ZjunEtygPXnfqg=
+github.com/projectdiscovery/rawhttp v0.0.0-20200830154207-1d82476d6442/go.mod h1:RkML6Yq6hf4z2wAUXisa15al4bS+wuJnlhM5ZOfn9k4=
 github.com/projectdiscovery/retryablehttp-go v1.0.1 h1:V7wUvsZNq1Rcz7+IlcyoyQlNwshuwptuBVYWw9lx8RE=
 github.com/projectdiscovery/retryablehttp-go v1.0.1/go.mod h1:SrN6iLZilNG1X4neq1D+SBxoqfAF4nyzvmevkTkWsek=
 github.com/remeh/sizedwaitgroup v1.0.0 h1:VNGGFwNo/R5+MJBf6yrsr110p0m4/OX4S3DCy7Kyl5E=
