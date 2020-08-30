@@ -21,12 +21,10 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
     - [From Binary](#from-binary)
     - [From Source](#from-source)
     - [From Github](#from-github)
-- [Running httpX to probe `7614` hosts](#running-httpx-to-probe-7614-hosts)
-    - [Running httpx with stdin](#running-httpx-with-stdin)
-    - [Running httpx with file input](#running-httpx-with-file-input)
-    - [Running httpx with CIDR input](#running-httpx-with-cidr-input)
-    - [Using httpX with subfinder/chaos and any other similar tool.](#using-httpx-with-subfinderchaos-and-any-other-similar-tool)
-    - [Running httpX with json output](#running-httpx-with-json-output)
+  - [Running httpx with stdin](#running-httpx-with-stdin)
+  - [Running httpx with file input](#running-httpx-with-file-input)
+  - [Running httpx with CIDR input](#running-httpx-with-cidr-input)
+  - [Running httpX with subfinder](#running-httpx-with-subfinder)
   - [Todo](#todo)
 - [Thanks](#thanks)
 
@@ -39,14 +37,64 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 
  - Simple and modular code base making it easy to contribute.
  - Fast And fully configurable flags to probe mutiple elements.
- - Supports vhost, urls, ports, title, content-length, status-code, response-body probbing.
+ - Supports multiple HTTP based probings.
  - Smart auto fallback from https to http as default. 
  - Supports hosts, URLs and CIDR as input.
  - Handles edge cases doing retries, backoffs etc for handling WAFs.
 
+ ### Supported **httpx** probes:- 
+
+| Probes                  | Status                                |
+|-------------------------|---------------------------------------|
+| URL                     | ✔                                     |
+| Title                   | ✔                                     |
+| Status Code             | ✔                                     |
+| Content Length          | ✔                                     |
+| TLS Certificate         | ✔                                     |
+| CSP Header              | ✔                                     |
+| HTTP2                   | ✔                                     |
+| HTTP 1.1 Pipeline       | ✔                                     |
+| Virtual host            | ✔                                     |
+| Location Header         | ✔                                     |
+| Web Server              | ✔                                     |
+| Web Socket              | ✔                                     |
+| Path                    | ✔                                     |
+| Ports                   | ✔                                     |
+| Request method          | ✔                                     |
+
+
+# Installation Instructions
+
+
+### From Binary
+
+The installation is easy. You can download the pre-built binaries for your platform from the [Releases](https://github.com/projectdiscovery/httpx/releases/) page. Extract them using tar, move it to your `$PATH`and you're ready to go.
+
+```sh
+Download latest binary from https://github.com/projectdiscovery/httpx/releases
+
+▶ tar -xvf httpx-linux-amd64.tar
+▶ mv httpx-linux-amd64 /usr/local/bin/httpx
+▶ httpx -h
+```
+
+### From Source
+
+httpx requires **go1.14+** to install successfully. Run the following command to get the repo - 
+
+```sh
+▶ GO111MODULE=auto go get -u -v github.com/projectdiscovery/httpx/cmd/httpx
+```
+
+### From Github
+
+```sh
+▶ git clone https://github.com/projectdiscovery/httpx.git; cd httpx/cmd/httpx; go build; mv httpx /usr/local/bin/; httpx -h
+```
+
 # Usage
 
-```bash
+```sh
 httpx -h
 ```
 
@@ -64,6 +112,8 @@ This will display help for the tool. Here are all the switches it supports.
 | -json                   | Prints all the probes in JSON format (default false)    | httpx -json                                        |
 | -vhost                  | Probes to detect vhost from list of subdomains          | httpx -vhost                                       |
 | -threads                | Number of threads (default 50)                          | httpx -threads 100                                 |
+| -http2                  | HTTP2 probing                                           | httpx -http2                                       |
+| -pipeline               | HTTP1.1 Pipeline probing                                | httpx -pipeline                                    |
 | -ports                  | Ports ranges to probe (nmap syntax: eg 1,2-10,11)       | httpx -ports 80,443,100-200                        |
 | -title                  | Prints title of page if available                       | httpx -title                                       |
 | -path                   | Request path/file                                       | httpx -path /api                                   |
@@ -75,98 +125,43 @@ This will display help for the tool. Here are all the switches it supports.
 | -fc                     | Filter status code in the output                        | httpx -status-code -fc 404,500                     |
 | -tls-probe              | Send HTTP probes on the extracted TLS domains           | httpx -tls-probe                                   |
 | -content-type           | Prints content-type                                     | httpx -content-type                                |
+| -location               | Prints location header                                  | httpx -location                                    |
+| -csp-probe              | Send HTTP probes on the extracted CSP domains           | httpx -csp-probe                                   |
 | -web-server             | Prints running web sever if available                   | httpx -web-server                                  |
 | -sr                     | Store responses to file (default false)                 | httpx -store-response                              |
-| -srd                    | Directory to store response (default output)            | httpx -store-response-dir output                   | 
+| -srd                    | Directory to store response (default output)            | httpx -store-response-dir output                   |
+| -unsafe                 | Send raw requests skipping golang normalization         | httpx -unsafe                                      | 
+| -request                 | File containing raw request to process                  | httpx -request                                    | 
 | -retries                | Number of retries                                       | httpx -retries                                     |
 | -silent                 | Prints only results in the output                       | httpx -silent                                      |
 | -timeout                | Timeout in seconds (default 5)                          | httpx -timeout 10                                  |
 | -verbose                | Verbose Mode                                            | httpx -verbose                                     |
 | -version                | Prints current version of the httpx                     | httpx -version                                     |
 | -x                      | Request Method (default 'GET')                          | httpx -x HEAD                                      |
+| -method                 | Output requested method                                 | httpx -method                                      |
 | -response-in-json       | Include response in stdout (only works with -json)      | httpx -response-in-json                            |
 | -websocket              | Prints if a websocket is exposed                        | httpx -websocket                                   |
 
 
-# Installation Instructions
-
-
-### From Binary
-
-The installation is easy. You can download the pre-built binaries for your platform from the [Releases](https://github.com/projectdiscovery/httpx/releases/) page. Extract them using tar, move it to your `$PATH`and you're ready to go.
-
-```bash
-> tar -xvf httpx-linux-amd64.tar
-> mv httpx-linux-amd64 /usr/local/bin/httpx
-> httpx -h
-```
-
-### From Source
-
-httpx requires go1.13+ to install successfully. Run the following command to get the repo - 
-
-```bash
-> GO111MODULE=auto go get -u -v github.com/projectdiscovery/httpx/cmd/httpx
-```
-
-### From Github
-
-```bash
-git clone https://github.com/projectdiscovery/httpx.git
-cd httpx/cmd/httpx
-go build .
-mv httpx /usr/local/bin/
-httpx -h
-```
-
-In order to update the tool, you can use -u flag with `go get` command.
-
-# Running httpX to probe `7614` hosts
-
-```bash 
-> chaos -d uber.com -count -silent 
-
-7614
-
-> time chaos -d uber.com -silent | httpx -status-code -content-length -title -store-response -threads 100 -json | wc 
-
-    __    __  __       _  __
-   / /_  / /_/ /_____ | |/ /
-  / __ \/ __/ __/ __ \|   / 
- / / / / /_/ /_/ /_/ /   |  
-/_/ /_/\__/\__/ .___/_/|_|  
-             /_/            
-
-		projectdiscovery.io
-
-[WRN] Use with caution. You are responsible for your actions
-[WRN] Developers assume no liability and are not responsible for any misuse or damage.
-
-210
-
-real	0m36.952s
-user	0m7.976s
-sys	0m7.884s
-```
-
 ### Running httpx with stdin  
 
-This will run the tool against all the hosts in `hosts.txt` and returns the matched results. 
+This will run the tool against all the hosts and subdomains in `hosts.txt` and returns URLs running HTTP webserver. 
 
-```bash
-> cat hosts.txt | httpx 
+```sh
+▶ cat hosts.txt | httpx 
 
     __    __  __       _  __
    / /_  / /_/ /_____ | |/ /
   / __ \/ __/ __/ __ \|   / 
  / / / / /_/ /_/ /_/ /   |  
-/_/ /_/\__/\__/ .___/_/|_|  
+/_/ /_/\__/\__/ .___/_/|_|   v1.0  
              /_/            
 
 		projectdiscovery.io
 
 [WRN] Use with caution. You are responsible for your actions
 [WRN] Developers assume no liability and are not responsible for any misuse or damage.
+
 https://mta-sts.managed.hackerone.com
 https://mta-sts.hackerone.com
 https://mta-sts.forwarding.hackerone.com
@@ -179,22 +174,11 @@ https://support.hackerone.com
 
 ### Running httpx with file input  
 
-This will run the tool against all the hosts in `hosts.txt` and returns the matched results. 
+This will run the tool against all the hosts and subdomains in `hosts.txt` and returns URLs running HTTP webserver.
 
-```bash
-> httpx -l hosts.txt
+```sh
+▶ httpx -l hosts.txt -silent
 
-    __    __  __       _  __
-   / /_  / /_/ /_____ | |/ /
-  / __ \/ __/ __/ __ \|   / 
- / / / / /_/ /_/ /_/ /   |  
-/_/ /_/\__/\__/ .___/_/|_|  
-             /_/            
-
-		projectdiscovery.io
-
-[WRN] Use with caution. You are responsible for your actions
-[WRN] Developers assume no liability and are not responsible for any misuse or damage.
 https://docs.hackerone.com
 https://mta-sts.hackerone.com
 https://mta-sts.managed.hackerone.com
@@ -207,20 +191,9 @@ https://support.hackerone.com
 
 ### Running httpx with CIDR input   
 
-```bash
-> echo 173.0.84.0/24 | httpx 
+```sh
+▶ echo 173.0.84.0/24 | httpx -silent
 
-    __    __  __       _  __
-   / /_  / /_/ /_____ | |/ /
-  / __ \/ __/ __/ __ \|   / 
- / / / / /_/ /_/ /_/ /   |  
-/_/ /_/\__/\__/ .___/_/|_|  
-             /_/            
-
-		projectdiscovery.io
-
-[WRN] Use with caution. You are responsible for your actions
-[WRN] Developers assume no liability and are not responsible for any misuse or damage.
 https://173.0.84.29
 https://173.0.84.43
 https://173.0.84.31
@@ -242,24 +215,12 @@ https://173.0.84.34
 ```
 
 
-### Using httpX with subfinder/chaos and any other similar tool.
+### Running httpX with subfinder
 
 
-```bash
-> subfinder -d hackerone.com -silent | httpx -title -content-length -status-code
+```sh
+▶ subfinder -d hackerone.com -silent | httpx -title -content-length -status-code -silent
 
-
-    __    __  __       _  __
-   / /_  / /_/ /_____ | |/ /
-  / __ \/ __/ __/ __ \|   / 
- / / / / /_/ /_/ /_/ /   |  
-/_/ /_/\__/\__/ .___/_/|_|  
-             /_/            
-
-		projectdiscovery.io
-
-[WRN] Use with caution. You are responsible for your actions
-[WRN] Developers assume no liability and are not responsible for any misuse or damage.
 https://mta-sts.forwarding.hackerone.com [404] [9339] [Page not found · GitHub Pages]
 https://mta-sts.hackerone.com [404] [9339] [Page not found · GitHub Pages]
 https://mta-sts.managed.hackerone.com [404] [9339] [Page not found · GitHub Pages]
@@ -270,36 +231,6 @@ https://api.hackerone.com [200] [7791] [HackerOne API]
 https://hackerone.com [301] [92] []
 https://resources.hackerone.com [301] [0] []
 ```
-
-### Running httpX with json output
-
-```bash
-> chaos -d hackerone.com -silent | httpx -json
-
-    __    __  __       _  __
-   / /_  / /_/ /_____ | |/ /
-  / __ \/ __/ __/ __ \|   / 
- / / / / /_/ /_/ /_/ /   |  
-/_/ /_/\__/\__/ .___/_/|_|  
-             /_/            
-
-		projectdiscovery.io
-
-[WRN] Use with caution. You are responsible for your actions
-[WRN] Developers assume no liability and are not responsible for any misuse or damage.
-
-{"url":"https://mta-sts.managed.hackerone.com","content-length":9339,"status-code":404,"title":"Page not found · GitHub Pages","vhost":false,"webserver":"GitHub.com"}
-{"url":"https://mta-sts.forwarding.hackerone.com","content-length":9339,"status-code":404,"title":"Page not found · GitHub Pages","vhost":false,"webserver":"GitHub.com"}
-{"url":"https://mta-sts.hackerone.com","content-length":9339,"status-code":404,"title":"Page not found · GitHub Pages","vhost":false,"webserver":"GitHub.com"}
-{"url":"https://docs.hackerone.com","content-length":65781,"status-code":200,"title":"HackerOne Platform Documentation","vhost":false,"webserver":"GitHub.com"}
-{"url":"https://api.hackerone.com","content-length":7791,"status-code":200,"title":"HackerOne API","vhost":false,"webserver":"cloudflare"}
-{"url":"https://support.hackerone.com","content-length":98,"status-code":301,"title":"","vhost":false,"webserver":"cloudflare"}
-{"url":"https://resources.hackerone.com","content-length":0,"status-code":301,"title":"","vhost":false,"webserver":""}
-{"url":"https://www.hackerone.com","content-length":54136,"status-code":200,"title":"Bug Bounty - Hacker Powered Security Testing | HackerOne","vhost":false,"webserver":"cloudflare"}
-
-```
-
-You can simply use `jq` to filter out the json results as per your interest. 
 
 ## Todo
 
