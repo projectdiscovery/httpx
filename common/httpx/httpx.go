@@ -14,11 +14,13 @@ import (
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
+	"golang.org/x/net/http2"
 )
 
 // HTTPX represent an instance of the library client
 type HTTPX struct {
 	client          *retryablehttp.Client
+	client2         *http.Client
 	Filters         []Filter
 	Options         *Options
 	htmlPolicy      *bluemonday.Policy
@@ -86,6 +88,16 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
+	httpx.client2 = &http.Client{
+		Transport: &http2.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+			AllowHTTP: true,
+		},
+		Timeout: httpx.Options.Timeout,
+	}
+
 	httpx.htmlPolicy = bluemonday.NewPolicy()
 	httpx.CustomHeaders = httpx.Options.CustomHeaders
 	httpx.RequestOverride = &options.RequestOverride
@@ -117,7 +129,7 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 		return nil, err
 	}
 
-	resp.Raw = string(rawresp)
+	resp.Raw = rawresp
 
 	var respbody []byte
 	// websockets don't have a readable body
