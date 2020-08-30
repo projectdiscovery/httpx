@@ -21,11 +21,11 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
     - [From Binary](#from-binary)
     - [From Source](#from-source)
     - [From Github](#from-github)
-  - [Running httpx with stdin](#running-httpx-with-stdin)
-  - [Running httpx with file input](#running-httpx-with-file-input)
-  - [Running httpx with CIDR input](#running-httpx-with-cidr-input)
-  - [Running httpX with subfinder](#running-httpx-with-subfinder)
-  - [Todo](#todo)
+- [Running httpx with stdin](#running-httpx-with-stdin)
+- [Running httpx with file input](#running-httpx-with-file-input)
+- [Running httpx with CIDR input](#running-httpx-with-cidr-input)
+- [Running httpX with subfinder](#running-httpx-with-subfinder)
+- [Todo](#todo)
 - [Thanks](#thanks)
 
  # Features
