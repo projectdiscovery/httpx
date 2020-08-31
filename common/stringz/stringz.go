@@ -31,3 +31,10 @@ func StringToSliceInt(s string) ([]int, error) {
 
 	return r, nil
 }
+
+func SplitByCharAndTrimSpace(s string, splitchar string) (result []string) {
+	for _, token := range strings.Split(s, splitchar) {
+		result = append(result, strings.TrimSpace(token))
+	}
+	return
+}
