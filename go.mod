@@ -10,7 +10,7 @@ require (
 	github.com/miekg/dns v1.1.31
 	github.com/projectdiscovery/gologger v1.0.1
 	github.com/projectdiscovery/mapcidr v0.0.4
-	github.com/projectdiscovery/rawhttp v0.0.0-20200830154207-1d82476d6442
+	github.com/projectdiscovery/rawhttp v0.0.0-20200901223513-8a8a0cef2693
 	github.com/projectdiscovery/retryablehttp-go v1.0.1
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.2.1
