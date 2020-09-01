@@ -118,7 +118,10 @@ func main() {
 	scanopts.HTTP2Probe = options.HTTP2Probe
 	scanopts.OutputMethod = options.OutputMethod
 	if len(scanopts.Methods) > 0 {
-		scanopts.OutputMethod = true
+		// Print methods if only more than 1 are given
+		if len(scanopts.Methods) > 1 {
+			scanopts.OutputMethod = true
+		}
 
 		// Try to create output folder if it doesnt exist
 		if options.StoreResponse && !fileutil.FolderExists(options.StoreResponseDir) {
