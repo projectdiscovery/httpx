@@ -87,9 +87,10 @@ func main() {
 			rawhttp.AutomaticHostHeader(false)
 		}
 	}
-
-	if options.Methods != "" {
-		scanopts.Methods = append(scanopts.Methods, strings.Split(options.Methods, ",")...)
+	if strings.ToLower(options.Methods) == "all" {
+		scanopts.Methods = httputilz.AllHTTPMethods()
+	} else if options.Methods != "" {
+		scanopts.Methods = append(scanopts.Methods, stringz.SplitByCharAndTrimSpace(options.Methods, ",")...)
 	}
 	if len(scanopts.Methods) == 0 {
 		scanopts.Methods = append(scanopts.Methods, "GET")
@@ -117,91 +118,93 @@ func main() {
 	scanopts.Pipeline = options.Pipeline
 	scanopts.HTTP2Probe = options.HTTP2Probe
 	scanopts.OutputMethod = options.OutputMethod
-	if len(scanopts.Methods) > 0 {
+	// output verb if more than one is specified
+	if len(scanopts.Methods) > 1 && !options.Silent {
 		scanopts.OutputMethod = true
-
-		// Try to create output folder if it doesnt exist
-		if options.StoreResponse && !fileutil.FolderExists(options.StoreResponseDir) {
-			if err := os.MkdirAll(options.StoreResponseDir, os.ModePerm); err != nil {
-				gologger.Fatalf("Could not create output directory '%s': %s\n", options.StoreResponseDir, err)
-			}
-		}
-
-		// output routine
-		wgoutput := sizedwaitgroup.New(1)
-		wgoutput.Add()
-		output := make(chan Result)
-		go func(output chan Result) {
-			defer wgoutput.Done()
-
-			var f *os.File
-			if options.Output != "" {
-				var err error
-				f, err = os.Create(options.Output)
-				if err != nil {
-					gologger.Fatalf("Could not create output file '%s': %s\n", options.Output, err)
-				}
-				defer f.Close()
-			}
-			for r := range output {
-				if r.err != nil {
-					gologger.Debugf("Failure '%s': %s\n", r.URL, r.err)
-					continue
-				}
-
-				// apply matchers and filters
-				if len(options.filterStatusCode) > 0 && slice.IntSliceContains(options.filterStatusCode, r.StatusCode) {
-					continue
-				}
-				if len(options.filterContentLength) > 0 && slice.IntSliceContains(options.filterContentLength, r.ContentLength) {
-					continue
-				}
-				if len(options.matchStatusCode) > 0 && !slice.IntSliceContains(options.matchStatusCode, r.StatusCode) {
-					continue
-				}
-				if len(options.matchContentLength) > 0 && !slice.IntSliceContains(options.matchContentLength, r.ContentLength) {
-					continue
-				}
-
-				row := r.str
-				if options.JSONOutput {
-					row = r.JSON()
-				}
-
-				gologger.Silentf("%s\n", row)
-				if f != nil {
-					f.WriteString(row + "\n")
-				}
-			}
-		}(output)
-
-		wg := sizedwaitgroup.New(options.Threads)
-		var sc *bufio.Scanner
-
-		// check if file has been provided
-		if fileutil.FileExists(options.InputFile) {
-			finput, err := os.Open(options.InputFile)
-			if err != nil {
-				gologger.Fatalf("Could read input file '%s': %s\n", options.InputFile, err)
-			}
-			defer finput.Close()
-			sc = bufio.NewScanner(finput)
-		} else if fileutil.HasStdin() {
-			sc = bufio.NewScanner(os.Stdin)
-		} else {
-			gologger.Fatalf("No input provided")
-		}
-
-		for sc.Scan() {
-			process(sc.Text(), &wg, hp, protocol, scanopts, output)
-		}
-
-		wg.Wait()
-
-		close(output)
-
-		wgoutput.Wait()
 	}
+
+	// Try to create output folder if it doesnt exist
+	if options.StoreResponse && !fileutil.FolderExists(options.StoreResponseDir) {
+		if err := os.MkdirAll(options.StoreResponseDir, os.ModePerm); err != nil {
+			gologger.Fatalf("Could not create output directory '%s': %s\n", options.StoreResponseDir, err)
+		}
+	}
+
+	// output routine
+	wgoutput := sizedwaitgroup.New(1)
+	wgoutput.Add()
+	output := make(chan Result)
+	go func(output chan Result) {
+		defer wgoutput.Done()
+
+		var f *os.File
+		if options.Output != "" {
+			var err error
+			f, err = os.Create(options.Output)
+			if err != nil {
+				gologger.Fatalf("Could not create output file '%s': %s\n", options.Output, err)
+			}
+			defer f.Close()
+		}
+		for r := range output {
+			if r.err != nil {
+				gologger.Debugf("Failure '%s': %s\n", r.URL, r.err)
+				continue
+			}
+
+			// apply matchers and filters
+			if len(options.filterStatusCode) > 0 && slice.IntSliceContains(options.filterStatusCode, r.StatusCode) {
+				continue
+			}
+			if len(options.filterContentLength) > 0 && slice.IntSliceContains(options.filterContentLength, r.ContentLength) {
+				continue
+			}
+			if len(options.matchStatusCode) > 0 && !slice.IntSliceContains(options.matchStatusCode, r.StatusCode) {
+				continue
+			}
+			if len(options.matchContentLength) > 0 && !slice.IntSliceContains(options.matchContentLength, r.ContentLength) {
+				continue
+			}
+
+			row := r.str
+			if options.JSONOutput {
+				row = r.JSON()
+			}
+
+			gologger.Silentf("%s\n", row)
+			if f != nil {
+				f.WriteString(row + "\n")
+			}
+		}
+	}(output)
+
+	wg := sizedwaitgroup.New(options.Threads)
+	var sc *bufio.Scanner
+
+	// check if file has been provided
+	if fileutil.FileExists(options.InputFile) {
+		finput, err := os.Open(options.InputFile)
+		if err != nil {
+			gologger.Fatalf("Could read input file '%s': %s\n", options.InputFile, err)
+		}
+		defer finput.Close()
+		sc = bufio.NewScanner(finput)
+	} else if fileutil.HasStdin() {
+		sc = bufio.NewScanner(os.Stdin)
+	} else {
+		gologger.Fatalf("No input provided")
+	}
+
+	for sc.Scan() {
+		process(sc.Text(), &wg, hp, protocol, scanopts, output)
+	}
+
+	wg.Wait()
+
+	close(output)
+
+	wgoutput.Wait()
+
 }
 
 func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts scanOptions, output chan Result) {
@@ -617,7 +620,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.HttpProxy, "http-proxy", "", "HTTP Proxy, eg http://127.0.0.1:8080")
 	flag.BoolVar(&options.JSONOutput, "json", false, "JSON Output")
 	flag.StringVar(&options.InputFile, "l", "", "File containing domains")
-	flag.StringVar(&options.Methods, "x", "", "Request Methods")
+	flag.StringVar(&options.Methods, "x", "", "Request Methods, use ALL to check all verbs ()")
 	flag.BoolVar(&options.OutputMethod, "method", false, "Output method")
 	flag.BoolVar(&options.Silent, "silent", false, "Silent mode")
 	flag.BoolVar(&options.Version, "version", false, "Show version of httpx")
