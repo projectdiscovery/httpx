@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/logrusorgru/aurora"
+	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/httpx/common/customheader"
 	customport "github.com/projectdiscovery/httpx/common/customports"
