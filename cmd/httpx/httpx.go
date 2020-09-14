@@ -14,6 +14,7 @@ import (
 
 	"github.com/logrusorgru/aurora"
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/httpx/common/cache"
 	"github.com/projectdiscovery/httpx/common/customheader"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
@@ -118,6 +119,7 @@ func main() {
 	scanopts.Pipeline = options.Pipeline
 	scanopts.HTTP2Probe = options.HTTP2Probe
 	scanopts.OutputMethod = options.OutputMethod
+	scanopts.OutputIP = options.OutputIP
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
 		scanopts.OutputMethod = true
@@ -316,6 +318,7 @@ type scanOptions struct {
 	Unsafe                 bool
 	Pipeline               bool
 	HTTP2Probe             bool
+	OutputIP               bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, method string, scanopts *scanOptions) Result {
@@ -481,6 +484,11 @@ retry:
 		}
 	}
 
+	ip := cache.GetDialedIP(domain)
+	if scanopts.OutputIP {
+		builder.WriteString(fmt.Sprintf(" [%s]", ip))
+	}
+
 	// store responses in directory
 	if scanopts.StoreResponse {
 		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
@@ -512,6 +520,7 @@ retry:
 		Pipeline:      pipeline,
 		HTTP2:         http2,
 		Method:        method,
+		IP:            ip,
 	}
 
 }
@@ -535,6 +544,7 @@ type Result struct {
 	Pipeline      bool           `json:"pipeline,omitempty"`
 	HTTP2         bool           `json:"http2"`
 	Method        string         `json:"method"`
+	IP            string         `json:"ip"`
 }
 
 // JSON the result
@@ -588,6 +598,7 @@ type Options struct {
 	OutputFilterStatusCode    string
 	filterStatusCode          []int
 	OutputFilterContentLength string
+	OutputIP                  bool
 	filterContentLength       []int
 	InputRawRequest           string
 	rawRequest                string
@@ -643,6 +654,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Debug, "debug", false, "Debug mode")
 	flag.BoolVar(&options.Pipeline, "pipeline", false, "HTTP1.1 Pipeline")
 	flag.BoolVar(&options.HTTP2Probe, "http2", false, "HTTP2 probe")
+	flag.BoolVar(&options.OutputIP, "ip", false, "Output target ip")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
