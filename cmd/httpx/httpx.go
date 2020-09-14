@@ -490,6 +490,18 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
+	var (
+		ips    []string
+		cnames []string
+	)
+	dnsData, err := cache.GetDNSData(domain)
+	if dnsData != nil && err == nil {
+		ips = dnsData.IPs
+		cnames = dnsData.CNAMEs
+	} else {
+		ips = append(ips, ip)
+	}
+
 	// store responses in directory
 	if scanopts.StoreResponse {
 		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
@@ -522,6 +534,8 @@ retry:
 		HTTP2:         http2,
 		Method:        method,
 		IP:            ip,
+		IPs:           ips,
+		CNAMEs:        cnames,
 	}
 
 }
@@ -546,6 +560,8 @@ type Result struct {
 	HTTP2         bool           `json:"http2"`
 	Method        string         `json:"method"`
 	IP            string         `json:"ip"`
+	IPs           []string       `json:"ips"`
+	CNAMEs        []string       `json:"cnames,omitempty"`
 }
 
 // JSON the result

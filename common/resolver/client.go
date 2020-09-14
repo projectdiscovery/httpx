@@ -1,8 +1,11 @@
 package dns
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/miekg/dns"
@@ -18,8 +21,31 @@ type Client struct {
 
 // Result containing ip and time to live
 type Result struct {
-	IPs []string
-	TTL int
+	IPs    []string
+	CNAMEs []string
+	TTL    int
+}
+
+// Marshal structure to bytes
+func (r *Result) Marshal() ([]byte, error) {
+	var b bytes.Buffer
+	enc := gob.NewEncoder(&b)
+	err := enc.Encode(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
+}
+
+// Unmarshal structure
+func (r *Result) Unmarshal(b []byte) error {
+	dec := gob.NewDecoder(bytes.NewBuffer(b))
+	err := dec.Decode(&r)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // New creates a new dns client
@@ -57,9 +83,17 @@ func (c *Client) Resolve(host string) (Result, error) {
 			return result, errors.New(dns.RcodeToString[answer.Rcode])
 		}
 		for _, record := range answer.Answer {
-			if t, ok := record.(*dns.A); ok {
-				result.IPs = append(result.IPs, t.A.String())
-				result.TTL = int(t.Header().Ttl)
+			switch t := record.(type) {
+			case *dns.A:
+				ip := t.A.String()
+				if ip != "" {
+					result.IPs = append(result.IPs, t.A.String())
+					result.TTL = int(t.Header().Ttl)
+				}
+			case *dns.CNAME:
+				if t.Target != "" {
+					result.CNAMEs = append(result.CNAMEs, strings.TrimSuffix(t.Target, "."))
+				}
 			}
 		}
 		return result, nil
