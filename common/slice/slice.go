@@ -9,3 +9,12 @@ func IntSliceContains(sl []int, v int) bool {
 	}
 	return false
 }
+
+// ToSlice creates a slice with all string keys from a map
+func ToSlice(m map[string]struct{}) (s []string) {
+	for k := range m {
+		s = append(s, k)
+	}
+
+	return
+}
