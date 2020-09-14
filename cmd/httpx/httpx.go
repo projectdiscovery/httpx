@@ -320,6 +320,7 @@ type scanOptions struct {
 	Pipeline               bool
 	HTTP2Probe             bool
 	OutputIP               bool
+	OutputCDN              bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, method string, scanopts *scanOptions) Result {
@@ -490,6 +491,11 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
+	isCDN := hp.CdnCheck(ip)
+	if scanopts.OutputCDN && isCDN {
+		builder.WriteString(" [cdn]")
+	}
+
 	// store responses in directory
 	if scanopts.StoreResponse {
 		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
@@ -522,6 +528,7 @@ retry:
 		HTTP2:         http2,
 		Method:        method,
 		IP:            ip,
+		CDN:           isCDN,
 	}
 
 }
@@ -546,6 +553,7 @@ type Result struct {
 	HTTP2         bool           `json:"http2"`
 	Method        string         `json:"method"`
 	IP            string         `json:"ip"`
+	CDN           bool           `json:"cdn"`
 }
 
 // JSON the result
@@ -608,6 +616,7 @@ type Options struct {
 	Debug                     bool
 	Pipeline                  bool
 	HTTP2Probe                bool
+	CDN                       bool
 }
 
 // ParseOptions parses the command line options for application
@@ -656,6 +665,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Pipeline, "pipeline", false, "HTTP1.1 Pipeline")
 	flag.BoolVar(&options.HTTP2Probe, "http2", false, "HTTP2 probe")
 	flag.BoolVar(&options.OutputIP, "ip", false, "Output target ip")
+	flag.BoolVar(&options.CDN, "cdn", false, "Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)")
 	flag.Parse()
 
 	// Read the inputs and configure the logging

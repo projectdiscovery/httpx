@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/microcosm-cc/bluemonday"
+	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/httpx/common/cache"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/rawhttp"
@@ -26,6 +27,7 @@ type HTTPX struct {
 	htmlPolicy      *bluemonday.Policy
 	CustomHeaders   map[string]string
 	RequestOverride *RequestOverride
+	cdn             *cdncheck.Client
 }
 
 // New httpx instance
@@ -101,6 +103,10 @@ func New(options *Options) (*HTTPX, error) {
 	httpx.htmlPolicy = bluemonday.NewPolicy()
 	httpx.CustomHeaders = httpx.Options.CustomHeaders
 	httpx.RequestOverride = &options.RequestOverride
+	httpx.cdn, err = cdncheck.New()
+	if err != nil {
+		return nil, fmt.Errorf("Could not create cdn check: %s", err)
+	}
 
 	return httpx, nil
 }
