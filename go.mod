@@ -8,6 +8,7 @@ require (
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/miekg/dns v1.1.31
+	github.com/projectdiscovery/fdmax v0.0.1
 	github.com/projectdiscovery/gologger v1.0.1
 	github.com/projectdiscovery/mapcidr v0.0.4
 	github.com/projectdiscovery/rawhttp v0.0.0-20200901223513-8a8a0cef2693
