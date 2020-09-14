@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -162,10 +163,22 @@ func main() {
 			if len(options.filterContentLength) > 0 && slice.IntSliceContains(options.filterContentLength, r.ContentLength) {
 				continue
 			}
+			if options.filterRegex != nil && options.filterRegex.MatchString(r.Response) {
+				continue
+			}
+			if options.OutputFilterString != "" && strings.Contains(r.Response, options.OutputFilterString) {
+				continue
+			}
 			if len(options.matchStatusCode) > 0 && !slice.IntSliceContains(options.matchStatusCode, r.StatusCode) {
 				continue
 			}
 			if len(options.matchContentLength) > 0 && !slice.IntSliceContains(options.matchContentLength, r.ContentLength) {
+				continue
+			}
+			if options.matchRegex != nil && !options.matchRegex.MatchString(r.Response) {
+				continue
+			}
+			if options.OutputMatchString != "" && !strings.Contains(r.Response, options.OutputMatchString) {
 				continue
 			}
 
@@ -608,6 +621,12 @@ type Options struct {
 	Debug                     bool
 	Pipeline                  bool
 	HTTP2Probe                bool
+	OutputFilterString        string
+	OutputMatchString         string
+	OutputFilterRegex         string
+	filterRegex               *regexp.Regexp
+	OutputMatchRegex          string
+	matchRegex                *regexp.Regexp
 }
 
 // ParseOptions parses the command line options for application
@@ -656,6 +675,10 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Pipeline, "pipeline", false, "HTTP1.1 Pipeline")
 	flag.BoolVar(&options.HTTP2Probe, "http2", false, "HTTP2 probe")
 	flag.BoolVar(&options.OutputIP, "ip", false, "Output target ip")
+	flag.StringVar(&options.OutputFilterString, "filter-string", "", "Filter String")
+	flag.StringVar(&options.OutputMatchString, "match-string", "", "Match string")
+	flag.StringVar(&options.OutputFilterRegex, "filter-regex", "", "Filter Regex")
+	flag.StringVar(&options.OutputMatchRegex, "match-regex", "", "Match Regex")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
@@ -694,6 +717,16 @@ func (options *Options) validateOptions() {
 	}
 	if options.filterContentLength, err = stringz.StringToSliceInt(options.OutputFilterContentLength); err != nil {
 		gologger.Fatalf("Invalid value for filter content length option: %s\n", err)
+	}
+	if options.OutputFilterRegex != "" {
+		if options.filterRegex, err = regexp.Compile(options.OutputFilterRegex); err != nil {
+			gologger.Fatalf("Invalid value for regex filter option: %s\n", err)
+		}
+	}
+	if options.OutputMatchRegex != "" {
+		if options.matchRegex, err = regexp.Compile(options.OutputMatchRegex); err != nil {
+			gologger.Fatalf("Invalid value for match regex option: %s\n", err)
+		}
 	}
 }
 
