@@ -122,6 +122,7 @@ func main() {
 	scanopts.HTTP2Probe = options.HTTP2Probe
 	scanopts.OutputMethod = options.OutputMethod
 	scanopts.OutputIP = options.OutputIP
+	scanopts.OutputCDN = options.OutputCDN
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
 		scanopts.OutputMethod = true
@@ -333,6 +334,7 @@ type scanOptions struct {
 	Pipeline               bool
 	HTTP2Probe             bool
 	OutputIP               bool
+	OutputCDN              bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, method string, scanopts *scanOptions) Result {
@@ -503,6 +505,11 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
+	isCDN := hp.CdnCheck(ip)
+	if scanopts.OutputCDN && isCDN {
+		builder.WriteString(" [cdn]")
+	}
+
 	// store responses in directory
 	if scanopts.StoreResponse {
 		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
@@ -536,6 +543,7 @@ retry:
 		HTTP2:         http2,
 		Method:        method,
 		IP:            ip,
+		CDN:           isCDN,
 	}
 
 }
@@ -561,6 +569,7 @@ type Result struct {
 	HTTP2         bool           `json:"http2"`
 	Method        string         `json:"method"`
 	IP            string         `json:"ip"`
+	CDN           bool           `json:"cdn"`
 }
 
 // JSON the result
@@ -629,6 +638,7 @@ type Options struct {
 	filterRegex               *regexp.Regexp
 	OutputMatchRegex          string
 	matchRegex                *regexp.Regexp
+	OutputCDN                 bool
 }
 
 // ParseOptions parses the command line options for application
@@ -681,6 +691,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.OutputMatchString, "match-string", "", "Match string")
 	flag.StringVar(&options.OutputFilterRegex, "filter-regex", "", "Filter Regex")
 	flag.StringVar(&options.OutputMatchRegex, "match-regex", "", "Match Regex")
+	flag.BoolVar(&options.OutputCDN, "cdn", false, "Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
