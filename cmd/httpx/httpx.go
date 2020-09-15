@@ -506,7 +506,8 @@ retry:
 	}
 
 	if scanopts.OutputCName && len(cnames) > 0 {
-		builder.WriteString(fmt.Sprintf(" [%s]", strings.Join(cnames, ",")))
+		// Print only the first CNAME (full list in json)
+		builder.WriteString(fmt.Sprintf(" [%s]", cnames[0]))
 	}
 
 	// store responses in directory
@@ -544,7 +545,6 @@ retry:
 		IPs:           ips,
 		CNAMEs:        cnames,
 	}
-
 }
 
 // Result of a scan
@@ -680,7 +680,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Pipeline, "pipeline", false, "HTTP1.1 Pipeline")
 	flag.BoolVar(&options.HTTP2Probe, "http2", false, "HTTP2 probe")
 	flag.BoolVar(&options.OutputIP, "ip", false, "Output target ip")
-	flag.BoolVar(&options.OutputCName, "cname", false, "Output cname")
+	flag.BoolVar(&options.OutputCName, "cname", false, "Output first cname")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
