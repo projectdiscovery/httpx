@@ -163,10 +163,10 @@ func main() {
 			if len(options.filterContentLength) > 0 && slice.IntSliceContains(options.filterContentLength, r.ContentLength) {
 				continue
 			}
-			if options.filterRegex != nil && options.filterRegex.MatchString(r.Response) {
+			if options.filterRegex != nil && options.filterRegex.MatchString(r.raw) {
 				continue
 			}
-			if options.OutputFilterString != "" && strings.Contains(r.Response, options.OutputFilterString) {
+			if options.OutputFilterString != "" && strings.Contains(r.raw, options.OutputFilterString) {
 				continue
 			}
 			if len(options.matchStatusCode) > 0 && !slice.IntSliceContains(options.matchStatusCode, r.StatusCode) {
@@ -175,10 +175,10 @@ func main() {
 			if len(options.matchContentLength) > 0 && !slice.IntSliceContains(options.matchContentLength, r.ContentLength) {
 				continue
 			}
-			if options.matchRegex != nil && !options.matchRegex.MatchString(r.Response) {
+			if options.matchRegex != nil && !options.matchRegex.MatchString(r.raw) {
 				continue
 			}
-			if options.OutputMatchString != "" && !strings.Contains(r.Response, options.OutputMatchString) {
+			if options.OutputMatchString != "" && !strings.Contains(r.raw, options.OutputMatchString) {
 				continue
 			}
 
@@ -518,6 +518,7 @@ retry:
 	}
 
 	return Result{
+		raw:           resp.Raw,
 		URL:           fullURL,
 		ContentLength: resp.ContentLength,
 		StatusCode:    resp.StatusCode,
@@ -541,6 +542,7 @@ retry:
 
 // Result of a scan
 type Result struct {
+	raw           string
 	URL           string `json:"url"`
 	ContentLength int    `json:"content-length"`
 	StatusCode    int    `json:"status-code"`
