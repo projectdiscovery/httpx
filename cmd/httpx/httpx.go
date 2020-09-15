@@ -121,6 +121,8 @@ func main() {
 	scanopts.HTTP2Probe = options.HTTP2Probe
 	scanopts.OutputMethod = options.OutputMethod
 	scanopts.OutputIP = options.OutputIP
+	scanopts.OutputCName = options.OutputCName
+
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
 		scanopts.OutputMethod = true
@@ -320,6 +322,7 @@ type scanOptions struct {
 	Pipeline               bool
 	HTTP2Probe             bool
 	OutputIP               bool
+	OutputCName            bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, method string, scanopts *scanOptions) Result {
@@ -502,6 +505,10 @@ retry:
 		ips = append(ips, ip)
 	}
 
+	if scanopts.OutputCName && len(cnames) > 0 {
+		builder.WriteString(fmt.Sprintf(" [%s]", strings.Join(cnames, ",")))
+	}
+
 	// store responses in directory
 	if scanopts.StoreResponse {
 		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
@@ -616,6 +623,7 @@ type Options struct {
 	filterStatusCode          []int
 	OutputFilterContentLength string
 	OutputIP                  bool
+	OutputCName               bool
 	filterContentLength       []int
 	InputRawRequest           string
 	rawRequest                string
@@ -672,6 +680,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Pipeline, "pipeline", false, "HTTP1.1 Pipeline")
 	flag.BoolVar(&options.HTTP2Probe, "http2", false, "HTTP2 probe")
 	flag.BoolVar(&options.OutputIP, "ip", false, "Output target ip")
+	flag.BoolVar(&options.OutputCName, "cname", false, "Output cname")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
