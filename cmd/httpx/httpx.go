@@ -122,7 +122,7 @@ func main() {
 	scanopts.OutputMethod = options.OutputMethod
 	scanopts.OutputIP = options.OutputIP
 	scanopts.OutputCName = options.OutputCName
-
+	scanopts.OutputCDN = options.OutputCDN
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
 		scanopts.OutputMethod = true
@@ -323,6 +323,7 @@ type scanOptions struct {
 	HTTP2Probe             bool
 	OutputIP               bool
 	OutputCName            bool
+	OutputCDN              bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, method string, scanopts *scanOptions) Result {
@@ -508,6 +509,11 @@ retry:
 	if scanopts.OutputCName && len(cnames) > 0 {
 		// Print only the first CNAME (full list in json)
 		builder.WriteString(fmt.Sprintf(" [%s]", cnames[0]))
+  }
+	
+  isCDN := hp.CdnCheck(ip)
+	if scanopts.OutputCDN && isCDN {
+		builder.WriteString(" [cdn]")
 	}
 
 	// store responses in directory
@@ -544,6 +550,7 @@ retry:
 		IP:            ip,
 		IPs:           ips,
 		CNAMEs:        cnames,
+		CDN:           isCDN,
 	}
 }
 
@@ -569,6 +576,7 @@ type Result struct {
 	IP            string         `json:"ip"`
 	IPs           []string       `json:"ips"`
 	CNAMEs        []string       `json:"cnames,omitempty"`
+	CDN           bool           `json:"cdn"`
 }
 
 // JSON the result
@@ -632,6 +640,7 @@ type Options struct {
 	Debug                     bool
 	Pipeline                  bool
 	HTTP2Probe                bool
+	OutputCDN                 bool
 }
 
 // ParseOptions parses the command line options for application
@@ -681,6 +690,8 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.HTTP2Probe, "http2", false, "HTTP2 probe")
 	flag.BoolVar(&options.OutputIP, "ip", false, "Output target ip")
 	flag.BoolVar(&options.OutputCName, "cname", false, "Output first cname")
+	flag.BoolVar(&options.OutputCDN, "cdn", false, "Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)")
+  
 	flag.Parse()
 
 	// Read the inputs and configure the logging
