@@ -121,6 +121,7 @@ func main() {
 	scanopts.HTTP2Probe = options.HTTP2Probe
 	scanopts.OutputMethod = options.OutputMethod
 	scanopts.OutputIP = options.OutputIP
+	scanopts.OutputCDN = options.OutputCDN
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
 		scanopts.OutputMethod = true
@@ -616,7 +617,7 @@ type Options struct {
 	Debug                     bool
 	Pipeline                  bool
 	HTTP2Probe                bool
-	CDN                       bool
+	OutputCDN                 bool
 }
 
 // ParseOptions parses the command line options for application
@@ -665,7 +666,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Pipeline, "pipeline", false, "HTTP1.1 Pipeline")
 	flag.BoolVar(&options.HTTP2Probe, "http2", false, "HTTP2 probe")
 	flag.BoolVar(&options.OutputIP, "ip", false, "Output target ip")
-	flag.BoolVar(&options.CDN, "cdn", false, "Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)")
+	flag.BoolVar(&options.OutputCDN, "cdn", false, "Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)")
 	flag.Parse()
 
 	// Read the inputs and configure the logging
