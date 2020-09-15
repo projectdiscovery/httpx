@@ -54,9 +54,9 @@ func New(options Options) (*Cache, error) {
 }
 
 // Lookup a hostname
-func (c *Cache) Lookup(hostname string) ([]string, error) {
+func (c *Cache) Lookup(hostname string) (*dns.Result, error) {
 	if ip := net.ParseIP(hostname); ip != nil {
-		return []string{hostname}, nil
+		return &dns.Result{IPs: []string{hostname}}, nil
 	}
 	hostnameBytes := []byte(hostname)
 	value, err := c.cache.Get(hostnameBytes)
@@ -64,17 +64,21 @@ func (c *Cache) Lookup(hostname string) ([]string, error) {
 		if len(err.Error()) != 15 {
 			return nil, err
 		}
-		results, err := c.dnsClient.Resolve(hostname)
+		result, err := c.dnsClient.Resolve(hostname)
 		if err != nil {
 			return nil, err
 		}
-		if results.TTL == 0 {
-			results.TTL = c.defaultExpirationTime
+		if result.TTL == 0 {
+			result.TTL = c.defaultExpirationTime
 		}
-		c.cache.Set(hostnameBytes, MarshalAddresses(results.IPs), results.TTL)
+		b, _ := result.Marshal()
+		c.cache.Set(hostnameBytes, b, result.TTL)
 
-		return results.IPs, nil
+		return &result, nil
 	}
 
-	return UnmarshalAddresses(value), nil
+	var result dns.Result
+	result.Unmarshal(value)
+
+	return &result, nil
 }

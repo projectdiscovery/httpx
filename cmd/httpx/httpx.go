@@ -121,6 +121,7 @@ func main() {
 	scanopts.HTTP2Probe = options.HTTP2Probe
 	scanopts.OutputMethod = options.OutputMethod
 	scanopts.OutputIP = options.OutputIP
+	scanopts.OutputCName = options.OutputCName
 	scanopts.OutputCDN = options.OutputCDN
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
@@ -321,6 +322,7 @@ type scanOptions struct {
 	Pipeline               bool
 	HTTP2Probe             bool
 	OutputIP               bool
+	OutputCName            bool
 	OutputCDN              bool
 }
 
@@ -492,7 +494,24 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
-	isCDN := hp.CdnCheck(ip)
+	var (
+		ips    []string
+		cnames []string
+	)
+	dnsData, err := cache.GetDNSData(domain)
+	if dnsData != nil && err == nil {
+		ips = dnsData.IPs
+		cnames = dnsData.CNAMEs
+	} else {
+		ips = append(ips, ip)
+	}
+
+	if scanopts.OutputCName && len(cnames) > 0 {
+		// Print only the first CNAME (full list in json)
+		builder.WriteString(fmt.Sprintf(" [%s]", cnames[0]))
+  }
+	
+  isCDN := hp.CdnCheck(ip)
 	if scanopts.OutputCDN && isCDN {
 		builder.WriteString(" [cdn]")
 	}
@@ -529,9 +548,10 @@ retry:
 		HTTP2:         http2,
 		Method:        method,
 		IP:            ip,
+		IPs:           ips,
+		CNAMEs:        cnames,
 		CDN:           isCDN,
 	}
-
 }
 
 // Result of a scan
@@ -554,6 +574,8 @@ type Result struct {
 	HTTP2         bool           `json:"http2"`
 	Method        string         `json:"method"`
 	IP            string         `json:"ip"`
+	IPs           []string       `json:"ips"`
+	CNAMEs        []string       `json:"cnames,omitempty"`
 	CDN           bool           `json:"cdn"`
 }
 
@@ -609,6 +631,7 @@ type Options struct {
 	filterStatusCode          []int
 	OutputFilterContentLength string
 	OutputIP                  bool
+	OutputCName               bool
 	filterContentLength       []int
 	InputRawRequest           string
 	rawRequest                string
@@ -666,7 +689,9 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Pipeline, "pipeline", false, "HTTP1.1 Pipeline")
 	flag.BoolVar(&options.HTTP2Probe, "http2", false, "HTTP2 probe")
 	flag.BoolVar(&options.OutputIP, "ip", false, "Output target ip")
+	flag.BoolVar(&options.OutputCName, "cname", false, "Output first cname")
 	flag.BoolVar(&options.OutputCDN, "cdn", false, "Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)")
+  
 	flag.Parse()
 
 	// Read the inputs and configure the logging
