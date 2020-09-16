@@ -168,7 +168,7 @@ func main() {
 			if options.filterRegex != nil && options.filterRegex.MatchString(r.raw) {
 				continue
 			}
-			if options.OutputFilterString != "" && strings.Contains(r.raw, options.OutputFilterString) {
+			if options.OutputFilterString != "" && strings.Contains(strings.ToLower(r.raw), options.OutputFilterString) {
 				continue
 			}
 			if len(options.matchStatusCode) > 0 && !slice.IntSliceContains(options.matchStatusCode, r.StatusCode) {
@@ -180,7 +180,7 @@ func main() {
 			if options.matchRegex != nil && !options.matchRegex.MatchString(r.raw) {
 				continue
 			}
-			if options.OutputMatchString != "" && !strings.Contains(r.raw, options.OutputMatchString) {
+			if options.OutputMatchString != "" && !strings.Contains(strings.ToLower(r.raw), options.OutputMatchString) {
 				continue
 			}
 
@@ -522,9 +522,9 @@ retry:
 	if scanopts.OutputCName && len(cnames) > 0 {
 		// Print only the first CNAME (full list in json)
 		builder.WriteString(fmt.Sprintf(" [%s]", cnames[0]))
-  }
-	
-  isCDN := hp.CdnCheck(ip)
+	}
+
+	isCDN := hp.CdnCheck(ip)
 	if scanopts.OutputCDN && isCDN {
 		builder.WriteString(" [cdn]")
 	}
@@ -716,7 +716,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.OutputMatchRegex, "match-regex", "", "Match Regex")
 	flag.BoolVar(&options.OutputCName, "cname", false, "Output first cname")
 	flag.BoolVar(&options.OutputCDN, "cdn", false, "Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)")
-  
+
 	flag.Parse()
 
 	// Read the inputs and configure the logging
