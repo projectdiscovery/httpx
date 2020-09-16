@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -164,10 +165,22 @@ func main() {
 			if len(options.filterContentLength) > 0 && slice.IntSliceContains(options.filterContentLength, r.ContentLength) {
 				continue
 			}
+			if options.filterRegex != nil && options.filterRegex.MatchString(r.raw) {
+				continue
+			}
+			if options.OutputFilterString != "" && strings.Contains(strings.ToLower(r.raw), options.OutputFilterString) {
+				continue
+			}
 			if len(options.matchStatusCode) > 0 && !slice.IntSliceContains(options.matchStatusCode, r.StatusCode) {
 				continue
 			}
 			if len(options.matchContentLength) > 0 && !slice.IntSliceContains(options.matchContentLength, r.ContentLength) {
+				continue
+			}
+			if options.matchRegex != nil && !options.matchRegex.MatchString(r.raw) {
+				continue
+			}
+			if options.OutputMatchString != "" && !strings.Contains(strings.ToLower(r.raw), options.OutputMatchString) {
 				continue
 			}
 
@@ -509,9 +522,9 @@ retry:
 	if scanopts.OutputCName && len(cnames) > 0 {
 		// Print only the first CNAME (full list in json)
 		builder.WriteString(fmt.Sprintf(" [%s]", cnames[0]))
-  }
-	
-  isCDN := hp.CdnCheck(ip)
+	}
+
+	isCDN := hp.CdnCheck(ip)
 	if scanopts.OutputCDN && isCDN {
 		builder.WriteString(" [cdn]")
 	}
@@ -531,6 +544,7 @@ retry:
 	}
 
 	return Result{
+		raw:           resp.Raw,
 		URL:           fullURL,
 		ContentLength: resp.ContentLength,
 		StatusCode:    resp.StatusCode,
@@ -556,6 +570,7 @@ retry:
 
 // Result of a scan
 type Result struct {
+	raw           string
 	URL           string `json:"url"`
 	ContentLength int    `json:"content-length"`
 	StatusCode    int    `json:"status-code"`
@@ -640,6 +655,12 @@ type Options struct {
 	Debug                     bool
 	Pipeline                  bool
 	HTTP2Probe                bool
+	OutputFilterString        string
+	OutputMatchString         string
+	OutputFilterRegex         string
+	filterRegex               *regexp.Regexp
+	OutputMatchRegex          string
+	matchRegex                *regexp.Regexp
 	OutputCDN                 bool
 }
 
@@ -689,9 +710,13 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Pipeline, "pipeline", false, "HTTP1.1 Pipeline")
 	flag.BoolVar(&options.HTTP2Probe, "http2", false, "HTTP2 probe")
 	flag.BoolVar(&options.OutputIP, "ip", false, "Output target ip")
+	flag.StringVar(&options.OutputFilterString, "filter-string", "", "Filter String")
+	flag.StringVar(&options.OutputMatchString, "match-string", "", "Match string")
+	flag.StringVar(&options.OutputFilterRegex, "filter-regex", "", "Filter Regex")
+	flag.StringVar(&options.OutputMatchRegex, "match-regex", "", "Match Regex")
 	flag.BoolVar(&options.OutputCName, "cname", false, "Output first cname")
 	flag.BoolVar(&options.OutputCDN, "cdn", false, "Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)")
-  
+
 	flag.Parse()
 
 	// Read the inputs and configure the logging
@@ -730,6 +755,16 @@ func (options *Options) validateOptions() {
 	}
 	if options.filterContentLength, err = stringz.StringToSliceInt(options.OutputFilterContentLength); err != nil {
 		gologger.Fatalf("Invalid value for filter content length option: %s\n", err)
+	}
+	if options.OutputFilterRegex != "" {
+		if options.filterRegex, err = regexp.Compile(options.OutputFilterRegex); err != nil {
+			gologger.Fatalf("Invalid value for regex filter option: %s\n", err)
+		}
+	}
+	if options.OutputMatchRegex != "" {
+		if options.matchRegex, err = regexp.Compile(options.OutputMatchRegex); err != nil {
+			gologger.Fatalf("Invalid value for match regex option: %s\n", err)
+		}
 	}
 }
 
