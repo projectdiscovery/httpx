@@ -44,23 +44,26 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 
  ### Supported **httpx** probes:- 
 
-| Probes                  | Status                                |
-|-------------------------|---------------------------------------|
-| URL                     | ✔                                     |
-| Title                   | ✔                                     |
-| Status Code             | ✔                                     |
-| Content Length          | ✔                                     |
-| TLS Certificate         | ✔                                     |
-| CSP Header              | ✔                                     |
-| HTTP2                   | ✔                                     |
-| HTTP 1.1 Pipeline       | ✔                                     |
-| Virtual host            | ✔                                     |
-| Location Header         | ✔                                     |
-| Web Server              | ✔                                     |
-| Web Socket              | ✔                                     |
-| Path                    | ✔                                     |
-| Ports                   | ✔                                     |
-| Request method          | ✔                                     |
+| Probes             | Status  |
+|--------------------|---------|
+| URL                | ✔       |
+| Title              | ✔       |
+| Status Code        | ✔       |
+| Content Length     | ✔       |
+| TLS Certificate    | ✔       |
+| CSP Header         | ✔       |
+| HTTP2              | ✔       |
+| HTTP 1.1 Pipeline  | ✔       |
+| Virtual host       | ✔       |
+| Location Header    | ✔       |
+| Web Server         | ✔       |
+| Web Socket         | ✔       |
+| Path               | ✔       |
+| Ports              | ✔       |
+| Request method     | ✔       |
+| Ip                 | ✔       |
+| CNAME              | ✔       |
+| CDN                | ✔       |
 
 
 # Installation Instructions
@@ -131,7 +134,7 @@ This will display help for the tool. Here are all the switches it supports.
 | -sr                     | Store responses to file (default false)                 | httpx -store-response                              |
 | -srd                    | Directory to store response (default output)            | httpx -store-response-dir output                   |
 | -unsafe                 | Send raw requests skipping golang normalization         | httpx -unsafe                                      | 
-| -request                 | File containing raw request to process                  | httpx -request                                    | 
+| -request                 | File containing raw request to process                 | httpx -request                                     | 
 | -retries                | Number of retries                                       | httpx -retries                                     |
 | -silent                 | Prints only results in the output                       | httpx -silent                                      |
 | -timeout                | Timeout in seconds (default 5)                          | httpx -timeout 10                                  |
@@ -141,6 +144,13 @@ This will display help for the tool. Here are all the switches it supports.
 | -method                 | Output requested method                                 | httpx -method                                      |
 | -response-in-json       | Include response in stdout (only works with -json)      | httpx -response-in-json                            |
 | -websocket              | Prints if a websocket is exposed                        | httpx -websocket                                   |
+| -ip                     | Prints the host IP                                      | httpx -ip                                          |
+| -cname                  | Prints the cname record if available                    | httpx -cname                                       |
+| -cdn                    | Check if domain's ip belongs to known CDN               | httpx -cdn                                         |
+| -filter-string          | Filter results based on filtered string                 | httpx -filter-string XXX                           |
+| -match-string           | Filter results based on matched string                  | httpx -match-string XXX                            |
+| -filter-regex           | Filter results based on filtered regex                  | httpx -filter-regex XXX                            |
+| -match-regex            | Filter results based on matched regex                   | httpx -match-regex XXX                             |
 
 
 ### Running httpx with stdin  
