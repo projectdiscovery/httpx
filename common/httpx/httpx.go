@@ -35,7 +35,7 @@ func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
 	dialer, err := cache.NewDialer(cache.DefaultOptions)
 	if err != nil {
-		return nil, fmt.Errorf("Could not create resolver cache: %s", err)
+		return nil, fmt.Errorf("could not create resolver cache: %s", err)
 	}
 
 	httpx.Options = options
@@ -76,8 +76,8 @@ func New(options *Options) (*HTTPX, error) {
 		DisableKeepAlives: true,
 	}
 
-	if httpx.Options.HttpProxy != "" {
-		proxyURL, parseErr := url.Parse(httpx.Options.HttpProxy)
+	if httpx.Options.HTTPProxy != "" {
+		proxyURL, parseErr := url.Parse(httpx.Options.HTTPProxy)
 		if parseErr != nil {
 			return nil, parseErr
 		}
@@ -105,7 +105,7 @@ func New(options *Options) (*HTTPX, error) {
 	httpx.RequestOverride = &options.RequestOverride
 	httpx.cdn, err = cdncheck.New()
 	if err != nil {
-		return nil, fmt.Errorf("Could not create cdn check: %s", err)
+		return nil, fmt.Errorf("could not create cdn check: %s", err)
 	}
 
 	return httpx, nil
@@ -165,14 +165,15 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 
 	if !h.Options.Unsafe {
 		// extracts TLS data if any
-		resp.TlsData = h.TlsGrab(httpresp)
+		resp.TLSData = h.TLSGrab(httpresp)
 	}
 
-	resp.CspData = h.CspGrab(httpresp)
+	resp.CSPData = h.CSPGrab(httpresp)
 
 	return &resp, nil
 }
 
+// RequestOverride contains the URI path to override the request
 type RequestOverride struct {
 	URIPath string
 }

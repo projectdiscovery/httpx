@@ -19,7 +19,7 @@ type Options struct {
 	Unsafe              bool
 	RequestOverride     RequestOverride
 
-	HttpProxy  string
+	HTTPProxy  string
 	SocksProxy string
 
 	// VHOSTs options

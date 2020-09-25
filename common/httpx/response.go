@@ -13,9 +13,9 @@ type Response struct {
 	Raw           string
 	Words         int
 	Lines         int
-	TlsData       *TlsData
-	CspData       *CspData
-	Http2         bool
+	TLSData       *TLSData
+	CSPData       *CSPData
+	HTTP2         bool
 	Pipeline      bool
 }
 

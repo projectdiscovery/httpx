@@ -38,7 +38,7 @@ func main() {
 	httpxOptions.RetryMax = options.Retries
 	httpxOptions.FollowRedirects = options.FollowRedirects
 	httpxOptions.FollowHostRedirects = options.FollowHostRedirects
-	httpxOptions.HttpProxy = options.HttpProxy
+	httpxOptions.HTTPProxy = options.HTTPProxy
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
 
@@ -110,8 +110,8 @@ func main() {
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
-	scanopts.TlsProbe = options.TLSProbe
-	scanopts.CspProbe = options.CSPProbe
+	scanopts.TLSProbe = options.TLSProbe
+	scanopts.CSPProbe = options.CSPProbe
 	if options.RequestURI != "" {
 		scanopts.RequestURI = options.RequestURI
 	}
@@ -235,18 +235,18 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 					defer wg.Done()
 					r := analyze(hp, protocol, target, 0, method, &scanopts)
 					output <- r
-					if scanopts.TlsProbe && r.TlsData != nil {
-						scanopts.TlsProbe = false
-						for _, tt := range r.TlsData.DNSNames {
+					if scanopts.TLSProbe && r.TLSData != nil {
+						scanopts.TLSProbe = false
+						for _, tt := range r.TLSData.DNSNames {
 							process(tt, wg, hp, protocol, scanopts, output)
 						}
-						for _, tt := range r.TlsData.CommonName {
+						for _, tt := range r.TLSData.CommonName {
 							process(tt, wg, hp, protocol, scanopts, output)
 						}
 					}
-					if scanopts.CspProbe && r.CspData != nil {
-						scanopts.CspProbe = false
-						for _, tt := range r.CspData.Domains {
+					if scanopts.CSPProbe && r.CSPData != nil {
+						scanopts.CSPProbe = false
+						for _, tt := range r.CSPData.Domains {
 							process(tt, wg, hp, protocol, scanopts, output)
 						}
 					}
@@ -267,12 +267,12 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 					defer wg.Done()
 					r := analyze(hp, protocol, target, port, method, &scanopts)
 					output <- r
-					if scanopts.TlsProbe && r.TlsData != nil {
-						scanopts.TlsProbe = false
-						for _, tt := range r.TlsData.DNSNames {
+					if scanopts.TLSProbe && r.TLSData != nil {
+						scanopts.TLSProbe = false
+						for _, tt := range r.TLSData.DNSNames {
 							process(tt, wg, hp, protocol, scanopts, output)
 						}
-						for _, tt := range r.TlsData.CommonName {
+						for _, tt := range r.TLSData.CommonName {
 							process(tt, wg, hp, protocol, scanopts, output)
 						}
 					}
@@ -326,8 +326,8 @@ type scanOptions struct {
 	OutputWithNoColor      bool
 	OutputMethod           bool
 	ResponseInStdout       bool
-	TlsProbe               bool
-	CspProbe               bool
+	TLSProbe               bool
+	CSPProbe               bool
 	RequestURI             string
 	OutputContentType      bool
 	RequestBody            string
@@ -562,8 +562,8 @@ retry:
 		WebServer:     serverHeader,
 		Response:      serverResponseRaw,
 		WebSocket:     isWebSocket,
-		TlsData:       resp.TlsData,
-		CspData:       resp.CspData,
+		TLSData:       resp.TLSData,
+		CSPData:       resp.CSPData,
 		Pipeline:      pipeline,
 		HTTP2:         http2,
 		Method:        method,
@@ -589,8 +589,8 @@ type Result struct {
 	Response      string         `json:"serverResponse,omitempty"`
 	WebSocket     bool           `json:"websocket,omitempty"`
 	ContentType   string         `json:"content-type,omitempty"`
-	TlsData       *httpx.TlsData `json:"tls,omitempty"`
-	CspData       *httpx.CspData `json:"csp,omitempty"`
+	TLSData       *httpx.TLSData `json:"tls,omitempty"`
+	CSPData       *httpx.CSPData `json:"csp,omitempty"`
 	Pipeline      bool           `json:"pipeline,omitempty"`
 	HTTP2         bool           `json:"http2"`
 	Method        string         `json:"method"`
@@ -626,7 +626,7 @@ type Options struct {
 	FollowRedirects           bool
 	StoreResponse             bool
 	StoreResponseDir          string
-	HttpProxy                 string
+	HTTPProxy                 string
 	SocksProxy                string
 	JSONOutput                bool
 	InputFile                 string
@@ -689,7 +689,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.StoreResponseDir, "srd", "output", "Save response directory")
 	flag.BoolVar(&options.FollowRedirects, "follow-redirects", false, "Follow Redirects")
 	flag.BoolVar(&options.FollowHostRedirects, "follow-host-redirects", false, "Only follow redirects on the same host")
-	flag.StringVar(&options.HttpProxy, "http-proxy", "", "HTTP Proxy, eg http://127.0.0.1:8080")
+	flag.StringVar(&options.HTTPProxy, "http-proxy", "", "HTTP Proxy, eg http://127.0.0.1:8080")
 	flag.BoolVar(&options.JSONOutput, "json", false, "JSON Output")
 	flag.StringVar(&options.InputFile, "l", "", "File containing domains")
 	flag.StringVar(&options.Methods, "x", "", "Request Methods, use ALL to check all verbs ()")
@@ -794,9 +794,9 @@ func (options *Options) configureOutput() {
 const banner = `
     __    __  __       _  __
    / /_  / /_/ /_____ | |/ /
-  / __ \/ __/ __/ __ \|   / 
- / / / / /_/ /_/ /_/ /   |  
-/_/ /_/\__/\__/ .___/_/|_|  
+  / __ \/ __/ __/ __ \|   /
+ / / / / /_/ /_/ /_/ /   |
+/_/ /_/\__/\__/ .___/_/|_|
              /_/              v1.0.2
 `
 

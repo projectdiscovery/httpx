@@ -13,6 +13,7 @@ const (
 	MethodTrace   = "TRACE"   // RFC 7231, 4.3.8
 )
 
+// AllHTTPMethods contains all available HTTP methods
 func AllHTTPMethods() []string {
 	return []string{
 		MethodGet,
