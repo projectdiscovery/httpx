@@ -50,7 +50,6 @@ func (h *HTTPX) SupportPipeline(protocol, method, host string, port int) bool {
 				gotReplies++
 			}
 		}
-
 	}
 
 	// expect at least 2 replies
