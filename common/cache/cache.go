@@ -4,10 +4,10 @@ import (
 	"net"
 
 	"github.com/coocood/freecache"
-	dns "github.com/projectdiscovery/httpx/common/resolver"
+	dns "github.com/projectdiscovery/httpx/common/resolve"
 )
 
-// Cache is a strcture for caching DNS lookups
+// Cache is a structure for caching DNS lookups
 type Cache struct {
 	dnsClient             Resolver
 	cache                 *freecache.Cache
