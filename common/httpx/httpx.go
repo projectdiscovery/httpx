@@ -77,9 +77,9 @@ func New(options *Options) (*HTTPX, error) {
 	}
 
 	if httpx.Options.HttpProxy != "" {
-		proxyURL, err := url.Parse(httpx.Options.HttpProxy)
-		if err != nil {
-			return nil, err
+		proxyURL, parseErr := url.Parse(httpx.Options.HttpProxy)
+		if parseErr != nil {
+			return nil, parseErr
 		}
 		transport.Proxy = http.ProxyURL(proxyURL)
 	}

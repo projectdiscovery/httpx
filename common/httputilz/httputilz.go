@@ -51,10 +51,10 @@ func ParseRequest(req string) (method string, path string, headers map[string]st
 	method = parts[0]
 
 	for {
-		line, err := reader.ReadString('\n')
+		line, readErr := reader.ReadString('\n')
 		line = strings.TrimSpace(line)
 
-		if err != nil || line == "" {
+		if readErr != nil || line == "" {
 			break
 		}
 

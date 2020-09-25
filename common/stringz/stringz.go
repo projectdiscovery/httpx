@@ -21,8 +21,8 @@ func StringToSliceInt(s string) ([]int, error) {
 		return r, nil
 	}
 	for _, v := range strings.Split(s, ",") {
-		v := strings.TrimSpace(v)
-		if i, err := strconv.Atoi(v); err == nil {
+		vTrim := strings.TrimSpace(v)
+		if i, err := strconv.Atoi(vTrim); err == nil {
 			r = append(r, i)
 		} else {
 			return r, err
