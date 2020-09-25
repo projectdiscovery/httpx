@@ -98,7 +98,7 @@ func main() {
 	if len(scanopts.Methods) == 0 {
 		scanopts.Methods = append(scanopts.Methods, "GET")
 	}
-	protocol := "https"
+	protocol := httpx.HTTPS
 	scanopts.VHost = options.VHost
 	scanopts.OutputTitle = options.ExtractTitle
 	scanopts.OutputStatusCode = options.StatusCode
@@ -362,10 +362,10 @@ retry:
 	resp, err := hp.Do(req)
 	if err != nil {
 		if !retried {
-			if protocol == "https" {
-				protocol = "http"
+			if protocol == httpx.HTTPS {
+				protocol = httpx.HTTP
 			} else {
-				protocol = "https"
+				protocol = httpx.HTTPS
 			}
 			retried = true
 			goto retry

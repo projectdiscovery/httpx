@@ -8,10 +8,17 @@ import (
 	"github.com/projectdiscovery/retryablehttp-go"
 )
 
+const (
+	// HTTP defines the plain http scheme
+	HTTP = "http"
+	// HTTPS defines the secure http scheme
+	HTTPS = "https"
+)
+
 // SupportHTTP2 checks if the target host supports HTTP2
 func (h *HTTPX) SupportHTTP2(protocol, method, targetURL string) bool {
 	// http => supports HTTP1.1 => HTTP/2 (H2C)
-	if protocol == "http" {
+	if protocol == HTTP {
 		req, err := retryablehttp.NewRequest(method, targetURL, nil)
 		if err != nil {
 			return false
