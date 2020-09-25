@@ -95,5 +95,6 @@ func ParseRequest(req string) (method, path string, headers map[string]string, b
 		return
 	}
 	body = string(b)
-	return
+
+	return method, path, headers, body, nil
 }
