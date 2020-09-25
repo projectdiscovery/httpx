@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-func TrimProtocol(URL string) string {
-	URL = strings.TrimSpace(URL)
+func TrimProtocol(targetURL string) string {
+	URL := strings.TrimSpace(targetURL)
 	if strings.HasPrefix(strings.ToLower(URL), "http://") || strings.HasPrefix(strings.ToLower(URL), "https://") {
 		URL = URL[strings.Index(URL, "//")+2:]
 	}
@@ -32,7 +32,7 @@ func StringToSliceInt(s string) ([]int, error) {
 	return r, nil
 }
 
-func SplitByCharAndTrimSpace(s string, splitchar string) (result []string) {
+func SplitByCharAndTrimSpace(s, splitchar string) (result []string) {
 	for _, token := range strings.Split(s, splitchar) {
 		result = append(result, strings.TrimSpace(token))
 	}

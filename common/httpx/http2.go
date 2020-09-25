@@ -9,10 +9,10 @@ import (
 )
 
 // SupportHTTP2 checks if the target host supports HTTP2
-func (h *HTTPX) SupportHTTP2(protocol, method, URL string) bool {
+func (h *HTTPX) SupportHTTP2(protocol, method, targetURL string) bool {
 	// http => supports HTTP1.1 => HTTP/2 (H2C)
 	if protocol == "http" {
-		req, err := retryablehttp.NewRequest(method, URL, nil)
+		req, err := retryablehttp.NewRequest(method, targetURL, nil)
 		if err != nil {
 			return false
 		}
@@ -30,7 +30,7 @@ func (h *HTTPX) SupportHTTP2(protocol, method, URL string) bool {
 	}
 
 	// attempts a direct http2 connection
-	req, err := http.NewRequest(method, URL, nil)
+	req, err := http.NewRequest(method, targetURL, nil)
 	if err != nil {
 		return false
 	}

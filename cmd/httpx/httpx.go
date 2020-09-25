@@ -90,7 +90,7 @@ func main() {
 			rawhttp.AutomaticHostHeader(false)
 		}
 	}
-	if strings.ToLower(options.Methods) == "all" {
+	if strings.EqualFold(options.Methods, "all") {
 		scanopts.Methods = httputilz.AllHTTPMethods()
 	} else if options.Methods != "" {
 		scanopts.Methods = append(scanopts.Methods, stringz.SplitByCharAndTrimSpace(options.Methods, ",")...)
@@ -214,7 +214,7 @@ func main() {
 	}
 
 	for sc.Scan() {
-		process(sc.Text(), &wg, hp, protocol, scanopts, output)
+		process(sc.Text(), &wg, hp, protocol, &scanopts, output)
 	}
 
 	wg.Wait()
@@ -225,7 +225,7 @@ func main() {
 
 }
 
-func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts scanOptions, output chan Result) {
+func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
 	for target := range targets(stringz.TrimProtocol(t)) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
@@ -233,7 +233,7 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 				wg.Add()
 				go func(target, method string) {
 					defer wg.Done()
-					r := analyze(hp, protocol, target, 0, method, &scanopts)
+					r := analyze(hp, protocol, target, 0, method, scanopts)
 					output <- r
 					if scanopts.TLSProbe && r.TLSData != nil {
 						scanopts.TLSProbe = false
@@ -265,7 +265,7 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 				wg.Add()
 				go func(port int, method string) {
 					defer wg.Done()
-					r := analyze(hp, protocol, target, port, method, &scanopts)
+					r := analyze(hp, protocol, target, port, method, scanopts)
 					output <- r
 					if scanopts.TLSProbe && r.TLSData != nil {
 						scanopts.TLSProbe = false
@@ -339,7 +339,7 @@ type scanOptions struct {
 	OutputCDN              bool
 }
 
-func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, method string, scanopts *scanOptions) Result {
+func analyze(hp *httpx.HTTPX, protocol, domain string, port int, method string, scanopts *scanOptions) Result {
 	retried := false
 retry:
 	URL := fmt.Sprintf("%s://%s", protocol, domain)
@@ -541,7 +541,8 @@ retry:
 			// leaving last 4 bytes free to append ".txt"
 			domainFile = domainFile[:251]
 		}
-		domainFile = strings.Replace(domainFile, "/", "_", -1) + ".txt"
+
+		domainFile = strings.ReplaceAll(domainFile, "/", "_") + ".txt"
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 		err := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
 		if err != nil {

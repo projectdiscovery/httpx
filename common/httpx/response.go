@@ -30,7 +30,7 @@ func (r *Response) GetHeader(name string) string {
 }
 
 // GetHeaderPart with offset
-func (r *Response) GetHeaderPart(name string, sep string) string {
+func (r *Response) GetHeaderPart(name, sep string) string {
 	v, ok := r.Headers[name]
 	if ok && len(v) > 0 {
 		tokens := strings.Split(strings.Join(v, " "), sep)

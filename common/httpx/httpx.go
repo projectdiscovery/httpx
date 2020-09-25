@@ -182,9 +182,9 @@ type RequestOverride struct {
 func (h *HTTPX) doUnsafe(req *retryablehttp.Request) (*http.Response, error) {
 	method := req.Method
 	headers := req.Header
-	url := req.URL.String()
+	targetURL := req.URL.String()
 	body := req.Body
-	return rawhttp.DoRaw(method, url, h.RequestOverride.URIPath, headers, body)
+	return rawhttp.DoRaw(method, targetURL, h.RequestOverride.URIPath, headers, body)
 }
 
 // Verify the http calls and apply-cascade all the filters, as soon as one matches it returns true
@@ -214,8 +214,8 @@ func (h *HTTPX) AddFilter(f Filter) {
 }
 
 // NewRequest from url
-func (h *HTTPX) NewRequest(method, URL string) (req *retryablehttp.Request, err error) {
-	req, err = retryablehttp.NewRequest(method, URL, nil)
+func (h *HTTPX) NewRequest(method, targetURL string) (req *retryablehttp.Request, err error) {
+	req, err = retryablehttp.NewRequest(method, targetURL, nil)
 	if err != nil {
 		return
 	}
@@ -232,7 +232,7 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 	for name, value := range headers {
 		r.Header.Set(name, value)
 		// host header is particular
-		if strings.ToLower(name) == "host" {
+		if strings.EqualFold(name, "host") {
 			r.Host = value
 		}
 	}

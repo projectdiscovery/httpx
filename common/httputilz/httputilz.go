@@ -35,7 +35,7 @@ func DumpResponse(resp *http.Response) (string, error) {
 }
 
 // ParseRequest from raw string
-func ParseRequest(req string) (method string, path string, headers map[string]string, body string, err error) {
+func ParseRequest(req string) (method, path string, headers map[string]string, body string, err error) {
 	headers = make(map[string]string)
 	reader := bufio.NewReader(strings.NewReader(req))
 	s, err := reader.ReadString('\n')
