@@ -312,13 +312,15 @@ func targets(target string) chan string {
 
 type scanOptions struct {
 	Methods                []string
+	StoreResponseDirectory string
+	RequestURI             string
+	RequestBody            string
 	VHost                  bool
 	OutputTitle            bool
 	OutputStatusCode       bool
 	OutputLocation         bool
 	OutputContentLength    bool
 	StoreResponse          bool
-	StoreResponseDirectory string
 	OutputServerHeader     bool
 	OutputWebSocket        bool
 	OutputWithNoColor      bool
@@ -326,9 +328,7 @@ type scanOptions struct {
 	ResponseInStdout       bool
 	TLSProbe               bool
 	CSPProbe               bool
-	RequestURI             string
 	OutputContentType      bool
-	RequestBody            string
 	Unsafe                 bool
 	Pipeline               bool
 	HTTP2Probe             bool
@@ -575,27 +575,27 @@ retry:
 
 // Result of a scan
 type Result struct {
+	IPs           []string `json:"ips"`
+	CNAMEs        []string `json:"cnames,omitempty"`
 	raw           string
 	URL           string `json:"url"`
-	ContentLength int    `json:"content-length"`
-	StatusCode    int    `json:"status-code"`
 	Location      string `json:"location"`
 	Title         string `json:"title"`
 	str           string
 	err           error
-	VHost         bool           `json:"vhost"`
 	WebServer     string         `json:"webserver"`
 	Response      string         `json:"serverResponse,omitempty"`
-	WebSocket     bool           `json:"websocket,omitempty"`
 	ContentType   string         `json:"content-type,omitempty"`
-	TLSData       *httpx.TLSData `json:"tls,omitempty"`
-	CSPData       *httpx.CSPData `json:"csp,omitempty"`
-	Pipeline      bool           `json:"pipeline,omitempty"`
-	HTTP2         bool           `json:"http2"`
 	Method        string         `json:"method"`
 	IP            string         `json:"ip"`
-	IPs           []string       `json:"ips"`
-	CNAMEs        []string       `json:"cnames,omitempty"`
+	ContentLength int            `json:"content-length"`
+	StatusCode    int            `json:"status-code"`
+	TLSData       *httpx.TLSData `json:"tls,omitempty"`
+	CSPData       *httpx.CSPData `json:"csp,omitempty"`
+	VHost         bool           `json:"vhost"`
+	WebSocket     bool           `json:"websocket,omitempty"`
+	Pipeline      bool           `json:"pipeline,omitempty"`
+	HTTP2         bool           `json:"http2"`
 	CDN           bool           `json:"cdn"`
 }
 
@@ -610,26 +610,44 @@ func (r *Result) JSON() string {
 
 // Options contains configuration options for chaos client.
 type Options struct {
+	CustomHeaders             customheader.CustomHeaders
+	CustomPorts               customport.CustomPorts
+	matchStatusCode           []int
+	matchContentLength        []int
+	filterStatusCode          []int
+	filterContentLength       []int
+	Output                    string
+	StoreResponseDir          string
+	HTTPProxy                 string
+	SocksProxy                string
+	InputFile                 string
+	Methods                   string
+	RequestURI                string
+	OutputMatchStatusCode     string
+	OutputMatchContentLength  string
+	OutputFilterStatusCode    string
+	OutputFilterContentLength string
+	InputRawRequest           string
+	rawRequest                string
+	RequestBody               string
+	OutputFilterString        string
+	OutputMatchString         string
+	OutputFilterRegex         string
+	OutputMatchRegex          string
+	Retries                   int
+	Threads                   int
+	Timeout                   int
+	filterRegex               *regexp.Regexp
+	matchRegex                *regexp.Regexp
 	VHost                     bool
 	Smuggling                 bool
 	ExtractTitle              bool
 	StatusCode                bool
 	Location                  bool
 	ContentLength             bool
-	Retries                   int
-	Threads                   int
-	Timeout                   int
-	CustomHeaders             customheader.CustomHeaders
-	CustomPorts               customport.CustomPorts
-	Output                    string
 	FollowRedirects           bool
 	StoreResponse             bool
-	StoreResponseDir          string
-	HTTPProxy                 string
-	SocksProxy                string
 	JSONOutput                bool
-	InputFile                 string
-	Methods                   string
 	Silent                    bool
 	Version                   bool
 	Verbose                   bool
@@ -641,31 +659,13 @@ type Options struct {
 	OutputMethod              bool
 	TLSProbe                  bool
 	CSPProbe                  bool
-	RequestURI                string
 	OutputContentType         bool
-	OutputMatchStatusCode     string
-	matchStatusCode           []int
-	OutputMatchContentLength  string
-	matchContentLength        []int
-	OutputFilterStatusCode    string
-	filterStatusCode          []int
-	OutputFilterContentLength string
 	OutputIP                  bool
 	OutputCName               bool
-	filterContentLength       []int
-	InputRawRequest           string
-	rawRequest                string
 	Unsafe                    bool
-	RequestBody               string
 	Debug                     bool
 	Pipeline                  bool
 	HTTP2Probe                bool
-	OutputFilterString        string
-	OutputMatchString         string
-	OutputFilterRegex         string
-	filterRegex               *regexp.Regexp
-	OutputMatchRegex          string
-	matchRegex                *regexp.Regexp
 	OutputCDN                 bool
 }
 
