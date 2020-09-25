@@ -222,7 +222,6 @@ func main() {
 	close(output)
 
 	wgoutput.Wait()
-
 }
 
 func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
@@ -307,7 +306,6 @@ func targets(target string) chan string {
 		} else {
 			results <- target
 		}
-
 	}()
 	return results
 }

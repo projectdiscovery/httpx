@@ -63,7 +63,6 @@ func New(options *Options) (*HTTPX, error) {
 				return http.ErrUseLastResponse // Tell the http client to not follow redirect
 			}
 			return nil
-
 		}
 	}
 
