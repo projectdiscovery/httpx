@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// TrimProtocol removes the HTTP scheme from an URI
 func TrimProtocol(targetURL string) string {
 	URL := strings.TrimSpace(targetURL)
 	if strings.HasPrefix(strings.ToLower(URL), "http://") || strings.HasPrefix(strings.ToLower(URL), "https://") {
@@ -32,6 +33,7 @@ func StringToSliceInt(s string) ([]int, error) {
 	return r, nil
 }
 
+// SplitByCharAndTrimSpace splits string by a character and remove spaces
 func SplitByCharAndTrimSpace(s, splitchar string) (result []string) {
 	for _, token := range strings.Split(s, splitchar) {
 		result = append(result, strings.TrimSpace(token))
