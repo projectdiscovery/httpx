@@ -33,7 +33,7 @@ import (
 
 const (
 	maxFileNameLenght = 255
-	tokenParts = 2
+	tokenParts        = 2
 )
 
 func main() {

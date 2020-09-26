@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	headerParts = 2
+	headerParts  = 2
 	requestParts = 3
 )
 
