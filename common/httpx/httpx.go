@@ -112,18 +112,13 @@ func New(options *Options) (*HTTPX, error) {
 
 // Do http request
 func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
-	var (
-		httpresp *http.Response
-		err      error
-	)
-	if h.Options.Unsafe {
-		httpresp, err = h.doUnsafe(req)
-	} else {
-		httpresp, err = h.client.Do(req)
-	}
+	httpresp, err := h.getResponse(req)
+
 	if err != nil {
 		return nil, err
 	}
+
+	defer httpresp.Body.Close()
 
 	var resp Response
 	resp.Headers = httpresp.Header.Clone()
@@ -177,7 +172,16 @@ type RequestOverride struct {
 	URIPath string
 }
 
-// Do http request
+// getResponse returns response from safe / unsafe request
+func (h *HTTPX) getResponse(req *retryablehttp.Request) (*http.Response, error) {
+	if h.Options.Unsafe {
+		return h.doUnsafe(req)
+	}
+
+	return h.client.Do(req)
+}
+
+// doUnsafe does an unsafe http request
 func (h *HTTPX) doUnsafe(req *retryablehttp.Request) (*http.Response, error) {
 	method := req.Method
 	headers := req.Header
