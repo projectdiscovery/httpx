@@ -50,7 +50,10 @@ func NewDialer(options Options) (DialerFunc, error) {
 		for _, ip := range dnsResult.IPs {
 			conn, err = dialer.DialContext(ctx, network, ip+address[separator:])
 			if err == nil {
-				dialerHistory.Set([]byte(hostname), []byte(ip), 0)
+				setErr := dialerHistory.Set([]byte(hostname), []byte(ip), 0)
+				if setErr != nil {
+					return nil, err
+				}
 				break
 			}
 		}

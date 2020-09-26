@@ -66,21 +66,29 @@ func (c *Cache) Lookup(hostname string) (*dns.Result, error) {
 		if err != freecache.ErrNotFound {
 			return nil, err
 		}
-		result, err := c.dnsClient.Resolve(hostname)
-		if err != nil {
-			return nil, err
+		result, resolveErr := c.dnsClient.Resolve(hostname)
+		if resolveErr != nil {
+			return nil, resolveErr
 		}
 		if result.TTL == 0 {
 			result.TTL = c.defaultExpirationTime
 		}
 		b, _ := result.Marshal()
-		c.cache.Set(hostnameBytes, b, result.TTL)
+
+		err = c.cache.Set(hostnameBytes, b, result.TTL)
+		if err != nil {
+			return nil, err
+		}
 
 		return &result, nil
 	}
 
 	var result dns.Result
-	result.Unmarshal(value)
+
+	err = result.Unmarshal(value)
+	if err != nil {
+		return nil, err
+	}
 
 	return &result, nil
 }

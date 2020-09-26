@@ -156,6 +156,7 @@ func main() {
 			if err != nil {
 				gologger.Fatalf("Could not create output file '%s': %s\n", options.Output, err)
 			}
+			//nolint:errcheck // this method needs a small refactor to reduce complexity
 			defer f.Close()
 		}
 		for r := range output {
@@ -197,6 +198,7 @@ func main() {
 
 			gologger.Silentf("%s\n", row)
 			if f != nil {
+				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				f.WriteString(row + "\n")
 			}
 		}
@@ -211,8 +213,11 @@ func main() {
 		if err != nil {
 			gologger.Fatalf("Could read input file '%s': %s\n", options.InputFile, err)
 		}
-		defer finput.Close()
 		sc = bufio.NewScanner(finput)
+		err = finput.Close()
+		if err != nil {
+			gologger.Fatalf("Could close input file '%s': %s\n", options.InputFile, err)
+		}
 	} else if fileutil.HasStdin() {
 		sc = bufio.NewScanner(os.Stdin)
 	} else {

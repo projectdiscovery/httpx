@@ -118,8 +118,6 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 		return nil, err
 	}
 
-	defer httpresp.Body.Close()
-
 	var resp Response
 	resp.Headers = httpresp.Header.Clone()
 
@@ -140,6 +138,12 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 			return nil, err
 		}
 	}
+
+	closeErr := httpresp.Body.Close()
+	if closeErr != nil {
+		return nil, closeErr
+	}
+
 	respbodystr := string(respbody)
 
 	// check if we need to strip html
