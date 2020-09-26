@@ -16,6 +16,6 @@ require (
 	github.com/projectdiscovery/retryablehttp-go v1.0.1
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.2.1
-	golang.org/x/net v0.0.0-20200904194848-62affa334b73
+	golang.org/x/net v0.0.0-20200925080053-05aa5d4ee321
 	golang.org/x/text v0.3.3
 )

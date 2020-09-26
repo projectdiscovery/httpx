@@ -63,6 +63,7 @@ func (c *Cache) Lookup(hostname string) (*dns.Result, error) {
 	hostnameBytes := []byte(hostname)
 	value, err := c.cache.Get(hostnameBytes)
 	if err != nil {
+		// continue only if the failure is caused by cache-miss
 		if err != freecache.ErrNotFound {
 			return nil, err
 		}
