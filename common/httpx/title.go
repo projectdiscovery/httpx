@@ -9,7 +9,7 @@ import (
 
 // ExtractTitle from a response
 func ExtractTitle(r *Response) (title string) {
-	var re = regexp.MustCompile(`(?im)<\s*title *>(.*?)<\s*/\s*title>`)
+	var re = regexp.MustCompile(`(?im)<\s*title.*>(.*?)<\s*/\s*title>`)
 	for _, match := range re.FindAllString(r.Raw, -1) {
 		title = html.UnescapeString(trimTitleTags(match))
 		break
