@@ -32,7 +32,7 @@ func NewDialer(options Options) (DialerFunc, error) {
 	if err != nil {
 		return nil, err
 	}
-	dialerHistory = freecache.NewCache(options.CacheSize * 1024 * 1024)
+	dialerHistory = freecache.NewCache(options.CacheSize * megaByteBytes)
 	dialer := &net.Dialer{
 		Timeout:   10 * time.Second,
 		KeepAlive: 10 * time.Second,

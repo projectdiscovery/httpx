@@ -16,7 +16,7 @@ type Options struct {
 	// RetryMax is the maximum number of retries
 	RetryMax      int
 	CustomHeaders map[string]string
-	// VHostimilarityRatio 1 - 100
+	// VHostSimilarityRatio 1 - 100
 	VHostSimilarityRatio int
 	FollowRedirects      bool
 	FollowHostRedirects  bool

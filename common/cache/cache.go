@@ -7,6 +7,8 @@ import (
 	dns "github.com/projectdiscovery/httpx/common/resolve"
 )
 
+const megaByteBytes = 1048576
+
 // Cache is a structure for caching DNS lookups
 type Cache struct {
 	dnsClient             Resolver
@@ -49,7 +51,7 @@ func New(options Options) (*Cache, error) {
 	if err != nil {
 		return nil, err
 	}
-	cache := freecache.NewCache(options.CacheSize * 1024 * 1024)
+	cache := freecache.NewCache(options.CacheSize * megaByteBytes)
 	return &Cache{dnsClient: dnsClient, cache: cache, defaultExpirationTime: options.ExpirationTime}, nil
 }
 
@@ -61,7 +63,7 @@ func (c *Cache) Lookup(hostname string) (*dns.Result, error) {
 	hostnameBytes := []byte(hostname)
 	value, err := c.cache.Get(hostnameBytes)
 	if err != nil {
-		if len(err.Error()) != 15 {
+		if err != freecache.ErrNotFound {
 			return nil, err
 		}
 		result, err := c.dnsClient.Resolve(hostname)

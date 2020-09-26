@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"regexp"
@@ -30,6 +31,11 @@ import (
 	"github.com/remeh/sizedwaitgroup"
 )
 
+const (
+	maxFileNameLenght = 255
+	tokenParts = 2
+)
+
 func main() {
 	options := ParseOptions()
 
@@ -45,9 +51,9 @@ func main() {
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
 	for _, customHeader := range options.CustomHeaders {
-		tokens := strings.SplitN(customHeader, ":", 2)
+		tokens := strings.SplitN(customHeader, ":", tokenParts)
 		// if it's an invalid header skip it
-		if len(tokens) < 2 {
+		if len(tokens) < tokenParts {
 			continue
 		}
 		key = strings.TrimSpace(tokens[0])
@@ -96,7 +102,7 @@ func main() {
 		scanopts.Methods = append(scanopts.Methods, stringz.SplitByCharAndTrimSpace(options.Methods, ",")...)
 	}
 	if len(scanopts.Methods) == 0 {
-		scanopts.Methods = append(scanopts.Methods, "GET")
+		scanopts.Methods = append(scanopts.Methods, http.MethodGet)
 	}
 	protocol := httpx.HTTPS
 	scanopts.VHost = options.VHost
@@ -392,13 +398,13 @@ retry:
 		if !scanopts.OutputWithNoColor {
 			// Color the status code based on its value
 			switch {
-			case resp.StatusCode >= 200 && resp.StatusCode < 300:
+			case resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices:
 				builder.WriteString(aurora.Green(strconv.Itoa(resp.StatusCode)).String())
-			case resp.StatusCode >= 300 && resp.StatusCode < 400:
+			case resp.StatusCode >= http.StatusMultipleChoices && resp.StatusCode < http.StatusBadRequest:
 				builder.WriteString(aurora.Yellow(strconv.Itoa(resp.StatusCode)).String())
-			case resp.StatusCode >= 400 && resp.StatusCode < 500:
+			case resp.StatusCode >= http.StatusBadRequest && resp.StatusCode < http.StatusInternalServerError:
 				builder.WriteString(aurora.Red(strconv.Itoa(resp.StatusCode)).String())
-			case resp.StatusCode > 500:
+			case resp.StatusCode > http.StatusInternalServerError:
 				builder.WriteString(aurora.Bold(aurora.Yellow(strconv.Itoa(resp.StatusCode))).String())
 			}
 		} else {
@@ -535,9 +541,9 @@ retry:
 		}
 		// On various OS the file max file name length is 255 - https://serverfault.com/questions/9546/filename-length-limits-on-linux
 		// Truncating length at 255
-		if len(domainFile) >= 255 {
+		if len(domainFile) >= maxFileNameLenght {
 			// leaving last 4 bytes free to append ".txt"
-			domainFile = domainFile[:251]
+			domainFile = domainFile[:maxFileNameLenght-1]
 		}
 
 		domainFile = strings.ReplaceAll(domainFile, "/", "_") + ".txt"

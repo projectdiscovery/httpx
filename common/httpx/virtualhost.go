@@ -8,6 +8,8 @@ import (
 	"github.com/rs/xid"
 )
 
+const simMultiplier = 100
+
 // IsVirtualHost checks if the target endpoint is a virtual host
 func (h *HTTPX) IsVirtualHost(req *retryablehttp.Request) (bool, error) {
 	httpresp1, err := h.Do(req)
@@ -44,7 +46,7 @@ func (h *HTTPX) IsVirtualHost(req *retryablehttp.Request) (bool, error) {
 	}
 
 	// Similarity Ratio - if similarity is under threshold we consider it a valid vHost
-	if int(strsim.Compare(httpresp1.Raw, httpresp2.Raw)*100) <= h.Options.VHostSimilarityRatio {
+	if int(strsim.Compare(httpresp1.Raw, httpresp2.Raw)*simMultiplier) <= h.Options.VHostSimilarityRatio {
 		return true, nil
 	}
 

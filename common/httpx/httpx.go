@@ -138,7 +138,7 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 
 	var respbody []byte
 	// websockets don't have a readable body
-	if httpresp.StatusCode != 101 {
+	if httpresp.StatusCode != http.StatusSwitchingProtocols {
 		var err error
 		respbody, err = ioutil.ReadAll(httpresp.Body)
 		if err != nil {

@@ -33,7 +33,7 @@ func (h *HTTPX) SupportHTTP2(protocol, method, targetURL string) bool {
 		io.Copy(ioutil.Discard, httpresp.Body)
 		httpresp.Body.Close()
 
-		return httpresp.StatusCode == 101
+		return httpresp.StatusCode == http.StatusSwitchingProtocols
 	}
 
 	// attempts a direct http2 connection
