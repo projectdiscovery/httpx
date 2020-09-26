@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+//nolint:gochecknoinits // this flag var needs a small refactor to avoid the use of the init function
 func init() {
 	Ports = make(map[int]struct{})
 }
