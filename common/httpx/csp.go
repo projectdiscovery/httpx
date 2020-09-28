@@ -9,17 +9,19 @@ import (
 
 // CSPHeaders is an incomplete list of most common CSP headers
 var CSPHeaders []string = []string{
-	"Content-Security-Policy",               //standard
-	"Content-Security-Policy-Report-Only",   //standard
+	"Content-Security-Policy",               // standard
+	"Content-Security-Policy-Report-Only",   // standard
 	"X-Content-Security-Policy-Report-Only", // non - standard
 	"X-Webkit-Csp-Report-Only",              // non - standard
 }
 
-type CspData struct {
+// CSPData contains the Content-Security-Policy domain list
+type CSPData struct {
 	Domains []string `json:"domains,omitempty"`
 }
 
-func (h *HTTPX) CspGrab(r *http.Response) *CspData {
+// CSPGrab fills the CSPData
+func (h *HTTPX) CSPGrab(r *http.Response) *CSPData {
 	domains := make(map[string]struct{})
 	for _, cspHeader := range CSPHeaders {
 		cspRaw := r.Header.Get(cspHeader)
@@ -39,7 +41,7 @@ func (h *HTTPX) CspGrab(r *http.Response) *CspData {
 	}
 
 	if len(domains) > 0 {
-		return &CspData{Domains: slice.ToSlice(domains)}
+		return &CSPData{Domains: slice.ToSlice(domains)}
 	}
 	return nil
 }

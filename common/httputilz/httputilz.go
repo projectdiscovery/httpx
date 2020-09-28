@@ -12,6 +12,11 @@ import (
 	"github.com/projectdiscovery/retryablehttp-go"
 )
 
+const (
+	headerParts  = 2
+	requestParts = 3
+)
+
 // DumpRequest to string
 func DumpRequest(req *retryablehttp.Request) (string, error) {
 	dump, err := httputil.DumpRequestOut(req.Request, true)
@@ -22,7 +27,7 @@ func DumpRequest(req *retryablehttp.Request) (string, error) {
 // DumpResponse to string
 func DumpResponse(resp *http.Response) (string, error) {
 	// httputil.DumpResponse does not work with websockets
-	if resp.StatusCode == 101 {
+	if resp.StatusCode == http.StatusContinue {
 		raw := resp.Status + "\n"
 		for h, v := range resp.Header {
 			raw += fmt.Sprintf("%s: %s\n", h, v)
@@ -35,7 +40,7 @@ func DumpResponse(resp *http.Response) (string, error) {
 }
 
 // ParseRequest from raw string
-func ParseRequest(req string) (method string, path string, headers map[string]string, body string, err error) {
+func ParseRequest(req string) (method, path string, headers map[string]string, body string, err error) {
 	headers = make(map[string]string)
 	reader := bufio.NewReader(strings.NewReader(req))
 	s, err := reader.ReadString('\n')
@@ -44,22 +49,22 @@ func ParseRequest(req string) (method string, path string, headers map[string]st
 		return
 	}
 	parts := strings.Split(s, " ")
-	if len(parts) < 3 {
+	if len(parts) < requestParts {
 		err = fmt.Errorf("malformed request supplied")
 		return
 	}
 	method = parts[0]
 
 	for {
-		line, err := reader.ReadString('\n')
+		line, readErr := reader.ReadString('\n')
 		line = strings.TrimSpace(line)
 
-		if err != nil || line == "" {
+		if readErr != nil || line == "" {
 			break
 		}
 
-		p := strings.SplitN(line, ":", 2)
-		if len(p) != 2 {
+		p := strings.SplitN(line, ":", headerParts)
+		if len(p) != headerParts {
 			continue
 		}
 
@@ -95,5 +100,6 @@ func ParseRequest(req string) (method string, path string, headers map[string]st
 		return
 	}
 	body = string(b)
-	return
+
+	return method, path, headers, body, nil
 }

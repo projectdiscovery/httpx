@@ -39,7 +39,11 @@ func (h *HTTPX) SupportPipeline(protocol, method, host string, port int) bool {
 	gotReplies := 0
 	reply := make([]byte, 1024)
 	for i := 0; i < nprobes; i++ {
-		conn.SetReadDeadline(time.Now().Add(1 * time.Second))
+		err := conn.SetReadDeadline(time.Now().Add(1 * time.Second))
+		if err != nil {
+			return false
+		}
+
 		if _, err := conn.Read(reply); err != nil {
 			break
 		}
@@ -50,7 +54,6 @@ func (h *HTTPX) SupportPipeline(protocol, method, host string, port int) bool {
 				gotReplies++
 			}
 		}
-
 	}
 
 	// expect at least 2 replies

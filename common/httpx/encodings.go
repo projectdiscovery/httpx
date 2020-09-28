@@ -11,7 +11,7 @@ import (
 
 // Credits: https://gist.github.com/zhangbaohe/c691e1da5bbdc7f41ca5
 
-//convert GBK to UTF-8
+// Decodegbk converts GBK to UTF-8
 func Decodegbk(s []byte) ([]byte, error) {
 	I := bytes.NewReader(s)
 	O := transform.NewReader(I, simplifiedchinese.GBK.NewDecoder())
@@ -22,7 +22,7 @@ func Decodegbk(s []byte) ([]byte, error) {
 	return d, nil
 }
 
-//convert BIG5 to UTF-8
+// Decodebig5 converts BIG5 to UTF-8
 func Decodebig5(s []byte) ([]byte, error) {
 	I := bytes.NewReader(s)
 	O := transform.NewReader(I, traditionalchinese.Big5.NewDecoder())
@@ -33,7 +33,7 @@ func Decodebig5(s []byte) ([]byte, error) {
 	return d, nil
 }
 
-//convert UTF-8 to BIG5
+// Encodebig5 converts UTF-8 to BIG5
 func Encodebig5(s []byte) ([]byte, error) {
 	I := bytes.NewReader(s)
 	O := transform.NewReader(I, traditionalchinese.Big5.NewEncoder())

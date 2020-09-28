@@ -6,31 +6,27 @@ import (
 
 // Options contains configuration options for the client
 type Options struct {
-	Threads int
+	DefaultUserAgent string
+	RequestOverride  RequestOverride
+	HTTPProxy        string
+	SocksProxy       string
+	Threads          int
 	// Timeout is the maximum time to wait for the request
 	Timeout time.Duration
 	// RetryMax is the maximum number of retries
-	RetryMax int
-
-	CustomHeaders       map[string]string
-	FollowRedirects     bool
-	FollowHostRedirects bool
-	DefaultUserAgent    string
-	Unsafe              bool
-	RequestOverride     RequestOverride
-
-	HttpProxy  string
-	SocksProxy string
-
+	RetryMax      int
+	CustomHeaders map[string]string
+	// VHostSimilarityRatio 1 - 100
+	VHostSimilarityRatio int
+	FollowRedirects      bool
+	FollowHostRedirects  bool
+	Unsafe               bool
 	// VHOSTs options
 	VHostIgnoreStatusCode    bool
 	VHostIgnoreContentLength bool
 	VHostIgnoreNumberOfWords bool
 	VHostIgnoreNumberOfLines bool
 	VHostStripHTML           bool
-
-	// VHostimilarityRatio 1 - 100
-	VHostSimilarityRatio int
 }
 
 // DefaultOptions contains the default options

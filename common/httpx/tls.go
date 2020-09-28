@@ -4,7 +4,8 @@ import (
 	"net/http"
 )
 
-type TlsData struct {
+// TLSData contains the relevant Transport Layer Security information
+type TLSData struct {
 	DNSNames         []string `json:"dns_names,omitempty"`
 	Emails           []string `json:"emails,omitempty"`
 	CommonName       []string `json:"common_name,omitempty"`
@@ -13,9 +14,10 @@ type TlsData struct {
 	IssuerOrg        []string `json:"issuer_organization,omitempty"`
 }
 
-func (h *HTTPX) TlsGrab(r *http.Response) *TlsData {
+// TLSGrab fills the TLSData
+func (h *HTTPX) TLSGrab(r *http.Response) *TLSData {
 	if r.TLS != nil {
-		var tlsdata TlsData
+		var tlsdata TLSData
 		for _, certificate := range r.TLS.PeerCertificates {
 			tlsdata.DNSNames = append(tlsdata.DNSNames, certificate.DNSNames...)
 			tlsdata.Emails = append(tlsdata.Emails, certificate.EmailAddresses...)

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/coocood/freecache"
-	dns "github.com/projectdiscovery/httpx/common/resolver"
+	dns "github.com/projectdiscovery/httpx/common/resolve"
 )
 
 var (
@@ -32,7 +32,7 @@ func NewDialer(options Options) (DialerFunc, error) {
 	if err != nil {
 		return nil, err
 	}
-	dialerHistory = freecache.NewCache(options.CacheSize * 1024 * 1024)
+	dialerHistory = freecache.NewCache(options.CacheSize * megaByteBytes)
 	dialer := &net.Dialer{
 		Timeout:   10 * time.Second,
 		KeepAlive: 10 * time.Second,
@@ -50,7 +50,10 @@ func NewDialer(options Options) (DialerFunc, error) {
 		for _, ip := range dnsResult.IPs {
 			conn, err = dialer.DialContext(ctx, network, ip+address[separator:])
 			if err == nil {
-				dialerHistory.Set([]byte(hostname), []byte(ip), 0)
+				setErr := dialerHistory.Set([]byte(hostname), []byte(ip), 0)
+				if setErr != nil {
+					return nil, err
+				}
 				break
 			}
 		}

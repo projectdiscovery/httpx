@@ -35,7 +35,7 @@ func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
 	dialer, err := cache.NewDialer(cache.DefaultOptions)
 	if err != nil {
-		return nil, fmt.Errorf("Could not create resolver cache: %s", err)
+		return nil, fmt.Errorf("could not create resolver cache: %s", err)
 	}
 
 	httpx.Options = options
@@ -63,7 +63,6 @@ func New(options *Options) (*HTTPX, error) {
 				return http.ErrUseLastResponse // Tell the http client to not follow redirect
 			}
 			return nil
-
 		}
 	}
 
@@ -76,10 +75,10 @@ func New(options *Options) (*HTTPX, error) {
 		DisableKeepAlives: true,
 	}
 
-	if httpx.Options.HttpProxy != "" {
-		proxyURL, err := url.Parse(httpx.Options.HttpProxy)
-		if err != nil {
-			return nil, err
+	if httpx.Options.HTTPProxy != "" {
+		proxyURL, parseErr := url.Parse(httpx.Options.HTTPProxy)
+		if parseErr != nil {
+			return nil, parseErr
 		}
 		transport.Proxy = http.ProxyURL(proxyURL)
 	}
@@ -105,7 +104,7 @@ func New(options *Options) (*HTTPX, error) {
 	httpx.RequestOverride = &options.RequestOverride
 	httpx.cdn, err = cdncheck.New()
 	if err != nil {
-		return nil, fmt.Errorf("Could not create cdn check: %s", err)
+		return nil, fmt.Errorf("could not create cdn check: %s", err)
 	}
 
 	return httpx, nil
@@ -113,15 +112,8 @@ func New(options *Options) (*HTTPX, error) {
 
 // Do http request
 func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
-	var (
-		httpresp *http.Response
-		err      error
-	)
-	if h.Options.Unsafe {
-		httpresp, err = h.doUnsafe(req)
-	} else {
-		httpresp, err = h.client.Do(req)
-	}
+	httpresp, err := h.getResponse(req)
+
 	if err != nil {
 		return nil, err
 	}
@@ -139,13 +131,19 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 
 	var respbody []byte
 	// websockets don't have a readable body
-	if httpresp.StatusCode != 101 {
+	if httpresp.StatusCode != http.StatusSwitchingProtocols {
 		var err error
 		respbody, err = ioutil.ReadAll(httpresp.Body)
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	closeErr := httpresp.Body.Close()
+	if closeErr != nil {
+		return nil, closeErr
+	}
+
 	respbodystr := string(respbody)
 
 	// check if we need to strip html
@@ -165,25 +163,35 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 
 	if !h.Options.Unsafe {
 		// extracts TLS data if any
-		resp.TlsData = h.TlsGrab(httpresp)
+		resp.TLSData = h.TLSGrab(httpresp)
 	}
 
-	resp.CspData = h.CspGrab(httpresp)
+	resp.CSPData = h.CSPGrab(httpresp)
 
 	return &resp, nil
 }
 
+// RequestOverride contains the URI path to override the request
 type RequestOverride struct {
 	URIPath string
 }
 
-// Do http request
+// getResponse returns response from safe / unsafe request
+func (h *HTTPX) getResponse(req *retryablehttp.Request) (*http.Response, error) {
+	if h.Options.Unsafe {
+		return h.doUnsafe(req)
+	}
+
+	return h.client.Do(req)
+}
+
+// doUnsafe does an unsafe http request
 func (h *HTTPX) doUnsafe(req *retryablehttp.Request) (*http.Response, error) {
 	method := req.Method
 	headers := req.Header
-	url := req.URL.String()
+	targetURL := req.URL.String()
 	body := req.Body
-	return rawhttp.DoRaw(method, url, h.RequestOverride.URIPath, headers, body)
+	return rawhttp.DoRaw(method, targetURL, h.RequestOverride.URIPath, headers, body)
 }
 
 // Verify the http calls and apply-cascade all the filters, as soon as one matches it returns true
@@ -213,8 +221,8 @@ func (h *HTTPX) AddFilter(f Filter) {
 }
 
 // NewRequest from url
-func (h *HTTPX) NewRequest(method, URL string) (req *retryablehttp.Request, err error) {
-	req, err = retryablehttp.NewRequest(method, URL, nil)
+func (h *HTTPX) NewRequest(method, targetURL string) (req *retryablehttp.Request, err error) {
+	req, err = retryablehttp.NewRequest(method, targetURL, nil)
 	if err != nil {
 		return
 	}
@@ -231,7 +239,7 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 	for name, value := range headers {
 		r.Header.Set(name, value)
 		// host header is particular
-		if strings.ToLower(name) == "host" {
+		if strings.EqualFold(name, "host") {
 			r.Host = value
 		}
 	}

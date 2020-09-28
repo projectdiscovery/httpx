@@ -4,10 +4,12 @@ import (
 	"net"
 
 	"github.com/coocood/freecache"
-	dns "github.com/projectdiscovery/httpx/common/resolver"
+	dns "github.com/projectdiscovery/httpx/common/resolve"
 )
 
-// Cache is a strcture for caching DNS lookups
+const megaByteBytes = 1048576
+
+// Cache is a structure for caching DNS lookups
 type Cache struct {
 	dnsClient             Resolver
 	cache                 *freecache.Cache
@@ -49,7 +51,7 @@ func New(options Options) (*Cache, error) {
 	if err != nil {
 		return nil, err
 	}
-	cache := freecache.NewCache(options.CacheSize * 1024 * 1024)
+	cache := freecache.NewCache(options.CacheSize * megaByteBytes)
 	return &Cache{dnsClient: dnsClient, cache: cache, defaultExpirationTime: options.ExpirationTime}, nil
 }
 
@@ -65,21 +67,29 @@ func (c *Cache) Lookup(hostname string) (*dns.Result, error) {
 		if err != freecache.ErrNotFound {
 			return nil, err
 		}
-		result, err := c.dnsClient.Resolve(hostname)
-		if err != nil {
-			return nil, err
+		result, resolveErr := c.dnsClient.Resolve(hostname)
+		if resolveErr != nil {
+			return nil, resolveErr
 		}
 		if result.TTL == 0 {
 			result.TTL = c.defaultExpirationTime
 		}
 		b, _ := result.Marshal()
-		c.cache.Set(hostnameBytes, b, result.TTL)
+
+		err = c.cache.Set(hostnameBytes, b, result.TTL)
+		if err != nil {
+			return nil, err
+		}
 
 		return &result, nil
 	}
 
 	var result dns.Result
-	result.Unmarshal(value)
+
+	err = result.Unmarshal(value)
+	if err != nil {
+		return nil, err
+	}
 
 	return &result, nil
 }

@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"regexp"
@@ -30,6 +31,11 @@ import (
 	"github.com/remeh/sizedwaitgroup"
 )
 
+const (
+	maxFileNameLenght = 255
+	tokenParts        = 2
+)
+
 func main() {
 	options := ParseOptions()
 
@@ -38,16 +44,16 @@ func main() {
 	httpxOptions.RetryMax = options.Retries
 	httpxOptions.FollowRedirects = options.FollowRedirects
 	httpxOptions.FollowHostRedirects = options.FollowHostRedirects
-	httpxOptions.HttpProxy = options.HttpProxy
+	httpxOptions.HTTPProxy = options.HTTPProxy
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
 	for _, customHeader := range options.CustomHeaders {
-		tokens := strings.SplitN(customHeader, ":", 2)
+		tokens := strings.SplitN(customHeader, ":", tokenParts)
 		// if it's an invalid header skip it
-		if len(tokens) < 2 {
+		if len(tokens) < tokenParts {
 			continue
 		}
 		key = strings.TrimSpace(tokens[0])
@@ -90,15 +96,15 @@ func main() {
 			rawhttp.AutomaticHostHeader(false)
 		}
 	}
-	if strings.ToLower(options.Methods) == "all" {
+	if strings.EqualFold(options.Methods, "all") {
 		scanopts.Methods = httputilz.AllHTTPMethods()
 	} else if options.Methods != "" {
 		scanopts.Methods = append(scanopts.Methods, stringz.SplitByCharAndTrimSpace(options.Methods, ",")...)
 	}
 	if len(scanopts.Methods) == 0 {
-		scanopts.Methods = append(scanopts.Methods, "GET")
+		scanopts.Methods = append(scanopts.Methods, http.MethodGet)
 	}
-	protocol := "https"
+	protocol := httpx.HTTPS
 	scanopts.VHost = options.VHost
 	scanopts.OutputTitle = options.ExtractTitle
 	scanopts.OutputStatusCode = options.StatusCode
@@ -110,8 +116,8 @@ func main() {
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
-	scanopts.TlsProbe = options.TLSProbe
-	scanopts.CspProbe = options.CSPProbe
+	scanopts.TLSProbe = options.TLSProbe
+	scanopts.CSPProbe = options.CSPProbe
 	if options.RequestURI != "" {
 		scanopts.RequestURI = options.RequestURI
 	}
@@ -150,6 +156,7 @@ func main() {
 			if err != nil {
 				gologger.Fatalf("Could not create output file '%s': %s\n", options.Output, err)
 			}
+			//nolint:errcheck // this method needs a small refactor to reduce complexity
 			defer f.Close()
 		}
 		for r := range output {
@@ -191,6 +198,7 @@ func main() {
 
 			gologger.Silentf("%s\n", row)
 			if f != nil {
+				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				f.WriteString(row + "\n")
 			}
 		}
@@ -205,8 +213,11 @@ func main() {
 		if err != nil {
 			gologger.Fatalf("Could read input file '%s': %s\n", options.InputFile, err)
 		}
-		defer finput.Close()
 		sc = bufio.NewScanner(finput)
+		err = finput.Close()
+		if err != nil {
+			gologger.Fatalf("Could close input file '%s': %s\n", options.InputFile, err)
+		}
 	} else if fileutil.HasStdin() {
 		sc = bufio.NewScanner(os.Stdin)
 	} else {
@@ -214,7 +225,7 @@ func main() {
 	}
 
 	for sc.Scan() {
-		process(sc.Text(), &wg, hp, protocol, scanopts, output)
+		process(sc.Text(), &wg, hp, protocol, &scanopts, output)
 	}
 
 	wg.Wait()
@@ -222,10 +233,9 @@ func main() {
 	close(output)
 
 	wgoutput.Wait()
-
 }
 
-func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts scanOptions, output chan Result) {
+func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
 	for target := range targets(stringz.TrimProtocol(t)) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
@@ -233,20 +243,20 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 				wg.Add()
 				go func(target, method string) {
 					defer wg.Done()
-					r := analyze(hp, protocol, target, 0, method, &scanopts)
+					r := analyze(hp, protocol, target, 0, method, scanopts)
 					output <- r
-					if scanopts.TlsProbe && r.TlsData != nil {
-						scanopts.TlsProbe = false
-						for _, tt := range r.TlsData.DNSNames {
+					if scanopts.TLSProbe && r.TLSData != nil {
+						scanopts.TLSProbe = false
+						for _, tt := range r.TLSData.DNSNames {
 							process(tt, wg, hp, protocol, scanopts, output)
 						}
-						for _, tt := range r.TlsData.CommonName {
+						for _, tt := range r.TLSData.CommonName {
 							process(tt, wg, hp, protocol, scanopts, output)
 						}
 					}
-					if scanopts.CspProbe && r.CspData != nil {
-						scanopts.CspProbe = false
-						for _, tt := range r.CspData.Domains {
+					if scanopts.CSPProbe && r.CSPData != nil {
+						scanopts.CSPProbe = false
+						for _, tt := range r.CSPData.Domains {
 							process(tt, wg, hp, protocol, scanopts, output)
 						}
 					}
@@ -265,14 +275,14 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 				wg.Add()
 				go func(port int, method string) {
 					defer wg.Done()
-					r := analyze(hp, protocol, target, port, method, &scanopts)
+					r := analyze(hp, protocol, target, port, method, scanopts)
 					output <- r
-					if scanopts.TlsProbe && r.TlsData != nil {
-						scanopts.TlsProbe = false
-						for _, tt := range r.TlsData.DNSNames {
+					if scanopts.TLSProbe && r.TLSData != nil {
+						scanopts.TLSProbe = false
+						for _, tt := range r.TLSData.DNSNames {
 							process(tt, wg, hp, protocol, scanopts, output)
 						}
-						for _, tt := range r.TlsData.CommonName {
+						for _, tt := range r.TLSData.CommonName {
 							process(tt, wg, hp, protocol, scanopts, output)
 						}
 					}
@@ -307,30 +317,29 @@ func targets(target string) chan string {
 		} else {
 			results <- target
 		}
-
 	}()
 	return results
 }
 
 type scanOptions struct {
 	Methods                []string
+	StoreResponseDirectory string
+	RequestURI             string
+	RequestBody            string
 	VHost                  bool
 	OutputTitle            bool
 	OutputStatusCode       bool
 	OutputLocation         bool
 	OutputContentLength    bool
 	StoreResponse          bool
-	StoreResponseDirectory string
 	OutputServerHeader     bool
 	OutputWebSocket        bool
 	OutputWithNoColor      bool
 	OutputMethod           bool
 	ResponseInStdout       bool
-	TlsProbe               bool
-	CspProbe               bool
-	RequestURI             string
+	TLSProbe               bool
+	CSPProbe               bool
 	OutputContentType      bool
-	RequestBody            string
 	Unsafe                 bool
 	Pipeline               bool
 	HTTP2Probe             bool
@@ -339,7 +348,7 @@ type scanOptions struct {
 	OutputCDN              bool
 }
 
-func analyze(hp *httpx.HTTPX, protocol string, domain string, port int, method string, scanopts *scanOptions) Result {
+func analyze(hp *httpx.HTTPX, protocol, domain string, port int, method string, scanopts *scanOptions) Result {
 	retried := false
 retry:
 	URL := fmt.Sprintf("%s://%s", protocol, domain)
@@ -364,10 +373,10 @@ retry:
 	resp, err := hp.Do(req)
 	if err != nil {
 		if !retried {
-			if protocol == "https" {
-				protocol = "http"
+			if protocol == httpx.HTTPS {
+				protocol = httpx.HTTP
 			} else {
-				protocol = "https"
+				protocol = httpx.HTTPS
 			}
 			retried = true
 			goto retry
@@ -394,13 +403,13 @@ retry:
 		if !scanopts.OutputWithNoColor {
 			// Color the status code based on its value
 			switch {
-			case resp.StatusCode >= 200 && resp.StatusCode < 300:
+			case resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices:
 				builder.WriteString(aurora.Green(strconv.Itoa(resp.StatusCode)).String())
-			case resp.StatusCode >= 300 && resp.StatusCode < 400:
+			case resp.StatusCode >= http.StatusMultipleChoices && resp.StatusCode < http.StatusBadRequest:
 				builder.WriteString(aurora.Yellow(strconv.Itoa(resp.StatusCode)).String())
-			case resp.StatusCode >= 400 && resp.StatusCode < 500:
+			case resp.StatusCode >= http.StatusBadRequest && resp.StatusCode < http.StatusInternalServerError:
 				builder.WriteString(aurora.Red(strconv.Itoa(resp.StatusCode)).String())
-			case resp.StatusCode > 500:
+			case resp.StatusCode > http.StatusInternalServerError:
 				builder.WriteString(aurora.Bold(aurora.Yellow(strconv.Itoa(resp.StatusCode))).String())
 			}
 		} else {
@@ -537,11 +546,12 @@ retry:
 		}
 		// On various OS the file max file name length is 255 - https://serverfault.com/questions/9546/filename-length-limits-on-linux
 		// Truncating length at 255
-		if len(domainFile) >= 255 {
+		if len(domainFile) >= maxFileNameLenght {
 			// leaving last 4 bytes free to append ".txt"
-			domainFile = domainFile[:251]
+			domainFile = domainFile[:maxFileNameLenght-1]
 		}
-		domainFile = strings.Replace(domainFile, "/", "_", -1) + ".txt"
+
+		domainFile = strings.ReplaceAll(domainFile, "/", "_") + ".txt"
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 		err := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
 		if err != nil {
@@ -562,8 +572,8 @@ retry:
 		WebServer:     serverHeader,
 		Response:      serverResponseRaw,
 		WebSocket:     isWebSocket,
-		TlsData:       resp.TlsData,
-		CspData:       resp.CspData,
+		TLSData:       resp.TLSData,
+		CSPData:       resp.CSPData,
 		Pipeline:      pipeline,
 		HTTP2:         http2,
 		Method:        method,
@@ -576,27 +586,27 @@ retry:
 
 // Result of a scan
 type Result struct {
+	IPs           []string `json:"ips"`
+	CNAMEs        []string `json:"cnames,omitempty"`
 	raw           string
 	URL           string `json:"url"`
-	ContentLength int    `json:"content-length"`
-	StatusCode    int    `json:"status-code"`
 	Location      string `json:"location"`
 	Title         string `json:"title"`
 	str           string
 	err           error
-	VHost         bool           `json:"vhost"`
 	WebServer     string         `json:"webserver"`
 	Response      string         `json:"serverResponse,omitempty"`
-	WebSocket     bool           `json:"websocket,omitempty"`
 	ContentType   string         `json:"content-type,omitempty"`
-	TlsData       *httpx.TlsData `json:"tls,omitempty"`
-	CspData       *httpx.CspData `json:"csp,omitempty"`
-	Pipeline      bool           `json:"pipeline,omitempty"`
-	HTTP2         bool           `json:"http2"`
 	Method        string         `json:"method"`
 	IP            string         `json:"ip"`
-	IPs           []string       `json:"ips"`
-	CNAMEs        []string       `json:"cnames,omitempty"`
+	ContentLength int            `json:"content-length"`
+	StatusCode    int            `json:"status-code"`
+	TLSData       *httpx.TLSData `json:"tls,omitempty"`
+	CSPData       *httpx.CSPData `json:"csp,omitempty"`
+	VHost         bool           `json:"vhost"`
+	WebSocket     bool           `json:"websocket,omitempty"`
+	Pipeline      bool           `json:"pipeline,omitempty"`
+	HTTP2         bool           `json:"http2"`
 	CDN           bool           `json:"cdn"`
 }
 
@@ -611,26 +621,44 @@ func (r *Result) JSON() string {
 
 // Options contains configuration options for chaos client.
 type Options struct {
+	CustomHeaders             customheader.CustomHeaders
+	CustomPorts               customport.CustomPorts
+	matchStatusCode           []int
+	matchContentLength        []int
+	filterStatusCode          []int
+	filterContentLength       []int
+	Output                    string
+	StoreResponseDir          string
+	HTTPProxy                 string
+	SocksProxy                string
+	InputFile                 string
+	Methods                   string
+	RequestURI                string
+	OutputMatchStatusCode     string
+	OutputMatchContentLength  string
+	OutputFilterStatusCode    string
+	OutputFilterContentLength string
+	InputRawRequest           string
+	rawRequest                string
+	RequestBody               string
+	OutputFilterString        string
+	OutputMatchString         string
+	OutputFilterRegex         string
+	OutputMatchRegex          string
+	Retries                   int
+	Threads                   int
+	Timeout                   int
+	filterRegex               *regexp.Regexp
+	matchRegex                *regexp.Regexp
 	VHost                     bool
 	Smuggling                 bool
 	ExtractTitle              bool
 	StatusCode                bool
 	Location                  bool
 	ContentLength             bool
-	Retries                   int
-	Threads                   int
-	Timeout                   int
-	CustomHeaders             customheader.CustomHeaders
-	CustomPorts               customport.CustomPorts
-	Output                    string
 	FollowRedirects           bool
 	StoreResponse             bool
-	StoreResponseDir          string
-	HttpProxy                 string
-	SocksProxy                string
 	JSONOutput                bool
-	InputFile                 string
-	Methods                   string
 	Silent                    bool
 	Version                   bool
 	Verbose                   bool
@@ -642,31 +670,13 @@ type Options struct {
 	OutputMethod              bool
 	TLSProbe                  bool
 	CSPProbe                  bool
-	RequestURI                string
 	OutputContentType         bool
-	OutputMatchStatusCode     string
-	matchStatusCode           []int
-	OutputMatchContentLength  string
-	matchContentLength        []int
-	OutputFilterStatusCode    string
-	filterStatusCode          []int
-	OutputFilterContentLength string
 	OutputIP                  bool
 	OutputCName               bool
-	filterContentLength       []int
-	InputRawRequest           string
-	rawRequest                string
 	Unsafe                    bool
-	RequestBody               string
 	Debug                     bool
 	Pipeline                  bool
 	HTTP2Probe                bool
-	OutputFilterString        string
-	OutputMatchString         string
-	OutputFilterRegex         string
-	filterRegex               *regexp.Regexp
-	OutputMatchRegex          string
-	matchRegex                *regexp.Regexp
 	OutputCDN                 bool
 }
 
@@ -689,7 +699,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.StoreResponseDir, "srd", "output", "Save response directory")
 	flag.BoolVar(&options.FollowRedirects, "follow-redirects", false, "Follow Redirects")
 	flag.BoolVar(&options.FollowHostRedirects, "follow-host-redirects", false, "Only follow redirects on the same host")
-	flag.StringVar(&options.HttpProxy, "http-proxy", "", "HTTP Proxy, eg http://127.0.0.1:8080")
+	flag.StringVar(&options.HTTPProxy, "http-proxy", "", "HTTP Proxy, eg http://127.0.0.1:8080")
 	flag.BoolVar(&options.JSONOutput, "json", false, "JSON Output")
 	flag.StringVar(&options.InputFile, "l", "", "File containing domains")
 	flag.StringVar(&options.Methods, "x", "", "Request Methods, use ALL to check all verbs ()")
@@ -794,9 +804,9 @@ func (options *Options) configureOutput() {
 const banner = `
     __    __  __       _  __
    / /_  / /_/ /_____ | |/ /
-  / __ \/ __/ __/ __ \|   / 
- / / / / /_/ /_/ /_/ /   |  
-/_/ /_/\__/\__/ .___/_/|_|  
+  / __ \/ __/ __/ __ \|   /
+ / / / / /_/ /_/ /_/ /   |
+/_/ /_/\__/\__/ .___/_/|_|
              /_/              v1.0.2
 `
 

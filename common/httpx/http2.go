@@ -1,18 +1,28 @@
 package httpx
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/retryablehttp-go"
 )
 
+const (
+	// HTTP defines the plain http scheme
+	HTTP = "http"
+	// HTTPS defines the secure http scheme
+	HTTPS = "https"
+)
+
 // SupportHTTP2 checks if the target host supports HTTP2
-func (h *HTTPX) SupportHTTP2(protocol, method, URL string) bool {
+func (h *HTTPX) SupportHTTP2(protocol, method, targetURL string) bool {
 	// http => supports HTTP1.1 => HTTP/2 (H2C)
-	if protocol == "http" {
-		req, err := retryablehttp.NewRequest(method, URL, nil)
+	if protocol == HTTP {
+		req, err := retryablehttp.NewRequest(method, targetURL, nil)
 		if err != nil {
 			return false
 		}
@@ -23,22 +33,46 @@ func (h *HTTPX) SupportHTTP2(protocol, method, URL string) bool {
 		if err != nil {
 			return false
 		}
-		io.Copy(ioutil.Discard, httpresp.Body)
-		httpresp.Body.Close()
 
-		return httpresp.StatusCode == 101
+		err = freeHTTPResources(httpresp)
+		if err != nil {
+			gologger.Errorf("%s", err)
+			return false
+		}
+
+		return httpresp.StatusCode == http.StatusSwitchingProtocols
 	}
 
 	// attempts a direct http2 connection
-	req, err := http.NewRequest(method, URL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), method, targetURL, nil)
 	if err != nil {
 		return false
 	}
+
 	httpresp, err := h.client2.Do(req)
 	if err != nil {
 		return false
 	}
-	io.Copy(ioutil.Discard, httpresp.Body)
-	httpresp.Body.Close()
+
+	err = freeHTTPResources(httpresp)
+	if err != nil {
+		gologger.Errorf("%s", err)
+		return false
+	}
+
 	return httpresp.Proto == "HTTP/2.0"
+}
+
+func freeHTTPResources(response *http.Response) error {
+	_, err := io.Copy(ioutil.Discard, response.Body)
+	if err != nil {
+		return fmt.Errorf("could not discard response body: %s", err)
+	}
+
+	err = response.Body.Close()
+	if err != nil {
+		return fmt.Errorf("could not close response body: %s", err)
+	}
+
+	return nil
 }
