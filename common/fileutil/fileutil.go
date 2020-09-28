@@ -18,7 +18,7 @@ func FolderExists(folderpath string) bool {
 }
 
 // HasStdin determines if the user has piped input
-func hasStdin() bool {
+func HasStdin() bool {
 	stat, err := os.Stdin.Stat()
 	if err != nil {
 		return false
