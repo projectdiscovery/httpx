@@ -33,7 +33,6 @@ import (
 
 const (
 	maxFileNameLenght = 255
-	one               = 1
 	two               = 2
 )
 
