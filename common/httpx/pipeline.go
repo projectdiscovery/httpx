@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-// TODO: this code must be rewritten with rawhttp
-
 // SupportPipeline checks if the target host supports HTTP1.1 pipelining by sending x probes
 // and reading back responses expecting at least 2 with HTTP/1.1 or HTTP/1.0
 func (h *HTTPX) SupportPipeline(protocol, method, host string, port int) bool {

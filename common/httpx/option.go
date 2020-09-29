@@ -43,5 +43,4 @@ var DefaultOptions = Options{
 	VHostStripHTML:           false,
 	VHostSimilarityRatio:     85,
 	DefaultUserAgent:         "httpx - Open-source project (github.com/projectdiscovery/httpx)",
-	// Smuggling Options
 }
