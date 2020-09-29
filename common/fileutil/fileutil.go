@@ -24,8 +24,10 @@ func HasStdin() bool {
 		return false
 	}
 
-	isPipedFromChrDev := (stat.Mode() & os.ModeCharDevice) == 0
-	isPipedFromFIFO := (stat.Mode() & os.ModeNamedPipe) != 0
+	mode := stat.Mode()
+
+	isPipedFromChrDev := (mode & os.ModeCharDevice) == 0
+	isPipedFromFIFO := (mode & os.ModeNamedPipe) != 0
 
 	return isPipedFromChrDev || isPipedFromFIFO
 }
