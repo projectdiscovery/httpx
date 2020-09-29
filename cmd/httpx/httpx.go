@@ -205,7 +205,7 @@ func main() {
 	}(output)
 
 	wg := sizedwaitgroup.New(options.Threads)
-	var sc *bufio.Scanner
+	var scanner *bufio.Scanner
 
 	// check if file has been provided
 	if fileutil.FileExists(options.InputFile) {
@@ -213,19 +213,25 @@ func main() {
 		if err != nil {
 			gologger.Fatalf("Could read input file '%s': %s\n", options.InputFile, err)
 		}
-		sc = bufio.NewScanner(finput)
-		err = finput.Close()
-		if err != nil {
-			gologger.Fatalf("Could close input file '%s': %s\n", options.InputFile, err)
-		}
+		scanner = bufio.NewScanner(finput)
+		defer func() {
+			err := finput.Close()
+			if err != nil {
+				gologger.Fatalf("Could close input file '%s': %s\n", options.InputFile, err)
+			}
+		}()
 	} else if fileutil.HasStdin() {
-		sc = bufio.NewScanner(os.Stdin)
+		scanner = bufio.NewScanner(os.Stdin)
 	} else {
 		gologger.Fatalf("No input provided")
 	}
 
-	for sc.Scan() {
-		process(sc.Text(), &wg, hp, protocol, &scanopts, output)
+	for scanner.Scan() {
+		process(scanner.Text(), &wg, hp, protocol, &scanopts, output)
+	}
+
+	if err := scanner.Err(); err != nil {
+		gologger.Fatalf("Read error on standard input: %s", err)
 	}
 
 	wg.Wait()
