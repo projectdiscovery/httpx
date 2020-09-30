@@ -104,7 +104,7 @@ func main() {
 	if len(scanopts.Methods) == 0 {
 		scanopts.Methods = append(scanopts.Methods, http.MethodGet)
 	}
-	protocol := httpx.HTTPS
+	protocol := httpx.HTTPorHTTPS
 	scanopts.VHost = options.VHost
 	scanopts.OutputTitle = options.ExtractTitle
 	scanopts.OutputStatusCode = options.StatusCode
@@ -131,6 +131,8 @@ func main() {
 	scanopts.OutputCName = options.OutputCName
 	scanopts.OutputCDN = options.OutputCDN
 	scanopts.OutputResponseTime = options.OutputResponseTime
+	scanopts.NoFallback = options.NoFallback
+
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
 		scanopts.OutputMethod = true
@@ -243,31 +245,37 @@ func main() {
 }
 
 func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
+	protocols := []string{protocol}
+	if scanopts.NoFallback {
+		protocols = []string{httpx.HTTPS, httpx.HTTP}
+	}
 	for target := range targets(stringz.TrimProtocol(t)) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
 			for _, method := range scanopts.Methods {
-				wg.Add()
-				go func(target, method string) {
-					defer wg.Done()
-					r := analyze(hp, protocol, target, 0, method, scanopts)
-					output <- r
-					if scanopts.TLSProbe && r.TLSData != nil {
-						scanopts.TLSProbe = false
-						for _, tt := range r.TLSData.DNSNames {
-							process(tt, wg, hp, protocol, scanopts, output)
+				for _, prot := range protocols {
+					wg.Add()
+					go func(target, method, protocol string) {
+						defer wg.Done()
+						r := analyze(hp, protocol, target, 0, method, scanopts)
+						output <- r
+						if scanopts.TLSProbe && r.TLSData != nil {
+							scanopts.TLSProbe = false
+							for _, tt := range r.TLSData.DNSNames {
+								process(tt, wg, hp, protocol, scanopts, output)
+							}
+							for _, tt := range r.TLSData.CommonName {
+								process(tt, wg, hp, protocol, scanopts, output)
+							}
 						}
-						for _, tt := range r.TLSData.CommonName {
-							process(tt, wg, hp, protocol, scanopts, output)
+						if scanopts.CSPProbe && r.CSPData != nil {
+							scanopts.CSPProbe = false
+							for _, tt := range r.CSPData.Domains {
+								process(tt, wg, hp, protocol, scanopts, output)
+							}
 						}
-					}
-					if scanopts.CSPProbe && r.CSPData != nil {
-						scanopts.CSPProbe = false
-						for _, tt := range r.CSPData.Domains {
-							process(tt, wg, hp, protocol, scanopts, output)
-						}
-					}
-				}(target, method)
+					}(target, method, prot)
+				}
 			}
 		}
 
@@ -277,23 +285,23 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 			target = target[:semicolonPosition]
 		}
 
-		for port := range customport.Ports {
+		for port, wantedProtocol := range customport.Ports {
 			for _, method := range scanopts.Methods {
 				wg.Add()
-				go func(port int, method string) {
+				go func(port int, method, protocol string) {
 					defer wg.Done()
-					r := analyze(hp, protocol, target, port, method, scanopts)
+					r := analyze(hp, wantedProtocol, target, port, method, scanopts)
 					output <- r
 					if scanopts.TLSProbe && r.TLSData != nil {
 						scanopts.TLSProbe = false
 						for _, tt := range r.TLSData.DNSNames {
-							process(tt, wg, hp, protocol, scanopts, output)
+							process(tt, wg, hp, wantedProtocol, scanopts, output)
 						}
 						for _, tt := range r.TLSData.CommonName {
-							process(tt, wg, hp, protocol, scanopts, output)
+							process(tt, wg, hp, wantedProtocol, scanopts, output)
 						}
 					}
-				}(port, method)
+				}(port, method, wantedProtocol)
 			}
 		}
 	}
@@ -354,9 +362,15 @@ type scanOptions struct {
 	OutputCName            bool
 	OutputCDN              bool
 	OutputResponseTime     bool
+	PreferHTTPS            bool
+	NoFallback             bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol, domain string, port int, method string, scanopts *scanOptions) Result {
+	origProtocol := protocol
+	if protocol == httpx.HTTPorHTTPS {
+		protocol = httpx.HTTPS
+	}
 	retried := false
 retry:
 	URL := fmt.Sprintf("%s://%s", protocol, domain)
@@ -381,7 +395,7 @@ retry:
 
 	resp, err := hp.Do(req)
 	if err != nil {
-		if !retried {
+		if !retried && origProtocol == httpx.HTTPorHTTPS {
 			if protocol == httpx.HTTPS {
 				protocol = httpx.HTTP
 			} else {
@@ -694,6 +708,7 @@ type Options struct {
 	HTTP2Probe                bool
 	OutputCDN                 bool
 	OutputResponseTime        bool
+	NoFallback                bool
 }
 
 // ParseOptions parses the command line options for application
@@ -749,6 +764,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.OutputCName, "cname", false, "Output first cname")
 	flag.BoolVar(&options.OutputCDN, "cdn", false, "Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)")
 	flag.BoolVar(&options.OutputResponseTime, "response-time", false, "Output the response time")
+	flag.BoolVar(&options.NoFallback, "no-fallback", false, "If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP")
 
 	flag.Parse()
 
