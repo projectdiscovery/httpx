@@ -138,6 +138,7 @@ func main() {
 	scanopts.OutputIP = options.OutputIP
 	scanopts.OutputCName = options.OutputCName
 	scanopts.OutputCDN = options.OutputCDN
+	scanopts.OutputResponseTime = options.OutputResponseTime
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
 		scanopts.OutputMethod = true
@@ -360,6 +361,7 @@ type scanOptions struct {
 	OutputIP               bool
 	OutputCName            bool
 	OutputCDN              bool
+	OutputResponseTime     bool
 }
 
 func analyze(hp *httpx.HTTPX, protocol, domain string, port int, method string, scanopts *scanOptions) Result {
@@ -381,6 +383,7 @@ retry:
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
 	if scanopts.RequestBody != "" {
+		req.ContentLength = int64(len(scanopts.RequestBody))
 		req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
 	}
 
@@ -552,6 +555,10 @@ retry:
 		builder.WriteString(" [cdn]")
 	}
 
+	if scanopts.OutputResponseTime {
+		builder.WriteString(fmt.Sprintf(" [%s]", resp.Duration))
+	}
+
 	// store responses in directory
 	if scanopts.StoreResponse {
 		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
@@ -595,6 +602,7 @@ retry:
 		IPs:           ips,
 		CNAMEs:        cnames,
 		CDN:           isCDN,
+		Duration:      resp.Duration,
 	}
 }
 
@@ -622,6 +630,7 @@ type Result struct {
 	Pipeline      bool           `json:"pipeline,omitempty"`
 	HTTP2         bool           `json:"http2"`
 	CDN           bool           `json:"cdn"`
+	Duration      time.Duration  `json:"duration"`
 }
 
 // JSON the result
@@ -692,6 +701,7 @@ type Options struct {
 	Pipeline                  bool
 	HTTP2Probe                bool
 	OutputCDN                 bool
+	OutputResponseTime        bool
 }
 
 // ParseOptions parses the command line options for application
@@ -746,6 +756,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.OutputMatchRegex, "match-regex", "", "Match Regex")
 	flag.BoolVar(&options.OutputCName, "cname", false, "Output first cname")
 	flag.BoolVar(&options.OutputCDN, "cdn", false, "Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)")
+	flag.BoolVar(&options.OutputResponseTime, "response-time", false, "Output the response time")
 
 	flag.Parse()
 

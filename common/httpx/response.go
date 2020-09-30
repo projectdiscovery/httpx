@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"strings"
+	"time"
 )
 
 // Response contains the response to a server
@@ -17,6 +18,7 @@ type Response struct {
 	CSPData       *CSPData
 	HTTP2         bool
 	Pipeline      bool
+	Duration      time.Duration
 }
 
 // GetHeader value

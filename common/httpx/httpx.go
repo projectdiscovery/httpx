@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/microcosm-cc/bluemonday"
@@ -112,13 +113,15 @@ func New(options *Options) (*HTTPX, error) {
 
 // Do http request
 func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
-	httpresp, err := h.getResponse(req)
+	timeStart := time.Now()
 
+	httpresp, err := h.getResponse(req)
 	if err != nil {
 		return nil, err
 	}
 
 	var resp Response
+
 	resp.Headers = httpresp.Header.Clone()
 
 	// httputil.DumpResponse does not handle websockets
@@ -167,6 +170,7 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	}
 
 	resp.CSPData = h.CSPGrab(httpresp)
+	resp.Duration = time.Since(timeStart)
 
 	return &resp, nil
 }
