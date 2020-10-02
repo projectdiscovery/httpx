@@ -290,15 +290,15 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 				wg.Add()
 				go func(port int, method, protocol string) {
 					defer wg.Done()
-					r := analyze(hp, wantedProtocol, target, port, method, scanopts)
+					r := analyze(hp, protocol, target, port, method, scanopts)
 					output <- r
 					if scanopts.TLSProbe && r.TLSData != nil {
 						scanopts.TLSProbe = false
 						for _, tt := range r.TLSData.DNSNames {
-							process(tt, wg, hp, wantedProtocol, scanopts, output)
+							process(tt, wg, hp, protocol, scanopts, output)
 						}
 						for _, tt := range r.TLSData.CommonName {
-							process(tt, wg, hp, wantedProtocol, scanopts, output)
+							process(tt, wg, hp, protocol, scanopts, output)
 						}
 					}
 				}(port, method, wantedProtocol)
