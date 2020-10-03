@@ -104,7 +104,7 @@ func New(options *Options) (*HTTPX, error) {
 	httpx.CustomHeaders = httpx.Options.CustomHeaders
 	httpx.RequestOverride = &options.RequestOverride
 	if options.CdnCheck {
-		httpx.cdn, err = cdncheck.New()
+		httpx.cdn, err = cdncheck.NewWithCache()
 		if err != nil {
 			return nil, fmt.Errorf("could not create cdn check: %s", err)
 		}
