@@ -47,6 +47,7 @@ func main() {
 	httpxOptions.HTTPProxy = options.HTTPProxy
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
+	httpxOptions.CdnCheck = options.OutputCDN
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
@@ -556,8 +557,8 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", cnames[0]))
 	}
 
-	isCDN := hp.CdnCheck(ip)
-	if scanopts.OutputCDN && isCDN {
+	isCDN, err := hp.CdnCheck(ip)
+	if scanopts.OutputCDN && isCDN && err == nil {
 		builder.WriteString(" [cdn]")
 	}
 
@@ -635,7 +636,7 @@ type Result struct {
 	WebSocket     bool           `json:"websocket,omitempty"`
 	Pipeline      bool           `json:"pipeline,omitempty"`
 	HTTP2         bool           `json:"http2"`
-	CDN           bool           `json:"cdn"`
+	CDN           bool           `json:"cdn,omitempty"`
 	Duration      time.Duration  `json:"duration"`
 }
 

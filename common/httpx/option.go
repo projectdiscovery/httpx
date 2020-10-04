@@ -11,6 +11,7 @@ type Options struct {
 	HTTPProxy        string
 	SocksProxy       string
 	Threads          int
+	CdnCheck         bool
 	// Timeout is the maximum time to wait for the request
 	Timeout time.Duration
 	// RetryMax is the maximum number of retries
@@ -35,6 +36,7 @@ var DefaultOptions = Options{
 	Timeout:  30 * time.Second,
 	RetryMax: 5,
 	Unsafe:   false,
+	CdnCheck: true,
 	// VHOSTs options
 	VHostIgnoreStatusCode:    false,
 	VHostIgnoreContentLength: true,
@@ -43,5 +45,4 @@ var DefaultOptions = Options{
 	VHostStripHTML:           false,
 	VHostSimilarityRatio:     85,
 	DefaultUserAgent:         "httpx - Open-source project (github.com/projectdiscovery/httpx)",
-	// Smuggling Options
 }
