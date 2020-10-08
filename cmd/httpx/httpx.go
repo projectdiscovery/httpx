@@ -230,8 +230,20 @@ func main() {
 		gologger.Fatalf("No input provided")
 	}
 
+	// Remove duplicates from the input
+	var unique []string
+	appended := make(map[string]bool)
+
 	for scanner.Scan() {
-		process(scanner.Text(), &wg, hp, protocol, &scanopts, output)
+		text := scanner.Text()
+		if !appended[text] {
+			appended[text] = true
+			unique = append(unique, text)
+		}
+	}
+
+	for _, text := range unique {
+		process(text, &wg, hp, protocol, &scanopts, output)
 	}
 
 	if err := scanner.Err(); err != nil {
