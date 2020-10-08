@@ -244,10 +244,6 @@ https://hackerone.com [301] [92] []
 https://resources.hackerone.com [301] [0] []
 ```
 
-## Todo
-
-- [ ] Adding support to probe [http smuggling](https://portswigger.net/web-security/request-smuggling)
-
 
 # Thanks
 
