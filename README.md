@@ -132,8 +132,8 @@ This will display help for the tool. Here are all the switches it supports.
 | location                | Prints location header                                  | httpx -location                                    |
 | csp-probe               | Send HTTP probes on the extracted CSP domains           | httpx -csp-probe                                   |
 | web-server              | Prints running web sever if available                   | httpx -web-server                                  |
-| sr                      | Store responses to file (default false)                 | httpx -store-response                              |
-| srd                     | Directory to store response (default output)            | httpx -store-response-dir output                   |
+| sr                      | Store responses to file (default false)                 | httpx -sr                                          |
+| srd                     | Directory to store response (optional)                  | httpx -srd httpx-output                            |
 | unsafe                  | Send raw requests skipping golang normalization         | httpx -unsafe                                      | 
 | request                 | File containing raw request to process                  | httpx -request                                     | 
 | retries                 | Number of retries                                       | httpx -retries                                     |
