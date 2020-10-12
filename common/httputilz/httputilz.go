@@ -40,7 +40,7 @@ func DumpResponse(resp *http.Response) (string, error) {
 }
 
 // ParseRequest from raw string
-func ParseRequest(req string) (method, path string, headers map[string]string, body string, err error) {
+func ParseRequest(req string, unsafe bool) (method, path string, headers map[string]string, body string, err error) {
 	headers = make(map[string]string)
 	reader := bufio.NewReader(strings.NewReader(req))
 	s, err := reader.ReadString('\n')
@@ -63,19 +63,28 @@ func ParseRequest(req string) (method, path string, headers map[string]string, b
 			break
 		}
 
+		// Unsafe skips all checks
 		p := strings.SplitN(line, ":", headerParts)
-		if len(p) != headerParts {
-			continue
+		key := p[0]
+		value := ""
+		if len(p) == headerParts {
+			value = p[1]
 		}
 
-		if strings.EqualFold(p[0], "content-length") {
-			continue
+		if !unsafe {
+			if len(p) != headerParts {
+				continue
+			}
+
+			if strings.EqualFold(key, "content-length") {
+				continue
+			}
+
+			key = strings.TrimSpace(key)
+			value = strings.TrimSpace(value)
 		}
 
-		p[0] = strings.TrimSpace(p[0])
-		p[1] = strings.TrimSpace(p[1])
-
-		headers[p[0]] = p[1]
+		headers[key] = value
 	}
 
 	// Handle case with the full http url in path. In that case,

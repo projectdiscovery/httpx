@@ -33,7 +33,7 @@ import (
 
 const (
 	maxFileNameLenght = 255
-	tokenParts        = 2
+	two               = 2
 )
 
 func main() {
@@ -52,14 +52,19 @@ func main() {
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
 	for _, customHeader := range options.CustomHeaders {
-		tokens := strings.SplitN(customHeader, ":", tokenParts)
-		// if it's an invalid header skip it
-		if len(tokens) < tokenParts {
+		tokens := strings.SplitN(customHeader, ":", two)
+		// rawhttp skips all checks
+		if options.Unsafe {
+			httpxOptions.CustomHeaders[customHeader] = ""
+			continue
+		}
+
+		// Continue normally
+		if len(tokens) < two {
 			continue
 		}
 		key = strings.TrimSpace(tokens[0])
 		value = strings.TrimSpace(tokens[1])
-
 		httpxOptions.CustomHeaders[key] = value
 	}
 
@@ -77,7 +82,7 @@ func main() {
 			gologger.Fatalf("Could not read raw request from '%s': %s\n", options.InputRawRequest, err)
 		}
 
-		rrMethod, rrPath, rrHeaders, rrBody, err := httputilz.ParseRequest(string(rawRequest))
+		rrMethod, rrPath, rrHeaders, rrBody, err := httputilz.ParseRequest(string(rawRequest), options.Unsafe)
 		if err != nil {
 			gologger.Fatalf("Could not parse raw request: %s\n", err)
 		}
@@ -91,10 +96,13 @@ func main() {
 	}
 
 	// disable automatic host header for rawhttp if manually specified
+	// as it can be malformed the best approach is to remove spaces and check for lowercase "host" word
 	if options.Unsafe {
-		_, ok := httpxOptions.CustomHeaders["Host"]
-		if ok {
-			rawhttp.AutomaticHostHeader(false)
+		for name := range hp.CustomHeaders {
+			nameLower := strings.TrimSpace(strings.ToLower(name))
+			if strings.HasPrefix(nameLower, "host") {
+				rawhttp.AutomaticHostHeader(false)
+			}
 		}
 	}
 	if strings.EqualFold(options.Methods, "all") {
