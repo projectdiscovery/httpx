@@ -8,7 +8,7 @@ require (
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/miekg/dns v1.1.31
-	github.com/projectdiscovery/cdncheck v0.0.0-20200910082712-19e1db650e26
+	github.com/projectdiscovery/cdncheck v0.0.0-20201003183750-5bc57c383935
 	github.com/projectdiscovery/fdmax v0.0.2
 	github.com/projectdiscovery/gologger v1.0.1
 	github.com/projectdiscovery/mapcidr v0.0.4
@@ -16,6 +16,6 @@ require (
 	github.com/projectdiscovery/retryablehttp-go v1.0.1
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.2.1
-	golang.org/x/net v0.0.0-20200927032502-5d4f70055728
+	golang.org/x/net v0.0.0-20201002202402-0a1ea396d57c
 	golang.org/x/text v0.3.3
 )

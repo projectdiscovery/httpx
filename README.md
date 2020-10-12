@@ -42,28 +42,29 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
  - Supports hosts, URLs and CIDR as input.
  - Handles edge cases doing retries, backoffs etc for handling WAFs.
 
- ### Supported **httpx** probes:- 
+ ### Supported probes:-
 
-| Probes             | Status  |
-|--------------------|---------|
-| URL                | ✔       |
-| Title              | ✔       |
-| Status Code        | ✔       |
-| Content Length     | ✔       |
-| TLS Certificate    | ✔       |
-| CSP Header         | ✔       |
-| HTTP2              | ✔       |
-| HTTP 1.1 Pipeline  | ✔       |
-| Virtual host       | ✔       |
-| Location Header    | ✔       |
-| Web Server         | ✔       |
-| Web Socket         | ✔       |
-| Path               | ✔       |
-| Ports              | ✔       |
-| Request method     | ✔       |
-| Ip                 | ✔       |
-| CNAME              | ✔       |
-| CDN                | ✔       |
+| Probes             | Status  | Default check   |
+|--------------------|---------|-----------------|
+| URL                | ✔       | true            |
+| Title              | ✔       | true            |
+| Status Code        | ✔       | true            |
+| Content Length     | ✔       | true            |
+| TLS Certificate    | ✔       | true            |
+| CSP Header         | ✔       | true            |
+| HTTP2              | ✔       | false           |
+| HTTP 1.1 Pipeline  | ✔       | false           |
+| Virtual host       | ✔       | false           |
+| Location Header    | ✔       | true            |
+| Web Server         | ✔       | true            |
+| Web Socket         | ✔       | true            |
+| Path               | ✔       | false           |
+| Ports              | ✔       | false           |
+| Request method     | ✔       | false           |
+| IP                 | ✔       | true            |
+| CNAME              | ✔       | true            |
+| CDN                | ✔       | false           |
+| Response Time      | ✔       | true            |
 
 
 # Installation Instructions
@@ -105,52 +106,53 @@ This will display help for the tool. Here are all the switches it supports.
 
 | Flag                    | Description                                             | Example                                            |
 |-------------------------|---------------------------------------------------------|----------------------------------------------------|
-| -H                      | Custom Header input                                     | httpx -H 'x-bug-bounty: hacker'                    |
-| -follow-redirects       | Follow URL redirects (default false)                    | httpx -follow-redirects                            |
-| -follow-host-redirects  | Follow URL redirects only on same host(default false)   | httpx -follow-host-redirects                       |
-| -http-proxy             | URL of the proxy server                                 | httpx -http-proxy hxxp://proxy-host:80             |
-| -l                      | File containing HOST/URLs/CIDR to process               | httpx -l hosts.txt                                 |
-| -no-color               | Disable colors in the output.                           | httpx -no-color                                    |
-| -o                      | File to save output result (optional)                   | httpx -o output.txt                                |
-| -json                   | Prints all the probes in JSON format (default false)    | httpx -json                                        |
-| -vhost                  | Probes to detect vhost from list of subdomains          | httpx -vhost                                       |
-| -threads                | Number of threads (default 50)                          | httpx -threads 100                                 |
-| -http2                  | HTTP2 probing                                           | httpx -http2                                       |
-| -pipeline               | HTTP1.1 Pipeline probing                                | httpx -pipeline                                    |
-| -ports                  | Ports ranges to probe (nmap syntax: eg 1,2-10,11)       | httpx -ports 80,443,100-200                        |
-| -title                  | Prints title of page if available                       | httpx -title                                       |
-| -path                   | Request path/file                                       | httpx -path /api                                   |
-| -content-length         | Prints content length in the output                     | httpx -content-length                              |
-| -ml                     | Match content length in the output                      | httpx -content-length -ml 125                      |
-| -fl                     | Filter content length in the output                     | httpx -content-length -fl 0,43                     |
-| -status-code            | Prints status code in the output                        | httpx -status-code                                 |
-| -mc                     | Match status code in the output                         | httpx -status-code -mc 200,302                     |
-| -fc                     | Filter status code in the output                        | httpx -status-code -fc 404,500                     |
-| -tls-probe              | Send HTTP probes on the extracted TLS domains           | httpx -tls-probe                                   |
-| -content-type           | Prints content-type                                     | httpx -content-type                                |
-| -location               | Prints location header                                  | httpx -location                                    |
-| -csp-probe              | Send HTTP probes on the extracted CSP domains           | httpx -csp-probe                                   |
-| -web-server             | Prints running web sever if available                   | httpx -web-server                                  |
-| -sr                     | Store responses to file (default false)                 | httpx -store-response                              |
-| -srd                    | Directory to store response (default output)            | httpx -store-response-dir output                   |
-| -unsafe                 | Send raw requests skipping golang normalization         | httpx -unsafe                                      | 
-| -request                 | File containing raw request to process                 | httpx -request                                     | 
-| -retries                | Number of retries                                       | httpx -retries                                     |
-| -silent                 | Prints only results in the output                       | httpx -silent                                      |
-| -timeout                | Timeout in seconds (default 5)                          | httpx -timeout 10                                  |
-| -verbose                | Verbose Mode                                            | httpx -verbose                                     |
-| -version                | Prints current version of the httpx                     | httpx -version                                     |
-| -x                      | Request Method (default 'GET')                          | httpx -x HEAD                                      |
-| -method                 | Output requested method                                 | httpx -method                                      |
-| -response-in-json       | Include response in stdout (only works with -json)      | httpx -response-in-json                            |
-| -websocket              | Prints if a websocket is exposed                        | httpx -websocket                                   |
-| -ip                     | Prints the host IP                                      | httpx -ip                                          |
-| -cname                  | Prints the cname record if available                    | httpx -cname                                       |
-| -cdn                    | Check if domain's ip belongs to known CDN               | httpx -cdn                                         |
-| -filter-string          | Filter results based on filtered string                 | httpx -filter-string XXX                           |
-| -match-string           | Filter results based on matched string                  | httpx -match-string XXX                            |
-| -filter-regex           | Filter results based on filtered regex                  | httpx -filter-regex XXX                            |
-| -match-regex            | Filter results based on matched regex                   | httpx -match-regex XXX                             |
+| H                       | Custom Header input                                     | httpx -H 'x-bug-bounty: hacker'                    |
+| follow-redirects        | Follow URL redirects (default false)                    | httpx -follow-redirects                            |
+| follow-host-redirects   | Follow URL redirects only on same host(default false)   | httpx -follow-host-redirects                       |
+| http-proxy              | URL of the proxy server                                 | httpx -http-proxy hxxp://proxy-host:80             |
+| l                       | File containing HOST/URLs/CIDR to process               | httpx -l hosts.txt                                 |
+| no-color                | Disable colors in the output.                           | httpx -no-color                                    |
+| o                       | File to save output result (optional)                   | httpx -o output.txt                                |
+| json                    | Prints all the probes in JSON format (default false)    | httpx -json                                        |
+| vhost                   | Probes to detect vhost from list of subdomains          | httpx -vhost                                       |
+| threads                 | Number of threads (default 50)                          | httpx -threads 100                                 |
+| http2                   | HTTP2 probing                                           | httpx -http2                                       |
+| pipeline                | HTTP1.1 Pipeline probing                                | httpx -pipeline                                    |
+| ports                   | Ports ranges to probe (nmap syntax: eg 1,2-10,11)       | httpx -ports 80,443,100-200                        |
+| title                   | Prints title of page if available                       | httpx -title                                       |
+| path                    | Request path/file                                       | httpx -path /api                                   |
+| content-length          | Prints content length in the output                     | httpx -content-length                              |
+| ml                      | Match content length in the output                      | httpx -content-length -ml 125                      |
+| fl                      | Filter content length in the output                     | httpx -content-length -fl 0,43                     |
+| status-code             | Prints status code in the output                        | httpx -status-code                                 |
+| mc                      | Match status code in the output                         | httpx -status-code -mc 200,302                     |
+| fc                      | Filter status code in the output                        | httpx -status-code -fc 404,500                     |
+| tls-probe               | Send HTTP probes on the extracted TLS domains           | httpx -tls-probe                                   |
+| content-type            | Prints content-type                                     | httpx -content-type                                |
+| location                | Prints location header                                  | httpx -location                                    |
+| csp-probe               | Send HTTP probes on the extracted CSP domains           | httpx -csp-probe                                   |
+| web-server              | Prints running web sever if available                   | httpx -web-server                                  |
+| sr                      | Store responses to file (default false)                 | httpx -sr                                          |
+| srd                     | Directory to store response (optional)                  | httpx -srd httpx-output                            |
+| unsafe                  | Send raw requests skipping golang normalization         | httpx -unsafe                                      | 
+| request                 | File containing raw request to process                  | httpx -request                                     | 
+| retries                 | Number of retries                                       | httpx -retries                                     |
+| silent                  | Prints only results in the output                       | httpx -silent                                      |
+| timeout                 | Timeout in seconds (default 5)                          | httpx -timeout 10                                  |
+| verbose                 | Verbose Mode                                            | httpx -verbose                                     |
+| version                 | Prints current version of the httpx                     | httpx -version                                     |
+| x                       | Request Method (default 'GET')                          | httpx -x HEAD                                      |
+| method                  | Output requested method                                 | httpx -method                                      |
+| response-time           | Output the response time                                | httpx -response-time                               |
+| response-in-json        | Include response in stdout (only works with -json)      | httpx -response-in-json                            |
+| websocket               | Prints if a websocket is exposed                        | httpx -websocket                                   |
+| ip                      | Prints the host IP                                      | httpx -ip                                          |
+| cname                   | Prints the cname record if available                    | httpx -cname                                       |
+| cdn                     | Check if domain's ip belongs to known CDN               | httpx -cdn                                         |
+| filter-string           | Filter results based on filtered string                 | httpx -filter-string XXX                           |
+| match-string            | Filter results based on matched string                  | httpx -match-string XXX                            |
+| filter-regex            | Filter results based on filtered regex                  | httpx -filter-regex XXX                            |
+| match-regex             | Filter results based on matched regex                   | httpx -match-regex XXX                             |
 
 
 ### Running httpx with stdin  
@@ -241,10 +243,6 @@ https://api.hackerone.com [200] [7791] [HackerOne API]
 https://hackerone.com [301] [92] []
 https://resources.hackerone.com [301] [0] []
 ```
-
-## Todo
-
-- [ ] Adding support to probe [http smuggling](https://portswigger.net/web-security/request-smuggling)
 
 
 # Thanks

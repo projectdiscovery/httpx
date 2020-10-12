@@ -1,10 +1,8 @@
-FROM golang:1.14-alpine AS build-env
+FROM golang:1.14-alpine AS builder
+RUN apk add --no-cache git
+RUN GO111MODULE=auto go get -u -v github.com/projectdiscovery/httpx/cmd/httpx
 
-RUN apk add --no-cache --upgrade git openssh-client ca-certificates
-RUN go get -u github.com/golang/dep/cmd/dep
-WORKDIR /go/src/app
-
-# Install
-RUN go get -u github.com/projectdiscovery/httpx/cmd/httpx
+FROM alpine:latest
+COPY --from=builder /go/bin/httpx /usr/local/bin/
 
 ENTRYPOINT ["httpx"]
