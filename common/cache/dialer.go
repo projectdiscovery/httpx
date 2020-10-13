@@ -27,12 +27,15 @@ type DialerFunc func(context.Context, string, string) (net.Conn, error)
 
 // NewDialer gets a new Dialer instance using a resolver cache
 func NewDialer(options Options) (DialerFunc, error) {
-	var err error
-	cache, err = New(options)
-	if err != nil {
-		return nil, err
+	if cache == nil {
+		var err error
+		cache, err = New(options)
+		if err != nil {
+			return nil, err
+		}
+		dialerHistory = freecache.NewCache(options.CacheSize * megaByteBytes)
 	}
-	dialerHistory = freecache.NewCache(options.CacheSize * megaByteBytes)
+
 	dialer := &net.Dialer{
 		Timeout:   10 * time.Second,
 		KeepAlive: 10 * time.Second,
