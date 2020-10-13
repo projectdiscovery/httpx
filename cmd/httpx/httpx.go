@@ -617,7 +617,7 @@ retry:
 		IPs:           ips,
 		CNAMEs:        cnames,
 		CDN:           isCDN,
-		Duration:      resp.Duration,
+		ResponseTime:  resp.Duration.String(),
 	}
 }
 
@@ -645,7 +645,7 @@ type Result struct {
 	Pipeline      bool           `json:"pipeline,omitempty"`
 	HTTP2         bool           `json:"http2"`
 	CDN           bool           `json:"cdn,omitempty"`
-	Duration      time.Duration  `json:"duration"`
+	ResponseTime  string         `json:"response-time"`
 }
 
 // JSON the result
