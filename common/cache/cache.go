@@ -58,7 +58,12 @@ func New(options Options) (*Cache, error) {
 // Lookup a hostname
 func (c *Cache) Lookup(hostname string) (*dns.Result, error) {
 	if ip := net.ParseIP(hostname); ip != nil {
-		return &dns.Result{IPs: []string{hostname}}, nil
+		if ip.To4() != nil {
+			return &dns.Result{IP4s: []string{hostname}}, nil
+		}
+		if ip.To16() != nil {
+			return &dns.Result{IP6s: []string{hostname}}, nil
+		}
 	}
 	hostnameBytes := []byte(hostname)
 	value, err := c.cache.Get(hostnameBytes)

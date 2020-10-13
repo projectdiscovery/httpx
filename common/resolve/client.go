@@ -21,7 +21,8 @@ type Client struct {
 
 // Result containing ip and time to live
 type Result struct {
-	IPs    []string
+	IP4s   []string
+	IP6s   []string
 	CNAMEs []string
 	TTL    int
 }
@@ -60,44 +61,61 @@ func New(baseResolvers []string, maxRetries int) (*Client, error) {
 }
 
 // Resolve ips for a record
-func (c *Client) Resolve(host string) (Result, error) {
+func (c *Client) Resolve(host string) (result Result, err error) {
+	// retrieve ipv4 addresses
+	err = c.query(host, dns.TypeA, &result)
+	if err != nil {
+		return
+	}
+
+	// retrieve ipv6 addresses
+	err = c.query(host, dns.TypeAAAA, &result)
+	return
+}
+
+func (c *Client) query(host string, queryType uint16, result *Result) error {
 	msg := new(dns.Msg)
 	msg.Id = dns.Id()
 	msg.RecursionDesired = true
 	msg.Question = make([]dns.Question, 1)
 	msg.Question[0] = dns.Question{
 		Name:   dns.Fqdn(host),
-		Qtype:  dns.TypeA,
+		Qtype:  queryType,
 		Qclass: dns.ClassINET,
 	}
 	resolver := c.resolvers[rand.Intn(len(c.resolvers))]
-	var err error
-	var answer *dns.Msg
-	result := Result{}
 	for i := 0; i < c.maxRetries; i++ {
-		answer, err = dns.Exchange(msg, resolver)
+		answer, err := dns.Exchange(msg, resolver)
 		if err != nil {
 			continue
 		}
 		if answer != nil && answer.Rcode != dns.RcodeSuccess {
-			return result, errors.New(dns.RcodeToString[answer.Rcode])
+			return errors.New(dns.RcodeToString[answer.Rcode])
 		}
+
 		for _, record := range answer.Answer {
 			switch t := record.(type) {
 			case *dns.A:
 				ip := t.A.String()
 				if ip != "" {
-					result.IPs = append(result.IPs, t.A.String())
+					result.IP4s = append(result.IP4s, t.A.String())
+					result.TTL = int(t.Header().Ttl)
+				}
+			case *dns.AAAA:
+				ip := t.AAAA.String()
+				if ip != "" {
+					result.IP6s = append(result.IP6s, t.AAAA.String())
 					result.TTL = int(t.Header().Ttl)
 				}
 			case *dns.CNAME:
-				if t.Target != "" {
+				if queryType == dns.TypeA && t.Target != "" {
 					result.CNAMEs = append(result.CNAMEs, strings.TrimSuffix(t.Target, "."))
 				}
 			}
 		}
-		return result, nil
+
+		break
 	}
 
-	return result, err
+	return nil
 }

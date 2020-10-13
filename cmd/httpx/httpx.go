@@ -554,7 +554,7 @@ retry:
 	)
 	dnsData, err := cache.GetDNSData(domain)
 	if dnsData != nil && err == nil {
-		ips = dnsData.IPs
+		ips = append(dnsData.IP4s, dnsData.IP6s...)
 		cnames = dnsData.CNAMEs
 	} else {
 		ips = append(ips, ip)
