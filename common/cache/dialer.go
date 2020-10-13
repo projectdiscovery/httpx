@@ -44,10 +44,12 @@ func NewDialer(options Options) (DialerFunc, error) {
 		// we need to filter out empty records
 		hostname := address[:separator]
 		dnsResult, err := cache.Lookup(hostname)
-		if err != nil || len(dnsResult.IPs) == 0 {
+		if err != nil || len(dnsResult.IP4s)+len(dnsResult.IP6s) == 0 {
 			return nil, &NoAddressFoundError{}
-		} // Dial to the IPs finally.
-		for _, ip := range dnsResult.IPs {
+		}
+
+		// Dial to the IPs finally.
+		for _, ip := range append(dnsResult.IP4s, dnsResult.IP6s...) {
 			conn, err = dialer.DialContext(ctx, network, ip+address[separator:])
 			if err == nil {
 				setErr := dialerHistory.Set([]byte(hostname), []byte(ip), 0)
