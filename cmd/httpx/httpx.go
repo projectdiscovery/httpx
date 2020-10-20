@@ -187,7 +187,7 @@ func main() {
 			if options.filterRegex != nil && options.filterRegex.MatchString(r.raw) {
 				continue
 			}
-			if options.OutputFilterString != "" && strings.Contains(strings.ToLower(r.raw), options.OutputFilterString) {
+			if options.OutputFilterString != "" && strings.Contains(strings.ToLower(r.raw), strings.ToLower(options.OutputFilterString)) {
 				continue
 			}
 			if len(options.matchStatusCode) > 0 && !slice.IntSliceContains(options.matchStatusCode, r.StatusCode) {
@@ -199,7 +199,7 @@ func main() {
 			if options.matchRegex != nil && !options.matchRegex.MatchString(r.raw) {
 				continue
 			}
-			if options.OutputMatchString != "" && !strings.Contains(strings.ToLower(r.raw), options.OutputMatchString) {
+			if options.OutputMatchString != "" && !strings.Contains(strings.ToLower(r.raw), strings.ToLower(options.OutputMatchString)) {
 				continue
 			}
 
