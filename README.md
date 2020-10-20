@@ -25,7 +25,7 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 - [Running httpx with file input](#running-httpx-with-file-input)
 - [Running httpx with CIDR input](#running-httpx-with-cidr-input)
 - [Running httpX with subfinder](#running-httpx-with-subfinder)
-- [Todo](#todo)
+- [Notes](#-notes)
 - [Thanks](#thanks)
 
  # Features
@@ -93,7 +93,7 @@ httpx requires **go1.14+** to install successfully. Run the following command to
 ### From Github
 
 ```sh
-▶ git clone https://github.com/projectdiscovery/httpx.git; cd httpx/cmd/httpx; go build; mv httpx /usr/local/bin/; httpx -h
+▶ git clone https://github.com/projectdiscovery/httpx.git; cd httpx/cmd/httpx; go build; mv httpx /usr/local/bin/; httpx -version
 ```
 
 # Usage
@@ -227,7 +227,7 @@ https://173.0.84.34
 ```
 
 
-### Running httpX with subfinder
+### Running httpx with subfinder
 
 
 ```sh
@@ -244,9 +244,17 @@ https://hackerone.com [301] [92] []
 https://resources.hackerone.com [301] [0] []
 ```
 
+# 📋 Notes
+
+- As default, **httpx** checks for `HTTPS` probe and fall-back to `HTTP` only if `HTTPS` is not reachable.
+- For printing both HTTP/HTTPS results, `no-fallback` flag can be used.
+- `vhost`, `http2`, `pipeline`, `ports`, `csp-probe`, `tls-probe` and `path` are unique flag with different probes.
+- Unique flags should be used for specific use cases instead of running them as default with other flags.
+- When using `json` flag, all the information (default probes) included in the JOSN output.
+
 
 # Thanks
 
-httpX is made with 🖤 by the [projectdiscovery](https://projectdiscovery.io) team. Community contributions have made the project what it is. See the **[Thanks.md](https://github.com/projectdiscovery/httpx/blob/master/THANKS.md)** file for more details. Do also check out these similar awesome projects that may fit in your workflow:
+httpx is made with 🖤 by the [projectdiscovery](https://projectdiscovery.io) team. Community contributions have made the project what it is. See the **[Thanks.md](https://github.com/projectdiscovery/httpx/blob/master/THANKS.md)** file for more details. Do also check out these similar awesome projects that may fit in your workflow:
 
 Probing feature is inspired by [@tomnomnom/httprobe](https://github.com/tomnomnom/httprobe) work :heart:
