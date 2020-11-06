@@ -2,6 +2,8 @@ module github.com/projectdiscovery/httpx
 
 go 1.14
 
+replace github.com/projectdiscovery/fastdialer => /home/projectdiscovery/go/src/github.com/projectdiscovery/fastdialer
+
 require (
 	github.com/coocood/freecache v1.1.1
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
@@ -9,8 +11,10 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/miekg/dns v1.1.33
 	github.com/projectdiscovery/cdncheck v0.0.0-20201003183750-5bc57c383935
+	github.com/projectdiscovery/fastdialer v0.0.1
 	github.com/projectdiscovery/fdmax v0.0.2
 	github.com/projectdiscovery/gologger v1.0.1
+	github.com/projectdiscovery/hmap v0.0.0-20201026185329-db41b5717bcb // indirect
 	github.com/projectdiscovery/mapcidr v0.0.4
 	github.com/projectdiscovery/rawhttp v0.0.4
 	github.com/projectdiscovery/retryablehttp-go v1.0.1

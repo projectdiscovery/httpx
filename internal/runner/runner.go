@@ -15,7 +15,6 @@ import (
 	"github.com/logrusorgru/aurora"
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/httpx/common/cache"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httputilz"
@@ -156,7 +155,7 @@ func New(options *Options) (*Runner, error) {
 }
 
 func (runner *Runner) Close() {
-	// not implemented
+	runner.hp.Dialer.Close()
 }
 
 func (runner *Runner) RunEnumeration() {
@@ -526,7 +525,7 @@ retry:
 		}
 	}
 
-	ip := cache.GetDialedIP(domain)
+	ip := hp.Dialer.GetDialedIP(domain)
 	if scanopts.OutputIP {
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
@@ -535,7 +534,7 @@ retry:
 		ips    []string
 		cnames []string
 	)
-	dnsData, err := cache.GetDNSData(domain)
+	dnsData, err := hp.Dialer.GetDNSData(domain)
 	if dnsData != nil && err == nil {
 		ips = append(ips, dnsData.IP4s...)
 		ips = append(ips, dnsData.IP6s...)

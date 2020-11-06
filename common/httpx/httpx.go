@@ -12,7 +12,7 @@ import (
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
-	"github.com/projectdiscovery/httpx/common/cache"
+	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
@@ -29,15 +29,17 @@ type HTTPX struct {
 	CustomHeaders   map[string]string
 	RequestOverride *RequestOverride
 	cdn             *cdncheck.Client
+	Dialer          *fastdialer.Dialer
 }
 
 // New httpx instance
 func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
-	dialer, err := cache.NewDialer(cache.DefaultOptions)
+	dialer, err := fastdialer.NewDialer(fastdialer.DefaultOptions)
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)
 	}
+	httpx.Dialer = dialer
 
 	httpx.Options = options
 
@@ -68,7 +70,7 @@ func New(options *Options) (*HTTPX, error) {
 	}
 
 	transport := &http.Transport{
-		DialContext:         dialer,
+		DialContext:         httpx.Dialer.Dial,
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
