@@ -35,7 +35,7 @@ func (c *CustomPorts) Set(value string) error {
 	// check if port is a single integer value or needs to be expanded further
 	for _, potentialPort := range potentialPorts {
 		protocol := httpx.HTTPorHTTPS
-		potentialPort := strings.TrimSpace(strings.ToLower(potentialPort))
+		potentialPort = strings.TrimSpace(strings.ToLower(potentialPort))
 		if strings.HasPrefix(potentialPort, httpx.HTTP+":") {
 			potentialPort = strings.TrimPrefix(potentialPort, httpx.HTTP+":")
 			protocol = httpx.HTTP
