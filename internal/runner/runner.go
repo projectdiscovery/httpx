@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -123,6 +124,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputLocation = options.Location
 	scanopts.OutputContentLength = options.ContentLength
 	scanopts.StoreResponse = options.StoreResponse
+	scanopts.StoreTLS = options.StoreTLS
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.OutputWithNoColor = options.NoColor
@@ -161,7 +163,7 @@ func (runner *Runner) Close() {
 
 func (runner *Runner) RunEnumeration() {
 	// Try to create output folder if it doesnt exist
-	if runner.options.StoreResponse && !fileutil.FolderExists(runner.options.StoreResponseDir) {
+	if (runner.options.StoreResponse || runner.options.StoreTLS) && !fileutil.FolderExists(runner.options.StoreResponseDir) {
 		if err := os.MkdirAll(runner.options.StoreResponseDir, os.ModePerm); err != nil {
 			gologger.Fatalf("Could not create output directory '%s': %s\n", runner.options.StoreResponseDir, err)
 		}
@@ -216,8 +218,12 @@ func (runner *Runner) RunEnumeration() {
 				continue
 			}
 
+			//too late here to work
+			if runner.options.FullJSON {
+				r.TLSData.CertFold = false
+			}
 			row := r.str
-			if runner.options.JSONOutput {
+			if runner.options.FullJSON || runner.options.JSONOutput {
 				row = r.JSON()
 			}
 
@@ -559,23 +565,43 @@ retry:
 	}
 
 	// store responses in directory
-	if scanopts.StoreResponse {
+	if scanopts.StoreResponse || scanopts.StoreTLS {
 		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
 		if port > 0 {
 			domainFile = fmt.Sprintf("%s.%d%s", domain, port, scanopts.RequestURI)
 		}
 		// On various OS the file max file name length is 255 - https://serverfault.com/questions/9546/filename-length-limits-on-linux
-		// Truncating length at 255
-		if len(domainFile) >= maxFileNameLenght {
-			// leaving last 4 bytes free to append ".txt"
-			domainFile = domainFile[:maxFileNameLenght-1]
+		// Truncating length at 255-4
+		if len(domainFile) >= maxFileNameLength {
+			// leaving last 4 bytes free to append extension
+			domainFile = domainFile[:maxFileNameLength]
 		}
-
-		domainFile = strings.ReplaceAll(domainFile, "/", "_") + ".txt"
-		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
-		err := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
-		if err != nil {
-			gologger.Warningf("Could not write response, at path '%s', to disc.", responsePath)
+		domainFile = strings.Replace(domainFile, "/", "_", -1)
+		envorder := []string{"version", "ciphername", "cipher", "host", "sni", "ip"}
+		handleStore := func(responseType bool, extension string) {
+			saving := []byte{}
+			if responseType {
+				saving = []byte(resp.Raw)
+			} else {
+				running := new(bytes.Buffer)
+				for _, cb := range resp.TLSData.Certificate {
+					for _, ck := range envorder {
+						fmt.Fprintf(running, "%s=%s\n", ck, cb.Envelope[ck])
+					}
+					fmt.Fprintf(running, "%s\n", cb.Payload)
+				}
+				saving = running.Bytes()
+			}
+			responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile+extension)
+			if err := ioutil.WriteFile(responsePath, saving, 0644); err != nil {
+				gologger.Warningf("Could not write response, at path '%s', to disc.", responsePath)
+			}
+		}
+		if scanopts.StoreResponse {
+			handleStore(true, ".txt")
+		}
+		if scanopts.StoreTLS {
+			handleStore(false, ".tls")
 		}
 	}
 

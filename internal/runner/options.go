@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	maxFileNameLenght = 255
+	maxFileNameLength = 255 - 4 // leave room for extension
 	two               = 2
 )
 
@@ -28,6 +28,8 @@ type scanOptions struct {
 	OutputLocation         bool
 	OutputContentLength    bool
 	StoreResponse          bool
+	StoreTLS               bool
+	FullJSON               bool
 	OutputServerHeader     bool
 	OutputWebSocket        bool
 	OutputWithNoColor      bool
@@ -86,6 +88,8 @@ type Options struct {
 	ContentLength             bool
 	FollowRedirects           bool
 	StoreResponse             bool
+	StoreTLS                  bool
+	FullJSON                  bool
 	JSONOutput                bool
 	Silent                    bool
 	Version                   bool
@@ -127,7 +131,10 @@ func ParseOptions() *Options {
 	flag.Var(&options.CustomPorts, "ports", "ports range (nmap syntax: eg 1,2-10,11)")
 	flag.BoolVar(&options.ContentLength, "content-length", false, "Extracts content length")
 	flag.BoolVar(&options.StoreResponse, "sr", false, "Save response to file (default 'output')")
+	flag.BoolVar(&options.StoreTLS, "srtls", false, "Save response tls exchange to file (default 'output')")
+	flag.BoolVar(&options.FullJSON, "fulljson", false, "include entire tls exchange in json (enables -json)")
 	flag.StringVar(&options.StoreResponseDir, "srd", "output", "Save response directory")
+
 	flag.BoolVar(&options.FollowRedirects, "follow-redirects", false, "Follow Redirects")
 	flag.BoolVar(&options.FollowHostRedirects, "follow-host-redirects", false, "Only follow redirects on the same host")
 	flag.StringVar(&options.HTTPProxy, "http-proxy", "", "HTTP Proxy, eg http://127.0.0.1:8080")
