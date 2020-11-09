@@ -536,9 +536,9 @@ retry:
 	)
 	dnsData, err := hp.Dialer.GetDNSData(domain)
 	if dnsData != nil && err == nil {
-		ips = append(ips, dnsData.IP4s...)
-		ips = append(ips, dnsData.IP6s...)
-		cnames = dnsData.CNAMEs
+		ips = append(ips, dnsData.A...)
+		ips = append(ips, dnsData.AAAA...)
+		cnames = dnsData.CNAME
 	} else {
 		ips = append(ips, ip)
 	}
