@@ -72,7 +72,7 @@ func (c *CustomPorts) Set(value string) error {
 
 			if lowP > highP {
 				gologger.Warningf("first value of port range should be lower than the last part port "+
-					"in that range, your rage: [%d, %d]. Skipping it\n",
+					"in that range, your range: [%d, %d]. Skipping it\n",
 					lowP, highP)
 				continue
 			}
