@@ -12,10 +12,8 @@ require (
 	github.com/projectdiscovery/fastdialer v0.0.1
 	github.com/projectdiscovery/fdmax v0.0.2
 	github.com/projectdiscovery/gologger v1.0.1
-	github.com/projectdiscovery/hmap v0.0.1 // indirect
 	github.com/projectdiscovery/mapcidr v0.0.4
 	github.com/projectdiscovery/rawhttp v0.0.4
-	github.com/projectdiscovery/retryabledns v1.0.5 // indirect
 	github.com/projectdiscovery/retryablehttp-go v1.0.1
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.2.1
