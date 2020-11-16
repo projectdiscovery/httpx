@@ -214,7 +214,7 @@ func (r *Runner) prepareInput() error {
 		r.stats.AddStatic("startedAt", time.Now())
 		r.stats.AddCounter("requests", 0)
 		r.stats.AddCounter("total", uint64(numTargets*len(customport.Ports)))
-		err := r.stats.Start(makePrintCallback(), -1)
+		err := r.stats.Start(makePrintCallback(), time.Duration(5)*time.Second)
 		if err != nil {
 			gologger.Warningf("Could not create statistic: %s\n", err)
 		}
@@ -255,7 +255,7 @@ func makePrintCallback() func(stats clistats.StatisticsClient) {
 		builder.WriteRune(')')
 		builder.WriteRune('\n')
 
-		gologger.Printf("%s", builder.String())
+		fmt.Fprintf(os.Stderr, "%s", builder.String())
 		builder.Reset()
 	}
 }
