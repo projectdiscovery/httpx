@@ -14,6 +14,8 @@ import (
 
 	"github.com/logrusorgru/aurora"
 	"github.com/projectdiscovery/clistats"
+
+	// automatic increase of fd max
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/hmap/store/hybrid"
@@ -28,6 +30,10 @@ import (
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/projectdiscovery/rawhttp"
 	"github.com/remeh/sizedwaitgroup"
+)
+
+const (
+	statsDisplayInterval = 5
 )
 
 // Runner is a client for running the enumeration process.
@@ -89,8 +95,8 @@ func New(options *Options) (*Runner, error) {
 			gologger.Fatalf("Could not read raw request from '%s': %s\n", options.InputRawRequest, err)
 		}
 
-		rrMethod, rrPath, rrHeaders, rrBody, err := httputilz.ParseRequest(string(rawRequest), options.Unsafe)
-		if err != nil {
+		rrMethod, rrPath, rrHeaders, rrBody, errParse := httputilz.ParseRequest(string(rawRequest), options.Unsafe)
+		if errParse != nil {
 			gologger.Fatalf("Could not parse raw request: %s\n", err)
 		}
 		scanopts.Methods = append(scanopts.Methods, rrMethod)
@@ -172,16 +178,17 @@ func New(options *Options) (*Runner, error) {
 	return runner, nil
 }
 
-func (r *Runner) prepareInput() error {
+func (runner *Runner) prepareInput() {
 	var (
 		finput  *os.File
 		scanner *bufio.Scanner
+		err     error
 	)
 	// check if file has been provided
-	if fileutil.FileExists(r.options.InputFile) {
-		finput, err := os.Open(r.options.InputFile)
+	if fileutil.FileExists(runner.options.InputFile) {
+		finput, err = os.Open(runner.options.InputFile)
 		if err != nil {
-			gologger.Fatalf("Could read input file '%s': %s\n", r.options.InputFile, err)
+			gologger.Fatalf("Could read input file '%s': %s\n", runner.options.InputFile, err)
 		}
 		scanner = bufio.NewScanner(finput)
 	} else if fileutil.HasStdin() {
@@ -194,36 +201,33 @@ func (r *Runner) prepareInput() error {
 	for scanner.Scan() {
 		target := strings.TrimSpace(scanner.Text())
 		// Used just to get the exact number of targets
-		if _, ok := r.hm.Get(target); ok {
+		if _, ok := runner.hm.Get(target); ok {
 			continue
 		}
 		numTargets++
-		// nolint:errcheck
-		r.hm.Set(target, nil)
+		// nolint:errcheck // ignore
+		runner.hm.Set(target, nil)
 	}
 
-	if r.options.InputFile != "" {
+	if runner.options.InputFile != "" {
 		err := finput.Close()
 		if err != nil {
-			gologger.Fatalf("Could close input file '%s': %s\n", r.options.InputFile, err)
+			gologger.Fatalf("Could close input file '%s': %s\n", runner.options.InputFile, err)
 		}
 	}
 
-	if r.options.ShowStatistics {
-		r.stats.AddStatic("hosts", numTargets)
-		r.stats.AddStatic("startedAt", time.Now())
-		r.stats.AddCounter("requests", 0)
-		r.stats.AddCounter("total", uint64(numTargets*len(customport.Ports)))
-		err := r.stats.Start(makePrintCallback(), time.Duration(5)*time.Second)
+	if runner.options.ShowStatistics {
+		runner.stats.AddStatic("hosts", numTargets)
+		runner.stats.AddStatic("startedAt", time.Now())
+		runner.stats.AddCounter("requests", 0)
+		runner.stats.AddCounter("total", uint64(numTargets*len(customport.Ports)))
+		err := runner.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
 		if err != nil {
 			gologger.Warningf("Could not create statistic: %s\n", err)
 		}
 	}
-
-	return nil
 }
 
-// nolint:deadcode
 func makePrintCallback() func(stats clistats.StatisticsClient) {
 	builder := &strings.Builder{}
 	return func(stats clistats.StatisticsClient) {
@@ -260,10 +264,13 @@ func makePrintCallback() func(stats clistats.StatisticsClient) {
 	}
 }
 
+// Close the instance
 func (runner *Runner) Close() {
+	// nolint:errcheck // ignore
 	runner.hm.Close()
 }
 
+// RunEnumeration on targets
 func (runner *Runner) RunEnumeration() {
 	// Try to create output folder if it doesnt exist
 	if runner.options.StoreResponse && !fileutil.FolderExists(runner.options.StoreResponseDir) {
@@ -272,10 +279,7 @@ func (runner *Runner) RunEnumeration() {
 		}
 	}
 
-	err := runner.prepareInput()
-	if err != nil {
-		gologger.Fatalf("Could not process input: %s\n", err)
-	}
+	runner.prepareInput()
 
 	// output routine
 	wgoutput := sizedwaitgroup.New(1)

@@ -1,9 +1,10 @@
 package customport
 
 import (
-	"github.com/projectdiscovery/gologger"
 	"strconv"
 	"strings"
+
+	"github.com/projectdiscovery/gologger"
 
 	"github.com/projectdiscovery/httpx/common/httpx"
 )
