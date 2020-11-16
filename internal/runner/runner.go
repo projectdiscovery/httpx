@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/logrusorgru/aurora"
+	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
 	customport "github.com/projectdiscovery/httpx/common/customports"
@@ -154,10 +155,12 @@ func New(options *Options) (*Runner, error) {
 	return runner, nil
 }
 
+// Close runner instance
 func (runner *Runner) Close() {
 	runner.hp.Dialer.Close()
 }
 
+// RunEnumeration on targets
 func (runner *Runner) RunEnumeration() {
 	// Try to create output folder if it doesnt exist
 	if runner.options.StoreResponse && !fileutil.FolderExists(runner.options.StoreResponseDir) {
