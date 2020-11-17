@@ -14,8 +14,10 @@ import (
 
 	"github.com/logrusorgru/aurora"
 	// automatic fd max increase if running as root
+	"github.com/projectdiscovery/clistats"
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/hmap/store/hybrid"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httputilz"
@@ -28,11 +30,17 @@ import (
 	"github.com/remeh/sizedwaitgroup"
 )
 
+const (
+	statsDisplayInterval = 5
+)
+
 // Runner is a client for running the enumeration process.
 type Runner struct {
 	options  *Options
 	hp       *httpx.HTTPX
 	scanopts *scanOptions
+	hm       *hybrid.HybridMap
+	stats    clistats.StatisticsClient
 }
 
 // New creates a new client for running enumeration process.
@@ -85,8 +93,8 @@ func New(options *Options) (*Runner, error) {
 			gologger.Fatalf("Could not read raw request from '%s': %s\n", options.InputRawRequest, err)
 		}
 
-		rrMethod, rrPath, rrHeaders, rrBody, err := httputilz.ParseRequest(string(rawRequest), options.Unsafe)
-		if err != nil {
+		rrMethod, rrPath, rrHeaders, rrBody, errParse := httputilz.ParseRequest(string(rawRequest), options.Unsafe)
+		if errParse != nil {
 			gologger.Fatalf("Could not parse raw request: %s\n", err)
 		}
 		scanopts.Methods = append(scanopts.Methods, rrMethod)
@@ -152,11 +160,118 @@ func New(options *Options) (*Runner, error) {
 
 	runner.scanopts = &scanopts
 
+	if options.ShowStatistics {
+		runner.stats, err = clistats.New()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	hm, err := hybrid.New(hybrid.DefaultDiskOptions)
+	if err != nil {
+		return nil, err
+	}
+	runner.hm = hm
+
 	return runner, nil
 }
 
-// Close runner instance
+func (runner *Runner) prepareInput() {
+	var (
+		finput  *os.File
+		scanner *bufio.Scanner
+		err     error
+	)
+	// check if file has been provided
+	if fileutil.FileExists(runner.options.InputFile) {
+		finput, err = os.Open(runner.options.InputFile)
+		if err != nil {
+			gologger.Fatalf("Could read input file '%s': %s\n", runner.options.InputFile, err)
+		}
+		scanner = bufio.NewScanner(finput)
+	} else if fileutil.HasStdin() {
+		scanner = bufio.NewScanner(os.Stdin)
+	} else {
+		gologger.Fatalf("No input provided")
+	}
+
+	numTargets := 0
+	for scanner.Scan() {
+		target := strings.TrimSpace(scanner.Text())
+		// Used just to get the exact number of targets
+		if _, ok := runner.hm.Get(target); ok {
+			continue
+		}
+		numTargets++
+		// nolint:errcheck // ignore
+		runner.hm.Set(target, nil)
+	}
+
+	if runner.options.InputFile != "" {
+		err := finput.Close()
+		if err != nil {
+			gologger.Fatalf("Could close input file '%s': %s\n", runner.options.InputFile, err)
+		}
+	}
+
+	if runner.options.ShowStatistics {
+		numPorts := len(customport.Ports)
+		if numPorts == 0 {
+			// Default Ports 80, 443
+			numPorts = 2
+		}
+
+		runner.stats.AddStatic("hosts", numTargets)
+		runner.stats.AddStatic("startedAt", time.Now())
+		runner.stats.AddCounter("requests", 0)
+		runner.stats.AddCounter("total", uint64(numTargets*numPorts))
+		err := runner.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
+		if err != nil {
+			gologger.Warningf("Could not create statistic: %s\n", err)
+		}
+	}
+}
+
+func makePrintCallback() func(stats clistats.StatisticsClient) {
+	builder := &strings.Builder{}
+	return func(stats clistats.StatisticsClient) {
+		builder.WriteRune('[')
+		startedAt, _ := stats.GetStatic("startedAt")
+		duration := time.Since(startedAt.(time.Time))
+		builder.WriteString(fmtDuration(duration))
+		builder.WriteRune(']')
+
+		hosts, _ := stats.GetStatic("hosts")
+		builder.WriteString(" | Hosts: ")
+		builder.WriteString(clistats.String(hosts))
+
+		requests, _ := stats.GetCounter("requests")
+		total, _ := stats.GetCounter("total")
+
+		builder.WriteString(" | RPS: ")
+		builder.WriteString(clistats.String(uint64(float64(requests) / duration.Seconds())))
+
+		builder.WriteString(" | Requests: ")
+		builder.WriteString(clistats.String(requests))
+		builder.WriteRune('/')
+		builder.WriteString(clistats.String(total))
+		builder.WriteRune(' ')
+		builder.WriteRune('(')
+		//nolint:gomnd // this is not a magic number
+		builder.WriteString(clistats.String(uint64(float64(requests) / float64(total) * 100.0)))
+		builder.WriteRune('%')
+		builder.WriteRune(')')
+		builder.WriteRune('\n')
+
+		fmt.Fprintf(os.Stderr, "%s", builder.String())
+		builder.Reset()
+	}
+}
+
+// Close the instance
 func (runner *Runner) Close() {
+	// nolint:errcheck // ignore
+	runner.hm.Close()
 	runner.hp.Dialer.Close()
 }
 
@@ -168,6 +283,8 @@ func (runner *Runner) RunEnumeration() {
 			gologger.Fatalf("Could not create output directory '%s': %s\n", runner.options.StoreResponseDir, err)
 		}
 	}
+
+	runner.prepareInput()
 
 	// output routine
 	wgoutput := sizedwaitgroup.New(1)
@@ -232,34 +349,14 @@ func (runner *Runner) RunEnumeration() {
 	}(output)
 
 	wg := sizedwaitgroup.New(runner.options.Threads)
-	var scanner *bufio.Scanner
 
-	// check if file has been provided
-	if fileutil.FileExists(runner.options.InputFile) {
-		finput, err := os.Open(runner.options.InputFile)
-		if err != nil {
-			gologger.Fatalf("Could read input file '%s': %s\n", runner.options.InputFile, err)
+	runner.hm.Scan(func(k, _ []byte) error {
+		if runner.options.ShowStatistics {
+			runner.stats.IncrementCounter("requests", 1)
 		}
-		scanner = bufio.NewScanner(finput)
-		defer func() {
-			err := finput.Close()
-			if err != nil {
-				gologger.Fatalf("Could close input file '%s': %s\n", runner.options.InputFile, err)
-			}
-		}()
-	} else if fileutil.HasStdin() {
-		scanner = bufio.NewScanner(os.Stdin)
-	} else {
-		gologger.Fatalf("No input provided")
-	}
-
-	for scanner.Scan() {
-		process(scanner.Text(), &wg, runner.hp, runner.options.protocol, runner.scanopts, output)
-	}
-
-	if err := scanner.Err(); err != nil {
-		gologger.Fatalf("Read error on standard input: %s", err)
-	}
+		process(string(k), &wg, runner.hp, runner.options.protocol, runner.scanopts, output)
+		return nil
+	})
 
 	wg.Wait()
 
