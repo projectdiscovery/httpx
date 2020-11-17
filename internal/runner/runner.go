@@ -217,10 +217,16 @@ func (runner *Runner) prepareInput() {
 	}
 
 	if runner.options.ShowStatistics {
+		numPorts := len(customport.Ports)
+		if numPorts == 0 {
+			// Default Ports 80, 443
+			numPorts = 2
+		}
+
 		runner.stats.AddStatic("hosts", numTargets)
 		runner.stats.AddStatic("startedAt", time.Now())
 		runner.stats.AddCounter("requests", 0)
-		runner.stats.AddCounter("total", uint64(numTargets*len(customport.Ports)))
+		runner.stats.AddCounter("total", uint64(numTargets*numPorts))
 		err := runner.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
 		if err != nil {
 			gologger.Warningf("Could not create statistic: %s\n", err)
