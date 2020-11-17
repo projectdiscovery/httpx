@@ -87,7 +87,7 @@ Download latest binary from https://github.com/projectdiscovery/httpx/releases
 httpx requires **go1.14+** to install successfully. Run the following command to get the repo - 
 
 ```sh
-▶ GO111MODULE=auto go get -u -v github.com/projectdiscovery/httpx/cmd/httpx
+▶ GO111MODULE=on go get -u -v github.com/projectdiscovery/httpx/cmd/httpx
 ```
 
 ### From Github
@@ -138,6 +138,7 @@ This will display help for the tool. Here are all the switches it supports.
 | request                 | File containing raw request to process                  | httpx -request                                     | 
 | retries                 | Number of retries                                       | httpx -retries                                     |
 | silent                  | Prints only results in the output                       | httpx -silent                                      |
+| stats                   | Prints statistic every 5 seconds                        | httpx -stats                                       |
 | timeout                 | Timeout in seconds (default 5)                          | httpx -timeout 10                                  |
 | verbose                 | Verbose Mode                                            | httpx -verbose                                     |
 | version                 | Prints current version of the httpx                     | httpx -version                                     |
