@@ -13,8 +13,9 @@ import (
 	"time"
 
 	"github.com/logrusorgru/aurora"
-	// automatic fd max increase if running as root
 	"github.com/projectdiscovery/clistats"
+
+	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/hmap/store/hybrid"
