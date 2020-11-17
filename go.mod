@@ -3,13 +3,12 @@ module github.com/projectdiscovery/httpx
 go 1.14
 
 require (
-	github.com/coocood/freecache v1.1.1
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/microcosm-cc/bluemonday v1.0.4
-	github.com/miekg/dns v1.1.35
-	github.com/projectdiscovery/cdncheck v0.0.0-20201003183750-5bc57c383935
+	github.com/projectdiscovery/cdncheck v0.0.1
 	github.com/projectdiscovery/clistats v0.0.5
+	github.com/projectdiscovery/fastdialer v0.0.1
 	github.com/projectdiscovery/fdmax v0.0.2
 	github.com/projectdiscovery/gologger v1.0.1
 	github.com/projectdiscovery/hmap v0.0.1

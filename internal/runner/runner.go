@@ -15,11 +15,10 @@ import (
 	"github.com/logrusorgru/aurora"
 	"github.com/projectdiscovery/clistats"
 
-	// automatic increase of fd max
+	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/hmap/store/hybrid"
-	"github.com/projectdiscovery/httpx/common/cache"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httputilz"
@@ -274,6 +273,7 @@ func makePrintCallback() func(stats clistats.StatisticsClient) {
 func (runner *Runner) Close() {
 	// nolint:errcheck // ignore
 	runner.hm.Close()
+	runner.hp.Dialer.Close()
 }
 
 // RunEnumeration on targets
@@ -626,7 +626,7 @@ retry:
 		}
 	}
 
-	ip := cache.GetDialedIP(domain)
+	ip := hp.Dialer.GetDialedIP(domain)
 	if scanopts.OutputIP {
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
@@ -635,11 +635,11 @@ retry:
 		ips    []string
 		cnames []string
 	)
-	dnsData, err := cache.GetDNSData(domain)
+	dnsData, err := hp.Dialer.GetDNSData(domain)
 	if dnsData != nil && err == nil {
-		ips = append(ips, dnsData.IP4s...)
-		ips = append(ips, dnsData.IP6s...)
-		cnames = dnsData.CNAMEs
+		ips = append(ips, dnsData.A...)
+		ips = append(ips, dnsData.AAAA...)
+		cnames = dnsData.CNAME
 	} else {
 		ips = append(ips, ip)
 	}
