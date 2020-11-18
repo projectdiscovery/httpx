@@ -1,4 +1,4 @@
-<h1 align="left">
+<h1 align="center">
   <img src="static/httpx-logo.png" alt="httpx" width="200px"></a>
   <br>
 </h1>
@@ -44,27 +44,18 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 
  ### Supported probes:-
 
-| Probes             | Status  | Default check   |
-|--------------------|---------|-----------------|
-| URL                | ✔       | true            |
-| Title              | ✔       | true            |
-| Status Code        | ✔       | true            |
-| Content Length     | ✔       | true            |
-| TLS Certificate    | ✔       | true            |
-| CSP Header         | ✔       | true            |
-| HTTP2              | ✔       | false           |
-| HTTP 1.1 Pipeline  | ✔       | false           |
-| Virtual host       | ✔       | false           |
-| Location Header    | ✔       | true            |
-| Web Server         | ✔       | true            |
-| Web Socket         | ✔       | true            |
-| Path               | ✔       | false           |
-| Ports              | ✔       | false           |
-| Request method     | ✔       | false           |
-| IP                 | ✔       | true            |
-| CNAME              | ✔       | true            |
-| CDN                | ✔       | false           |
-| Response Time      | ✔       | true            |
+| Probes             | Default check   | Probes             | Default check   |
+|--------------------|-----------------|--------------------|-----------------|
+| URL                | true            | IP                 | true            |
+| Title              | true            | CNAME              | true            |
+| Status Code        | true            | Raw HTTP	    | false           |
+| Content Length     | true            | HTTP2              | false           |
+| TLS Certificate    | true            | HTTP 1.1 Pipeline  | false           |
+| CSP Header         | true            | Virtual host       | false           |
+| Location Header    | true            | CDN                | false           |
+| Web Server         | true            | Path               | false           |
+| Web Socket         | true            | Ports              | false           |
+| Response Time      | true            | Request method     | false           |
 
 
 # Installation Instructions
@@ -249,6 +240,7 @@ https://resources.hackerone.com [301] [0] []
 
 - As default, **httpx** checks for `HTTPS` probe and fall-back to `HTTP` only if `HTTPS` is not reachable.
 - For printing both HTTP/HTTPS results, `no-fallback` flag can be used.
+- Custom scheme for ports can be defined, for example `-ports http:443,http:80,https:8443`
 - `vhost`, `http2`, `pipeline`, `ports`, `csp-probe`, `tls-probe` and `path` are unique flag with different probes.
 - Unique flags should be used for specific use cases instead of running them as default with other flags.
 - When using `json` flag, all the information (default probes) included in the JOSN output.
