@@ -8,7 +8,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/projectdiscovery/cdncheck v0.0.1
 	github.com/projectdiscovery/clistats v0.0.5
-	github.com/projectdiscovery/fastdialer v0.0.1
+	github.com/projectdiscovery/fastdialer v0.0.2
 	github.com/projectdiscovery/fdmax v0.0.2
 	github.com/projectdiscovery/gologger v1.0.1
 	github.com/projectdiscovery/hmap v0.0.1
