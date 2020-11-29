@@ -28,6 +28,27 @@ func ExtractTitle(r *Response) (title string) {
 
 			return string(titleUtf8)
 		}
+
+		// Content-Type from head tag
+		re = regexp.MustCompile(`(?im)\s*charset="(.*?)"|charset=(.*?)"\s*`)
+		var match = re.FindSubmatch(r.Data)
+		var mcontentType = ""
+		if len(match) != 0 {
+			for i, v := range match {
+				if string(v) != "" && i != 0 {
+					mcontentType = string(v)
+				}
+			}
+			mcontentType = strings.ToLower(mcontentType)
+		}
+		if strings.Contains(mcontentType, "gb2312") || strings.Contains(mcontentType, "gbk") {
+			titleUtf8, err := Decodegbk([]byte(title))
+			if err != nil {
+				return
+			}
+
+			return string(titleUtf8)
+		}
 	}
 
 	return
