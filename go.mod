@@ -2,8 +2,6 @@ module github.com/projectdiscovery/httpx
 
 go 1.14
 
-replace github.com/projectdiscovery/clistats => /home/marco/go/src/github.com/projectdiscovery/clistats
-
 require (
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/logrusorgru/aurora v2.0.3+incompatible
