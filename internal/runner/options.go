@@ -22,6 +22,7 @@ type scanOptions struct {
 	StoreResponseDirectory string
 	RequestURI             string
 	RequestBody            string
+	OutputCustomRegex      string
 	VHost                  bool
 	OutputTitle            bool
 	OutputStatusCode       bool
@@ -111,6 +112,7 @@ type Options struct {
 	NoFallback                bool
 	protocol                  string
 	ShowStatistics            bool
+	CustomRegex               string
 }
 
 // ParseOptions parses the command line options for application
@@ -123,6 +125,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.Output, "o", "", "File to write output to (optional)")
 	flag.BoolVar(&options.VHost, "vhost", false, "Check for VHOSTs")
 	flag.BoolVar(&options.ExtractTitle, "title", false, "Extracts title")
+	flag.StringVar(&options.CustomRegex, "custom-regex", "", "Extracts information by custom regex")
 	flag.BoolVar(&options.StatusCode, "status-code", false, "Extracts status code")
 	flag.BoolVar(&options.Location, "location", false, "Extracts location header")
 	flag.Var(&options.CustomHeaders, "H", "Custom Header")

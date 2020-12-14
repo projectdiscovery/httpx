@@ -127,6 +127,7 @@ func New(options *Options) (*Runner, error) {
 	}
 	runner.options.protocol = httpx.HTTPorHTTPS
 	scanopts.VHost = options.VHost
+	scanopts.OutputCustomRegex = options.CustomRegex
 	scanopts.OutputTitle = options.ExtractTitle
 	scanopts.OutputStatusCode = options.StatusCode
 	scanopts.OutputLocation = options.Location
@@ -580,6 +581,17 @@ retry:
 			builder.WriteString(aurora.Cyan(title).String())
 		} else {
 			builder.WriteString(title)
+		}
+		builder.WriteRune(']')
+	}
+
+	if len(scanopts.OutputCustomRegex) != 0 {
+		customRegexInfo := httpx.ExtractInfoByCustomRegex(resp, scanopts.OutputCustomRegex)
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Cyan(customRegexInfo).String())
+		} else {
+			builder.WriteString(customRegexInfo)
 		}
 		builder.WriteRune(']')
 	}
