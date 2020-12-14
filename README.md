@@ -243,7 +243,7 @@ https://resources.hackerone.com [301] [0] []
 - Custom scheme for ports can be defined, for example `-ports http:443,http:80,https:8443`
 - `vhost`, `http2`, `pipeline`, `ports`, `csp-probe`, `tls-probe` and `path` are unique flag with different probes.
 - Unique flags should be used for specific use cases instead of running them as default with other flags.
-- When using `json` flag, all the information (default probes) included in the JOSN output.
+- When using `json` flag, all the information (default probes) included in the JSON output.
 
 
 # Thanks
