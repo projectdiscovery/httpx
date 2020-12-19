@@ -20,7 +20,8 @@ func ExtractTitle(r *Response) (title string) {
 		contentType := strings.Join(contentTypes, ";")
 
 		// special cases
-		if strings.Contains(contentType, "charset=GB2312") {
+		if strings.Contains(strings.ToLower(contentType), "charset=gb2312") ||
+			strings.Contains(strings.ToLower(contentType), "charset=gbk") {
 			titleUtf8, err := Decodegbk([]byte(title))
 			if err != nil {
 				return
