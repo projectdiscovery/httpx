@@ -368,11 +368,11 @@ func (runner *Runner) RunEnumeration() {
 			scanopts := runner.scanopts
 			for _, p := range runner.options.requestURIs {
 				scanopts.RequestURI = p
-				process(string(k), &wg, runner.hp, runner.options.protocol, scanopts, output)
+				process(string(k), &wg, runner.hp, runner.options.protocol, &scanopts, output)
 				reqs++
 			}
 		} else {
-			process(string(k), &wg, runner.hp, runner.options.protocol, runner.scanopts, output)
+			process(string(k), &wg, runner.hp, runner.options.protocol, &runner.scanopts, output)
 			reqs++
 		}
 
@@ -389,7 +389,7 @@ func (runner *Runner) RunEnumeration() {
 	wgoutput.Wait()
 }
 
-func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts scanOptions, output chan Result) {
+func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
 	protocols := []string{protocol}
 	if scanopts.NoFallback {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
@@ -402,7 +402,7 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 					wg.Add()
 					go func(target, method, protocol string) {
 						defer wg.Done()
-						r := analyze(hp, protocol, target, 0, method, &scanopts)
+						r := analyze(hp, protocol, target, 0, method, scanopts)
 						output <- r
 						if scanopts.TLSProbe && r.TLSData != nil {
 							scanopts.TLSProbe = false
@@ -435,7 +435,7 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 				wg.Add()
 				go func(port int, method, protocol string) {
 					defer wg.Done()
-					r := analyze(hp, protocol, target, port, method, &scanopts)
+					r := analyze(hp, protocol, target, port, method, scanopts)
 					output <- r
 					if scanopts.TLSProbe && r.TLSData != nil {
 						scanopts.TLSProbe = false
