@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"path"
 	"strconv"
@@ -40,7 +39,7 @@ const (
 type Runner struct {
 	options  *Options
 	hp       *httpx.HTTPX
-	scanopts *scanOptions
+	scanopts scanOptions
 	hm       *hybrid.HybridMap
 	stats    clistats.StatisticsClient
 }
@@ -160,7 +159,7 @@ func New(options *Options) (*Runner, error) {
 		scanopts.OutputMethod = true
 	}
 
-	runner.scanopts = &scanopts
+	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
 		runner.stats, err = clistats.New()
@@ -213,33 +212,12 @@ func (runner *Runner) prepareInput() {
 		}
 
 		if len(runner.options.requestURIs) > 0 {
-			// Combine multiple paths
-			// Not RFC compliant - we just append
-			for _, p := range runner.options.requestURIs {
-				newTarget := target + p
-				numTargets++
-				runner.hm.Set(newTarget, nil) //nolint
-			}
-
-			// RFC compliant
-			baseURL, err := url.Parse(target)
-			if err != nil || baseURL.Host == "" {
-				continue
-			}
-			for _, p := range runner.options.requestURIs {
-				newPath, err := url.Parse(p)
-				if err != nil {
-					continue
-				}
-				newTarget := baseURL.ResolveReference(newPath)
-				numTargets++
-				runner.hm.Set(newTarget.String(), nil) //nolint
-			}
+			numTargets += len(runner.options.requestURIs)
 		} else {
-			// base path
 			numTargets++
-			runner.hm.Set(target, nil) //nolint
 		}
+
+		runner.hm.Set(target, nil) //nolint
 	}
 
 	if runner.options.InputFile != "" {
@@ -385,10 +363,22 @@ func (runner *Runner) RunEnumeration() {
 	wg := sizedwaitgroup.New(runner.options.Threads)
 
 	runner.hm.Scan(func(k, _ []byte) error {
-		if runner.options.ShowStatistics {
-			runner.stats.IncrementCounter("requests", 1)
+		var reqs int
+		if len(runner.options.requestURIs) > 0 {
+			scanopts := runner.scanopts
+			for _, p := range runner.options.requestURIs {
+				scanopts.RequestURI = p
+				process(string(k), &wg, runner.hp, runner.options.protocol, scanopts, output)
+				reqs++
+			}
+		} else {
+			process(string(k), &wg, runner.hp, runner.options.protocol, runner.scanopts, output)
+			reqs++
 		}
-		process(string(k), &wg, runner.hp, runner.options.protocol, runner.scanopts, output)
+
+		if runner.options.ShowStatistics {
+			runner.stats.IncrementCounter("requests", reqs)
+		}
 		return nil
 	})
 
@@ -399,7 +389,7 @@ func (runner *Runner) RunEnumeration() {
 	wgoutput.Wait()
 }
 
-func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
+func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts scanOptions, output chan Result) {
 	protocols := []string{protocol}
 	if scanopts.NoFallback {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
@@ -412,7 +402,7 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 					wg.Add()
 					go func(target, method, protocol string) {
 						defer wg.Done()
-						r := analyze(hp, protocol, target, 0, method, scanopts)
+						r := analyze(hp, protocol, target, 0, method, &scanopts)
 						output <- r
 						if scanopts.TLSProbe && r.TLSData != nil {
 							scanopts.TLSProbe = false
@@ -445,7 +435,7 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 				wg.Add()
 				go func(port int, method, protocol string) {
 					defer wg.Done()
-					r := analyze(hp, protocol, target, port, method, scanopts)
+					r := analyze(hp, protocol, target, port, method, &scanopts)
 					output <- r
 					if scanopts.TLSProbe && r.TLSData != nil {
 						scanopts.TLSProbe = false
