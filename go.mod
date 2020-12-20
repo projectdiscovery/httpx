@@ -3,6 +3,7 @@ module github.com/projectdiscovery/httpx
 go 1.14
 
 require (
+	github.com/corpix/uarand v0.1.1
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/microcosm-cc/bluemonday v1.0.4

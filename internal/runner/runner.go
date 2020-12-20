@@ -59,6 +59,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
 	httpxOptions.CdnCheck = options.OutputCDN
+	httpxOptions.RandomAgent = options.RandomAgent
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
