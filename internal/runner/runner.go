@@ -218,7 +218,7 @@ func (runner *Runner) prepareInput() {
 			for _, p := range runner.options.requestURIs {
 				newTarget := target + p
 				numTargets++
-				runner.hm.Set(newTarget, nil)
+				runner.hm.Set(newTarget, nil) //nolint
 			}
 
 			// RFC compliant
@@ -233,12 +233,12 @@ func (runner *Runner) prepareInput() {
 				}
 				newTarget := baseURL.ResolveReference(newPath)
 				numTargets++
-				runner.hm.Set(newTarget.String(), nil)
+				runner.hm.Set(newTarget.String(), nil) //nolint
 			}
 		} else {
 			// base path
 			numTargets++
-			runner.hm.Set(target, nil)
+			runner.hm.Set(target, nil) //nolint
 		}
 	}
 
@@ -335,8 +335,7 @@ func (runner *Runner) RunEnumeration() {
 			if err != nil {
 				gologger.Fatalf("Could not create output file '%s': %s\n", runner.options.Output, err)
 			}
-			//nolint:errcheck // this method needs a small refactor to reduce complexity
-			defer f.Close()
+			defer f.Close() //nolint
 		}
 		for r := range output {
 			if r.err != nil {

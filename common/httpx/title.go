@@ -51,7 +51,7 @@ func ExtractTitle(r *Response) (title string) {
 		}
 	}
 
-	return
+	return //nolint
 }
 
 func trimTitleTags(title string) string {

@@ -41,7 +41,7 @@ func LoadFile(filename string) (lines []string) {
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer f.Close() //nolint
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		lines = append(lines, s.Text())
