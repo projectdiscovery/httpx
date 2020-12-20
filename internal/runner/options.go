@@ -48,7 +48,6 @@ type scanOptions struct {
 }
 
 // Options contains configuration options for chaos client.
-// nolint:maligned // ignore
 type Options struct {
 	CustomHeaders             customheader.CustomHeaders
 	CustomPorts               customport.CustomPorts

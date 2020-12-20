@@ -5,7 +5,6 @@ import (
 )
 
 // Options contains configuration options for the client
-// nolint: maligned // ignoring
 type Options struct {
 	RandomAgent      bool
 	DefaultUserAgent string
