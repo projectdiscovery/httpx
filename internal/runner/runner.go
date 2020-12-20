@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strconv"
@@ -196,6 +197,13 @@ func (runner *Runner) prepareInput() {
 		gologger.Fatalf("No input provided")
 	}
 
+	// Check if the user requested multiple paths
+	if fileutil.FileExists(runner.options.RequestURIs) {
+		runner.options.requestURIs = fileutil.LoadFile(runner.options.RequestURIs)
+	} else if runner.options.RequestURIs != "" {
+		runner.options.requestURIs = strings.Split(runner.options.RequestURIs, ",")
+	}
+
 	numTargets := 0
 	for scanner.Scan() {
 		target := strings.TrimSpace(scanner.Text())
@@ -203,9 +211,33 @@ func (runner *Runner) prepareInput() {
 		if _, ok := runner.hm.Get(target); ok {
 			continue
 		}
+
+		// base path
 		numTargets++
-		// nolint:errcheck // ignore
 		runner.hm.Set(target, nil)
+
+		// Combine multiple paths
+		// Not RFC compliant - we just append
+		for _, p := range runner.options.requestURIs {
+			newTarget := target + p
+			numTargets++
+			runner.hm.Set(newTarget, nil)
+		}
+
+		// RFC compliant
+		baseURL, err := url.Parse(target)
+		if err != nil || baseURL.Host == "" {
+			continue
+		}
+		for _, p := range runner.options.requestURIs {
+			newPath, err := url.Parse(p)
+			if err != nil {
+				continue
+			}
+			newTarget := baseURL.ResolveReference(newPath)
+			numTargets++
+			runner.hm.Set(newTarget.String(), nil)
+		}
 	}
 
 	if runner.options.InputFile != "" {
@@ -239,7 +271,7 @@ func makePrintCallback() func(stats clistats.StatisticsClient) {
 		builder.WriteRune('[')
 		startedAt, _ := stats.GetStatic("startedAt")
 		duration := time.Since(startedAt.(time.Time))
-		builder.WriteString(fmtDuration(duration))
+		builder.WriteString(clistats.FmtDuration(duration))
 		builder.WriteRune(']')
 
 		hosts, _ := stats.GetStatic("hosts")

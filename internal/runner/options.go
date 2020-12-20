@@ -63,6 +63,8 @@ type Options struct {
 	InputFile                 string
 	Methods                   string
 	RequestURI                string
+	RequestURIs               string
+	requestURIs               []string
 	OutputMatchStatusCode     string
 	OutputMatchContentLength  string
 	OutputFilterStatusCode    string
@@ -147,6 +149,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
 	flag.BoolVar(&options.CSPProbe, "csp-probe", false, "Send HTTP probes on the extracted CSP domains")
 	flag.StringVar(&options.RequestURI, "path", "", "Request path/file (example '/api')")
+	flag.StringVar(&options.RequestURIs, "paths", "", "Command separated paths or file containing one path per line (example '/api/v1,/apiv2')")
 	flag.BoolVar(&options.OutputContentType, "content-type", false, "Extracts content-type")
 	flag.StringVar(&options.OutputMatchStatusCode, "mc", "", "Match status code")
 	flag.StringVar(&options.OutputMatchStatusCode, "ml", "", "Match content length")
