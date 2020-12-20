@@ -1,19 +1,35 @@
 package httpx
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
 )
 
+var (
+	reTitle       *regexp.Regexp = regexp.MustCompile(`(?im)<\s*title.*>(.*?)<\s*/\s*title>`)
+	reContentType *regexp.Regexp = regexp.MustCompile(`(?im)\s*charset="(.*?)"|charset=(.*?)"\s*`)
+)
+
 // ExtractTitle from a response
 func ExtractTitle(r *Response) (title string) {
-	var re = regexp.MustCompile(`(?im)<\s*title.*>(.*?)<\s*/\s*title>`)
-	for _, match := range re.FindAllString(r.Raw, -1) {
-		title = html.UnescapeString(trimTitleTags(match))
-		break
+	// Try to parse the DOM
+	titleDom, err := getTitleWithDom(r)
+	// In case of error fallback to regex
+	if err != nil {
+		for _, match := range reTitle.FindAllString(r.Raw, -1) {
+			title = match
+			break
+		}
+	} else {
+		title = renderNode(titleDom)
 	}
+
+	title = html.UnescapeString(trimTitleTags(title))
 
 	// Non UTF-8
 	if contentTypes, ok := r.Headers["Content-Type"]; ok {
@@ -31,8 +47,7 @@ func ExtractTitle(r *Response) (title string) {
 		}
 
 		// Content-Type from head tag
-		re = regexp.MustCompile(`(?im)\s*charset="(.*?)"|charset=(.*?)"\s*`)
-		var match = re.FindSubmatch(r.Data)
+		var match = reContentType.FindSubmatch(r.Data)
 		var mcontentType = ""
 		if len(match) != 0 {
 			for i, v := range match {
@@ -53,6 +68,36 @@ func ExtractTitle(r *Response) (title string) {
 	}
 
 	return //nolint
+}
+
+func getTitleWithDom(r *Response) (*html.Node, error) {
+	var title *html.Node
+	var crawler func(*html.Node)
+	crawler = func(node *html.Node) {
+		if node.Type == html.ElementNode && node.Data == "title" {
+			title = node
+			return
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			crawler(child)
+		}
+	}
+	htmlDoc, err := html.Parse(bytes.NewReader(r.Data))
+	if err != nil {
+		return nil, err
+	}
+	crawler(htmlDoc)
+	if title != nil {
+		return title, nil
+	}
+	return nil, fmt.Errorf("Title not found")
+}
+
+func renderNode(n *html.Node) string {
+	var buf bytes.Buffer
+	w := io.Writer(&buf)
+	html.Render(w, n)
+	return buf.String()
 }
 
 func trimTitleTags(title string) string {
