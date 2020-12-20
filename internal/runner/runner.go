@@ -212,31 +212,33 @@ func (runner *Runner) prepareInput() {
 			continue
 		}
 
-		// base path
-		numTargets++
-		runner.hm.Set(target, nil)
+		if len(runner.options.requestURIs) > 0 {
+			// Combine multiple paths
+			// Not RFC compliant - we just append
+			for _, p := range runner.options.requestURIs {
+				newTarget := target + p
+				numTargets++
+				runner.hm.Set(newTarget, nil)
+			}
 
-		// Combine multiple paths
-		// Not RFC compliant - we just append
-		for _, p := range runner.options.requestURIs {
-			newTarget := target + p
-			numTargets++
-			runner.hm.Set(newTarget, nil)
-		}
-
-		// RFC compliant
-		baseURL, err := url.Parse(target)
-		if err != nil || baseURL.Host == "" {
-			continue
-		}
-		for _, p := range runner.options.requestURIs {
-			newPath, err := url.Parse(p)
-			if err != nil {
+			// RFC compliant
+			baseURL, err := url.Parse(target)
+			if err != nil || baseURL.Host == "" {
 				continue
 			}
-			newTarget := baseURL.ResolveReference(newPath)
+			for _, p := range runner.options.requestURIs {
+				newPath, err := url.Parse(p)
+				if err != nil {
+					continue
+				}
+				newTarget := baseURL.ResolveReference(newPath)
+				numTargets++
+				runner.hm.Set(newTarget.String(), nil)
+			}
+		} else {
+			// base path
 			numTargets++
-			runner.hm.Set(newTarget.String(), nil)
+			runner.hm.Set(target, nil)
 		}
 	}
 
