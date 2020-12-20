@@ -90,13 +90,13 @@ func getTitleWithDom(r *Response) (*html.Node, error) {
 	if title != nil {
 		return title, nil
 	}
-	return nil, fmt.Errorf("Title not found")
+	return nil, fmt.Errorf("title not found")
 }
 
 func renderNode(n *html.Node) string {
 	var buf bytes.Buffer
 	w := io.Writer(&buf)
-	html.Render(w, n)
+	html.Render(w, n) //nolint
 	return buf.String()
 }
 
