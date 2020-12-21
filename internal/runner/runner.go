@@ -366,10 +366,10 @@ func (runner *Runner) RunEnumeration() {
 	runner.hm.Scan(func(k, _ []byte) error {
 		var reqs int
 		if len(runner.options.requestURIs) > 0 {
-			scanopts := runner.scanopts
 			for _, p := range runner.options.requestURIs {
+				scanopts := runner.scanopts.Clone()
 				scanopts.RequestURI = p
-				process(string(k), &wg, runner.hp, runner.options.protocol, &scanopts, output)
+				process(string(k), &wg, runner.hp, runner.options.protocol, scanopts, output)
 				reqs++
 			}
 		} else {

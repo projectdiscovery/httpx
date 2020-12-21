@@ -47,6 +47,38 @@ type scanOptions struct {
 	NoFallback             bool
 }
 
+func (s *scanOptions) Clone() *scanOptions {
+	return &scanOptions{
+		Methods:                s.Methods,
+		StoreResponseDirectory: s.StoreResponseDirectory,
+		RequestURI:             s.RequestURI,
+		RequestBody:            s.RequestBody,
+		VHost:                  s.VHost,
+		OutputTitle:            s.OutputTitle,
+		OutputStatusCode:       s.OutputStatusCode,
+		OutputLocation:         s.OutputLocation,
+		OutputContentLength:    s.OutputContentLength,
+		StoreResponse:          s.StoreResponse,
+		OutputServerHeader:     s.OutputServerHeader,
+		OutputWebSocket:        s.OutputWebSocket,
+		OutputWithNoColor:      s.OutputWithNoColor,
+		OutputMethod:           s.OutputMethod,
+		ResponseInStdout:       s.ResponseInStdout,
+		TLSProbe:               s.TLSProbe,
+		CSPProbe:               s.CSPProbe,
+		OutputContentType:      s.OutputContentType,
+		Unsafe:                 s.Unsafe,
+		Pipeline:               s.Pipeline,
+		HTTP2Probe:             s.HTTP2Probe,
+		OutputIP:               s.OutputIP,
+		OutputCName:            s.OutputCName,
+		OutputCDN:              s.OutputCDN,
+		OutputResponseTime:     s.OutputResponseTime,
+		PreferHTTPS:            s.PreferHTTPS,
+		NoFallback:             s.NoFallback,
+	}
+}
+
 // Options contains configuration options for chaos client.
 type Options struct {
 	CustomHeaders             customheader.CustomHeaders
