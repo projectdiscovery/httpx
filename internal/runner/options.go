@@ -47,8 +47,39 @@ type scanOptions struct {
 	NoFallback             bool
 }
 
+func (s *scanOptions) Clone() *scanOptions {
+	return &scanOptions{
+		Methods:                s.Methods,
+		StoreResponseDirectory: s.StoreResponseDirectory,
+		RequestURI:             s.RequestURI,
+		RequestBody:            s.RequestBody,
+		VHost:                  s.VHost,
+		OutputTitle:            s.OutputTitle,
+		OutputStatusCode:       s.OutputStatusCode,
+		OutputLocation:         s.OutputLocation,
+		OutputContentLength:    s.OutputContentLength,
+		StoreResponse:          s.StoreResponse,
+		OutputServerHeader:     s.OutputServerHeader,
+		OutputWebSocket:        s.OutputWebSocket,
+		OutputWithNoColor:      s.OutputWithNoColor,
+		OutputMethod:           s.OutputMethod,
+		ResponseInStdout:       s.ResponseInStdout,
+		TLSProbe:               s.TLSProbe,
+		CSPProbe:               s.CSPProbe,
+		OutputContentType:      s.OutputContentType,
+		Unsafe:                 s.Unsafe,
+		Pipeline:               s.Pipeline,
+		HTTP2Probe:             s.HTTP2Probe,
+		OutputIP:               s.OutputIP,
+		OutputCName:            s.OutputCName,
+		OutputCDN:              s.OutputCDN,
+		OutputResponseTime:     s.OutputResponseTime,
+		PreferHTTPS:            s.PreferHTTPS,
+		NoFallback:             s.NoFallback,
+	}
+}
+
 // Options contains configuration options for chaos client.
-// nolint:maligned // ignore
 type Options struct {
 	CustomHeaders             customheader.CustomHeaders
 	CustomPorts               customport.CustomPorts
@@ -63,6 +94,8 @@ type Options struct {
 	InputFile                 string
 	Methods                   string
 	RequestURI                string
+	RequestURIs               string
+	requestURIs               []string
 	OutputMatchStatusCode     string
 	OutputMatchContentLength  string
 	OutputFilterStatusCode    string
@@ -111,6 +144,7 @@ type Options struct {
 	NoFallback                bool
 	protocol                  string
 	ShowStatistics            bool
+	RandomAgent               bool
 }
 
 // ParseOptions parses the command line options for application
@@ -147,6 +181,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
 	flag.BoolVar(&options.CSPProbe, "csp-probe", false, "Send HTTP probes on the extracted CSP domains")
 	flag.StringVar(&options.RequestURI, "path", "", "Request path/file (example '/api')")
+	flag.StringVar(&options.RequestURIs, "paths", "", "Command separated paths or file containing one path per line (example '/api/v1,/apiv2')")
 	flag.BoolVar(&options.OutputContentType, "content-type", false, "Extracts content-type")
 	flag.StringVar(&options.OutputMatchStatusCode, "mc", "", "Match status code")
 	flag.StringVar(&options.OutputMatchStatusCode, "ml", "", "Match content length")
@@ -168,6 +203,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.OutputResponseTime, "response-time", false, "Output the response time")
 	flag.BoolVar(&options.NoFallback, "no-fallback", false, "If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP")
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
+	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
 
 	flag.Parse()
 

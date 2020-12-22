@@ -10,6 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/corpix/uarand"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
@@ -253,5 +254,8 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 		if strings.EqualFold(name, "host") {
 			r.Host = value
 		}
+	}
+	if h.Options.RandomAgent {
+		r.Header.Set("User-Agent", uarand.GetRandom()) //nolint
 	}
 }

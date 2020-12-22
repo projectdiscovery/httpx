@@ -39,7 +39,7 @@ const (
 type Runner struct {
 	options  *Options
 	hp       *httpx.HTTPX
-	scanopts *scanOptions
+	scanopts scanOptions
 	hm       *hybrid.HybridMap
 	stats    clistats.StatisticsClient
 }
@@ -59,6 +59,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
 	httpxOptions.CdnCheck = options.OutputCDN
+	httpxOptions.RandomAgent = options.RandomAgent
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
@@ -159,7 +160,7 @@ func New(options *Options) (*Runner, error) {
 		scanopts.OutputMethod = true
 	}
 
-	runner.scanopts = &scanopts
+	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
 		runner.stats, err = clistats.New()
@@ -196,6 +197,13 @@ func (runner *Runner) prepareInput() {
 		gologger.Fatalf("No input provided")
 	}
 
+	// Check if the user requested multiple paths
+	if fileutil.FileExists(runner.options.RequestURIs) {
+		runner.options.requestURIs = fileutil.LoadFile(runner.options.RequestURIs)
+	} else if runner.options.RequestURIs != "" {
+		runner.options.requestURIs = strings.Split(runner.options.RequestURIs, ",")
+	}
+
 	numTargets := 0
 	for scanner.Scan() {
 		target := strings.TrimSpace(scanner.Text())
@@ -203,9 +211,14 @@ func (runner *Runner) prepareInput() {
 		if _, ok := runner.hm.Get(target); ok {
 			continue
 		}
-		numTargets++
-		// nolint:errcheck // ignore
-		runner.hm.Set(target, nil)
+
+		if len(runner.options.requestURIs) > 0 {
+			numTargets += len(runner.options.requestURIs)
+		} else {
+			numTargets++
+		}
+
+		runner.hm.Set(target, nil) //nolint
 	}
 
 	if runner.options.InputFile != "" {
@@ -239,7 +252,7 @@ func makePrintCallback() func(stats clistats.StatisticsClient) {
 		builder.WriteRune('[')
 		startedAt, _ := stats.GetStatic("startedAt")
 		duration := time.Since(startedAt.(time.Time))
-		builder.WriteString(fmtDuration(duration))
+		builder.WriteString(clistats.FmtDuration(duration))
 		builder.WriteRune(']')
 
 		hosts, _ := stats.GetStatic("hosts")
@@ -301,8 +314,7 @@ func (runner *Runner) RunEnumeration() {
 			if err != nil {
 				gologger.Fatalf("Could not create output file '%s': %s\n", runner.options.Output, err)
 			}
-			//nolint:errcheck // this method needs a small refactor to reduce complexity
-			defer f.Close()
+			defer f.Close() //nolint
 		}
 		for r := range output {
 			if r.err != nil {
@@ -352,10 +364,22 @@ func (runner *Runner) RunEnumeration() {
 	wg := sizedwaitgroup.New(runner.options.Threads)
 
 	runner.hm.Scan(func(k, _ []byte) error {
-		if runner.options.ShowStatistics {
-			runner.stats.IncrementCounter("requests", 1)
+		var reqs int
+		if len(runner.options.requestURIs) > 0 {
+			for _, p := range runner.options.requestURIs {
+				scanopts := runner.scanopts.Clone()
+				scanopts.RequestURI = p
+				process(string(k), &wg, runner.hp, runner.options.protocol, scanopts, output)
+				reqs++
+			}
+		} else {
+			process(string(k), &wg, runner.hp, runner.options.protocol, &runner.scanopts, output)
+			reqs++
 		}
-		process(string(k), &wg, runner.hp, runner.options.protocol, runner.scanopts, output)
+
+		if runner.options.ShowStatistics {
+			runner.stats.IncrementCounter("requests", reqs)
+		}
 		return nil
 	})
 

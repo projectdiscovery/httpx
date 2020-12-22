@@ -6,6 +6,7 @@ import (
 
 // Options contains configuration options for the client
 type Options struct {
+	RandomAgent      bool
 	DefaultUserAgent string
 	RequestOverride  RequestOverride
 	HTTPProxy        string

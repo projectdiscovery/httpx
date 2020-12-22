@@ -1,6 +1,9 @@
 package fileutil
 
-import "os"
+import (
+	"bufio"
+	"os"
+)
 
 // FileExists checks if a file exists and is not a directory
 func FileExists(filename string) bool {
@@ -30,4 +33,19 @@ func HasStdin() bool {
 	isPipedFromFIFO := (mode & os.ModeNamedPipe) != 0
 
 	return isPipedFromChrDev || isPipedFromFIFO
+}
+
+// LoadFile content to slice
+func LoadFile(filename string) (lines []string) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return
+	}
+	defer f.Close() //nolint
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		lines = append(lines, s.Text())
+	}
+
+	return
 }
