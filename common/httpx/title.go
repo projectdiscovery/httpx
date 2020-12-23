@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	cutset                       = "\n"
+	cutset                       = "\n\t\v\f\r"
 	reTitle       *regexp.Regexp = regexp.MustCompile(`(?im)<\s*title.*>(.*?)<\s*/\s*title>`)
 	reContentType *regexp.Regexp = regexp.MustCompile(`(?im)\s*charset="(.*?)"|charset=(.*?)"\s*`)
 )
@@ -33,7 +33,7 @@ func ExtractTitle(r *Response) (title string) {
 	title = html.UnescapeString(trimTitleTags(title))
 
 	// remove unwanted chars
-	title = strings.Trim(title, cutset)
+	title = strings.TrimSpace(strings.Trim(title, cutset))
 
 	// Non UTF-8
 	if contentTypes, ok := r.Headers["Content-Type"]; ok {
@@ -108,5 +108,8 @@ func trimTitleTags(title string) string {
 	// trim <title>*</title>
 	titleBegin := strings.Index(title, ">")
 	titleEnd := strings.Index(title, "</")
+	if titleEnd < 0 || titleBegin < 0 {
+		return title
+	}
 	return title[titleBegin+1 : titleEnd]
 }
