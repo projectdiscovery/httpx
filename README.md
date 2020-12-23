@@ -78,7 +78,7 @@ Download latest binary from https://github.com/projectdiscovery/httpx/releases
 httpx requires **go1.14+** to install successfully. Run the following command to get the repo - 
 
 ```sh
-▶ GO111MODULE=on go get -u -v github.com/projectdiscovery/httpx/cmd/httpx
+▶ GO111MODULE=on go get -v github.com/projectdiscovery/httpx/cmd/httpx
 ```
 
 ### From Github
