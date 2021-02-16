@@ -83,7 +83,7 @@ func New(options *Options) (*Runner, error) {
 	var err error
 	runner.hp, err = httpx.New(&httpxOptions)
 	if err != nil {
-		gologger.Fatalf("Could not create httpx instance: %s\n", err)
+		gologger.Fatal().Msgf("Could not create httpx instance: %s\n", err)
 	}
 
 	var scanopts scanOptions
@@ -92,12 +92,12 @@ func New(options *Options) (*Runner, error) {
 		var rawRequest []byte
 		rawRequest, err = ioutil.ReadFile(options.InputRawRequest)
 		if err != nil {
-			gologger.Fatalf("Could not read raw request from '%s': %s\n", options.InputRawRequest, err)
+			gologger.Fatal().Msgf("Could not read raw request from '%s': %s\n", options.InputRawRequest, err)
 		}
 
 		rrMethod, rrPath, rrHeaders, rrBody, errParse := httputilz.ParseRequest(string(rawRequest), options.Unsafe)
 		if errParse != nil {
-			gologger.Fatalf("Could not parse raw request: %s\n", err)
+			gologger.Fatal().Msgf("Could not parse raw request: %s\n", err)
 		}
 		scanopts.Methods = append(scanopts.Methods, rrMethod)
 		scanopts.RequestURI = rrPath
@@ -188,13 +188,13 @@ func (runner *Runner) prepareInput() {
 	if fileutil.FileExists(runner.options.InputFile) {
 		finput, err = os.Open(runner.options.InputFile)
 		if err != nil {
-			gologger.Fatalf("Could read input file '%s': %s\n", runner.options.InputFile, err)
+			gologger.Fatal().Msgf("Could read input file '%s': %s\n", runner.options.InputFile, err)
 		}
 		scanner = bufio.NewScanner(finput)
 	} else if fileutil.HasStdin() {
 		scanner = bufio.NewScanner(os.Stdin)
 	} else {
-		gologger.Fatalf("No input provided")
+		gologger.Fatal().Msgf("No input provided")
 	}
 
 	// Check if the user requested multiple paths
@@ -224,7 +224,7 @@ func (runner *Runner) prepareInput() {
 	if runner.options.InputFile != "" {
 		err := finput.Close()
 		if err != nil {
-			gologger.Fatalf("Could close input file '%s': %s\n", runner.options.InputFile, err)
+			gologger.Fatal().Msgf("Could close input file '%s': %s\n", runner.options.InputFile, err)
 		}
 	}
 
@@ -241,7 +241,7 @@ func (runner *Runner) prepareInput() {
 		runner.stats.AddCounter("total", uint64(numTargets*numPorts))
 		err := runner.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
 		if err != nil {
-			gologger.Warningf("Could not create statistic: %s\n", err)
+			gologger.Warning().Msgf("Could not create statistic: %s\n", err)
 		}
 	}
 }
@@ -294,7 +294,7 @@ func (runner *Runner) RunEnumeration() {
 	// Try to create output folder if it doesnt exist
 	if runner.options.StoreResponse && !fileutil.FolderExists(runner.options.StoreResponseDir) {
 		if err := os.MkdirAll(runner.options.StoreResponseDir, os.ModePerm); err != nil {
-			gologger.Fatalf("Could not create output directory '%s': %s\n", runner.options.StoreResponseDir, err)
+			gologger.Fatal().Msgf("Could not create output directory '%s': %s\n", runner.options.StoreResponseDir, err)
 		}
 	}
 
@@ -312,13 +312,13 @@ func (runner *Runner) RunEnumeration() {
 			var err error
 			f, err = os.Create(runner.options.Output)
 			if err != nil {
-				gologger.Fatalf("Could not create output file '%s': %s\n", runner.options.Output, err)
+				gologger.Fatal().Msgf("Could not create output file '%s': %s\n", runner.options.Output, err)
 			}
 			defer f.Close() //nolint
 		}
 		for r := range output {
 			if r.err != nil {
-				gologger.Debugf("Failure '%s': %s\n", r.URL, r.err)
+				gologger.Debug().Msgf("Failure '%s': %s\n", r.URL, r.err)
 				continue
 			}
 
@@ -353,7 +353,7 @@ func (runner *Runner) RunEnumeration() {
 				row = r.JSON()
 			}
 
-			gologger.Silentf("%s\n", row)
+			gologger.Silent().Msgf("%s\n", row)
 			if f != nil {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				f.WriteString(row + "\n")
@@ -699,7 +699,7 @@ retry:
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 		err := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
 		if err != nil {
-			gologger.Warningf("Could not write response, at path '%s', to disc.", responsePath)
+			gologger.Warning().Msgf("Could not write response, at path '%s', to disc.", responsePath)
 		}
 	}
 
