@@ -266,9 +266,9 @@ func (options *Options) configureOutput() {
 	if options.Debug {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
 	}
-	if options.NoColor {
-		// gologger.UseColors = false
-	}
+	// if options.NoColor {
+	// gologger.UseColors = false
+	// }
 	if options.Silent {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelSilent)
 	}
