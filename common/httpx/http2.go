@@ -38,7 +38,7 @@ func (h *HTTPX) SupportHTTP2(protocol, method, targetURL string) bool {
 
 		err = freeHTTPResources(httpresp)
 		if err != nil {
-			gologger.Errorf("%s", err)
+			gologger.Error().Msgf("%s", err)
 			return false
 		}
 
@@ -58,7 +58,7 @@ func (h *HTTPX) SupportHTTP2(protocol, method, targetURL string) bool {
 
 	err = freeHTTPResources(httpresp)
 	if err != nil {
-		gologger.Errorf("%s", err)
+		gologger.Error().Msgf("%s", err)
 		return false
 	}
 

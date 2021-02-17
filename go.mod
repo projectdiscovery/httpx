@@ -9,6 +9,8 @@ require (
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/microcosm-cc/bluemonday v1.0.4
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.15.0 // indirect
 	github.com/onsi/gomega v1.10.5 // indirect
@@ -16,7 +18,7 @@ require (
 	github.com/projectdiscovery/clistats v0.0.7
 	github.com/projectdiscovery/fastdialer v0.0.5
 	github.com/projectdiscovery/fdmax v0.0.3
-	github.com/projectdiscovery/gologger v1.0.1
+	github.com/projectdiscovery/gologger v1.1.3
 	github.com/projectdiscovery/hmap v0.0.1
 	github.com/projectdiscovery/mapcidr v0.0.4
 	github.com/projectdiscovery/rawhttp v0.0.4

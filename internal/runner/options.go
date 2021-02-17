@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/gologger/levels"
 	"github.com/projectdiscovery/httpx/common/customheader"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
@@ -213,7 +214,7 @@ func ParseOptions() *Options {
 	showBanner()
 
 	if options.Version {
-		gologger.Infof("Current Version: %s\n", Version)
+		gologger.Info().Msgf("Current Version: %s\n", Version)
 		os.Exit(0)
 	}
 
@@ -224,34 +225,34 @@ func ParseOptions() *Options {
 
 func (options *Options) validateOptions() {
 	if options.InputFile != "" && !fileutil.FileExists(options.InputFile) {
-		gologger.Fatalf("File %s does not exist!\n", options.InputFile)
+		gologger.Fatal().Msgf("File %s does not exist!\n", options.InputFile)
 	}
 
 	if options.InputRawRequest != "" && !fileutil.FileExists(options.InputRawRequest) {
-		gologger.Fatalf("File %s does not exist!\n", options.InputRawRequest)
+		gologger.Fatal().Msgf("File %s does not exist!\n", options.InputRawRequest)
 	}
 
 	var err error
 	if options.matchStatusCode, err = stringz.StringToSliceInt(options.OutputMatchStatusCode); err != nil {
-		gologger.Fatalf("Invalid value for match status code option: %s\n", err)
+		gologger.Fatal().Msgf("Invalid value for match status code option: %s\n", err)
 	}
 	if options.matchContentLength, err = stringz.StringToSliceInt(options.OutputMatchContentLength); err != nil {
-		gologger.Fatalf("Invalid value for match content length option: %s\n", err)
+		gologger.Fatal().Msgf("Invalid value for match content length option: %s\n", err)
 	}
 	if options.filterStatusCode, err = stringz.StringToSliceInt(options.OutputFilterStatusCode); err != nil {
-		gologger.Fatalf("Invalid value for filter status code option: %s\n", err)
+		gologger.Fatal().Msgf("Invalid value for filter status code option: %s\n", err)
 	}
 	if options.filterContentLength, err = stringz.StringToSliceInt(options.OutputFilterContentLength); err != nil {
-		gologger.Fatalf("Invalid value for filter content length option: %s\n", err)
+		gologger.Fatal().Msgf("Invalid value for filter content length option: %s\n", err)
 	}
 	if options.OutputFilterRegex != "" {
 		if options.filterRegex, err = regexp.Compile(options.OutputFilterRegex); err != nil {
-			gologger.Fatalf("Invalid value for regex filter option: %s\n", err)
+			gologger.Fatal().Msgf("Invalid value for regex filter option: %s\n", err)
 		}
 	}
 	if options.OutputMatchRegex != "" {
 		if options.matchRegex, err = regexp.Compile(options.OutputMatchRegex); err != nil {
-			gologger.Fatalf("Invalid value for match regex option: %s\n", err)
+			gologger.Fatal().Msgf("Invalid value for match regex option: %s\n", err)
 		}
 	}
 }
@@ -260,15 +261,15 @@ func (options *Options) validateOptions() {
 func (options *Options) configureOutput() {
 	// If the user desires verbose output, show verbose output
 	if options.Verbose {
-		gologger.MaxLevel = gologger.Verbose
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelVerbose)
 	}
 	if options.Debug {
-		gologger.MaxLevel = gologger.Debug
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
 	}
-	if options.NoColor {
-		gologger.UseColors = false
-	}
+	// if options.NoColor {
+	// gologger.UseColors = false
+	// }
 	if options.Silent {
-		gologger.MaxLevel = gologger.Silent
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelSilent)
 	}
 }
