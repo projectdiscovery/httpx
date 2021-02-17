@@ -11,7 +11,7 @@ assignees: ''
 A clear and concise description of what the bug is.
 
 **Nuclei version**
-Please share the version of the nuclei you are running with `dnsx -version` 
+Please share the version of the httpx you are running with `httpx -version` 
 
 
 **Screenshot of the error or bug**
