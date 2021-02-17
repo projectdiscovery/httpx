@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/gologger/formatter"
 	"github.com/projectdiscovery/gologger/levels"
 	"github.com/projectdiscovery/httpx/common/customheader"
 	customport "github.com/projectdiscovery/httpx/common/customports"
@@ -266,9 +267,9 @@ func (options *Options) configureOutput() {
 	if options.Debug {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
 	}
-	// if options.NoColor {
-	// gologger.UseColors = false
-	// }
+	if options.NoColor {
+		gologger.DefaultLogger.SetFormatter(formatter.NewCLI(true))
+	}
 	if options.Silent {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelSilent)
 	}
