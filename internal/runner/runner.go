@@ -138,6 +138,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
+	scanopts.OutputShiro = options.OutputShiro
 	scanopts.TLSProbe = options.TLSProbe
 	scanopts.CSPProbe = options.CSPProbe
 	if options.RequestURI != "" {
@@ -628,6 +629,22 @@ retry:
 		builder.WriteString(" [websocket]")
 	}
 
+	// shiro
+	isShiro := false
+	if scanopts.OutputShiro {
+		isShiro := hp.ShiroCheck(req)
+		if isShiro {
+			builder.WriteString(" [")
+			showStr := "Shiro"
+			if !scanopts.OutputWithNoColor {
+				builder.WriteString(aurora.Yellow(showStr).String())
+			} else {
+				builder.WriteString(showStr)
+			}
+			builder.WriteRune(']')
+		}
+	}
+
 	pipeline := false
 	if scanopts.Pipeline {
 		pipeline = hp.SupportPipeline(protocol, method, domain, port)
@@ -722,6 +739,7 @@ retry:
 		CDN:           isCDN,
 		ResponseTime:  resp.Duration.String(),
 		FingerPrint:   fingerPrintStr,
+		Shiro:         isShiro,
 	}
 }
 
@@ -751,6 +769,7 @@ type Result struct {
 	CDN           bool           `json:"cdn,omitempty"`
 	ResponseTime  string         `json:"response-time"`
 	FingerPrint   string         `json:"fingerprint"`
+	Shiro         bool           `json:"shiro,omitempty"`
 }
 
 // JSON the result
