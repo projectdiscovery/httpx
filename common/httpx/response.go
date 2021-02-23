@@ -19,6 +19,7 @@ type Response struct {
 	HTTP2         bool
 	Pipeline      bool
 	Duration      time.Duration
+	Cookie        map[string]string
 }
 
 // GetHeader value

@@ -59,6 +59,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
 	httpxOptions.CdnCheck = options.OutputCDN
+	httpxOptions.FingerPrint = options.FingerPrint
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
@@ -153,6 +154,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputCDN = options.OutputCDN
 	scanopts.OutputResponseTime = options.OutputResponseTime
 	scanopts.NoFallback = options.NoFallback
+	scanopts.OutputFingerPrint = options.FingerPrint
 
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
@@ -594,6 +596,23 @@ retry:
 		serverResponseRaw = resp.Raw
 	}
 
+	fingerPrintStr := ""
+	if scanopts.OutputFingerPrint {
+		fingerPrintStrArray, err := hp.FingerPrint.Fingerprint(resp, fullURL)
+		if err == nil {
+			fingerPrintStr = strings.Join(fingerPrintStrArray, ",")
+			if len(fingerPrintStr) > 0 {
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Magenta(fingerPrintStr).String())
+				} else {
+					builder.WriteString(fingerPrintStr)
+				}
+				builder.WriteRune(']')
+			}
+		}
+	}
+
 	// check for virtual host
 	isvhost := false
 	if scanopts.VHost {
@@ -702,6 +721,7 @@ retry:
 		CNAMEs:        cnames,
 		CDN:           isCDN,
 		ResponseTime:  resp.Duration.String(),
+		FingerPrint:   fingerPrintStr,
 	}
 }
 
@@ -730,6 +750,7 @@ type Result struct {
 	HTTP2         bool           `json:"http2"`
 	CDN           bool           `json:"cdn,omitempty"`
 	ResponseTime  string         `json:"response-time"`
+	FingerPrint   string         `json:"fingerprint"`
 }
 
 // JSON the result

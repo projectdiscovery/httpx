@@ -32,6 +32,7 @@ type scanOptions struct {
 	OutputWebSocket        bool
 	OutputWithNoColor      bool
 	OutputMethod           bool
+	OutputFingerPrint      bool
 	ResponseInStdout       bool
 	TLSProbe               bool
 	CSPProbe               bool
@@ -111,6 +112,7 @@ type Options struct {
 	NoFallback                bool
 	protocol                  string
 	ShowStatistics            bool
+	FingerPrint               bool
 }
 
 // ParseOptions parses the command line options for application
@@ -168,6 +170,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.OutputResponseTime, "response-time", false, "Output the response time")
 	flag.BoolVar(&options.NoFallback, "no-fallback", false, "If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP")
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
+	flag.BoolVar(&options.FingerPrint, "fingerprint", false, "Identify technology on websites.")
 
 	flag.Parse()
 

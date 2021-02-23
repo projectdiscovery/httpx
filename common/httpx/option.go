@@ -28,6 +28,7 @@ type Options struct {
 	VHostIgnoreNumberOfWords bool
 	VHostIgnoreNumberOfLines bool
 	VHostStripHTML           bool
+	FingerPrint              bool
 }
 
 // DefaultOptions contains the default options
@@ -45,4 +46,5 @@ var DefaultOptions = Options{
 	VHostStripHTML:           false,
 	VHostSimilarityRatio:     85,
 	DefaultUserAgent:         "httpx - Open-source project (github.com/projectdiscovery/httpx)",
+	FingerPrint:              false,
 }

@@ -30,6 +30,7 @@ type HTTPX struct {
 	RequestOverride *RequestOverride
 	cdn             *cdncheck.Client
 	Dialer          *fastdialer.Dialer
+	FingerPrint     *FingerPrint
 }
 
 // New httpx instance
@@ -111,6 +112,10 @@ func New(options *Options) (*HTTPX, error) {
 			return nil, fmt.Errorf("could not create cdn check: %s", err)
 		}
 	}
+	httpx.FingerPrint = &FingerPrint{}
+	if options.FingerPrint {
+		httpx.FingerPrint.Init()
+	}
 
 	return httpx, nil
 }
@@ -175,6 +180,13 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 
 	resp.CSPData = h.CSPGrab(httpresp)
 	resp.Duration = time.Since(timeStart)
+
+	// handle cookie
+	var cookiesMap = make(map[string]string)
+	cookies := httpresp.Cookies()
+	for _, c := range cookies {
+		cookiesMap[c.Name] = c.Value
+	}
 
 	return &resp, nil
 }
