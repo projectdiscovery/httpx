@@ -187,6 +187,7 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	for _, c := range cookies {
 		cookiesMap[c.Name] = c.Value
 	}
+	resp.Cookie = cookiesMap
 
 	return &resp, nil
 }
