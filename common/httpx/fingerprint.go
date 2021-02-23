@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/projectdiscovery/gologger"
+	_ "github.com/projectdiscovery/httpx/statik"
+	"github.com/rakyll/statik/fs"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 )
@@ -87,8 +88,11 @@ type AppRegexp struct {
 }
 
 func (fp *FingerPrint) Init() {
-	filename := "/Users/boyhack/programs/httpx/data/technologies.json"
-	fi, err := os.Open(filename)
+	statikFS, err := fs.New()
+	if err != nil {
+		gologger.Fatalf("err: %v\n", err.Error())
+	}
+	fi, err := statikFS.Open("/technologies.json")
 	if err != nil {
 		gologger.Fatalf(err.Error())
 	}
