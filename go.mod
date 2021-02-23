@@ -3,6 +3,7 @@ module github.com/projectdiscovery/httpx
 go 1.14
 
 require (
+	github.com/PuerkitoBio/goquery v1.6.1
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/microcosm-cc/bluemonday v1.0.4
@@ -15,6 +16,7 @@ require (
 	github.com/projectdiscovery/mapcidr v0.0.4
 	github.com/projectdiscovery/rawhttp v0.0.4
 	github.com/projectdiscovery/retryablehttp-go v1.0.1
+	github.com/rakyll/statik v0.1.7
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.2.1
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
