@@ -599,7 +599,8 @@ retry:
 
 	fingerPrintStr := ""
 	if scanopts.OutputFingerPrint {
-		fingerPrintStrArray, err := hp.FingerPrint.Fingerprint(resp, fullURL)
+		var fingerPrintStrArray []string
+		fingerPrintStrArray, err = hp.FingerPrint.Fingerprint(resp, fullURL)
 		if err == nil {
 			fingerPrintStr = strings.Join(fingerPrintStrArray, ",")
 			if len(fingerPrintStr) > 0 {
@@ -632,7 +633,7 @@ retry:
 	// shiro
 	isShiro := false
 	if scanopts.OutputShiro {
-		isShiro := hp.ShiroCheck(req)
+		isShiro = hp.ShiroCheck(req)
 		if isShiro {
 			builder.WriteString(" [")
 			showStr := "Shiro"

@@ -24,7 +24,7 @@ func (t *StringArray) UnmarshalJSON(data []byte) error {
 	var na []int
 
 	if err := json.Unmarshal(data, &s); err != nil {
-		if err := json.Unmarshal(data, &na); err == nil {
+		if err = json.Unmarshal(data, &na); err == nil {
 			// not a string, so maybe []int?
 			*t = make(StringArray, len(na))
 
@@ -33,12 +33,11 @@ func (t *StringArray) UnmarshalJSON(data []byte) error {
 			}
 
 			return nil
-		} else if err := json.Unmarshal(data, &sa); err == nil {
+		} else if err = json.Unmarshal(data, &sa); err == nil {
 			// not a string, so maybe []string?
 			*t = sa
 			return nil
 		}
-		//fmt.Println(string(data)) // for debug
 		return err
 	}
 	*t = StringArray{s}
@@ -70,35 +69,43 @@ type Category struct {
 	Name string `json:"name"`
 }
 
+// AppsDefinition names defined by wappalyzer
 type AppsDefinition struct {
 	Apps map[string]App      `json:"technologies"`
 	Cats map[string]Category `json:"categories"`
 }
 
+// FingerPrint names defined by wappalyzer
 type FingerPrint struct {
 	appDefs *AppsDefinition
 }
+
+// Findings is result of founding
 type Findings struct {
 	app     App
 	appName string
 }
+
+// AppRegexp is struct contains Name and Regexp
 type AppRegexp struct {
 	Name   string
 	Regexp *regexp.Regexp
 }
 
+// FingerPrint data init
 func (fp *FingerPrint) Init() {
 	statikFS, err := fs.New()
 	if err != nil {
 		gologger.Fatalf("err: %v\n", err.Error())
 	}
-	fi, err := statikFS.Open("/technologies.json")
+	var fi http.File
+	fi, err = statikFS.Open("/technologies.json")
 	if err != nil {
 		gologger.Fatalf(err.Error())
 	}
 	defer fi.Close()
 	dec := json.NewDecoder(fi)
-	if err := dec.Decode(&fp.appDefs); err != nil {
+	if err = dec.Decode(&fp.appDefs); err != nil {
 		gologger.Fatalf(err.Error())
 	}
 	for key, value := range fp.appDefs.Apps {
@@ -199,7 +206,6 @@ func (fp *FingerPrint) Fingerprint(r *Response, url string) ([]string, error) {
 					findings = append(findings, Findings{app, appName})
 				}
 			}
-
 		}
 	}
 	if len(findings) > 0 {
@@ -220,12 +226,9 @@ func (fp *FingerPrint) Fingerprint(r *Response, url string) ([]string, error) {
 
 func compileRegexes(s StringArray) []AppRegexp {
 	var list []AppRegexp
-
 	for _, regexString := range s {
-
 		// Split version detection
 		splitted := strings.Split(regexString, "\\;")
-
 		regex, err := regexp.Compile(splitted[0])
 		if err != nil {
 			// ignore failed compiling for now
@@ -237,15 +240,11 @@ func compileRegexes(s StringArray) []AppRegexp {
 			list = append(list, rv)
 		}
 	}
-
 	return list
 }
 func compileNamedRegexes(from map[string]string) []AppRegexp {
-
 	var list []AppRegexp
-
 	for key, value := range from {
-
 		h := AppRegexp{
 			Name: key,
 		}
