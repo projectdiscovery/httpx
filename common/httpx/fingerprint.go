@@ -92,7 +92,7 @@ type AppRegexp struct {
 	Regexp *regexp.Regexp
 }
 
-// FingerPrint data init
+// Init is initialized data
 func (fp *FingerPrint) Init() {
 	statikFS, err := fs.New()
 	if err != nil {
@@ -103,6 +103,7 @@ func (fp *FingerPrint) Init() {
 	if err != nil {
 		gologger.Fatalf(err.Error())
 	}
+	//nolint:errcheck // this method needs a small refactor to reduce complexity
 	defer fi.Close()
 	dec := json.NewDecoder(fi)
 	if err = dec.Decode(&fp.appDefs); err != nil {
@@ -127,6 +128,8 @@ func (fp *FingerPrint) Init() {
 		fp.appDefs.Apps[key] = app
 	}
 }
+
+// Fingerprint is identified from response and url
 func (fp *FingerPrint) Fingerprint(r *Response, url string) ([]string, error) {
 	body := r.Raw
 	headers := r.Headers
