@@ -36,7 +36,9 @@ type HTTPX struct {
 // New httpx instance
 func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
-	dialer, err := fastdialer.NewDialer(fastdialer.DefaultOptions)
+	fastdialerOpts := fastdialer.DefaultOptions
+	fastdialerOpts.EnableFallback = true
+	dialer, err := fastdialer.NewDialer(fastdialerOpts)
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)
 	}
