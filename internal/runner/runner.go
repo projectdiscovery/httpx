@@ -666,9 +666,9 @@ retry:
 		}
 		// On various OS the file max file name length is 255 - https://serverfault.com/questions/9546/filename-length-limits-on-linux
 		// Truncating length at 255
-		if len(domainFile) >= maxFileNameLenght {
+		if len(domainFile) >= maxFileNameLength {
 			// leaving last 4 bytes free to append ".txt"
-			domainFile = domainFile[:maxFileNameLenght-1]
+			domainFile = domainFile[:maxFileNameLength-1]
 		}
 
 		domainFile = strings.ReplaceAll(domainFile, "/", "_") + ".txt"
