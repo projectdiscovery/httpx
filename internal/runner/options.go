@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	maxFileNameLenght = 255
+	maxFileNameLength = 255
 	two               = 2
 )
 
