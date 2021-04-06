@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	maxFileNameLenght = 255
+	maxFileNameLength = 255
 	two               = 2
 )
 
@@ -37,6 +37,7 @@ type scanOptions struct {
 	ResponseInStdout       bool
 	TLSProbe               bool
 	CSPProbe               bool
+	VHostInput             bool
 	OutputContentType      bool
 	Unsafe                 bool
 	Pipeline               bool
@@ -47,6 +48,7 @@ type scanOptions struct {
 	OutputResponseTime     bool
 	PreferHTTPS            bool
 	NoFallback             bool
+	TechDetect             bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -78,6 +80,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		OutputResponseTime:     s.OutputResponseTime,
 		PreferHTTPS:            s.PreferHTTPS,
 		NoFallback:             s.NoFallback,
+		TechDetect:             s.TechDetect,
 	}
 }
 
@@ -115,6 +118,7 @@ type Options struct {
 	filterRegex               *regexp.Regexp
 	matchRegex                *regexp.Regexp
 	VHost                     bool
+	VHostInput                bool
 	Smuggling                 bool
 	ExtractTitle              bool
 	StatusCode                bool
@@ -144,6 +148,7 @@ type Options struct {
 	OutputCDN                 bool
 	OutputResponseTime        bool
 	NoFallback                bool
+	TechDetect                bool
 	protocol                  string
 	ShowStatistics            bool
 	RandomAgent               bool
@@ -153,11 +158,13 @@ type Options struct {
 func ParseOptions() *Options {
 	options := &Options{}
 
+	flag.BoolVar(&options.TechDetect, "tech-detect", false, "Perform wappalyzer based technology detection")
 	flag.IntVar(&options.Threads, "threads", 50, "Number of threads")
 	flag.IntVar(&options.Retries, "retries", 0, "Number of retries")
 	flag.IntVar(&options.Timeout, "timeout", 5, "Timeout in seconds")
 	flag.StringVar(&options.Output, "o", "", "File to write output to (optional)")
 	flag.BoolVar(&options.VHost, "vhost", false, "Check for VHOSTs")
+	flag.BoolVar(&options.VHostInput, "vhost-input", false, "Get a list of vhosts as input")
 	flag.BoolVar(&options.ExtractTitle, "title", false, "Extracts title")
 	flag.BoolVar(&options.StatusCode, "status-code", false, "Extracts status code")
 	flag.BoolVar(&options.Location, "location", false, "Extracts location header")
