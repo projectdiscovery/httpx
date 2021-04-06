@@ -10,9 +10,10 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/corpix/uarand"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
-	"github.com/projectdiscovery/httpx/common/cache"
+	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
@@ -29,15 +30,19 @@ type HTTPX struct {
 	CustomHeaders   map[string]string
 	RequestOverride *RequestOverride
 	cdn             *cdncheck.Client
+	Dialer          *fastdialer.Dialer
 }
 
 // New httpx instance
 func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
-	dialer, err := cache.NewDialer(cache.DefaultOptions)
+	fastdialerOpts := fastdialer.DefaultOptions
+	fastdialerOpts.EnableFallback = true
+	dialer, err := fastdialer.NewDialer(fastdialerOpts)
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)
 	}
+	httpx.Dialer = dialer
 
 	httpx.Options = options
 
@@ -68,7 +73,7 @@ func New(options *Options) (*HTTPX, error) {
 	}
 
 	transport := &http.Transport{
-		DialContext:         dialer,
+		DialContext:         httpx.Dialer.Dial,
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -251,5 +256,8 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 		if strings.EqualFold(name, "host") {
 			r.Host = value
 		}
+	}
+	if h.Options.RandomAgent {
+		r.Header.Set("User-Agent", uarand.GetRandom()) //nolint
 	}
 }

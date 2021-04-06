@@ -6,6 +6,8 @@ import (
 	"regexp"
 
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/gologger/formatter"
+	"github.com/projectdiscovery/gologger/levels"
 	"github.com/projectdiscovery/httpx/common/customheader"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
@@ -49,7 +51,40 @@ type scanOptions struct {
 	TechDetect             bool
 }
 
-// Options contains configuration options for httpx
+func (s *scanOptions) Clone() *scanOptions {
+	return &scanOptions{
+		Methods:                s.Methods,
+		StoreResponseDirectory: s.StoreResponseDirectory,
+		RequestURI:             s.RequestURI,
+		RequestBody:            s.RequestBody,
+		VHost:                  s.VHost,
+		OutputTitle:            s.OutputTitle,
+		OutputStatusCode:       s.OutputStatusCode,
+		OutputLocation:         s.OutputLocation,
+		OutputContentLength:    s.OutputContentLength,
+		StoreResponse:          s.StoreResponse,
+		OutputServerHeader:     s.OutputServerHeader,
+		OutputWebSocket:        s.OutputWebSocket,
+		OutputWithNoColor:      s.OutputWithNoColor,
+		OutputMethod:           s.OutputMethod,
+		ResponseInStdout:       s.ResponseInStdout,
+		TLSProbe:               s.TLSProbe,
+		CSPProbe:               s.CSPProbe,
+		OutputContentType:      s.OutputContentType,
+		Unsafe:                 s.Unsafe,
+		Pipeline:               s.Pipeline,
+		HTTP2Probe:             s.HTTP2Probe,
+		OutputIP:               s.OutputIP,
+		OutputCName:            s.OutputCName,
+		OutputCDN:              s.OutputCDN,
+		OutputResponseTime:     s.OutputResponseTime,
+		PreferHTTPS:            s.PreferHTTPS,
+		NoFallback:             s.NoFallback,
+		TechDetect:             s.TechDetect,
+	}
+}
+
+// Options contains configuration options for chaos client.
 type Options struct {
 	CustomHeaders             customheader.CustomHeaders
 	CustomPorts               customport.CustomPorts
@@ -64,6 +99,8 @@ type Options struct {
 	InputFile                 string
 	Methods                   string
 	RequestURI                string
+	RequestURIs               string
+	requestURIs               []string
 	OutputMatchStatusCode     string
 	OutputMatchContentLength  string
 	OutputFilterStatusCode    string
@@ -113,6 +150,8 @@ type Options struct {
 	NoFallback                bool
 	TechDetect                bool
 	protocol                  string
+	ShowStatistics            bool
+	RandomAgent               bool
 }
 
 // ParseOptions parses the command line options for application
@@ -151,6 +190,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
 	flag.BoolVar(&options.CSPProbe, "csp-probe", false, "Send HTTP probes on the extracted CSP domains")
 	flag.StringVar(&options.RequestURI, "path", "", "Request path/file (example '/api')")
+	flag.StringVar(&options.RequestURIs, "paths", "", "Command separated paths or file containing one path per line (example '/api/v1,/apiv2')")
 	flag.BoolVar(&options.OutputContentType, "content-type", false, "Extracts content-type")
 	flag.StringVar(&options.OutputMatchStatusCode, "mc", "", "Match status code")
 	flag.StringVar(&options.OutputMatchStatusCode, "ml", "", "Match content length")
@@ -171,6 +211,8 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.OutputCDN, "cdn", false, "Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)")
 	flag.BoolVar(&options.OutputResponseTime, "response-time", false, "Output the response time")
 	flag.BoolVar(&options.NoFallback, "no-fallback", false, "If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP")
+	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
+	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
 
 	flag.Parse()
 
@@ -180,7 +222,7 @@ func ParseOptions() *Options {
 	showBanner()
 
 	if options.Version {
-		gologger.Infof("Current Version: %s\n", Version)
+		gologger.Info().Msgf("Current Version: %s\n", Version)
 		os.Exit(0)
 	}
 
@@ -191,34 +233,34 @@ func ParseOptions() *Options {
 
 func (options *Options) validateOptions() {
 	if options.InputFile != "" && !fileutil.FileExists(options.InputFile) {
-		gologger.Fatalf("File %s does not exist!\n", options.InputFile)
+		gologger.Fatal().Msgf("File %s does not exist!\n", options.InputFile)
 	}
 
 	if options.InputRawRequest != "" && !fileutil.FileExists(options.InputRawRequest) {
-		gologger.Fatalf("File %s does not exist!\n", options.InputRawRequest)
+		gologger.Fatal().Msgf("File %s does not exist!\n", options.InputRawRequest)
 	}
 
 	var err error
 	if options.matchStatusCode, err = stringz.StringToSliceInt(options.OutputMatchStatusCode); err != nil {
-		gologger.Fatalf("Invalid value for match status code option: %s\n", err)
+		gologger.Fatal().Msgf("Invalid value for match status code option: %s\n", err)
 	}
 	if options.matchContentLength, err = stringz.StringToSliceInt(options.OutputMatchContentLength); err != nil {
-		gologger.Fatalf("Invalid value for match content length option: %s\n", err)
+		gologger.Fatal().Msgf("Invalid value for match content length option: %s\n", err)
 	}
 	if options.filterStatusCode, err = stringz.StringToSliceInt(options.OutputFilterStatusCode); err != nil {
-		gologger.Fatalf("Invalid value for filter status code option: %s\n", err)
+		gologger.Fatal().Msgf("Invalid value for filter status code option: %s\n", err)
 	}
 	if options.filterContentLength, err = stringz.StringToSliceInt(options.OutputFilterContentLength); err != nil {
-		gologger.Fatalf("Invalid value for filter content length option: %s\n", err)
+		gologger.Fatal().Msgf("Invalid value for filter content length option: %s\n", err)
 	}
 	if options.OutputFilterRegex != "" {
 		if options.filterRegex, err = regexp.Compile(options.OutputFilterRegex); err != nil {
-			gologger.Fatalf("Invalid value for regex filter option: %s\n", err)
+			gologger.Fatal().Msgf("Invalid value for regex filter option: %s\n", err)
 		}
 	}
 	if options.OutputMatchRegex != "" {
 		if options.matchRegex, err = regexp.Compile(options.OutputMatchRegex); err != nil {
-			gologger.Fatalf("Invalid value for match regex option: %s\n", err)
+			gologger.Fatal().Msgf("Invalid value for match regex option: %s\n", err)
 		}
 	}
 }
@@ -227,15 +269,15 @@ func (options *Options) validateOptions() {
 func (options *Options) configureOutput() {
 	// If the user desires verbose output, show verbose output
 	if options.Verbose {
-		gologger.MaxLevel = gologger.Verbose
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelVerbose)
 	}
 	if options.Debug {
-		gologger.MaxLevel = gologger.Debug
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
 	}
 	if options.NoColor {
-		gologger.UseColors = false
+		gologger.DefaultLogger.SetFormatter(formatter.NewCLI(true))
 	}
 	if options.Silent {
-		gologger.MaxLevel = gologger.Silent
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelSilent)
 	}
 }

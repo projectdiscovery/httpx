@@ -15,10 +15,11 @@ import (
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
 
-	// Automatically set max file descriptors
+	"github.com/projectdiscovery/clistats"
+	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/httpx/common/cache"
+	"github.com/projectdiscovery/hmap/store/hybrid"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httputilz"
@@ -32,12 +33,18 @@ import (
 	"github.com/remeh/sizedwaitgroup"
 )
 
+const (
+	statsDisplayInterval = 5
+)
+
 // Runner is a client for running the enumeration process.
 type Runner struct {
 	options    *Options
 	hp         *httpx.HTTPX
 	wappalyzer *wappalyzer.Wappalyze
-	scanopts   *scanOptions
+	scanopts   scanOptions
+	hm         *hybrid.HybridMap
+	stats      clistats.StatisticsClient
 }
 
 // New creates a new client for running enumeration process.
@@ -62,6 +69,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
 	httpxOptions.CdnCheck = options.OutputCDN
+	httpxOptions.RandomAgent = options.RandomAgent
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
@@ -84,7 +92,7 @@ func New(options *Options) (*Runner, error) {
 
 	runner.hp, err = httpx.New(&httpxOptions)
 	if err != nil {
-		gologger.Fatalf("Could not create httpx instance: %s\n", err)
+		gologger.Fatal().Msgf("Could not create httpx instance: %s\n", err)
 	}
 
 	var scanopts scanOptions
@@ -93,12 +101,12 @@ func New(options *Options) (*Runner, error) {
 		var rawRequest []byte
 		rawRequest, err = ioutil.ReadFile(options.InputRawRequest)
 		if err != nil {
-			gologger.Fatalf("Could not read raw request from '%s': %s\n", options.InputRawRequest, err)
+			gologger.Fatal().Msgf("Could not read raw request from '%s': %s\n", options.InputRawRequest, err)
 		}
 
-		rrMethod, rrPath, rrHeaders, rrBody, err := httputilz.ParseRequest(string(rawRequest), options.Unsafe)
-		if err != nil {
-			gologger.Fatalf("Could not parse raw request: %s\n", err)
+		rrMethod, rrPath, rrHeaders, rrBody, errParse := httputilz.ParseRequest(string(rawRequest), options.Unsafe)
+		if errParse != nil {
+			gologger.Fatal().Msgf("Could not parse raw request: %s\n", err)
 		}
 		scanopts.Methods = append(scanopts.Methods, rrMethod)
 		scanopts.RequestURI = rrPath
@@ -163,24 +171,144 @@ func New(options *Options) (*Runner, error) {
 		scanopts.OutputMethod = true
 	}
 
-	runner.scanopts = &scanopts
+	runner.scanopts = scanopts
+
+	if options.ShowStatistics {
+		runner.stats, err = clistats.New()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	hm, err := hybrid.New(hybrid.DefaultDiskOptions)
+	if err != nil {
+		return nil, err
+	}
+	runner.hm = hm
 
 	return runner, nil
 }
 
-// Close closes the httpx runner
-func (r *Runner) Close() {
-	// not implemented
+func (r *Runner) prepareInput() {
+	var (
+		finput  *os.File
+		scanner *bufio.Scanner
+		err     error
+	)
+	// check if file has been provided
+	if fileutil.FileExists(r.options.InputFile) {
+		finput, err = os.Open(r.options.InputFile)
+		if err != nil {
+			gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
+		}
+		scanner = bufio.NewScanner(finput)
+	} else if fileutil.HasStdin() {
+		scanner = bufio.NewScanner(os.Stdin)
+	} else {
+		gologger.Fatal().Msgf("No input provided")
+	}
+
+	// Check if the user requested multiple paths
+	if fileutil.FileExists(r.options.RequestURIs) {
+		r.options.requestURIs = fileutil.LoadFile(r.options.RequestURIs)
+	} else if r.options.RequestURIs != "" {
+		r.options.requestURIs = strings.Split(r.options.RequestURIs, ",")
+	}
+
+	numTargets := 0
+	for scanner.Scan() {
+		target := strings.TrimSpace(scanner.Text())
+		// Used just to get the exact number of targets
+		if _, ok := r.hm.Get(target); ok {
+			continue
+		}
+
+		if len(r.options.requestURIs) > 0 {
+			numTargets += len(r.options.requestURIs)
+		} else {
+			numTargets++
+		}
+		r.hm.Set(target, nil) //nolint
+	}
+
+	if r.options.InputFile != "" {
+		err := finput.Close()
+		if err != nil {
+			gologger.Fatal().Msgf("Could close input file '%s': %s\n", r.options.InputFile, err)
+		}
+	}
+
+	if r.options.ShowStatistics {
+		numPorts := len(customport.Ports)
+		if numPorts == 0 {
+			// Default Ports 80, 443
+			numPorts = 2
+		}
+
+		r.stats.AddStatic("hosts", numTargets)
+		r.stats.AddStatic("startedAt", time.Now())
+		r.stats.AddCounter("requests", 0)
+		r.stats.AddCounter("total", uint64(numTargets*numPorts))
+		err := r.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
+		if err != nil {
+			gologger.Warning().Msgf("Could not create statistic: %s\n", err)
+		}
+	}
 }
 
-// RunEnumeration performs httpx enumeration process on input recursively
+func makePrintCallback() func(stats clistats.StatisticsClient) {
+	builder := &strings.Builder{}
+	return func(stats clistats.StatisticsClient) {
+		builder.WriteRune('[')
+		startedAt, _ := stats.GetStatic("startedAt")
+		duration := time.Since(startedAt.(time.Time))
+		builder.WriteString(clistats.FmtDuration(duration))
+		builder.WriteRune(']')
+
+		hosts, _ := stats.GetStatic("hosts")
+		builder.WriteString(" | Hosts: ")
+		builder.WriteString(clistats.String(hosts))
+
+		requests, _ := stats.GetCounter("requests")
+		total, _ := stats.GetCounter("total")
+
+		builder.WriteString(" | RPS: ")
+		builder.WriteString(clistats.String(uint64(float64(requests) / duration.Seconds())))
+
+		builder.WriteString(" | Requests: ")
+		builder.WriteString(clistats.String(requests))
+		builder.WriteRune('/')
+		builder.WriteString(clistats.String(total))
+		builder.WriteRune(' ')
+		builder.WriteRune('(')
+		//nolint:gomnd // this is not a magic number
+		builder.WriteString(clistats.String(uint64(float64(requests) / float64(total) * 100.0)))
+		builder.WriteRune('%')
+		builder.WriteRune(')')
+		builder.WriteRune('\n')
+
+		fmt.Fprintf(os.Stderr, "%s", builder.String())
+		builder.Reset()
+	}
+}
+
+// Close closes the httpx scan instance
+func (r *Runner) Close() {
+	// nolint:errcheck // ignore
+	r.hm.Close()
+	r.hp.Dialer.Close()
+}
+
+// RunEnumeration on targets for httpx client
 func (r *Runner) RunEnumeration() {
 	// Try to create output folder if it doesnt exist
 	if r.options.StoreResponse && !fileutil.FolderExists(r.options.StoreResponseDir) {
 		if err := os.MkdirAll(r.options.StoreResponseDir, os.ModePerm); err != nil {
-			gologger.Fatalf("Could not create output directory '%s': %s\n", r.options.StoreResponseDir, err)
+			gologger.Fatal().Msgf("Could not create output directory '%s': %s\n", r.options.StoreResponseDir, err)
 		}
 	}
+
+	r.prepareInput()
 
 	// output routine
 	wgoutput := sizedwaitgroup.New(1)
@@ -194,15 +322,13 @@ func (r *Runner) RunEnumeration() {
 			var err error
 			f, err = os.Create(r.options.Output)
 			if err != nil {
-				gologger.Fatalf("Could not create output file '%s': %s\n", r.options.Output, err)
+				gologger.Fatal().Msgf("Could not create output file '%s': %s\n", r.options.Output, err)
 			}
-			//nolint:errcheck // this method needs a small refactor to reduce complexity
-			defer f.Close()
+			defer f.Close() //nolint
 		}
 		for resp := range output {
 			if resp.err != nil {
-				gologger.Debugf("Failure '%s': %s\n", resp.URL, resp.err)
-				continue
+				gologger.Debug().Msgf("Failure '%s': %s\n", resp.URL, resp.err)
 			}
 
 			// apply matchers and filters
@@ -236,7 +362,7 @@ func (r *Runner) RunEnumeration() {
 				row = resp.JSON()
 			}
 
-			gologger.Silentf("%s\n", row)
+			gologger.Silent().Msgf("%s\n", row)
 			if f != nil {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				f.WriteString(row + "\n")
@@ -245,34 +371,26 @@ func (r *Runner) RunEnumeration() {
 	}(output)
 
 	wg := sizedwaitgroup.New(r.options.Threads)
-	var scanner *bufio.Scanner
 
-	// check if file has been provided
-	if fileutil.FileExists(r.options.InputFile) {
-		finput, err := os.Open(r.options.InputFile)
-		if err != nil {
-			gologger.Fatalf("Could read input file '%s': %s\n", r.options.InputFile, err)
-		}
-		scanner = bufio.NewScanner(finput)
-		defer func() {
-			err := finput.Close()
-			if err != nil {
-				gologger.Fatalf("Could close input file '%s': %s\n", r.options.InputFile, err)
+	r.hm.Scan(func(k, _ []byte) error {
+		var reqs int
+		if len(r.options.requestURIs) > 0 {
+			for _, p := range r.options.requestURIs {
+				scanopts := r.scanopts.Clone()
+				scanopts.RequestURI = p
+				r.process(string(k), &wg, r.hp, r.options.protocol, scanopts, output)
+				reqs++
 			}
-		}()
-	} else if fileutil.HasStdin() {
-		scanner = bufio.NewScanner(os.Stdin)
-	} else {
-		gologger.Fatalf("No input provided")
-	}
+		} else {
+			r.process(string(k), &wg, r.hp, r.options.protocol, &r.scanopts, output)
+			reqs++
+		}
 
-	for scanner.Scan() {
-		r.process(scanner.Text(), &wg, r.hp, r.options.protocol, r.scanopts, output)
-	}
-
-	if err := scanner.Err(); err != nil {
-		gologger.Fatalf("Read error on standard input: %s", err)
-	}
+		if r.options.ShowStatistics {
+			r.stats.IncrementCounter("requests", reqs)
+		}
+		return nil
+	})
 
 	wg.Wait()
 
@@ -325,7 +443,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 		for port, wantedProtocol := range customport.Ports {
 			for _, method := range scanopts.Methods {
 				wg.Add()
-				go func(port int, method, protocol string) {
+				go func(port int, method, protocol string, tg string) {
 					defer wg.Done()
 					result := r.analyze(hp, protocol, target, port, method, scanopts)
 					output <- result
@@ -338,7 +456,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 							r.process(tt, wg, hp, protocol, scanopts, output)
 						}
 					}
-				}(port, method, wantedProtocol)
+				}(port, method, wantedProtocol, target)
 			}
 		}
 	}
@@ -555,7 +673,7 @@ retry:
 		}
 	}
 
-	ip := cache.GetDialedIP(domain)
+	ip := hp.Dialer.GetDialedIP(domain)
 	if scanopts.OutputIP {
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
@@ -564,11 +682,11 @@ retry:
 		ips    []string
 		cnames []string
 	)
-	dnsData, err := cache.GetDNSData(domain)
+	dnsData, err := hp.Dialer.GetDNSData(domain)
 	if dnsData != nil && err == nil {
-		ips = append(ips, dnsData.IP4s...)
-		ips = append(ips, dnsData.IP6s...)
-		cnames = dnsData.CNAMEs
+		ips = append(ips, dnsData.A...)
+		ips = append(ips, dnsData.AAAA...)
+		cnames = dnsData.CNAME
 	} else {
 		ips = append(ips, ip)
 	}
@@ -624,7 +742,7 @@ retry:
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 		err := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
 		if err != nil {
-			gologger.Warningf("Could not write response, at path '%s', to disc.", responsePath)
+			gologger.Warning().Msgf("Could not write response, at path '%s', to disc.", responsePath)
 		}
 	}
 
