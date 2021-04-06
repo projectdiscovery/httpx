@@ -8,14 +8,17 @@ require (
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/miekg/dns v1.1.33
+	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.0-20201003183750-5bc57c383935
 	github.com/projectdiscovery/fdmax v0.0.2
 	github.com/projectdiscovery/gologger v1.0.1
 	github.com/projectdiscovery/mapcidr v0.0.4
 	github.com/projectdiscovery/rawhttp v0.0.4
 	github.com/projectdiscovery/retryablehttp-go v1.0.1
+	github.com/projectdiscovery/wappalyzergo v0.0.1
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.2.1
-	golang.org/x/net v0.0.0-20201016165138-7b1cca2348c0
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 	golang.org/x/text v0.3.3
 )

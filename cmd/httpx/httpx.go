@@ -9,11 +9,10 @@ func main() {
 	// Parse the command line flags and read config files
 	options := runner.ParseOptions()
 
-	runner, err := runner.New(options)
+	r, err := runner.New(options)
 	if err != nil {
 		gologger.Fatalf("Could not create runner: %s\n", err)
 	}
-
-	runner.RunEnumeration()
-	runner.Close()
+	r.RunEnumeration()
+	r.Close()
 }
