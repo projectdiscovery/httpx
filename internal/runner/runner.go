@@ -330,6 +330,9 @@ func (r *Runner) RunEnumeration() {
 			if resp.err != nil {
 				gologger.Debug().Msgf("Failure '%s': %s\n", resp.URL, resp.err)
 			}
+			if resp.str == "" {
+				continue
+			}
 
 			// apply matchers and filters
 			if len(r.options.filterStatusCode) > 0 && slice.IntSliceContains(r.options.filterStatusCode, resp.StatusCode) {
@@ -361,7 +364,6 @@ func (r *Runner) RunEnumeration() {
 			if r.options.JSONOutput {
 				row = resp.JSON()
 			}
-
 			gologger.Silent().Msgf("%s\n", row)
 			if f != nil {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
