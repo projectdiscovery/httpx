@@ -443,7 +443,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 		for port, wantedProtocol := range customport.Ports {
 			for _, method := range scanopts.Methods {
 				wg.Add()
-				go func(port int, method, protocol string, tg string) {
+				go func(port int, method, protocol string) {
 					defer wg.Done()
 					result := r.analyze(hp, protocol, target, port, method, scanopts)
 					output <- result
@@ -456,7 +456,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 							r.process(tt, wg, hp, protocol, scanopts, output)
 						}
 					}
-				}(port, method, wantedProtocol, target)
+				}(port, method, wantedProtocol)
 			}
 		}
 	}
