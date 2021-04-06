@@ -15,7 +15,7 @@ require (
 	github.com/projectdiscovery/mapcidr v0.0.4
 	github.com/projectdiscovery/rawhttp v0.0.4
 	github.com/projectdiscovery/retryablehttp-go v1.0.1
-	github.com/projectdiscovery/wappalyzergo v0.0.1
+	github.com/projectdiscovery/wappalyzergo v0.0.2
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.2.1
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect

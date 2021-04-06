@@ -41,23 +41,3 @@ func (r *Response) GetHeaderPart(name, sep string) string {
 
 	return ""
 }
-
-// GetHeadersMap returns a map[string]string of response headers
-func (r *Response) GetHeadersMap() map[string]string {
-	headers := make(map[string]string, len(r.Headers))
-
-	builder := &strings.Builder{}
-	for key, value := range r.Headers {
-		for i, v := range value {
-			builder.WriteString(v)
-			if i != len(value)-1 {
-				builder.WriteString(", ")
-			}
-		}
-		headerValue := builder.String()
-
-		headers[key] = headerValue
-		builder.Reset()
-	}
-	return headers
-}

@@ -589,7 +589,7 @@ retry:
 
 	var technologies []string
 	if scanopts.TechDetect {
-		matches := r.wappalyzer.Fingerprint(resp.GetHeadersMap(), resp.Data)
+		matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
 		for match := range matches {
 			technologies = append(technologies, match)
 		}
