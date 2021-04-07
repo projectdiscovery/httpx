@@ -3,7 +3,7 @@ package runner
 import (
 	"bufio"
 	"bytes"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -780,7 +780,7 @@ retry:
 		finalPath = "/"
 	}
 
-	hasher := sha1.New()
+	hasher := sha256.New()
 	hasher.Write(resp.Data)
 	bodySha := hex.EncodeToString(hasher.Sum(nil))
 	hasher.Reset()
