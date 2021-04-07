@@ -756,9 +756,9 @@ retry:
 
 		domainFile = strings.ReplaceAll(domainFile, "/", "_") + ".txt"
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
-		err := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
-		if err != nil {
-			gologger.Warning().Msgf("Could not write response, at path '%s', to disc.", responsePath)
+		writeErr := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
+		if writeErr != nil {
+			gologger.Warning().Msgf("Could not write response, at path '%s', to disk: %s", responsePath, writeErr)
 		}
 	}
 
@@ -781,11 +781,11 @@ retry:
 	}
 
 	hasher := sha256.New()
-	hasher.Write(resp.Data)
+	_, _ = hasher.Write(resp.Data)
 	bodySha := hex.EncodeToString(hasher.Sum(nil))
 	hasher.Reset()
 
-	hasher.Write([]byte(resp.RawHeaders))
+	_, _ = hasher.Write([]byte(resp.RawHeaders))
 	headersSha := hex.EncodeToString(hasher.Sum(nil))
 
 	return Result{

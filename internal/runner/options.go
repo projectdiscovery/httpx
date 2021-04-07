@@ -189,7 +189,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.OutputServerHeader, "web-server", false, "Extracts server header")
 	flag.BoolVar(&options.OutputWebSocket, "websocket", false, "Prints out if the server exposes a websocket")
 	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Show Raw HTTP Response In Output (-json only) (deprecated)")
-	flag.BoolVar(&options.responseInStdout, "include-respone", false, "Show Raw HTTP Response In Output (-json only)")
+	flag.BoolVar(&options.responseInStdout, "include-response", false, "Show Raw HTTP Response In Output (-json only)")
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
 	flag.BoolVar(&options.CSPProbe, "csp-probe", false, "Send HTTP probes on the extracted CSP domains")
 	flag.StringVar(&options.RequestURI, "path", "", "Request path/file (example '/api')")
