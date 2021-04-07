@@ -775,6 +775,10 @@ retry:
 			finalPort = "443"
 		}
 	}
+	finalPath := parsed.Path
+	if finalPath == "" {
+		finalPath = "/"
+	}
 
 	hasher := sha1.New()
 	hasher.Write(resp.Data)
@@ -790,7 +794,7 @@ retry:
 		ResponseHeader: resp.RawHeaders,
 		Scheme:         parsed.Scheme,
 		Port:           finalPort,
-		Path:           parsed.RawPath,
+		Path:           finalPath,
 		BodySHA256:     bodySha,
 		HeaderSHA256:   headersSha,
 		raw:            resp.Raw,
