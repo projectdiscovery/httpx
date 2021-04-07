@@ -654,7 +654,7 @@ retry:
 
 	var serverResponseRaw = ""
 	if scanopts.ResponseInStdout {
-		serverResponseRaw = resp.Raw
+		serverResponseRaw = string(resp.Data)
 	}
 
 	// check for virtual host
