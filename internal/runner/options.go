@@ -149,6 +149,7 @@ type Options struct {
 	OutputResponseTime        bool
 	NoFallback                bool
 	TechDetect                bool
+	TLSGrab                   bool
 	protocol                  string
 	ShowStatistics            bool
 	RandomAgent               bool
@@ -158,6 +159,7 @@ type Options struct {
 func ParseOptions() *Options {
 	options := &Options{}
 
+	flag.BoolVar(&options.TLSGrab, "tls-grab", false, "Perform TLS data grabbing")
 	flag.BoolVar(&options.TechDetect, "tech-detect", false, "Perform wappalyzer based technology detection")
 	flag.IntVar(&options.Threads, "threads", 50, "Number of threads")
 	flag.IntVar(&options.Retries, "retries", 0, "Number of retries")
@@ -186,7 +188,8 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.NoColor, "no-color", false, "No Color")
 	flag.BoolVar(&options.OutputServerHeader, "web-server", false, "Extracts server header")
 	flag.BoolVar(&options.OutputWebSocket, "websocket", false, "Prints out if the server exposes a websocket")
-	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Server response directly in the tool output (-json only)")
+	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Show Raw HTTP Response In Output (-json only) (deprecated)")
+	flag.BoolVar(&options.responseInStdout, "include-respone", false, "Show Raw HTTP Response In Output (-json only)")
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
 	flag.BoolVar(&options.CSPProbe, "csp-probe", false, "Send HTTP probes on the extracted CSP domains")
 	flag.StringVar(&options.RequestURI, "path", "", "Request path/file (example '/api')")

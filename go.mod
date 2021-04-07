@@ -23,6 +23,7 @@ require (
 	github.com/projectdiscovery/wappalyzergo v0.0.2
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.2.1
+	go.mongodb.org/mongo-driver v1.5.1 // indirect
 	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
-	golang.org/x/text v0.3.3
+	golang.org/x/text v0.3.5
 )

@@ -2,10 +2,15 @@ package runner
 
 import (
 	"bufio"
+	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"path"
 	"strconv"
@@ -61,6 +66,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	httpxOptions := httpx.DefaultOptions
+	httpxOptions.TLSGrab = options.TLSGrab
 	httpxOptions.Timeout = time.Duration(options.Timeout) * time.Second
 	httpxOptions.RetryMax = options.Retries
 	httpxOptions.FollowRedirects = options.FollowRedirects
@@ -534,6 +540,14 @@ retry:
 		req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
 	}
 
+	// Create a copy on the fly of the request body - ignore errors
+	bodyBytes, _ := req.BodyBytes()
+	req.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+	requestDump, err := httputil.DumpRequestOut(req.Request, true)
+	if err != nil {
+		return Result{URL: URL, err: err}
+	}
+
 	resp, err := hp.Do(req)
 	if err != nil {
 		if !retried && origProtocol == httpx.HTTPorHTTPS {
@@ -748,59 +762,97 @@ retry:
 		}
 	}
 
+	parsed, err := url.Parse(fullURL)
+	if err != nil {
+		return Result{URL: URL, err: errors.Wrap(err, "could not parse url")}
+	}
+
+	finalPort := parsed.Port()
+	if finalPort == "" {
+		if parsed.Scheme == "http" {
+			finalPort = "80"
+		} else {
+			finalPort = "443"
+		}
+	}
+
+	hasher := sha1.New()
+	hasher.Write(resp.Data)
+	bodySha := hex.EncodeToString(hasher.Sum(nil))
+	hasher.Reset()
+
+	hasher.Write([]byte(resp.RawHeaders))
+	headersSha := hex.EncodeToString(hasher.Sum(nil))
+
 	return Result{
-		raw:           resp.Raw,
-		URL:           fullURL,
-		ContentLength: resp.ContentLength,
-		StatusCode:    resp.StatusCode,
-		Location:      resp.GetHeaderPart("Location", ";"),
-		ContentType:   resp.GetHeaderPart("Content-Type", ";"),
-		Title:         title,
-		str:           builder.String(),
-		VHost:         isvhost,
-		WebServer:     serverHeader,
-		Response:      serverResponseRaw,
-		WebSocket:     isWebSocket,
-		TLSData:       resp.TLSData,
-		CSPData:       resp.CSPData,
-		Pipeline:      pipeline,
-		HTTP2:         http2,
-		Method:        method,
-		IP:            ip,
-		IPs:           ips,
-		CNAMEs:        cnames,
-		CDN:           isCDN,
-		ResponseTime:  resp.Duration.String(),
-		Technologies:  technologies,
+		Timestamp:      time.Now(),
+		Request:        string(requestDump),
+		ResponseHeader: resp.RawHeaders,
+		Scheme:         parsed.Scheme,
+		Port:           finalPort,
+		Path:           parsed.RawPath,
+		BodySHA256:     bodySha,
+		HeaderSHA256:   headersSha,
+		raw:            resp.Raw,
+		URL:            fullURL,
+		ContentLength:  resp.ContentLength,
+		StatusCode:     resp.StatusCode,
+		Location:       resp.GetHeaderPart("Location", ";"),
+		ContentType:    resp.GetHeaderPart("Content-Type", ";"),
+		Title:          title,
+		str:            builder.String(),
+		VHost:          isvhost,
+		WebServer:      serverHeader,
+		ResponseBody:   serverResponseRaw,
+		WebSocket:      isWebSocket,
+		TLSData:        resp.TLSData,
+		CSPData:        resp.CSPData,
+		Pipeline:       pipeline,
+		HTTP2:          http2,
+		Method:         method,
+		Host:           ip,
+		A:              ips,
+		CNAMEs:         cnames,
+		CDN:            isCDN,
+		ResponseTime:   resp.Duration.String(),
+		Technologies:   technologies,
 	}
 }
 
 // Result of a scan
 type Result struct {
-	IPs           []string `json:"ips"`
-	CNAMEs        []string `json:"cnames,omitempty"`
-	raw           string
-	URL           string `json:"url"`
-	Location      string `json:"location"`
-	Title         string `json:"title"`
-	str           string
-	err           error
-	WebServer     string         `json:"webserver"`
-	Response      string         `json:"serverResponse,omitempty"`
-	ContentType   string         `json:"content-type,omitempty"`
-	Method        string         `json:"method"`
-	IP            string         `json:"ip"`
-	ContentLength int            `json:"content-length"`
-	StatusCode    int            `json:"status-code"`
-	TLSData       *httpx.TLSData `json:"tls,omitempty"`
-	CSPData       *httpx.CSPData `json:"csp,omitempty"`
-	VHost         bool           `json:"vhost"`
-	WebSocket     bool           `json:"websocket,omitempty"`
-	Pipeline      bool           `json:"pipeline,omitempty"`
-	HTTP2         bool           `json:"http2"`
-	CDN           bool           `json:"cdn,omitempty"`
-	ResponseTime  string         `json:"response-time"`
-	Technologies  []string       `json:"technologies"`
+	Timestamp      time.Time `json:"timestamp,omitempty"`
+	Request        string    `json:"request,omitempty"`
+	ResponseHeader string    `json:"response-header,omitempty"`
+	Scheme         string    `json:"scheme,omitempty"`
+	Port           string    `json:"port,omitempty"`
+	Path           string    `json:"path,omitempty"`
+	BodySHA256     string    `json:"body-sha256,omitempty"`
+	HeaderSHA256   string    `json:"header-sha256,omitempty"`
+	A              []string  `json:"a,omitempty"`
+	CNAMEs         []string  `json:"cnames,omitempty"`
+	raw            string
+	URL            string `json:"url,omitempty"`
+	Location       string `json:"location,omitempty"`
+	Title          string `json:"title,omitempty"`
+	str            string
+	err            error
+	WebServer      string         `json:"webserver,omitempty"`
+	ResponseBody   string         `json:"response-body,omitempty"`
+	ContentType    string         `json:"content-type,omitempty"`
+	Method         string         `json:"method,omitempty"`
+	Host           string         `json:"host,omitempty"`
+	ContentLength  int            `json:"content-length,omitempty"`
+	StatusCode     int            `json:"status-code,omitempty"`
+	TLSData        *httpx.TLSData `json:"tls-grab,omitempty"`
+	CSPData        *httpx.CSPData `json:"csp,omitempty"`
+	VHost          bool           `json:"vhost,omitempty"`
+	WebSocket      bool           `json:"websocket,omitempty"`
+	Pipeline       bool           `json:"pipeline,omitempty"`
+	HTTP2          bool           `json:"http2,omitempty"`
+	CDN            bool           `json:"cdn,omitempty"`
+	ResponseTime   string         `json:"response-time,omitempty"`
+	Technologies   []string       `json:"technologies,omitempty"`
 }
 
 // JSON the result
