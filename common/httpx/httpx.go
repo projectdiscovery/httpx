@@ -38,6 +38,8 @@ func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
 	fastdialerOpts := fastdialer.DefaultOptions
 	fastdialerOpts.EnableFallback = true
+	fastdialerOpts.BlacklistHosts = options.Blacklist
+	fastdialerOpts.WhitelistHosts = options.Whitelist
 	dialer, err := fastdialer.NewDialer(fastdialerOpts)
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)

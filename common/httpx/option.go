@@ -30,6 +30,8 @@ type Options struct {
 	VHostIgnoreNumberOfWords bool
 	VHostIgnoreNumberOfLines bool
 	VHostStripHTML           bool
+	Whitelist                []string
+	Blacklist                []string
 }
 
 // DefaultOptions contains the default options
