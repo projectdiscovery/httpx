@@ -6,6 +6,7 @@ import (
 
 // Options contains configuration options for the client
 type Options struct {
+	RandomAgent      bool
 	DefaultUserAgent string
 	RequestOverride  RequestOverride
 	HTTPProxy        string
@@ -22,6 +23,7 @@ type Options struct {
 	FollowRedirects      bool
 	FollowHostRedirects  bool
 	Unsafe               bool
+	TLSGrab              bool
 	// VHOSTs options
 	VHostIgnoreStatusCode    bool
 	VHostIgnoreContentLength bool

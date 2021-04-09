@@ -112,13 +112,16 @@ This will display help for the tool. Here are all the switches it supports.
 | ports                   | Ports ranges to probe (nmap syntax: eg 1,2-10,11)       | httpx -ports 80,443,100-200                        |
 | title                   | Prints title of page if available                       | httpx -title                                       |
 | path                    | Request path/file                                       | httpx -path /api                                   |
+| paths                   | Request list of paths from file                         | httpx -paths paths.txt                             |
 | content-length          | Prints content length in the output                     | httpx -content-length                              |
 | ml                      | Match content length in the output                      | httpx -content-length -ml 125                      |
 | fl                      | Filter content length in the output                     | httpx -content-length -fl 0,43                     |
 | status-code             | Prints status code in the output                        | httpx -status-code                                 |
 | mc                      | Match status code in the output                         | httpx -status-code -mc 200,302                     |
 | fc                      | Filter status code in the output                        | httpx -status-code -fc 404,500                     |
+| tech-detect             | Perform wappalyzer based technology detection           | httpx -tech-detect                                 |
 | tls-probe               | Send HTTP probes on the extracted TLS domains           | httpx -tls-probe                                   |
+| tls-grab                | Perform TLS data grabbing                               | httpx -tls-grab                                    |
 | content-type            | Prints content-type                                     | httpx -content-type                                |
 | location                | Prints location header                                  | httpx -location                                    |
 | csp-probe               | Send HTTP probes on the extracted CSP domains           | httpx -csp-probe                                   |
@@ -128,6 +131,7 @@ This will display help for the tool. Here are all the switches it supports.
 | unsafe                  | Send raw requests skipping golang normalization         | httpx -unsafe                                      | 
 | request                 | File containing raw request to process                  | httpx -request                                     | 
 | retries                 | Number of retries                                       | httpx -retries                                     |
+| random-agent            | Use randomly selected HTTP User-Agent header value      | httpx -random-agent                                |
 | silent                  | Prints only results in the output                       | httpx -silent                                      |
 | stats                   | Prints statistic every 5 seconds                        | httpx -stats                                       |
 | timeout                 | Timeout in seconds (default 5)                          | httpx -timeout 10                                  |

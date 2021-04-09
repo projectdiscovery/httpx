@@ -51,7 +51,7 @@ func (c *CustomPorts) Set(value string) error {
 			if p, err := strconv.Atoi(potentialPort); err == nil {
 				Ports[p] = protocol
 			} else {
-				gologger.Warningf("Could not cast port to integer, your value: %s, resulting error %s. Skipping it\n",
+				gologger.Warning().Msgf("Could not cast port to integer, your value: %s, resulting error %s. Skipping it\n",
 					potentialPort, err.Error())
 			}
 		} else {
@@ -59,20 +59,20 @@ func (c *CustomPorts) Set(value string) error {
 			var lowP, highP int
 			lowP, err := strconv.Atoi(potentialRange[0])
 			if err != nil {
-				gologger.Warningf("Could not cast first port of your port range(%s) to integer, your value: %s, resulting error %s. Skipping it\n",
+				gologger.Warning().Msgf("Could not cast first port of your port range(%s) to integer, your value: %s, resulting error %s. Skipping it\n",
 					potentialPort, potentialRange[0], err.Error())
 				continue
 			}
 			highP, err = strconv.Atoi(potentialRange[1])
 			if err != nil {
-				gologger.Warningf("Could not cast last port of your port range(%s) to integer, "+
+				gologger.Warning().Msgf("Could not cast last port of your port range(%s) to integer, "+
 					"your value: %s, resulting error %s. Skipping it\n",
 					potentialPort, potentialRange[1], err.Error())
 				continue
 			}
 
 			if lowP > highP {
-				gologger.Warningf("first value of port range should be lower than the last part port "+
+				gologger.Warning().Msgf("first value of port range should be lower than the last part port "+
 					"in that range, your range: [%d, %d]. Skipping it\n",
 					lowP, highP)
 				continue

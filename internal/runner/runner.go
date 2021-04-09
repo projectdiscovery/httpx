@@ -2,10 +2,15 @@ package runner
 
 import (
 	"bufio"
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"path"
 	"strconv"
@@ -13,8 +18,9 @@ import (
 	"time"
 
 	"github.com/logrusorgru/aurora"
-	"github.com/projectdiscovery/clistats"
+	"github.com/pkg/errors"
 
+	"github.com/projectdiscovery/clistats"
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
@@ -28,6 +34,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/projectdiscovery/rawhttp"
+	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 	"github.com/remeh/sizedwaitgroup"
 )
 
@@ -37,11 +44,12 @@ const (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options  *Options
-	hp       *httpx.HTTPX
-	scanopts *scanOptions
-	hm       *hybrid.HybridMap
-	stats    clistats.StatisticsClient
+	options    *Options
+	hp         *httpx.HTTPX
+	wappalyzer *wappalyzer.Wappalyze
+	scanopts   scanOptions
+	hm         *hybrid.HybridMap
+	stats      clistats.StatisticsClient
 }
 
 // New creates a new client for running enumeration process.
@@ -49,8 +57,16 @@ func New(options *Options) (*Runner, error) {
 	runner := &Runner{
 		options: options,
 	}
+	var err error
+	if options.TechDetect {
+		runner.wappalyzer, err = wappalyzer.New()
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create wappalyzer client")
+	}
 
 	httpxOptions := httpx.DefaultOptions
+	httpxOptions.TLSGrab = options.TLSGrab
 	httpxOptions.Timeout = time.Duration(options.Timeout) * time.Second
 	httpxOptions.RetryMax = options.Retries
 	httpxOptions.FollowRedirects = options.FollowRedirects
@@ -59,6 +75,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
 	httpxOptions.CdnCheck = options.OutputCDN
+	httpxOptions.RandomAgent = options.RandomAgent
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
@@ -79,10 +96,9 @@ func New(options *Options) (*Runner, error) {
 		httpxOptions.CustomHeaders[key] = value
 	}
 
-	var err error
 	runner.hp, err = httpx.New(&httpxOptions)
 	if err != nil {
-		gologger.Fatalf("Could not create httpx instance: %s\n", err)
+		gologger.Fatal().Msgf("Could not create httpx instance: %s\n", err)
 	}
 
 	var scanopts scanOptions
@@ -91,12 +107,12 @@ func New(options *Options) (*Runner, error) {
 		var rawRequest []byte
 		rawRequest, err = ioutil.ReadFile(options.InputRawRequest)
 		if err != nil {
-			gologger.Fatalf("Could not read raw request from '%s': %s\n", options.InputRawRequest, err)
+			gologger.Fatal().Msgf("Could not read raw request from '%s': %s\n", options.InputRawRequest, err)
 		}
 
 		rrMethod, rrPath, rrHeaders, rrBody, errParse := httputilz.ParseRequest(string(rawRequest), options.Unsafe)
 		if errParse != nil {
-			gologger.Fatalf("Could not parse raw request: %s\n", err)
+			gologger.Fatal().Msgf("Could not parse raw request: %s\n", err)
 		}
 		scanopts.Methods = append(scanopts.Methods, rrMethod)
 		scanopts.RequestURI = rrPath
@@ -142,6 +158,7 @@ func New(options *Options) (*Runner, error) {
 	if options.RequestURI != "" {
 		scanopts.RequestURI = options.RequestURI
 	}
+	scanopts.VHostInput = options.VHostInput
 	scanopts.OutputContentType = options.OutputContentType
 	scanopts.RequestBody = options.RequestBody
 	scanopts.Unsafe = options.Unsafe
@@ -153,13 +170,14 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputCDN = options.OutputCDN
 	scanopts.OutputResponseTime = options.OutputResponseTime
 	scanopts.NoFallback = options.NoFallback
+	scanopts.TechDetect = options.TechDetect
 
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
 		scanopts.OutputMethod = true
 	}
 
-	runner.scanopts = &scanopts
+	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
 		runner.stats, err = clistats.New()
@@ -177,58 +195,69 @@ func New(options *Options) (*Runner, error) {
 	return runner, nil
 }
 
-func (runner *Runner) prepareInput() {
+func (r *Runner) prepareInput() {
 	var (
 		finput  *os.File
 		scanner *bufio.Scanner
 		err     error
 	)
 	// check if file has been provided
-	if fileutil.FileExists(runner.options.InputFile) {
-		finput, err = os.Open(runner.options.InputFile)
+	if fileutil.FileExists(r.options.InputFile) {
+		finput, err = os.Open(r.options.InputFile)
 		if err != nil {
-			gologger.Fatalf("Could read input file '%s': %s\n", runner.options.InputFile, err)
+			gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
 		}
 		scanner = bufio.NewScanner(finput)
 	} else if fileutil.HasStdin() {
 		scanner = bufio.NewScanner(os.Stdin)
 	} else {
-		gologger.Fatalf("No input provided")
+		gologger.Fatal().Msgf("No input provided")
+	}
+
+	// Check if the user requested multiple paths
+	if fileutil.FileExists(r.options.RequestURIs) {
+		r.options.requestURIs = fileutil.LoadFile(r.options.RequestURIs)
+	} else if r.options.RequestURIs != "" {
+		r.options.requestURIs = strings.Split(r.options.RequestURIs, ",")
 	}
 
 	numTargets := 0
 	for scanner.Scan() {
 		target := strings.TrimSpace(scanner.Text())
 		// Used just to get the exact number of targets
-		if _, ok := runner.hm.Get(target); ok {
+		if _, ok := r.hm.Get(target); ok {
 			continue
 		}
-		numTargets++
-		// nolint:errcheck // ignore
-		runner.hm.Set(target, nil)
+
+		if len(r.options.requestURIs) > 0 {
+			numTargets += len(r.options.requestURIs)
+		} else {
+			numTargets++
+		}
+		r.hm.Set(target, nil) //nolint
 	}
 
-	if runner.options.InputFile != "" {
+	if r.options.InputFile != "" {
 		err := finput.Close()
 		if err != nil {
-			gologger.Fatalf("Could close input file '%s': %s\n", runner.options.InputFile, err)
+			gologger.Fatal().Msgf("Could close input file '%s': %s\n", r.options.InputFile, err)
 		}
 	}
 
-	if runner.options.ShowStatistics {
+	if r.options.ShowStatistics {
 		numPorts := len(customport.Ports)
 		if numPorts == 0 {
 			// Default Ports 80, 443
 			numPorts = 2
 		}
 
-		runner.stats.AddStatic("hosts", numTargets)
-		runner.stats.AddStatic("startedAt", time.Now())
-		runner.stats.AddCounter("requests", 0)
-		runner.stats.AddCounter("total", uint64(numTargets*numPorts))
-		err := runner.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
+		r.stats.AddStatic("hosts", numTargets)
+		r.stats.AddStatic("startedAt", time.Now())
+		r.stats.AddCounter("requests", 0)
+		r.stats.AddCounter("total", uint64(numTargets*numPorts))
+		err := r.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
 		if err != nil {
-			gologger.Warningf("Could not create statistic: %s\n", err)
+			gologger.Warning().Msgf("Could not create statistic: %s\n", err)
 		}
 	}
 }
@@ -239,7 +268,7 @@ func makePrintCallback() func(stats clistats.StatisticsClient) {
 		builder.WriteRune('[')
 		startedAt, _ := stats.GetStatic("startedAt")
 		duration := time.Since(startedAt.(time.Time))
-		builder.WriteString(fmtDuration(duration))
+		builder.WriteString(clistats.FmtDuration(duration))
 		builder.WriteRune(']')
 
 		hosts, _ := stats.GetStatic("hosts")
@@ -269,23 +298,23 @@ func makePrintCallback() func(stats clistats.StatisticsClient) {
 	}
 }
 
-// Close the instance
-func (runner *Runner) Close() {
+// Close closes the httpx scan instance
+func (r *Runner) Close() {
 	// nolint:errcheck // ignore
-	runner.hm.Close()
-	runner.hp.Dialer.Close()
+	r.hm.Close()
+	r.hp.Dialer.Close()
 }
 
-// RunEnumeration on targets
-func (runner *Runner) RunEnumeration() {
+// RunEnumeration on targets for httpx client
+func (r *Runner) RunEnumeration() {
 	// Try to create output folder if it doesnt exist
-	if runner.options.StoreResponse && !fileutil.FolderExists(runner.options.StoreResponseDir) {
-		if err := os.MkdirAll(runner.options.StoreResponseDir, os.ModePerm); err != nil {
-			gologger.Fatalf("Could not create output directory '%s': %s\n", runner.options.StoreResponseDir, err)
+	if r.options.StoreResponse && !fileutil.FolderExists(r.options.StoreResponseDir) {
+		if err := os.MkdirAll(r.options.StoreResponseDir, os.ModePerm); err != nil {
+			gologger.Fatal().Msgf("Could not create output directory '%s': %s\n", r.options.StoreResponseDir, err)
 		}
 	}
 
-	runner.prepareInput()
+	r.prepareInput()
 
 	// output routine
 	wgoutput := sizedwaitgroup.New(1)
@@ -295,53 +324,53 @@ func (runner *Runner) RunEnumeration() {
 		defer wgoutput.Done()
 
 		var f *os.File
-		if runner.options.Output != "" {
+		if r.options.Output != "" {
 			var err error
-			f, err = os.Create(runner.options.Output)
+			f, err = os.Create(r.options.Output)
 			if err != nil {
-				gologger.Fatalf("Could not create output file '%s': %s\n", runner.options.Output, err)
+				gologger.Fatal().Msgf("Could not create output file '%s': %s\n", r.options.Output, err)
 			}
-			//nolint:errcheck // this method needs a small refactor to reduce complexity
-			defer f.Close()
+			defer f.Close() //nolint
 		}
-		for r := range output {
-			if r.err != nil {
-				gologger.Debugf("Failure '%s': %s\n", r.URL, r.err)
+		for resp := range output {
+			if resp.err != nil {
+				gologger.Debug().Msgf("Failure '%s': %s\n", resp.URL, resp.err)
+			}
+			if resp.str == "" {
 				continue
 			}
 
 			// apply matchers and filters
-			if len(runner.options.filterStatusCode) > 0 && slice.IntSliceContains(runner.options.filterStatusCode, r.StatusCode) {
+			if len(r.options.filterStatusCode) > 0 && slice.IntSliceContains(r.options.filterStatusCode, resp.StatusCode) {
 				continue
 			}
-			if len(runner.options.filterContentLength) > 0 && slice.IntSliceContains(runner.options.filterContentLength, r.ContentLength) {
+			if len(r.options.filterContentLength) > 0 && slice.IntSliceContains(r.options.filterContentLength, resp.ContentLength) {
 				continue
 			}
-			if runner.options.filterRegex != nil && runner.options.filterRegex.MatchString(r.raw) {
+			if r.options.filterRegex != nil && r.options.filterRegex.MatchString(resp.raw) {
 				continue
 			}
-			if runner.options.OutputFilterString != "" && strings.Contains(strings.ToLower(r.raw), strings.ToLower(runner.options.OutputFilterString)) {
+			if r.options.OutputFilterString != "" && strings.Contains(strings.ToLower(resp.raw), strings.ToLower(r.options.OutputFilterString)) {
 				continue
 			}
-			if len(runner.options.matchStatusCode) > 0 && !slice.IntSliceContains(runner.options.matchStatusCode, r.StatusCode) {
+			if len(r.options.matchStatusCode) > 0 && !slice.IntSliceContains(r.options.matchStatusCode, resp.StatusCode) {
 				continue
 			}
-			if len(runner.options.matchContentLength) > 0 && !slice.IntSliceContains(runner.options.matchContentLength, r.ContentLength) {
+			if len(r.options.matchContentLength) > 0 && !slice.IntSliceContains(r.options.matchContentLength, resp.ContentLength) {
 				continue
 			}
-			if runner.options.matchRegex != nil && !runner.options.matchRegex.MatchString(r.raw) {
+			if r.options.matchRegex != nil && !r.options.matchRegex.MatchString(resp.raw) {
 				continue
 			}
-			if runner.options.OutputMatchString != "" && !strings.Contains(strings.ToLower(r.raw), strings.ToLower(runner.options.OutputMatchString)) {
+			if r.options.OutputMatchString != "" && !strings.Contains(strings.ToLower(resp.raw), strings.ToLower(r.options.OutputMatchString)) {
 				continue
 			}
 
-			row := r.str
-			if runner.options.JSONOutput {
-				row = r.JSON()
+			row := resp.str
+			if r.options.JSONOutput {
+				row = resp.JSON()
 			}
-
-			gologger.Silentf("%s\n", row)
+			gologger.Silent().Msgf("%s\n", row)
 			if f != nil {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				f.WriteString(row + "\n")
@@ -349,13 +378,25 @@ func (runner *Runner) RunEnumeration() {
 		}
 	}(output)
 
-	wg := sizedwaitgroup.New(runner.options.Threads)
+	wg := sizedwaitgroup.New(r.options.Threads)
 
-	runner.hm.Scan(func(k, _ []byte) error {
-		if runner.options.ShowStatistics {
-			runner.stats.IncrementCounter("requests", 1)
+	r.hm.Scan(func(k, _ []byte) error {
+		var reqs int
+		if len(r.options.requestURIs) > 0 {
+			for _, p := range r.options.requestURIs {
+				scanopts := r.scanopts.Clone()
+				scanopts.RequestURI = p
+				r.process(string(k), &wg, r.hp, r.options.protocol, scanopts, output)
+				reqs++
+			}
+		} else {
+			r.process(string(k), &wg, r.hp, r.options.protocol, &r.scanopts, output)
+			reqs++
 		}
-		process(string(k), &wg, runner.hp, runner.options.protocol, runner.scanopts, output)
+
+		if r.options.ShowStatistics {
+			r.stats.IncrementCounter("requests", reqs)
+		}
 		return nil
 	})
 
@@ -366,7 +407,7 @@ func (runner *Runner) RunEnumeration() {
 	wgoutput.Wait()
 }
 
-func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
+func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
 	protocols := []string{protocol}
 	if scanopts.NoFallback {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
@@ -379,21 +420,21 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 					wg.Add()
 					go func(target, method, protocol string) {
 						defer wg.Done()
-						r := analyze(hp, protocol, target, 0, method, scanopts)
-						output <- r
-						if scanopts.TLSProbe && r.TLSData != nil {
+						result := r.analyze(hp, protocol, target, 0, method, scanopts)
+						output <- result
+						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
-							for _, tt := range r.TLSData.DNSNames {
-								process(tt, wg, hp, protocol, scanopts, output)
+							for _, tt := range result.TLSData.DNSNames {
+								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
-							for _, tt := range r.TLSData.CommonName {
-								process(tt, wg, hp, protocol, scanopts, output)
+							for _, tt := range result.TLSData.CommonName {
+								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
 						}
-						if scanopts.CSPProbe && r.CSPData != nil {
+						if scanopts.CSPProbe && result.CSPData != nil {
 							scanopts.CSPProbe = false
-							for _, tt := range r.CSPData.Domains {
-								process(tt, wg, hp, protocol, scanopts, output)
+							for _, tt := range result.CSPData.Domains {
+								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
 						}
 					}(target, method, prot)
@@ -412,15 +453,15 @@ func process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, proto
 				wg.Add()
 				go func(port int, method, protocol string) {
 					defer wg.Done()
-					r := analyze(hp, protocol, target, port, method, scanopts)
-					output <- r
-					if scanopts.TLSProbe && r.TLSData != nil {
+					result := r.analyze(hp, protocol, target, port, method, scanopts)
+					output <- result
+					if scanopts.TLSProbe && result.TLSData != nil {
 						scanopts.TLSProbe = false
-						for _, tt := range r.TLSData.DNSNames {
-							process(tt, wg, hp, protocol, scanopts, output)
+						for _, tt := range result.TLSData.DNSNames {
+							r.process(tt, wg, hp, protocol, scanopts, output)
 						}
-						for _, tt := range r.TLSData.CommonName {
-							process(tt, wg, hp, protocol, scanopts, output)
+						for _, tt := range result.TLSData.CommonName {
+							r.process(tt, wg, hp, protocol, scanopts, output)
 						}
 					}
 				}(port, method, wantedProtocol)
@@ -458,13 +499,24 @@ func targets(target string) chan string {
 	return results
 }
 
-func analyze(hp *httpx.HTTPX, protocol, domain string, port int, method string, scanopts *scanOptions) Result {
+func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain string, port int, method string, scanopts *scanOptions) Result {
 	origProtocol := protocol
 	if protocol == httpx.HTTPorHTTPS {
 		protocol = httpx.HTTPS
 	}
 	retried := false
 retry:
+	var customHost string
+	if scanopts.VHostInput {
+		parts := strings.Split(domain, ",")
+		//nolint:gomnd // not a magic number
+		if len(parts) != 2 {
+			return Result{}
+		}
+		domain = parts[0]
+		customHost = parts[1]
+	}
+
 	URL := fmt.Sprintf("%s://%s", protocol, domain)
 	if port > 0 {
 		URL = fmt.Sprintf("%s://%s:%d", protocol, domain, port)
@@ -478,11 +530,22 @@ retry:
 	if err != nil {
 		return Result{URL: URL, err: err}
 	}
+	if customHost != "" {
+		req.Host = customHost
+	}
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
 	if scanopts.RequestBody != "" {
 		req.ContentLength = int64(len(scanopts.RequestBody))
 		req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
+	}
+
+	// Create a copy on the fly of the request body - ignore errors
+	bodyBytes, _ := req.BodyBytes()
+	req.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+	requestDump, err := httputil.DumpRequestOut(req.Request, true)
+	if err != nil {
+		return Result{URL: URL, err: err}
 	}
 
 	resp, err := hp.Do(req)
@@ -589,9 +652,13 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", serverHeader))
 	}
 
-	var serverResponseRaw = ""
+	var serverResponseRaw string
+	var request string
+	var responseHeader string
 	if scanopts.ResponseInStdout {
-		serverResponseRaw = resp.Raw
+		serverResponseRaw = string(resp.Data)
+		request = string(requestDump)
+		responseHeader = resp.RawHeaders
 	}
 
 	// check for virtual host
@@ -658,6 +725,26 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", resp.Duration))
 	}
 
+	var technologies []string
+	if scanopts.TechDetect {
+		matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
+		for match := range matches {
+			technologies = append(technologies, match)
+		}
+
+		if len(technologies) > 0 {
+			technologies := strings.Join(technologies, ",")
+
+			builder.WriteString(" [")
+			if !scanopts.OutputWithNoColor {
+				builder.WriteString(aurora.Magenta(technologies).String())
+			} else {
+				builder.WriteString(technologies)
+			}
+			builder.WriteRune(']')
+		}
+	}
+
 	// store responses in directory
 	if scanopts.StoreResponse {
 		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
@@ -666,70 +753,114 @@ retry:
 		}
 		// On various OS the file max file name length is 255 - https://serverfault.com/questions/9546/filename-length-limits-on-linux
 		// Truncating length at 255
-		if len(domainFile) >= maxFileNameLenght {
+		if len(domainFile) >= maxFileNameLength {
 			// leaving last 4 bytes free to append ".txt"
-			domainFile = domainFile[:maxFileNameLenght-1]
+			domainFile = domainFile[:maxFileNameLength-1]
 		}
 
 		domainFile = strings.ReplaceAll(domainFile, "/", "_") + ".txt"
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
-		err := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
-		if err != nil {
-			gologger.Warningf("Could not write response, at path '%s', to disc.", responsePath)
+		writeErr := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
+		if writeErr != nil {
+			gologger.Warning().Msgf("Could not write response, at path '%s', to disk: %s", responsePath, writeErr)
 		}
 	}
 
+	parsed, err := url.Parse(fullURL)
+	if err != nil {
+		return Result{URL: URL, err: errors.Wrap(err, "could not parse url")}
+	}
+
+	finalPort := parsed.Port()
+	if finalPort == "" {
+		if parsed.Scheme == "http" {
+			finalPort = "80"
+		} else {
+			finalPort = "443"
+		}
+	}
+	finalPath := parsed.Path
+	if finalPath == "" {
+		finalPath = "/"
+	}
+
+	hasher := sha256.New()
+	_, _ = hasher.Write(resp.Data)
+	bodySha := hex.EncodeToString(hasher.Sum(nil))
+	hasher.Reset()
+
+	_, _ = hasher.Write([]byte(resp.RawHeaders))
+	headersSha := hex.EncodeToString(hasher.Sum(nil))
+
 	return Result{
-		raw:           resp.Raw,
-		URL:           fullURL,
-		ContentLength: resp.ContentLength,
-		StatusCode:    resp.StatusCode,
-		Location:      resp.GetHeaderPart("Location", ";"),
-		ContentType:   resp.GetHeaderPart("Content-Type", ";"),
-		Title:         title,
-		str:           builder.String(),
-		VHost:         isvhost,
-		WebServer:     serverHeader,
-		Response:      serverResponseRaw,
-		WebSocket:     isWebSocket,
-		TLSData:       resp.TLSData,
-		CSPData:       resp.CSPData,
-		Pipeline:      pipeline,
-		HTTP2:         http2,
-		Method:        method,
-		IP:            ip,
-		IPs:           ips,
-		CNAMEs:        cnames,
-		CDN:           isCDN,
-		ResponseTime:  resp.Duration.String(),
+		Timestamp:      time.Now(),
+		Request:        request,
+		ResponseHeader: responseHeader,
+		Scheme:         parsed.Scheme,
+		Port:           finalPort,
+		Path:           finalPath,
+		BodySHA256:     bodySha,
+		HeaderSHA256:   headersSha,
+		raw:            resp.Raw,
+		URL:            fullURL,
+		ContentLength:  resp.ContentLength,
+		StatusCode:     resp.StatusCode,
+		Location:       resp.GetHeaderPart("Location", ";"),
+		ContentType:    resp.GetHeaderPart("Content-Type", ";"),
+		Title:          title,
+		str:            builder.String(),
+		VHost:          isvhost,
+		WebServer:      serverHeader,
+		ResponseBody:   serverResponseRaw,
+		WebSocket:      isWebSocket,
+		TLSData:        resp.TLSData,
+		CSPData:        resp.CSPData,
+		Pipeline:       pipeline,
+		HTTP2:          http2,
+		Method:         method,
+		Host:           ip,
+		A:              ips,
+		CNAMEs:         cnames,
+		CDN:            isCDN,
+		ResponseTime:   resp.Duration.String(),
+		Technologies:   technologies,
 	}
 }
 
 // Result of a scan
 type Result struct {
-	IPs           []string `json:"ips"`
-	CNAMEs        []string `json:"cnames,omitempty"`
-	raw           string
-	URL           string `json:"url"`
-	Location      string `json:"location"`
-	Title         string `json:"title"`
-	str           string
-	err           error
-	WebServer     string         `json:"webserver"`
-	Response      string         `json:"serverResponse,omitempty"`
-	ContentType   string         `json:"content-type,omitempty"`
-	Method        string         `json:"method"`
-	IP            string         `json:"ip"`
-	ContentLength int            `json:"content-length"`
-	StatusCode    int            `json:"status-code"`
-	TLSData       *httpx.TLSData `json:"tls,omitempty"`
-	CSPData       *httpx.CSPData `json:"csp,omitempty"`
-	VHost         bool           `json:"vhost"`
-	WebSocket     bool           `json:"websocket,omitempty"`
-	Pipeline      bool           `json:"pipeline,omitempty"`
-	HTTP2         bool           `json:"http2"`
-	CDN           bool           `json:"cdn,omitempty"`
-	ResponseTime  string         `json:"response-time"`
+	Timestamp      time.Time `json:"timestamp,omitempty"`
+	Request        string    `json:"request,omitempty"`
+	ResponseHeader string    `json:"response-header,omitempty"`
+	Scheme         string    `json:"scheme,omitempty"`
+	Port           string    `json:"port,omitempty"`
+	Path           string    `json:"path,omitempty"`
+	BodySHA256     string    `json:"body-sha256,omitempty"`
+	HeaderSHA256   string    `json:"header-sha256,omitempty"`
+	A              []string  `json:"a,omitempty"`
+	CNAMEs         []string  `json:"cnames,omitempty"`
+	raw            string
+	URL            string `json:"url,omitempty"`
+	Location       string `json:"location,omitempty"`
+	Title          string `json:"title,omitempty"`
+	str            string
+	err            error
+	WebServer      string         `json:"webserver,omitempty"`
+	ResponseBody   string         `json:"response-body,omitempty"`
+	ContentType    string         `json:"content-type,omitempty"`
+	Method         string         `json:"method,omitempty"`
+	Host           string         `json:"host,omitempty"`
+	ContentLength  int            `json:"content-length,omitempty"`
+	StatusCode     int            `json:"status-code,omitempty"`
+	TLSData        *httpx.TLSData `json:"tls-grab,omitempty"`
+	CSPData        *httpx.CSPData `json:"csp,omitempty"`
+	VHost          bool           `json:"vhost,omitempty"`
+	WebSocket      bool           `json:"websocket,omitempty"`
+	Pipeline       bool           `json:"pipeline,omitempty"`
+	HTTP2          bool           `json:"http2,omitempty"`
+	CDN            bool           `json:"cdn,omitempty"`
+	ResponseTime   string         `json:"response-time,omitempty"`
+	Technologies   []string       `json:"technologies,omitempty"`
 }
 
 // JSON the result

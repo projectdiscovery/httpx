@@ -10,6 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/corpix/uarand"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
@@ -35,7 +36,9 @@ type HTTPX struct {
 // New httpx instance
 func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
-	dialer, err := fastdialer.NewDialer(fastdialer.DefaultOptions)
+	fastdialerOpts := fastdialer.DefaultOptions
+	fastdialerOpts.EnableFallback = true
+	dialer, err := fastdialer.NewDialer(fastdialerOpts)
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)
 	}
@@ -129,12 +132,12 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	resp.Headers = httpresp.Header.Clone()
 
 	// httputil.DumpResponse does not handle websockets
-	rawresp, err := httputilz.DumpResponse(httpresp)
+	headers, rawResp, err := httputilz.DumpResponseHeadersAndRaw(httpresp)
 	if err != nil {
 		return nil, err
 	}
-
-	resp.Raw = rawresp
+	resp.Raw = rawResp
+	resp.RawHeaders = headers
 
 	var respbody []byte
 	// websockets don't have a readable body
@@ -168,7 +171,7 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	// number of lines
 	resp.Lines = len(strings.Split(respbodystr, "\n"))
 
-	if !h.Options.Unsafe {
+	if !h.Options.Unsafe && h.Options.TLSGrab {
 		// extracts TLS data if any
 		resp.TLSData = h.TLSGrab(httpresp)
 	}
@@ -253,5 +256,8 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 		if strings.EqualFold(name, "host") {
 			r.Host = value
 		}
+	}
+	if h.Options.RandomAgent {
+		r.Header.Set("User-Agent", uarand.GetRandom()) //nolint
 	}
 }

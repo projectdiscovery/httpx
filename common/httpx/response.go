@@ -12,6 +12,7 @@ type Response struct {
 	Data          []byte
 	ContentLength int
 	Raw           string
+	RawHeaders    string
 	Words         int
 	Lines         int
 	TLSData       *TLSData
