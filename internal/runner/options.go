@@ -154,8 +154,8 @@ type Options struct {
 	protocol                  string
 	ShowStatistics            bool
 	RandomAgent               bool
-	Blacklist                 customlist.CustomList
-	Whitelist                 customlist.CustomList
+	Deny                      customlist.CustomList
+	Allow                     customlist.CustomList
 }
 
 // ParseOptions parses the command line options for application
@@ -219,8 +219,8 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.NoFallback, "no-fallback", false, "If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP")
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
 	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
-	flag.Var(&options.Whitelist, "whitelist", "Whitelist ip/cidr")
-	flag.Var(&options.Blacklist, "blacklist", "Blacklist ip/cidr")
+	flag.Var(&options.Allow, "allow", "Whitelist ip/cidr")
+	flag.Var(&options.Deny, "deny", "Blacklist ip/cidr")
 
 	flag.Parse()
 
