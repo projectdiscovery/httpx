@@ -652,9 +652,13 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", serverHeader))
 	}
 
-	var serverResponseRaw = ""
+	var serverResponseRaw string
+	var request string
+	var responseHeader string
 	if scanopts.ResponseInStdout {
 		serverResponseRaw = string(resp.Data)
+		request = string(requestDump)
+		responseHeader = resp.RawHeaders
 	}
 
 	// check for virtual host
@@ -790,8 +794,8 @@ retry:
 
 	return Result{
 		Timestamp:      time.Now(),
-		Request:        string(requestDump),
-		ResponseHeader: resp.RawHeaders,
+		Request:        request,
+		ResponseHeader: responseHeader,
 		Scheme:         parsed.Scheme,
 		Port:           finalPort,
 		Path:           finalPath,
