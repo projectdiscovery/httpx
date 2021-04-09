@@ -132,12 +132,12 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	resp.Headers = httpresp.Header.Clone()
 
 	// httputil.DumpResponse does not handle websockets
-	rawresp, err := httputilz.DumpResponse(httpresp)
+	headers, rawResp, err := httputilz.DumpResponseHeadersAndRaw(httpresp)
 	if err != nil {
 		return nil, err
 	}
-
-	resp.Raw = rawresp
+	resp.Raw = rawResp
+	resp.RawHeaders = headers
 
 	var respbody []byte
 	// websockets don't have a readable body
@@ -171,7 +171,7 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	// number of lines
 	resp.Lines = len(strings.Split(respbodystr, "\n"))
 
-	if !h.Options.Unsafe {
+	if !h.Options.Unsafe && h.Options.TLSGrab {
 		// extracts TLS data if any
 		resp.TLSData = h.TLSGrab(httpresp)
 	}
