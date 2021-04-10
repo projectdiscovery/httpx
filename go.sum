@@ -68,8 +68,10 @@ github.com/projectdiscovery/gologger v1.1.4 h1:qWxGUq7ukHWT849uGPkagPKF3yBPYAsTt
 github.com/projectdiscovery/gologger v1.1.4/go.mod h1:Bhb6Bdx2PV1nMaFLoXNBmHIU85iROS9y1tBuv7T5pMY=
 github.com/projectdiscovery/hmap v0.0.1 h1:VAONbJw5jP+syI5smhsfkrq9XPGn4aiYy5pR6KR1wog=
 github.com/projectdiscovery/hmap v0.0.1/go.mod h1:VDEfgzkKQdq7iGTKz8Ooul0NuYHQ8qiDs6r8bPD1Sb0=
-github.com/projectdiscovery/mapcidr v0.0.4 h1:2vBSjkmbQASAcO/m2L/dhdulMVu2y9HdyWOrWYJ74rU=
+github.com/projectdiscovery/ipranger v0.0.2/go.mod h1:kcAIk/lo5rW+IzUrFkeYyXnFJ+dKwYooEOHGVPP/RWE=
 github.com/projectdiscovery/mapcidr v0.0.4/go.mod h1:ALOIj6ptkWujNoX8RdQwB2mZ+kAmKuLJBq9T5gR5wG0=
+github.com/projectdiscovery/mapcidr v0.0.6 h1:RRIrqNakUEF/pstIXWTD6yvCMF9N6SnOb9m4ju4xavc=
+github.com/projectdiscovery/mapcidr v0.0.6/go.mod h1:ZEBhMmBU3laUl3g9QGTrzJku1VJOzjdFwW01f/zVVzM=
 github.com/projectdiscovery/rawhttp v0.0.6 h1:HbgPB1eKXQVV5F9sq0Uxflm95spWFyZYD8dgFpeOC9M=
 github.com/projectdiscovery/rawhttp v0.0.6/go.mod h1:PQERZAhAv7yxI/hR6hdDPgK1WTU56l204BweXrBec+0=
 github.com/projectdiscovery/retryabledns v1.0.8-0.20210226233812-ee2ecc9839d9 h1:uFBvyv0YJub1E8N6LJhWd+Gf4JLeQLgOuX6s7VuQYDI=
