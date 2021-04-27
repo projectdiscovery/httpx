@@ -171,6 +171,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputResponseTime = options.OutputResponseTime
 	scanopts.NoFallback = options.NoFallback
 	scanopts.TechDetect = options.TechDetect
+	scanopts.MaxResponseBodySize = options.MaxResponseBodySize
 
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
@@ -368,7 +369,7 @@ func (r *Runner) RunEnumeration() {
 
 			row := resp.str
 			if r.options.JSONOutput {
-				row = resp.JSON()
+				row = resp.JSON(&r.scanopts)
 			}
 			gologger.Silent().Msgf("%s\n", row)
 			if f != nil {
@@ -765,7 +766,11 @@ retry:
 
 		domainFile = strings.ReplaceAll(domainFile, "/", "_") + ".txt"
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
-		writeErr := ioutil.WriteFile(responsePath, []byte(resp.Raw), 0644)
+		respRaw := resp.Raw
+		if len(respRaw) > scanopts.MaxResponseBodySize {
+			respRaw = respRaw[:scanopts.MaxResponseBodySize]
+		}
+		writeErr := ioutil.WriteFile(responsePath, []byte(respRaw), 0644)
 		if writeErr != nil {
 			gologger.Warning().Msgf("Could not write response, at path '%s', to disk: %s", responsePath, writeErr)
 		}
@@ -869,7 +874,11 @@ type Result struct {
 }
 
 // JSON the result
-func (r *Result) JSON() string {
+func (r Result) JSON(scanopts *scanOptions) string {
+	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySize {
+		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySize]
+	}
+
 	if js, err := json.Marshal(r); err == nil {
 		return string(js)
 	}
