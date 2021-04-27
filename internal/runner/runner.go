@@ -520,6 +520,12 @@ retry:
 	URL := fmt.Sprintf("%s://%s", protocol, domain)
 	if port > 0 {
 		URL = fmt.Sprintf("%s://%s:%d", protocol, domain, port)
+	} else {
+		domainParse := strings.Split(domain, ":")
+		domain = domainParse[0]
+		if len(domainParse) > 1 {
+			port, _ = strconv.Atoi(domainParse[1])
+		}
 	}
 
 	if !scanopts.Unsafe {
@@ -692,7 +698,6 @@ retry:
 			builder.WriteString(" [http2]")
 		}
 	}
-
 	ip := hp.Dialer.GetDialedIP(domain)
 	if scanopts.OutputIP {
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
