@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"strings"
 	"time"
@@ -51,7 +52,8 @@ func New(options *Options) (*HTTPX, error) {
 	retryablehttpOptions.RetryMax = httpx.Options.RetryMax
 
 	var redirectFunc = func(_ *http.Request, _ []*http.Request) error {
-		return http.ErrUseLastResponse // Tell the http client to not follow redirect
+		// Tell the http client to not follow redirect
+		return http.ErrUseLastResponse
 	}
 
 	if httpx.Options.FollowRedirects {
@@ -61,12 +63,13 @@ func New(options *Options) (*HTTPX, error) {
 
 	if httpx.Options.FollowHostRedirects {
 		// Only follow redirects on the same host
-		redirectFunc = func(redirectedRequest *http.Request, previousRequest []*http.Request) error { // timo
+		redirectFunc = func(redirectedRequest *http.Request, previousRequest []*http.Request) error {
 			// Check if we get a redirect to a differen host
 			var newHost = redirectedRequest.URL.Host
 			var oldHost = previousRequest[0].URL.Host
 			if newHost != oldHost {
-				return http.ErrUseLastResponse // Tell the http client to not follow redirect
+				// Tell the http client to not follow redirect
+				return http.ErrUseLastResponse
 			}
 			return nil
 		}
@@ -177,6 +180,26 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	}
 
 	resp.CSPData = h.CSPGrab(httpresp)
+
+	// build the redirect flow by reverse cycling the response<-request chain
+	if !h.Options.Unsafe {
+		lastresp := httpresp
+		for lastresp != nil {
+			lastreq := lastresp.Request
+			lastreqDump, err := httputil.DumpRequestOut(req.Request, false)
+			if err != nil {
+				return nil, err
+			}
+			lastrespDump, err := httputil.DumpResponse(lastresp, false)
+			if err != nil {
+				return nil, err
+			}
+			resp.Chain = append(resp.Chain, lastrespDump, lastreqDump)
+			// process next
+			lastresp = lastreq.Response
+		}
+	}
+
 	resp.Duration = time.Since(timeStart)
 
 	return &resp, nil
