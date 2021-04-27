@@ -6,7 +6,7 @@ require (
 	github.com/corpix/uarand v0.1.1
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/microcosm-cc/bluemonday v1.0.6
+	github.com/microcosm-cc/bluemonday v1.0.8
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.2
 	github.com/projectdiscovery/clistats v0.0.8
