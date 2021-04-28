@@ -194,9 +194,13 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 			if err != nil {
 				return nil, err
 			}
-			resp.Chain = append(resp.Chain, lastrespDump, lastreqDump)
+			resp.Chain = append(resp.Chain, ChainItem{Request: lastreqDump, Response: lastrespDump, StatusCode: lastresp.StatusCode})
 			// process next
 			lastresp = lastreq.Response
+		}
+		// reverse the slice in order to have the chain in progressive order
+		for i, j := 0, len(resp.Chain)-1; i < j; i, j = i+1, j-1 {
+			resp.Chain[i], resp.Chain[j] = resp.Chain[j], resp.Chain[i]
 		}
 	}
 
