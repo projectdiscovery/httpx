@@ -874,7 +874,7 @@ type Result struct {
 }
 
 // JSON the result
-func (r Result) JSON(scanopts *scanOptions) string {
+func (r Result) JSON(scanopts *scanOptions) string { //nolint
 	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySize {
 		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySize]
 	}
