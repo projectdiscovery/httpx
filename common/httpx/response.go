@@ -23,6 +23,7 @@ type Response struct {
 	Chain         []ChainItem
 }
 
+// ChainItem request=>response
 type ChainItem struct {
 	Request    []byte
 	Response   []byte
