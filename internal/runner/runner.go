@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -171,6 +172,11 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputResponseTime = options.OutputResponseTime
 	scanopts.NoFallback = options.NoFallback
 	scanopts.TechDetect = options.TechDetect
+	if options.OutputExtractRegex != "" {
+		if scanopts.extractRegex, err = regexp.Compile(options.OutputExtractRegex); err != nil {
+			return nil, err
+		}
+	}
 
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
@@ -747,6 +753,14 @@ retry:
 				builder.WriteString(technologies)
 			}
 			builder.WriteRune(']')
+		}
+	}
+
+	// extract regex
+	if scanopts.extractRegex != nil {
+		matches := scanopts.extractRegex.FindAllString(string(resp.Data), -1)
+		if len(matches) > 0 {
+			builder.WriteString(" [" + strings.Join(matches, ",") + "]")
 		}
 	}
 
