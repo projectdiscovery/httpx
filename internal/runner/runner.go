@@ -2,7 +2,6 @@ package runner
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -13,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -172,6 +172,11 @@ func New(options *Options) (*Runner, error) {
 	scanopts.NoFallback = options.NoFallback
 	scanopts.TechDetect = options.TechDetect
 	scanopts.MaxResponseBodySize = options.MaxResponseBodySize
+	if options.OutputExtractRegex != "" {
+		if scanopts.extractRegex, err = regexp.Compile(options.OutputExtractRegex); err != nil {
+			return nil, err
+		}
+	}
 
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
@@ -547,9 +552,6 @@ retry:
 		req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
 	}
 
-	// Create a copy on the fly of the request body - ignore errors
-	bodyBytes, _ := req.BodyBytes()
-	req.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
 	requestDump, err := httputil.DumpRequestOut(req.Request, true)
 	if err != nil {
 		return Result{URL: URL, err: err}
@@ -748,6 +750,14 @@ retry:
 				builder.WriteString(technologies)
 			}
 			builder.WriteRune(']')
+		}
+	}
+
+	// extract regex
+	if scanopts.extractRegex != nil {
+		matches := scanopts.extractRegex.FindAllString(string(resp.Data), -1)
+		if len(matches) > 0 {
+			builder.WriteString(" [" + strings.Join(matches, ",") + "]")
 		}
 	}
 
