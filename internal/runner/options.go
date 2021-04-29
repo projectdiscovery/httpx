@@ -49,6 +49,8 @@ type scanOptions struct {
 	PreferHTTPS            bool
 	NoFallback             bool
 	TechDetect             bool
+	OutputExtractRegex     string
+	extractRegex           *regexp.Regexp
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -81,6 +83,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		PreferHTTPS:            s.PreferHTTPS,
 		NoFallback:             s.NoFallback,
 		TechDetect:             s.TechDetect,
+		OutputExtractRegex:     s.OutputExtractRegex,
 	}
 }
 
@@ -153,6 +156,7 @@ type Options struct {
 	protocol                  string
 	ShowStatistics            bool
 	RandomAgent               bool
+	OutputExtractRegex        string
 }
 
 // ParseOptions parses the command line options for application
@@ -216,6 +220,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.NoFallback, "no-fallback", false, "If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP")
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
 	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
+	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 
 	flag.Parse()
 
