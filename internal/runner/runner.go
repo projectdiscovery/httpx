@@ -2,7 +2,6 @@ package runner
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -13,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -173,6 +173,11 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputResponseTime = options.OutputResponseTime
 	scanopts.NoFallback = options.NoFallback
 	scanopts.TechDetect = options.TechDetect
+	if options.OutputExtractRegex != "" {
+		if scanopts.extractRegex, err = regexp.Compile(options.OutputExtractRegex); err != nil {
+			return nil, err
+		}
+	}
 
 	// output verb if more than one is specified
 	if len(scanopts.Methods) > 1 && !options.Silent {
@@ -522,6 +527,12 @@ retry:
 	URL := fmt.Sprintf("%s://%s", protocol, domain)
 	if port > 0 {
 		URL = fmt.Sprintf("%s://%s:%d", protocol, domain, port)
+	} else {
+		domainParse := strings.Split(domain, ":")
+		domain = domainParse[0]
+		if len(domainParse) > 1 {
+			port, _ = strconv.Atoi(domainParse[1])
+		}
 	}
 
 	if !scanopts.Unsafe {
@@ -542,9 +553,6 @@ retry:
 		req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
 	}
 
-	// Create a copy on the fly of the request body - ignore errors
-	bodyBytes, _ := req.BodyBytes()
-	req.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
 	requestDump, err := httputil.DumpRequestOut(req.Request, true)
 	if err != nil {
 		return Result{URL: URL, err: err}
@@ -654,9 +662,13 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", serverHeader))
 	}
 
-	var serverResponseRaw = ""
+	var serverResponseRaw string
+	var request string
+	var responseHeader string
 	if scanopts.ResponseInStdout {
 		serverResponseRaw = string(resp.Data)
+		request = string(requestDump)
+		responseHeader = resp.RawHeaders
 	}
 
 	// check for virtual host
@@ -690,7 +702,6 @@ retry:
 			builder.WriteString(" [http2]")
 		}
 	}
-
 	ip := hp.Dialer.GetDialedIP(domain)
 	if scanopts.OutputIP {
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
@@ -743,6 +754,14 @@ retry:
 		}
 	}
 
+	// extract regex
+	if scanopts.extractRegex != nil {
+		matches := scanopts.extractRegex.FindAllString(string(resp.Data), -1)
+		if len(matches) > 0 {
+			builder.WriteString(" [" + strings.Join(matches, ",") + "]")
+		}
+	}
+
 	// store responses in directory
 	if scanopts.StoreResponse {
 		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
@@ -792,8 +811,8 @@ retry:
 
 	return Result{
 		Timestamp:      time.Now(),
-		Request:        string(requestDump),
-		ResponseHeader: resp.RawHeaders,
+		Request:        request,
+		ResponseHeader: responseHeader,
 		Scheme:         parsed.Scheme,
 		Port:           finalPort,
 		Path:           finalPath,

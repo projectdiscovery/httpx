@@ -50,6 +50,8 @@ type scanOptions struct {
 	PreferHTTPS            bool
 	NoFallback             bool
 	TechDetect             bool
+	OutputExtractRegex     string
+	extractRegex           *regexp.Regexp
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -82,6 +84,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		PreferHTTPS:            s.PreferHTTPS,
 		NoFallback:             s.NoFallback,
 		TechDetect:             s.TechDetect,
+		OutputExtractRegex:     s.OutputExtractRegex,
 	}
 }
 
@@ -156,6 +159,7 @@ type Options struct {
 	RandomAgent               bool
 	Deny                      customlist.CustomList
 	Allow                     customlist.CustomList
+	OutputExtractRegex        string
 }
 
 // ParseOptions parses the command line options for application
@@ -221,6 +225,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
 	flag.Var(&options.Allow, "allow", "Whitelist ip/cidr")
 	flag.Var(&options.Deny, "deny", "Blacklist ip/cidr")
+	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 
 	flag.Parse()
 
