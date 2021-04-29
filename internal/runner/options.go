@@ -50,6 +50,8 @@ type scanOptions struct {
 	NoFallback             bool
 	TechDetect             bool
 	StoreChain             bool
+	OutputExtractRegex     string
+	extractRegex           *regexp.Regexp
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -83,6 +85,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		NoFallback:             s.NoFallback,
 		TechDetect:             s.TechDetect,
 		StoreChain:             s.StoreChain,
+		OutputExtractRegex:     s.OutputExtractRegex,
 	}
 }
 
@@ -156,6 +159,7 @@ type Options struct {
 	ShowStatistics            bool
 	RandomAgent               bool
 	StoreChain                bool
+	OutputExtractRegex        string
 }
 
 // ParseOptions parses the command line options for application
@@ -220,6 +224,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
 	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
 	flag.BoolVar(&options.StoreChain, "store-chain", false, "Save chain to file (default 'output')")
+	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 
 	flag.Parse()
 
