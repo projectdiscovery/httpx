@@ -10,16 +10,16 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.2
 	github.com/projectdiscovery/clistats v0.0.8
-	github.com/projectdiscovery/fastdialer v0.0.10-0.20210409124257-e036b0add198
+	github.com/projectdiscovery/fastdialer v0.0.10-0.20210429154054-50371bb58a8d
 	github.com/projectdiscovery/fdmax v0.0.3
 	github.com/projectdiscovery/gologger v1.1.4
 	github.com/projectdiscovery/hmap v0.0.1
-	github.com/projectdiscovery/mapcidr v0.0.5
+	github.com/projectdiscovery/mapcidr v0.0.6
 	github.com/projectdiscovery/rawhttp v0.0.6
 	github.com/projectdiscovery/retryablehttp-go v1.0.1
 	github.com/projectdiscovery/wappalyzergo v0.0.2
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.3.0
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
+	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	golang.org/x/text v0.3.6
 )
