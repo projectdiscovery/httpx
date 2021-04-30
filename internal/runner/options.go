@@ -226,8 +226,8 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.NoFallback, "no-fallback", false, "If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP")
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
 	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
-	flag.Var(&options.Allow, "allow", "Whitelist ip/cidr")
-	flag.Var(&options.Deny, "deny", "Blacklist ip/cidr")
+	flag.Var(&options.Allow, "allow", "Allowlist ip/cidr")
+	flag.Var(&options.Deny, "deny", "Denylist ip/cidr")
 	flag.IntVar(&options.MaxResponseBodySize, "max-response-body-size", math.MaxInt32, "Maximum response body size")
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 
