@@ -3,6 +3,8 @@ package httpx
 import (
 	"strings"
 	"time"
+
+	"github.com/projectdiscovery/httputil"
 )
 
 // Response contains the response to a server
@@ -20,7 +22,7 @@ type Response struct {
 	HTTP2         bool
 	Pipeline      bool
 	Duration      time.Duration
-	Chain         []ChainItem
+	Chain         []httputil.ChainItem
 }
 
 // ChainItem request=>response

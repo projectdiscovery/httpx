@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strings"
 	"time"
@@ -15,7 +14,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
-	"github.com/projectdiscovery/httpx/common/httputilz"
+	pdhttputil "github.com/projectdiscovery/httputil"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 	"golang.org/x/net/http2"
@@ -135,7 +134,7 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	resp.Headers = httpresp.Header.Clone()
 
 	// httputil.DumpResponse does not handle websockets
-	headers, rawResp, err := httputilz.DumpResponseHeadersAndRaw(httpresp)
+	headers, rawResp, err := pdhttputil.DumpResponseHeadersAndRaw(httpresp)
 	if err != nil {
 		return nil, err
 	}
@@ -183,25 +182,11 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 
 	// build the redirect flow by reverse cycling the response<-request chain
 	if !h.Options.Unsafe {
-		lastresp := httpresp
-		for lastresp != nil {
-			lastreq := lastresp.Request
-			lastreqDump, err := httputil.DumpRequestOut(req.Request, false)
-			if err != nil {
-				return nil, err
-			}
-			lastrespDump, err := httputil.DumpResponse(lastresp, false)
-			if err != nil {
-				return nil, err
-			}
-			resp.Chain = append(resp.Chain, ChainItem{Request: lastreqDump, Response: lastrespDump, StatusCode: lastresp.StatusCode})
-			// process next
-			lastresp = lastreq.Response
+		chain, err := pdhttputil.GetChain(httpresp)
+		if err != nil {
+			return nil, err
 		}
-		// reverse the slice in order to have the chain in progressive order
-		for i, j := 0, len(resp.Chain)-1; i < j; i, j = i+1, j-1 {
-			resp.Chain[i], resp.Chain[j] = resp.Chain[j], resp.Chain[i]
-		}
+		resp.Chain = chain
 	}
 
 	resp.Duration = time.Since(timeStart)

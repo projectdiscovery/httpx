@@ -25,6 +25,7 @@ import (
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/hmap/store/hybrid"
+	pdhttputil "github.com/projectdiscovery/httputil"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httputilz"
@@ -134,7 +135,7 @@ func New(options *Options) (*Runner, error) {
 		}
 	}
 	if strings.EqualFold(options.Methods, "all") {
-		scanopts.Methods = httputilz.AllHTTPMethods()
+		scanopts.Methods = pdhttputil.AllHTTPMethods()
 	} else if options.Methods != "" {
 		scanopts.Methods = append(scanopts.Methods, stringz.SplitByCharAndTrimSpace(options.Methods, ",")...)
 	}
@@ -757,8 +758,8 @@ retry:
 			builder.WriteRune(']')
 		}
 	}
-  
-  // extract regex
+
+	// extract regex
 	if scanopts.extractRegex != nil {
 		matches := scanopts.extractRegex.FindAllString(string(resp.Data), -1)
 		if len(matches) > 0 {
