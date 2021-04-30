@@ -2,6 +2,7 @@ package runner
 
 import (
 	"flag"
+	"math"
 	"os"
 	"regexp"
 
@@ -50,6 +51,7 @@ type scanOptions struct {
 	PreferHTTPS            bool
 	NoFallback             bool
 	TechDetect             bool
+	MaxResponseBodySize    int
 	OutputExtractRegex     string
 	extractRegex           *regexp.Regexp
 }
@@ -159,6 +161,7 @@ type Options struct {
 	RandomAgent               bool
 	Deny                      customlist.CustomList
 	Allow                     customlist.CustomList
+	MaxResponseBodySize       int
 	OutputExtractRegex        string
 }
 
@@ -225,6 +228,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
 	flag.Var(&options.Allow, "allow", "Whitelist ip/cidr")
 	flag.Var(&options.Deny, "deny", "Blacklist ip/cidr")
+	flag.IntVar(&options.MaxResponseBodySize, "max-response-body-size", math.MaxInt32, "Maximum response body size")
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 
 	flag.Parse()
