@@ -29,9 +29,9 @@ import (
 	"github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/httpx/common/httpx"
-	"github.com/projectdiscovery/httpx/common/iputil"
 	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
+	"github.com/projectdiscovery/iputil"
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/projectdiscovery/rawhttp"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
@@ -489,7 +489,7 @@ func targets(target string) chan string {
 		}
 
 		// test if the target is a cidr
-		if iputil.IsCidr(target) {
+		if iputil.IsCIDR(target) {
 			cidrIps, err := mapcidr.IPAddresses(target)
 			if err != nil {
 				return
