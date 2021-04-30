@@ -2,6 +2,7 @@ package runner
 
 import (
 	"flag"
+	"math"
 	"os"
 	"regexp"
 
@@ -50,6 +51,7 @@ type scanOptions struct {
 	NoFallback             bool
 	TechDetect             bool
 	StoreChain             bool
+	MaxResponseBodySize    int
 	OutputExtractRegex     string
 	extractRegex           *regexp.Regexp
 }
@@ -159,6 +161,7 @@ type Options struct {
 	ShowStatistics            bool
 	RandomAgent               bool
 	StoreChain                bool
+	MaxResponseBodySize       int
 	OutputExtractRegex        string
 }
 
@@ -224,6 +227,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
 	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
 	flag.BoolVar(&options.StoreChain, "store-chain", false, "Save chain to file (default 'output')")
+	flag.IntVar(&options.MaxResponseBodySize, "max-response-body-size", math.MaxInt32, "Maximum response body size")
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 
 	flag.Parse()
