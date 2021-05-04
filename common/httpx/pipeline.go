@@ -55,7 +55,7 @@ func (h *HTTPX) SupportPipeline(protocol, method, host string, port int) bool {
 	}
 
 	// expect at least 2 replies
-	return gotReplies >= 2
+	return gotReplies >= 2 //nolint
 }
 
 func pipelineDial(protocol, addr string) (net.Conn, error) {
