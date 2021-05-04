@@ -10,6 +10,7 @@ import (
 	"github.com/projectdiscovery/gologger/formatter"
 	"github.com/projectdiscovery/gologger/levels"
 	"github.com/projectdiscovery/httpx/common/customheader"
+	"github.com/projectdiscovery/httpx/common/customlist"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/stringz"
@@ -91,7 +92,7 @@ func (s *scanOptions) Clone() *scanOptions {
 	}
 }
 
-// Options contains configuration options for chaos client.
+// Options contains configuration options for httpx.
 type Options struct {
 	CustomHeaders             customheader.CustomHeaders
 	CustomPorts               customport.CustomPorts
@@ -161,6 +162,8 @@ type Options struct {
 	ShowStatistics            bool
 	RandomAgent               bool
 	StoreChain                bool
+	Deny                      customlist.CustomList
+	Allow                     customlist.CustomList
 	MaxResponseBodySize       int
 	OutputExtractRegex        string
 }
@@ -227,6 +230,8 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
 	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
 	flag.BoolVar(&options.StoreChain, "store-chain", false, "Save chain to file (default 'output')")
+	flag.Var(&options.Allow, "allow", "Allowlist ip/cidr")
+	flag.Var(&options.Deny, "deny", "Denylist ip/cidr")
 	flag.IntVar(&options.MaxResponseBodySize, "max-response-body-size", math.MaxInt32, "Maximum response body size")
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 
