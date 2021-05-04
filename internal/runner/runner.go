@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -568,7 +569,7 @@ retry:
 		if err != nil {
 			return Result{URL: URL, err: err}
 		}
-  }
+	}
 
 	resp, err := hp.Do(req)
 	if err != nil {
