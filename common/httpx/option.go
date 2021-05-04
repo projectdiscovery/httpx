@@ -30,15 +30,18 @@ type Options struct {
 	VHostIgnoreNumberOfWords bool
 	VHostIgnoreNumberOfLines bool
 	VHostStripHTML           bool
+	Allow                    []string
+	Deny                     []string
 }
 
 // DefaultOptions contains the default options
 var DefaultOptions = Options{
-	Threads:  25,
-	Timeout:  30 * time.Second,
-	RetryMax: 5,
-	Unsafe:   false,
-	CdnCheck: true,
+	RandomAgent: true,
+	Threads:     25,
+	Timeout:     30 * time.Second,
+	RetryMax:    5,
+	Unsafe:      false,
+	CdnCheck:    true,
 	// VHOSTs options
 	VHostIgnoreStatusCode:    false,
 	VHostIgnoreContentLength: true,
