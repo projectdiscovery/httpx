@@ -1,6 +1,6 @@
 module github.com/projectdiscovery/httpx
 
-go 1.16
+go 1.14
 
 require (
 	github.com/corpix/uarand v0.1.1
@@ -15,7 +15,7 @@ require (
 	github.com/projectdiscovery/fdmax v0.0.3
 	github.com/projectdiscovery/gologger v1.1.4
 	github.com/projectdiscovery/hmap v0.0.1
-	github.com/projectdiscovery/httputil v0.0.0-20210504140916-9b13c65cf53a
+	github.com/projectdiscovery/httputil v0.0.0-20210505172308-765446bb8504
 	github.com/projectdiscovery/mapcidr v0.0.6
 	github.com/projectdiscovery/rawhttp v0.0.6
 	github.com/projectdiscovery/retryablehttp-go v1.0.1
