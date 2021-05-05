@@ -2,13 +2,16 @@ package fileutil
 
 import (
 	"bufio"
+	"errors"
 	"os"
+	"path/filepath"
+	"regexp"
 )
 
 // FileExists checks if a file exists and is not a directory
 func FileExists(filename string) bool {
 	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
+	if os.IsNotExist(err) || err != nil || info == nil {
 		return false
 	}
 	return !info.IsDir()
@@ -48,4 +51,22 @@ func LoadFile(filename string) (lines []string) {
 	}
 
 	return
+}
+
+// ListFilesWithPattern in a root folder
+func ListFilesWithPattern(rootpattern string) ([]string, error) {
+	files, err := filepath.Glob(rootpattern)
+	if err != nil {
+		return nil, err
+	}
+	if len(files) == 0 {
+		return nil, errors.New("no files found")
+	}
+	return files, err
+}
+
+// FileNameIsGlob check if the filanem is a pattern
+func FileNameIsGlob(pattern string) bool {
+	_, err := regexp.Compile(pattern)
+	return err == nil
 }
