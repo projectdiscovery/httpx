@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -554,9 +555,20 @@ retry:
 		req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
 	}
 
-	requestDump, err := httputil.DumpRequestOut(req.Request, true)
-	if err != nil {
-		return Result{URL: URL, err: err}
+	var requestDump []byte
+	if scanopts.Unsafe {
+		requestDump, err = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), req.RequestURI, req.Header, req.Body, rawhttp.DefaultOptions)
+		if err != nil {
+			return Result{URL: URL, err: err}
+		}
+	} else {
+		// Create a copy on the fly of the request body - ignore errors
+		bodyBytes, _ := req.BodyBytes()
+		req.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+		requestDump, err = httputil.DumpRequestOut(req.Request, true)
+		if err != nil {
+			return Result{URL: URL, err: err}
+		}
 	}
 
 	resp, err := hp.Do(req)
