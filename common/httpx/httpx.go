@@ -14,7 +14,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
-	"github.com/projectdiscovery/httpx/common/httputilz"
+	pdhttputil "github.com/projectdiscovery/httputil"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 	"golang.org/x/net/http2"
@@ -38,6 +38,8 @@ func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
 	fastdialerOpts := fastdialer.DefaultOptions
 	fastdialerOpts.EnableFallback = true
+	fastdialerOpts.Deny = options.Deny
+	fastdialerOpts.Allow = options.Allow
 	dialer, err := fastdialer.NewDialer(fastdialerOpts)
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)
@@ -51,7 +53,8 @@ func New(options *Options) (*HTTPX, error) {
 	retryablehttpOptions.RetryMax = httpx.Options.RetryMax
 
 	var redirectFunc = func(_ *http.Request, _ []*http.Request) error {
-		return http.ErrUseLastResponse // Tell the http client to not follow redirect
+		// Tell the http client to not follow redirect
+		return http.ErrUseLastResponse
 	}
 
 	if httpx.Options.FollowRedirects {
@@ -61,12 +64,13 @@ func New(options *Options) (*HTTPX, error) {
 
 	if httpx.Options.FollowHostRedirects {
 		// Only follow redirects on the same host
-		redirectFunc = func(redirectedRequest *http.Request, previousRequest []*http.Request) error { // timo
+		redirectFunc = func(redirectedRequest *http.Request, previousRequest []*http.Request) error {
 			// Check if we get a redirect to a differen host
 			var newHost = redirectedRequest.URL.Host
 			var oldHost = previousRequest[0].URL.Host
 			if newHost != oldHost {
-				return http.ErrUseLastResponse // Tell the http client to not follow redirect
+				// Tell the http client to not follow redirect
+				return http.ErrUseLastResponse
 			}
 			return nil
 		}
@@ -132,7 +136,7 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	resp.Headers = httpresp.Header.Clone()
 
 	// httputil.DumpResponse does not handle websockets
-	headers, rawResp, err := httputilz.DumpResponseHeadersAndRaw(httpresp)
+	headers, rawResp, err := pdhttputil.DumpResponseHeadersAndRaw(httpresp)
 	if err != nil {
 		return nil, err
 	}
@@ -177,6 +181,16 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	}
 
 	resp.CSPData = h.CSPGrab(httpresp)
+
+	// build the redirect flow by reverse cycling the response<-request chain
+	if !h.Options.Unsafe {
+		chain, err := pdhttputil.GetChain(httpresp)
+		if err != nil {
+			return nil, err
+		}
+		resp.Chain = chain
+	}
+
 	resp.Duration = time.Since(timeStart)
 
 	return &resp, nil

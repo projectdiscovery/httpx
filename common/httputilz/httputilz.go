@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
@@ -22,27 +21,6 @@ func DumpRequest(req *retryablehttp.Request) (string, error) {
 	dump, err := httputil.DumpRequestOut(req.Request, true)
 
 	return string(dump), err
-}
-
-// DumpResponseHeadersAndRaw returns http headers and response as strings
-func DumpResponseHeadersAndRaw(resp *http.Response) (header, response string, err error) {
-	// httputil.DumpResponse does not work with websockets
-	if resp.StatusCode == http.StatusContinue {
-		raw := resp.Status + "\n"
-		for h, v := range resp.Header {
-			raw += fmt.Sprintf("%s: %s\n", h, v)
-		}
-		return raw, raw, nil
-	}
-	headers, err := httputil.DumpResponse(resp, false)
-	if err != nil {
-		return "", "", err
-	}
-	fullResp, err := httputil.DumpResponse(resp, true)
-	if err != nil {
-		return "", "", err
-	}
-	return string(headers), string(fullResp), err
 }
 
 // ParseRequest from raw string

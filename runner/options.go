@@ -2,6 +2,7 @@ package runner
 
 import (
 	"flag"
+	"math"
 	"os"
 	"regexp"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/projectdiscovery/gologger/formatter"
 	"github.com/projectdiscovery/gologger/levels"
 	"github.com/projectdiscovery/httpx/common/customheader"
+	"github.com/projectdiscovery/httpx/common/customlist"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/stringz"
@@ -35,6 +37,7 @@ type scanOptions struct {
 	OutputWithNoColor      bool
 	OutputMethod           bool
 	ResponseInStdout       bool
+	ChainInStdout          bool
 	TLSProbe               bool
 	CSPProbe               bool
 	VHostInput             bool
@@ -49,6 +52,10 @@ type scanOptions struct {
 	PreferHTTPS            bool
 	NoFallback             bool
 	TechDetect             bool
+	StoreChain             bool
+	MaxResponseBodySize    int
+	OutputExtractRegex     string
+	extractRegex           *regexp.Regexp
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -68,6 +75,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		OutputWithNoColor:      s.OutputWithNoColor,
 		OutputMethod:           s.OutputMethod,
 		ResponseInStdout:       s.ResponseInStdout,
+		ChainInStdout:          s.ChainInStdout,
 		TLSProbe:               s.TLSProbe,
 		CSPProbe:               s.CSPProbe,
 		OutputContentType:      s.OutputContentType,
@@ -81,10 +89,12 @@ func (s *scanOptions) Clone() *scanOptions {
 		PreferHTTPS:            s.PreferHTTPS,
 		NoFallback:             s.NoFallback,
 		TechDetect:             s.TechDetect,
+		StoreChain:             s.StoreChain,
+		OutputExtractRegex:     s.OutputExtractRegex,
 	}
 }
 
-// Options contains configuration options for chaos client.
+// Options contains configuration options for httpx.
 type Options struct {
 	CustomHeaders             customheader.CustomHeaders
 	CustomPorts               customport.CustomPorts
@@ -134,6 +144,7 @@ type Options struct {
 	OutputServerHeader        bool
 	OutputWebSocket           bool
 	responseInStdout          bool
+	chainInStdout             bool
 	FollowHostRedirects       bool
 	OutputMethod              bool
 	TLSProbe                  bool
@@ -153,6 +164,11 @@ type Options struct {
 	protocol                  string
 	ShowStatistics            bool
 	RandomAgent               bool
+	StoreChain                bool
+	Deny                      customlist.CustomList
+	Allow                     customlist.CustomList
+	MaxResponseBodySize       int
+	OutputExtractRegex        string
 }
 
 // ParseOptions parses the command line options for application
@@ -190,6 +206,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.OutputWebSocket, "websocket", false, "Prints out if the server exposes a websocket")
 	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Show Raw HTTP Response In Output (-json only) (deprecated)")
 	flag.BoolVar(&options.responseInStdout, "include-response", false, "Show Raw HTTP Response In Output (-json only)")
+	flag.BoolVar(&options.chainInStdout, "include-chain", false, "Show Raw HTTP Chain In Output (-json only)")
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
 	flag.BoolVar(&options.CSPProbe, "csp-probe", false, "Send HTTP probes on the extracted CSP domains")
 	flag.StringVar(&options.RequestURI, "path", "", "Request path/file (example '/api')")
@@ -216,6 +233,11 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.NoFallback, "no-fallback", false, "If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP")
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
 	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
+	flag.BoolVar(&options.StoreChain, "store-chain", false, "Save chain to file (default 'output')")
+	flag.Var(&options.Allow, "allow", "Allowlist ip/cidr")
+	flag.Var(&options.Deny, "deny", "Denylist ip/cidr")
+	flag.IntVar(&options.MaxResponseBodySize, "max-response-body-size", math.MaxInt32, "Maximum response body size")
+	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 
 	flag.Parse()
 
@@ -235,7 +257,7 @@ func ParseOptions() *Options {
 }
 
 func (options *Options) validateOptions() {
-	if options.InputFile != "" && !fileutil.FileExists(options.InputFile) {
+	if options.InputFile != "" && !fileutil.FileNameIsGlob(options.InputFile) && !fileutil.FileExists(options.InputFile) {
 		gologger.Fatal().Msgf("File %s does not exist!\n", options.InputFile)
 	}
 
