@@ -37,6 +37,7 @@ type scanOptions struct {
 	OutputWithNoColor      bool
 	OutputMethod           bool
 	ResponseInStdout       bool
+	ChainInStdout          bool
 	TLSProbe               bool
 	CSPProbe               bool
 	VHostInput             bool
@@ -74,6 +75,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		OutputWithNoColor:      s.OutputWithNoColor,
 		OutputMethod:           s.OutputMethod,
 		ResponseInStdout:       s.ResponseInStdout,
+		ChainInStdout:          s.ChainInStdout,
 		TLSProbe:               s.TLSProbe,
 		CSPProbe:               s.CSPProbe,
 		OutputContentType:      s.OutputContentType,
@@ -142,6 +144,7 @@ type Options struct {
 	OutputServerHeader        bool
 	OutputWebSocket           bool
 	responseInStdout          bool
+	chainInStdout             bool
 	FollowHostRedirects       bool
 	OutputMethod              bool
 	TLSProbe                  bool
@@ -203,6 +206,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.OutputWebSocket, "websocket", false, "Prints out if the server exposes a websocket")
 	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Show Raw HTTP Response In Output (-json only) (deprecated)")
 	flag.BoolVar(&options.responseInStdout, "include-response", false, "Show Raw HTTP Response In Output (-json only)")
+	flag.BoolVar(&options.chainInStdout, "include-chain", false, "Show Raw HTTP Chain In Output (-json only)")
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
 	flag.BoolVar(&options.CSPProbe, "csp-probe", false, "Send HTTP probes on the extracted CSP domains")
 	flag.StringVar(&options.RequestURI, "path", "", "Request path/file (example '/api')")

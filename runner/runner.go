@@ -156,6 +156,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
+	scanopts.ChainInStdout = options.chainInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
 	scanopts.TLSProbe = options.TLSProbe
 	scanopts.CSPProbe = options.CSPProbe
@@ -821,7 +822,7 @@ retry:
 		if writeErr != nil {
 			gologger.Warning().Msgf("Could not write response, at path '%s', to disk: %s", responsePath, writeErr)
 		}
-		if scanopts.StoreChain {
+		if scanopts.StoreChain && resp.HasChain() {
 			domainFile = strings.ReplaceAll(domainFile, ".txt", ".chain.txt")
 			responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 			writeErr := ioutil.WriteFile(responsePath, []byte(resp.GetChain()), 0644)
@@ -857,6 +858,15 @@ retry:
 	_, _ = hasher.Write([]byte(resp.RawHeaders))
 	headersSha := hex.EncodeToString(hasher.Sum(nil))
 
+	var chainStatusCodes []int
+	if resp.HasChain() {
+		chainStatusCodes = append(chainStatusCodes, resp.GetChainStatusCodes()...)
+	}
+	var chainItems []httpx.ChainItem
+	if scanopts.ChainInStdout && resp.HasChain() {
+		chainItems = append(chainItems, resp.GetChainAsSlice()...)
+	}
+
 	return Result{
 		Timestamp:        time.Now(),
 		Request:          request,
@@ -869,8 +879,8 @@ retry:
 		raw:              resp.Raw,
 		URL:              fullURL,
 		ContentLength:    resp.ContentLength,
-		ChainStatusCodes: resp.GetChainStatusCodes(),
-		Chain:            resp.GetChain(),
+		ChainStatusCodes: chainStatusCodes,
+		Chain:            chainItems,
 		StatusCode:       resp.StatusCode,
 		Location:         resp.GetHeaderPart("Location", ";"),
 		ContentType:      resp.GetHeaderPart("Content-Type", ";"),
@@ -912,24 +922,24 @@ type Result struct {
 	Title            string `json:"title,omitempty"`
 	str              string
 	err              error
-	WebServer        string         `json:"webserver,omitempty"`
-	ResponseBody     string         `json:"response-body,omitempty"`
-	ContentType      string         `json:"content-type,omitempty"`
-	Method           string         `json:"method,omitempty"`
-	Host             string         `json:"host,omitempty"`
-	ContentLength    int            `json:"content-length,omitempty"`
-	ChainStatusCodes []int          `json:"chain-status-codes,omitempty"`
-	StatusCode       int            `json:"status-code,omitempty"`
-	TLSData          *httpx.TLSData `json:"tls-grab,omitempty"`
-	CSPData          *httpx.CSPData `json:"csp,omitempty"`
-	VHost            bool           `json:"vhost,omitempty"`
-	WebSocket        bool           `json:"websocket,omitempty"`
-	Pipeline         bool           `json:"pipeline,omitempty"`
-	HTTP2            bool           `json:"http2,omitempty"`
-	CDN              bool           `json:"cdn,omitempty"`
-	ResponseTime     string         `json:"response-time,omitempty"`
-	Technologies     []string       `json:"technologies,omitempty"`
-	Chain            string         `json:"chain,omitempty"`
+	WebServer        string            `json:"webserver,omitempty"`
+	ResponseBody     string            `json:"response-body,omitempty"`
+	ContentType      string            `json:"content-type,omitempty"`
+	Method           string            `json:"method,omitempty"`
+	Host             string            `json:"host,omitempty"`
+	ContentLength    int               `json:"content-length,omitempty"`
+	ChainStatusCodes []int             `json:"chain-status-codes,omitempty"`
+	StatusCode       int               `json:"status-code,omitempty"`
+	TLSData          *httpx.TLSData    `json:"tls-grab,omitempty"`
+	CSPData          *httpx.CSPData    `json:"csp,omitempty"`
+	VHost            bool              `json:"vhost,omitempty"`
+	WebSocket        bool              `json:"websocket,omitempty"`
+	Pipeline         bool              `json:"pipeline,omitempty"`
+	HTTP2            bool              `json:"http2,omitempty"`
+	CDN              bool              `json:"cdn,omitempty"`
+	ResponseTime     string            `json:"response-time,omitempty"`
+	Technologies     []string          `json:"technologies,omitempty"`
+	Chain            []httpx.ChainItem `json:"chain,omitempty"`
 }
 
 // JSON the result

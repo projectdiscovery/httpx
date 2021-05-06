@@ -27,9 +27,9 @@ type Response struct {
 
 // ChainItem request=>response
 type ChainItem struct {
-	Request    []byte
-	Response   []byte
-	StatusCode int
+	Request    string `json:"request,omitempty"`
+	Response   string `json:"response,omitempty"`
+	StatusCode int    `json:"status_code,omitempty"`
 }
 
 // GetHeader value
@@ -70,4 +70,21 @@ func (r *Response) GetChain() string {
 		respchain.Write(chainItem.Response)
 	}
 	return respchain.String()
+}
+
+// GetChain dump the whole redirect chain
+func (r *Response) GetChainAsSlice() (chain []ChainItem) {
+	for _, chainItem := range r.Chain {
+		chain = append(chain, ChainItem{
+			Request:    string(chainItem.Request),
+			Response:   string(chainItem.Response),
+			StatusCode: chainItem.StatusCode,
+		})
+	}
+	return
+}
+
+// HasChain redirects
+func (r *Response) HasChain() bool {
+	return len(r.Chain) > 1
 }
