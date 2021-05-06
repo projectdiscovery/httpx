@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -30,9 +31,9 @@ import (
 	"github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/httpx/common/httpx"
-	"github.com/projectdiscovery/httpx/common/iputil"
 	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
+	"github.com/projectdiscovery/iputil"
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/projectdiscovery/rawhttp"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
@@ -206,24 +207,6 @@ func New(options *Options) (*Runner, error) {
 }
 
 func (r *Runner) prepareInput() {
-	var (
-		finput  *os.File
-		scanner *bufio.Scanner
-		err     error
-	)
-	// check if file has been provided
-	if fileutil.FileExists(r.options.InputFile) {
-		finput, err = os.Open(r.options.InputFile)
-		if err != nil {
-			gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
-		}
-		scanner = bufio.NewScanner(finput)
-	} else if fileutil.HasStdin() {
-		scanner = bufio.NewScanner(os.Stdin)
-	} else {
-		gologger.Fatal().Msgf("No input provided")
-	}
-
 	// Check if the user requested multiple paths
 	if fileutil.FileExists(r.options.RequestURIs) {
 		r.options.requestURIs = fileutil.LoadFile(r.options.RequestURIs)
@@ -231,27 +214,40 @@ func (r *Runner) prepareInput() {
 		r.options.requestURIs = strings.Split(r.options.RequestURIs, ",")
 	}
 
-	numTargets := 0
-	for scanner.Scan() {
-		target := strings.TrimSpace(scanner.Text())
-		// Used just to get the exact number of targets
-		if _, ok := r.hm.Get(target); ok {
-			continue
-		}
-
-		if len(r.options.requestURIs) > 0 {
-			numTargets += len(r.options.requestURIs)
-		} else {
-			numTargets++
-		}
-		r.hm.Set(target, nil) //nolint
-	}
-
-	if r.options.InputFile != "" {
-		err := finput.Close()
+	// check if file has been provided
+	var numTargets int
+	if fileutil.FileExists(r.options.InputFile) {
+		finput, err := os.Open(r.options.InputFile)
 		if err != nil {
-			gologger.Fatal().Msgf("Could close input file '%s': %s\n", r.options.InputFile, err)
+			gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
 		}
+		numTargets, err = r.loadAndCloseFile(finput)
+		if err != nil {
+			gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
+		}
+	} else if r.options.InputFile != "" {
+		files, err := fileutil.ListFilesWithPattern(r.options.InputFile)
+		if err != nil {
+			gologger.Fatal().Msgf("No input provided: %s", err)
+		}
+		for _, file := range files {
+			finput, err := os.Open(file)
+			if err != nil {
+				gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
+			}
+			numTargetsFile, err := r.loadAndCloseFile(finput)
+			if err != nil {
+				gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
+			}
+			numTargets += numTargetsFile
+		}
+	}
+	if fileutil.HasStdin() {
+		numTargetsStdin, err := r.loadAndCloseFile(os.Stdin)
+		if err != nil {
+			gologger.Fatal().Msgf("Could read input from stdin: %s\n", err)
+		}
+		numTargets += numTargetsStdin
 	}
 
 	if r.options.ShowStatistics {
@@ -270,6 +266,26 @@ func (r *Runner) prepareInput() {
 			gologger.Warning().Msgf("Could not create statistic: %s\n", err)
 		}
 	}
+}
+
+func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
+	scanner := bufio.NewScanner(finput)
+	for scanner.Scan() {
+		target := strings.TrimSpace(scanner.Text())
+		// Used just to get the exact number of targets
+		if _, ok := r.hm.Get(target); ok {
+			continue
+		}
+
+		if len(r.options.requestURIs) > 0 {
+			numTargets += len(r.options.requestURIs)
+		} else {
+			numTargets++
+		}
+		r.hm.Set(target, nil) //nolint
+	}
+	err = finput.Close()
+	return numTargets, err
 }
 
 func makePrintCallback() func(stats clistats.StatisticsClient) {
@@ -494,7 +510,7 @@ func targets(target string) chan string {
 		}
 
 		// test if the target is a cidr
-		if iputil.IsCidr(target) {
+		if iputil.IsCIDR(target) {
 			cidrIps, err := mapcidr.IPAddresses(target)
 			if err != nil {
 				return
@@ -556,9 +572,20 @@ retry:
 		req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
 	}
 
-	requestDump, err := httputil.DumpRequestOut(req.Request, true)
-	if err != nil {
-		return Result{URL: URL, err: err}
+	var requestDump []byte
+	if scanopts.Unsafe {
+		requestDump, err = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), req.RequestURI, req.Header, req.Body, rawhttp.DefaultOptions)
+		if err != nil {
+			return Result{URL: URL, err: err}
+		}
+	} else {
+		// Create a copy on the fly of the request body - ignore errors
+		bodyBytes, _ := req.BodyBytes()
+		req.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+		requestDump, err = httputil.DumpRequestOut(req.Request, true)
+		if err != nil {
+			return Result{URL: URL, err: err}
+		}
 	}
 
 	resp, err := hp.Do(req)

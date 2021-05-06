@@ -253,7 +253,7 @@ func ParseOptions() *Options {
 }
 
 func (options *Options) validateOptions() {
-	if options.InputFile != "" && !fileutil.FileExists(options.InputFile) {
+	if options.InputFile != "" && !fileutil.FileNameIsGlob(options.InputFile) && !fileutil.FileExists(options.InputFile) {
 		gologger.Fatal().Msgf("File %s does not exist!\n", options.InputFile)
 	}
 
