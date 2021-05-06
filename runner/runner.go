@@ -26,6 +26,7 @@ import (
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/hmap/store/hybrid"
+	pdhttputil "github.com/projectdiscovery/httputil"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	"github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httputilz"
@@ -137,7 +138,7 @@ func New(options *Options) (*Runner, error) {
 		}
 	}
 	if strings.EqualFold(options.Methods, "all") {
-		scanopts.Methods = httputilz.AllHTTPMethods()
+		scanopts.Methods = pdhttputil.AllHTTPMethods()
 	} else if options.Methods != "" {
 		scanopts.Methods = append(scanopts.Methods, stringz.SplitByCharAndTrimSpace(options.Methods, ",")...)
 	}
@@ -155,6 +156,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
+	scanopts.ChainInStdout = options.chainInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
 	scanopts.TLSProbe = options.TLSProbe
 	scanopts.CSPProbe = options.CSPProbe
@@ -174,6 +176,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputResponseTime = options.OutputResponseTime
 	scanopts.NoFallback = options.NoFallback
 	scanopts.TechDetect = options.TechDetect
+	scanopts.StoreChain = options.StoreChain
 	scanopts.MaxResponseBodySize = options.MaxResponseBodySize
 	if options.OutputExtractRegex != "" {
 		if scanopts.extractRegex, err = regexp.Compile(options.OutputExtractRegex); err != nil {
@@ -616,20 +619,25 @@ retry:
 
 	if scanopts.OutputStatusCode {
 		builder.WriteString(" [")
-		if !scanopts.OutputWithNoColor {
-			// Color the status code based on its value
-			switch {
-			case resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices:
-				builder.WriteString(aurora.Green(strconv.Itoa(resp.StatusCode)).String())
-			case resp.StatusCode >= http.StatusMultipleChoices && resp.StatusCode < http.StatusBadRequest:
-				builder.WriteString(aurora.Yellow(strconv.Itoa(resp.StatusCode)).String())
-			case resp.StatusCode >= http.StatusBadRequest && resp.StatusCode < http.StatusInternalServerError:
-				builder.WriteString(aurora.Red(strconv.Itoa(resp.StatusCode)).String())
-			case resp.StatusCode > http.StatusInternalServerError:
-				builder.WriteString(aurora.Bold(aurora.Yellow(strconv.Itoa(resp.StatusCode))).String())
+		for i, chainItem := range resp.Chain {
+			if !scanopts.OutputWithNoColor {
+				// Color the status code based on its value
+				switch {
+				case chainItem.StatusCode >= http.StatusOK && chainItem.StatusCode < http.StatusMultipleChoices:
+					builder.WriteString(aurora.Green(strconv.Itoa(chainItem.StatusCode)).String())
+				case chainItem.StatusCode >= http.StatusMultipleChoices && chainItem.StatusCode < http.StatusBadRequest:
+					builder.WriteString(aurora.Yellow(strconv.Itoa(chainItem.StatusCode)).String())
+				case chainItem.StatusCode >= http.StatusBadRequest && chainItem.StatusCode < http.StatusInternalServerError:
+					builder.WriteString(aurora.Red(strconv.Itoa(chainItem.StatusCode)).String())
+				case resp.StatusCode > http.StatusInternalServerError:
+					builder.WriteString(aurora.Bold(aurora.Yellow(strconv.Itoa(chainItem.StatusCode))).String())
+				}
+			} else {
+				builder.WriteString(strconv.Itoa(chainItem.StatusCode))
 			}
-		} else {
-			builder.WriteString(strconv.Itoa(resp.StatusCode))
+			if i != len(resp.Chain)-1 {
+				builder.WriteRune(',')
+			}
 		}
 		builder.WriteRune(']')
 	}
@@ -790,8 +798,8 @@ retry:
 		}
 	}
 
-	// store responses in directory
-	if scanopts.StoreResponse {
+	// store responses or chain in directory
+	if scanopts.StoreResponse || scanopts.StoreChain {
 		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
 		if port > 0 {
 			domainFile = fmt.Sprintf("%s.%d%s", domain, port, scanopts.RequestURI)
@@ -804,6 +812,7 @@ retry:
 		}
 
 		domainFile = strings.ReplaceAll(domainFile, "/", "_") + ".txt"
+		// store response
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 		respRaw := resp.Raw
 		if len(respRaw) > scanopts.MaxResponseBodySize {
@@ -812,6 +821,14 @@ retry:
 		writeErr := ioutil.WriteFile(responsePath, []byte(respRaw), 0644)
 		if writeErr != nil {
 			gologger.Warning().Msgf("Could not write response, at path '%s', to disk: %s", responsePath, writeErr)
+		}
+		if scanopts.StoreChain && resp.HasChain() {
+			domainFile = strings.ReplaceAll(domainFile, ".txt", ".chain.txt")
+			responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
+			writeErr := ioutil.WriteFile(responsePath, []byte(resp.GetChain()), 0644)
+			if writeErr != nil {
+				gologger.Warning().Msgf("Could not write response, at path '%s', to disk: %s", responsePath, writeErr)
+			}
 		}
 	}
 
@@ -841,75 +858,88 @@ retry:
 	_, _ = hasher.Write([]byte(resp.RawHeaders))
 	headersSha := hex.EncodeToString(hasher.Sum(nil))
 
+	var chainStatusCodes []int
+	if resp.HasChain() {
+		chainStatusCodes = append(chainStatusCodes, resp.GetChainStatusCodes()...)
+	}
+	var chainItems []httpx.ChainItem
+	if scanopts.ChainInStdout && resp.HasChain() {
+		chainItems = append(chainItems, resp.GetChainAsSlice()...)
+	}
+
 	return Result{
-		Timestamp:      time.Now(),
-		Request:        request,
-		ResponseHeader: responseHeader,
-		Scheme:         parsed.Scheme,
-		Port:           finalPort,
-		Path:           finalPath,
-		BodySHA256:     bodySha,
-		HeaderSHA256:   headersSha,
-		raw:            resp.Raw,
-		URL:            fullURL,
-		ContentLength:  resp.ContentLength,
-		StatusCode:     resp.StatusCode,
-		Location:       resp.GetHeaderPart("Location", ";"),
-		ContentType:    resp.GetHeaderPart("Content-Type", ";"),
-		Title:          title,
-		str:            builder.String(),
-		VHost:          isvhost,
-		WebServer:      serverHeader,
-		ResponseBody:   serverResponseRaw,
-		WebSocket:      isWebSocket,
-		TLSData:        resp.TLSData,
-		CSPData:        resp.CSPData,
-		Pipeline:       pipeline,
-		HTTP2:          http2,
-		Method:         method,
-		Host:           ip,
-		A:              ips,
-		CNAMEs:         cnames,
-		CDN:            isCDN,
-		ResponseTime:   resp.Duration.String(),
-		Technologies:   technologies,
+		Timestamp:        time.Now(),
+		Request:          request,
+		ResponseHeader:   responseHeader,
+		Scheme:           parsed.Scheme,
+		Port:             finalPort,
+		Path:             finalPath,
+		BodySHA256:       bodySha,
+		HeaderSHA256:     headersSha,
+		raw:              resp.Raw,
+		URL:              fullURL,
+		ContentLength:    resp.ContentLength,
+		ChainStatusCodes: chainStatusCodes,
+		Chain:            chainItems,
+		StatusCode:       resp.StatusCode,
+		Location:         resp.GetHeaderPart("Location", ";"),
+		ContentType:      resp.GetHeaderPart("Content-Type", ";"),
+		Title:            title,
+		str:              builder.String(),
+		VHost:            isvhost,
+		WebServer:        serverHeader,
+		ResponseBody:     serverResponseRaw,
+		WebSocket:        isWebSocket,
+		TLSData:          resp.TLSData,
+		CSPData:          resp.CSPData,
+		Pipeline:         pipeline,
+		HTTP2:            http2,
+		Method:           method,
+		Host:             ip,
+		A:                ips,
+		CNAMEs:           cnames,
+		CDN:              isCDN,
+		ResponseTime:     resp.Duration.String(),
+		Technologies:     technologies,
 	}
 }
 
 // Result of a scan
 type Result struct {
-	Timestamp      time.Time `json:"timestamp,omitempty"`
-	Request        string    `json:"request,omitempty"`
-	ResponseHeader string    `json:"response-header,omitempty"`
-	Scheme         string    `json:"scheme,omitempty"`
-	Port           string    `json:"port,omitempty"`
-	Path           string    `json:"path,omitempty"`
-	BodySHA256     string    `json:"body-sha256,omitempty"`
-	HeaderSHA256   string    `json:"header-sha256,omitempty"`
-	A              []string  `json:"a,omitempty"`
-	CNAMEs         []string  `json:"cnames,omitempty"`
-	raw            string
-	URL            string `json:"url,omitempty"`
-	Location       string `json:"location,omitempty"`
-	Title          string `json:"title,omitempty"`
-	str            string
-	err            error
-	WebServer      string         `json:"webserver,omitempty"`
-	ResponseBody   string         `json:"response-body,omitempty"`
-	ContentType    string         `json:"content-type,omitempty"`
-	Method         string         `json:"method,omitempty"`
-	Host           string         `json:"host,omitempty"`
-	ContentLength  int            `json:"content-length,omitempty"`
-	StatusCode     int            `json:"status-code,omitempty"`
-	TLSData        *httpx.TLSData `json:"tls-grab,omitempty"`
-	CSPData        *httpx.CSPData `json:"csp,omitempty"`
-	VHost          bool           `json:"vhost,omitempty"`
-	WebSocket      bool           `json:"websocket,omitempty"`
-	Pipeline       bool           `json:"pipeline,omitempty"`
-	HTTP2          bool           `json:"http2,omitempty"`
-	CDN            bool           `json:"cdn,omitempty"`
-	ResponseTime   string         `json:"response-time,omitempty"`
-	Technologies   []string       `json:"technologies,omitempty"`
+	Timestamp        time.Time `json:"timestamp,omitempty"`
+	Request          string    `json:"request,omitempty"`
+	ResponseHeader   string    `json:"response-header,omitempty"`
+	Scheme           string    `json:"scheme,omitempty"`
+	Port             string    `json:"port,omitempty"`
+	Path             string    `json:"path,omitempty"`
+	BodySHA256       string    `json:"body-sha256,omitempty"`
+	HeaderSHA256     string    `json:"header-sha256,omitempty"`
+	A                []string  `json:"a,omitempty"`
+	CNAMEs           []string  `json:"cnames,omitempty"`
+	raw              string
+	URL              string `json:"url,omitempty"`
+	Location         string `json:"location,omitempty"`
+	Title            string `json:"title,omitempty"`
+	str              string
+	err              error
+	WebServer        string            `json:"webserver,omitempty"`
+	ResponseBody     string            `json:"response-body,omitempty"`
+	ContentType      string            `json:"content-type,omitempty"`
+	Method           string            `json:"method,omitempty"`
+	Host             string            `json:"host,omitempty"`
+	ContentLength    int               `json:"content-length,omitempty"`
+	ChainStatusCodes []int             `json:"chain-status-codes,omitempty"`
+	StatusCode       int               `json:"status-code,omitempty"`
+	TLSData          *httpx.TLSData    `json:"tls-grab,omitempty"`
+	CSPData          *httpx.CSPData    `json:"csp,omitempty"`
+	VHost            bool              `json:"vhost,omitempty"`
+	WebSocket        bool              `json:"websocket,omitempty"`
+	Pipeline         bool              `json:"pipeline,omitempty"`
+	HTTP2            bool              `json:"http2,omitempty"`
+	CDN              bool              `json:"cdn,omitempty"`
+	ResponseTime     string            `json:"response-time,omitempty"`
+	Technologies     []string          `json:"technologies,omitempty"`
+	Chain            []httpx.ChainItem `json:"chain,omitempty"`
 }
 
 // JSON the result
