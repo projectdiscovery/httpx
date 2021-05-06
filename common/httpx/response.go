@@ -62,7 +62,7 @@ func (r *Response) GetChainStatusCodes() []int {
 	return statusCodes
 }
 
-// GetChain dump the whole redirect chain
+// GetChain dump the whole redirect chain as string
 func (r *Response) GetChain() string {
 	var respchain strings.Builder
 	for _, chainItem := range r.Chain {
@@ -72,7 +72,7 @@ func (r *Response) GetChain() string {
 	return respchain.String()
 }
 
-// GetChain dump the whole redirect chain
+// GetChainAsSlice dump the whole redirect chain as structuerd slice
 func (r *Response) GetChainAsSlice() (chain []ChainItem) {
 	for _, chainItem := range r.Chain {
 		chain = append(chain, ChainItem{
