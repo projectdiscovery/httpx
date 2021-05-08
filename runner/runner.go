@@ -806,7 +806,6 @@ retry:
 
 	if resp.HasChain() {
 		builder.WriteString(" [" + finalURL + "]")
-
 	}
 
 	// store responses or chain in directory
