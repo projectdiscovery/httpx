@@ -108,6 +108,8 @@ github.com/projectdiscovery/hmap v0.0.1 h1:VAONbJw5jP+syI5smhsfkrq9XPGn4aiYy5pR6
 github.com/projectdiscovery/hmap v0.0.1/go.mod h1:VDEfgzkKQdq7iGTKz8Ooul0NuYHQ8qiDs6r8bPD1Sb0=
 github.com/projectdiscovery/httputil v0.0.0-20210506091701-9ad2e8818e49 h1:hzMhw71p7+a5oyd3si9D/PMtqomvdsrd782+9Y1tUVo=
 github.com/projectdiscovery/httputil v0.0.0-20210506091701-9ad2e8818e49/go.mod h1:Vm2DY4NwUV5yA6TNzJOOjTYGjTcVfuEN8m9Y5dAksLQ=
+github.com/projectdiscovery/httputil v0.0.0-20210508183653-2e37c34b438d h1:IdBTOSGaPrZ8+FK0uYMQIva9dYIR5F55PLFWYtBBKc0=
+github.com/projectdiscovery/httputil v0.0.0-20210508183653-2e37c34b438d/go.mod h1:Vm2DY4NwUV5yA6TNzJOOjTYGjTcVfuEN8m9Y5dAksLQ=
 github.com/projectdiscovery/ipranger v0.0.2/go.mod h1:kcAIk/lo5rW+IzUrFkeYyXnFJ+dKwYooEOHGVPP/RWE=
 github.com/projectdiscovery/iputil v0.0.0-20210414194613-4b4d2517acf0/go.mod h1:PQAqn5h5NXsQTF4ZA00ZTYLRzGCjOtcCq8llAqrsd1A=
 github.com/projectdiscovery/iputil v0.0.0-20210429152401-c18a5408ca46 h1:veDjJpC3q2PLyuYPS3jNeoYgbHvHPWQhwqRPoCe6YTA=
