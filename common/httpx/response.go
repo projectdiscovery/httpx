@@ -93,7 +93,7 @@ func (r *Response) HasChain() bool {
 	return len(r.Chain) > 1
 }
 
-// HasChain redirects
+// GetChainLastURL returns the final URL
 func (r *Response) GetChainLastURL() string {
 	if r.HasChain() {
 		lastitem := r.Chain[len(r.Chain)-1]
