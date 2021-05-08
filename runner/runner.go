@@ -799,6 +799,15 @@ retry:
 		}
 	}
 
+	var finalURL string
+	if resp.HasChain() {
+		finalURL = resp.GetChainLastURL()
+	}
+
+	if resp.HasChain() {
+		builder.WriteString(" [" + finalURL + "]")
+	}
+
 	// store responses or chain in directory
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
@@ -902,6 +911,7 @@ retry:
 		CDN:              isCDN,
 		ResponseTime:     resp.Duration.String(),
 		Technologies:     technologies,
+		FinalURL:         finalURL,
 	}
 }
 
@@ -941,6 +951,7 @@ type Result struct {
 	ResponseTime     string            `json:"response-time,omitempty"`
 	Technologies     []string          `json:"technologies,omitempty"`
 	Chain            []httpx.ChainItem `json:"chain,omitempty"`
+	FinalURL         string            `json:"final-url,omitempty"`
 }
 
 // JSON the result

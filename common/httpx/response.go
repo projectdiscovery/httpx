@@ -30,6 +30,8 @@ type ChainItem struct {
 	Request    string `json:"request,omitempty"`
 	Response   string `json:"response,omitempty"`
 	StatusCode int    `json:"status_code,omitempty"`
+	Location   string `json:"location,omitempty"`
+	RequestURL string `json:"request-url,omitempty"`
 }
 
 // GetHeader value
@@ -79,6 +81,8 @@ func (r *Response) GetChainAsSlice() (chain []ChainItem) {
 			Request:    string(chainItem.Request),
 			Response:   string(chainItem.Response),
 			StatusCode: chainItem.StatusCode,
+			Location:   chainItem.Location,
+			RequestURL: chainItem.RequestURL,
 		})
 	}
 	return
@@ -87,4 +91,13 @@ func (r *Response) GetChainAsSlice() (chain []ChainItem) {
 // HasChain redirects
 func (r *Response) HasChain() bool {
 	return len(r.Chain) > 1
+}
+
+// GetChainLastURL returns the final URL
+func (r *Response) GetChainLastURL() string {
+	if r.HasChain() {
+		lastitem := r.Chain[len(r.Chain)-1]
+		return lastitem.RequestURL
+	}
+	return ""
 }
