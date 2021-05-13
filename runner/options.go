@@ -197,7 +197,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.JSONOutput, "json", false, "JSON Output")
 	flag.StringVar(&options.InputFile, "l", "", "File containing domains")
 	flag.StringVar(&options.Methods, "x", "", "Request Methods, use ALL to check all verbs ()")
-	flag.BoolVar(&options.OutputMethod, "method", false, "Output method")
+	flag.BoolVar(&options.OutputMethod, "method", false, "Display request method")
 	flag.BoolVar(&options.Silent, "silent", false, "Silent mode")
 	flag.BoolVar(&options.Version, "version", false, "Show version of httpx")
 	flag.BoolVar(&options.Verbose, "verbose", false, "Verbose Mode")
