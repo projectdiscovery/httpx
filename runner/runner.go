@@ -616,7 +616,7 @@ retry:
 
 	builder := &strings.Builder{}
 
-	builder.WriteString(fullURL)
+	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
 
 	if scanopts.OutputStatusCode {
 		builder.WriteString(" [")
