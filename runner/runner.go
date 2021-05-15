@@ -805,7 +805,13 @@ retry:
 	}
 
 	if resp.HasChain() {
-		builder.WriteString(" [" + finalURL + "]")
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(finalURL).String())
+		} else {
+			builder.WriteString(finalURL)
+		}
+		builder.WriteRune(']')
 	}
 
 	// store responses or chain in directory
