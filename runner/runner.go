@@ -804,7 +804,6 @@ retry:
 		finalURL = resp.GetChainLastURL()
 	}
 
-
 	if resp.HasChain() {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
