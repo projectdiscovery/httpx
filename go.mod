@@ -5,7 +5,6 @@ go 1.14
 require (
 	github.com/corpix/uarand v0.1.1
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
-	github.com/json-iterator/go v1.1.11 // indirect
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/microcosm-cc/bluemonday v1.0.9
 	github.com/pkg/errors v0.9.1
@@ -17,7 +16,7 @@ require (
 	github.com/projectdiscovery/hmap v0.0.1
 	github.com/projectdiscovery/httputil v0.0.0-20210508183653-2e37c34b438d
 	github.com/projectdiscovery/iputil v0.0.0-20210429152401-c18a5408ca46
-	github.com/projectdiscovery/mapcidr v0.0.6
+	github.com/projectdiscovery/mapcidr v0.0.7
 	github.com/projectdiscovery/rawhttp v0.0.6
 	github.com/projectdiscovery/retryablehttp-go v1.0.1
 	github.com/projectdiscovery/wappalyzergo v0.0.3
