@@ -411,21 +411,40 @@ func (r *Runner) RunEnumeration() {
 	r.hm.Scan(func(k, _ []byte) error {
 		t := string(k)
 		var reqs int
-		// full url should have either scheme (eg http-https) or query path (eg /)
-		if u, err := url.Parse(t); err == nil && (u.Scheme != "" || u.RequestURI() != t) {
-			scanopts := r.scanopts.Clone()
-			scanopts.RequestURI = u.RequestURI()
-			r.process(t, &wg, r.hp, u.Scheme, scanopts, output)
-			reqs++
-		} else if len(r.options.requestURIs) > 0 {
+		protocol := r.options.protocol
+		requestURI := ""
+		// attempt to parse url as is
+		if u, err := url.Parse(t); err == nil {
+			switch u.Scheme {
+			case httpx.HTTP:
+				protocol = httpx.HTTP
+			case httpx.HTTPS:
+				protocol = httpx.HTTPS
+			}
+			requestURI = u.RequestURI()
+			if !strings.HasPrefix(requestURI, "/") {
+				// if requestURI doesn't start with "/" attempts to reparse with generic http protocol
+				if u, err := url.Parse("http://" + t); err == nil {
+					requestURI = u.RequestURI()
+				}
+			}
+			// if it's only "/" skip it
+			if requestURI == "/" {
+				requestURI = ""
+			}
+		}
+
+		if len(r.options.requestURIs) > 0 {
 			for _, p := range r.options.requestURIs {
 				scanopts := r.scanopts.Clone()
-				scanopts.RequestURI = p
-				r.process(t, &wg, r.hp, r.options.protocol, scanopts, output)
+				scanopts.RequestURI = requestURI + p
+				r.process(t, &wg, r.hp, protocol, scanopts, output)
 				reqs++
 			}
 		} else {
-			r.process(t, &wg, r.hp, r.options.protocol, &r.scanopts, output)
+			scanopts := r.scanopts.Clone()
+			scanopts.RequestURI = requestURI + scanopts.RequestURI
+			r.process(t, &wg, r.hp, protocol, scanopts, output)
 			reqs++
 		}
 
@@ -477,10 +496,10 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 			}
 		}
 
-		// the host name shouldn't have any semicolon - in case remove the port
-		semicolonPosition := strings.LastIndex(target, ":")
-		if semicolonPosition > 0 {
-			target = target[:semicolonPosition]
+		// the host name shouldn't have any semicolon or forward slash - in case remove the port
+		unwantedCharPosition := strings.IndexAny(target, ":/")
+		if unwantedCharPosition > 0 {
+			target = target[:unwantedCharPosition]
 		}
 
 		for port, wantedProtocol := range customport.Ports {
@@ -551,7 +570,6 @@ retry:
 		domain = parts[0]
 		customHost = parts[1]
 	}
-
 	URL := fmt.Sprintf("%s://%s", protocol, domain)
 	if port > 0 {
 		URL = fmt.Sprintf("%s://%s:%d", protocol, domain, port)
@@ -580,6 +598,8 @@ retry:
 		req.Host = customHost
 	}
 
+	reqURI := req.URL.RequestURI()
+
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
 	if scanopts.RequestBody != "" {
 		req.ContentLength = int64(len(scanopts.RequestBody))
@@ -588,7 +608,7 @@ retry:
 
 	var requestDump []byte
 	if scanopts.Unsafe {
-		requestDump, err = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), req.RequestURI, req.Header, req.Body, rawhttp.DefaultOptions)
+		requestDump, err = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), reqURI, req.Header, req.Body, rawhttp.DefaultOptions)
 		if err != nil {
 			return Result{URL: URL, err: err}
 		}
@@ -619,11 +639,12 @@ retry:
 	var fullURL string
 
 	if resp.StatusCode >= 0 {
-		if port > 0 {
-			fullURL = fmt.Sprintf("%s://%s:%d%s", protocol, domain, port, scanopts.RequestURI)
-		} else {
-			fullURL = fmt.Sprintf("%s://%s%s", protocol, domain, scanopts.RequestURI)
-		}
+		fullURL = req.URL.String()
+		// if port > 0 {
+		// 	fullURL = fmt.Sprintf("%s://%s:%d%s", protocol, domain, port, reqURI)
+		// } else {
+		// 	fullURL = fmt.Sprintf("%s://%s%s", protocol, domain, reqURI)
+		// }
 	}
 
 	builder := &strings.Builder{}
@@ -828,9 +849,9 @@ retry:
 
 	// store responses or chain in directory
 	if scanopts.StoreResponse || scanopts.StoreChain {
-		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
+		domainFile := fmt.Sprintf("%s%s", domain, reqURI)
 		if port > 0 {
-			domainFile = fmt.Sprintf("%s.%d%s", domain, port, scanopts.RequestURI)
+			domainFile = fmt.Sprintf("%s.%d%s", domain, port, reqURI)
 		}
 		// On various OS the file max file name length is 255 - https://serverfault.com/questions/9546/filename-length-limits-on-linux
 		// Truncating length at 255
