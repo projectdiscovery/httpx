@@ -409,22 +409,23 @@ func (r *Runner) RunEnumeration() {
 	wg := sizedwaitgroup.New(r.options.Threads)
 
 	r.hm.Scan(func(k, _ []byte) error {
+		t := string(k)
 		var reqs int
-		// in case of full URLs use them as is
-		if u, err := url.Parse(string(k)); err == nil {
+		// full url should have either scheme (eg http-https) or query path (eg /)
+		if u, err := url.Parse(t); err == nil && (u.Scheme != "" || u.RequestURI() != t) {
 			scanopts := r.scanopts.Clone()
 			scanopts.RequestURI = u.RequestURI()
-			r.process(string(k), &wg, r.hp, u.Scheme, scanopts, output)
+			r.process(t, &wg, r.hp, u.Scheme, scanopts, output)
 			reqs++
 		} else if len(r.options.requestURIs) > 0 {
 			for _, p := range r.options.requestURIs {
 				scanopts := r.scanopts.Clone()
 				scanopts.RequestURI = p
-				r.process(string(k), &wg, r.hp, r.options.protocol, scanopts, output)
+				r.process(t, &wg, r.hp, r.options.protocol, scanopts, output)
 				reqs++
 			}
 		} else {
-			r.process(string(k), &wg, r.hp, r.options.protocol, &r.scanopts, output)
+			r.process(t, &wg, r.hp, r.options.protocol, &r.scanopts, output)
 			reqs++
 		}
 
