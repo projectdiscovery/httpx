@@ -410,7 +410,13 @@ func (r *Runner) RunEnumeration() {
 
 	r.hm.Scan(func(k, _ []byte) error {
 		var reqs int
-		if len(r.options.requestURIs) > 0 {
+		// in case of full URLs use them as is
+		if u, err := url.Parse(string(k)); err == nil {
+			scanopts := r.scanopts.Clone()
+			scanopts.RequestURI = u.RequestURI()
+			r.process(string(k), &wg, r.hp, u.Scheme, scanopts, output)
+			reqs++
+		} else if len(r.options.requestURIs) > 0 {
 			for _, p := range r.options.requestURIs {
 				scanopts := r.scanopts.Clone()
 				scanopts.RequestURI = p
@@ -552,6 +558,11 @@ retry:
 		domainParse := strings.Split(domain, ":")
 		domain = domainParse[0]
 		if len(domainParse) > 1 {
+			// consider the port till the next /
+			if strings.Contains(domainParse[1], "/") {
+				iForwardSlash := strings.Index(domainParse[1], "/")
+				domainParse[1] = domainParse[1][:iForwardSlash]
+			}
 			port, _ = strconv.Atoi(domainParse[1])
 		}
 	}
