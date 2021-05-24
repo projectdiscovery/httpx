@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"os"
 	"path"
 	"regexp"
@@ -22,6 +21,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/projectdiscovery/clistats"
+	"github.com/projectdiscovery/urlutil"
+
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
@@ -412,39 +413,20 @@ func (r *Runner) RunEnumeration() {
 		t := string(k)
 		var reqs int
 		protocol := r.options.protocol
-		requestURI := ""
 		// attempt to parse url as is
-		if u, err := url.Parse(t); err == nil {
-			switch u.Scheme {
-			case httpx.HTTP:
-				protocol = httpx.HTTP
-			case httpx.HTTPS:
-				protocol = httpx.HTTPS
-			}
-			requestURI = u.RequestURI()
-			if !strings.HasPrefix(requestURI, "/") {
-				// if requestURI doesn't start with "/" attempts to reparse with generic http protocol
-				if u, err := url.Parse("http://" + t); err == nil {
-					requestURI = u.RequestURI()
-				}
-			}
-			// if it's only "/" skip it
-			if requestURI == "/" {
-				requestURI = ""
-			}
+		if u, err := urlutil.Parse(t); err == nil {
+			protocol = u.Scheme
 		}
 
 		if len(r.options.requestURIs) > 0 {
 			for _, p := range r.options.requestURIs {
 				scanopts := r.scanopts.Clone()
-				scanopts.RequestURI = requestURI + p
+				scanopts.RequestURI = p
 				r.process(t, &wg, r.hp, protocol, scanopts, output)
 				reqs++
 			}
 		} else {
-			scanopts := r.scanopts.Clone()
-			scanopts.RequestURI = requestURI + scanopts.RequestURI
-			r.process(t, &wg, r.hp, protocol, scanopts, output)
+			r.process(t, &wg, r.hp, protocol, &r.scanopts, output)
 			reqs++
 		}
 
@@ -474,7 +456,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 					wg.Add()
 					go func(target, method, protocol string) {
 						defer wg.Done()
-						result := r.analyze(hp, protocol, target, 0, method, scanopts)
+						result := r.analyze(hp, protocol, target, method, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
@@ -496,18 +478,13 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 			}
 		}
 
-		// the host name shouldn't have any semicolon or forward slash - in case remove the port
-		unwantedCharPosition := strings.IndexAny(target, ":/")
-		if unwantedCharPosition > 0 {
-			target = target[:unwantedCharPosition]
-		}
-
 		for port, wantedProtocol := range customport.Ports {
 			for _, method := range scanopts.Methods {
 				wg.Add()
 				go func(port int, method, protocol string) {
 					defer wg.Done()
-					result := r.analyze(hp, protocol, target, port, method, scanopts)
+					target, _ := urlutil.ChangePort(target, fmt.Sprint(port))
+					result := r.analyze(hp, protocol, target, method, scanopts)
 					output <- result
 					if scanopts.TLSProbe && result.TLSData != nil {
 						scanopts.TLSProbe = false
@@ -553,7 +530,7 @@ func targets(target string) chan string {
 	return results
 }
 
-func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain string, port int, method string, scanopts *scanOptions) Result {
+func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain string, method string, scanopts *scanOptions) Result {
 	origProtocol := protocol
 	if protocol == httpx.HTTPorHTTPS {
 		protocol = httpx.HTTPS
@@ -570,29 +547,16 @@ retry:
 		domain = parts[0]
 		customHost = parts[1]
 	}
-	URL := fmt.Sprintf("%s://%s", protocol, domain)
-	if port > 0 {
-		URL = fmt.Sprintf("%s://%s:%d", protocol, domain, port)
-	} else {
-		domainParse := strings.Split(domain, ":")
-		domain = domainParse[0]
-		if len(domainParse) > 1 {
-			// consider the port till the next /
-			if strings.Contains(domainParse[1], "/") {
-				iForwardSlash := strings.Index(domainParse[1], "/")
-				domainParse[1] = domainParse[1][:iForwardSlash]
-			}
-			port, _ = strconv.Atoi(domainParse[1])
-		}
-	}
+	URL, _ := urlutil.Parse(domain)
+	URL.Scheme = protocol
 
 	if !scanopts.Unsafe {
-		URL += scanopts.RequestURI
+		URL.RequestURI += scanopts.RequestURI
 	}
 
-	req, err := hp.NewRequest(method, URL)
+	req, err := hp.NewRequest(method, URL.String())
 	if err != nil {
-		return Result{URL: URL, err: err}
+		return Result{URL: URL.String(), err: err}
 	}
 	if customHost != "" {
 		req.Host = customHost
@@ -610,7 +574,7 @@ retry:
 	if scanopts.Unsafe {
 		requestDump, err = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), reqURI, req.Header, req.Body, rawhttp.DefaultOptions)
 		if err != nil {
-			return Result{URL: URL, err: err}
+			return Result{URL: URL.String(), err: err}
 		}
 	} else {
 		// Create a copy on the fly of the request body - ignore errors
@@ -618,7 +582,7 @@ retry:
 		req.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
 		requestDump, err = httputil.DumpRequestOut(req.Request, true)
 		if err != nil {
-			return Result{URL: URL, err: err}
+			return Result{URL: URL.String(), err: err}
 		}
 	}
 
@@ -633,18 +597,13 @@ retry:
 			retried = true
 			goto retry
 		}
-		return Result{URL: URL, err: err}
+		return Result{URL: URL.String(), err: err}
 	}
 
 	var fullURL string
 
 	if resp.StatusCode >= 0 {
 		fullURL = req.URL.String()
-		// if port > 0 {
-		// 	fullURL = fmt.Sprintf("%s://%s:%d%s", protocol, domain, port, reqURI)
-		// } else {
-		// 	fullURL = fmt.Sprintf("%s://%s%s", protocol, domain, reqURI)
-		// }
 	}
 
 	builder := &strings.Builder{}
@@ -758,6 +717,7 @@ retry:
 
 	pipeline := false
 	if scanopts.Pipeline {
+		port, _ := strconv.Atoi(URL.Port)
 		pipeline = hp.SupportPipeline(protocol, method, domain, port)
 		if pipeline {
 			builder.WriteString(" [pipeline]")
@@ -767,7 +727,7 @@ retry:
 	var http2 bool
 	// if requested probes for http2
 	if scanopts.HTTP2Probe {
-		http2 = hp.SupportHTTP2(protocol, method, URL)
+		http2 = hp.SupportHTTP2(protocol, method, URL.String())
 		if http2 {
 			builder.WriteString(" [http2]")
 		}
@@ -849,10 +809,8 @@ retry:
 
 	// store responses or chain in directory
 	if scanopts.StoreResponse || scanopts.StoreChain {
-		domainFile := fmt.Sprintf("%s%s", domain, reqURI)
-		if port > 0 {
-			domainFile = fmt.Sprintf("%s.%d%s", domain, port, reqURI)
-		}
+		domainFile := strings.ReplaceAll(urlutil.TrimScheme(URL.String()), ":", ".")
+
 		// On various OS the file max file name length is 255 - https://serverfault.com/questions/9546/filename-length-limits-on-linux
 		// Truncating length at 255
 		if len(domainFile) >= maxFileNameLength {
@@ -881,12 +839,12 @@ retry:
 		}
 	}
 
-	parsed, err := url.Parse(fullURL)
+	parsed, err := urlutil.Parse(fullURL)
 	if err != nil {
-		return Result{URL: URL, err: errors.Wrap(err, "could not parse url")}
+		return Result{URL: fullURL, err: errors.Wrap(err, "could not parse url")}
 	}
 
-	finalPort := parsed.Port()
+	finalPort := parsed.Port
 	if finalPort == "" {
 		if parsed.Scheme == "http" {
 			finalPort = "80"
@@ -894,7 +852,7 @@ retry:
 			finalPort = "443"
 		}
 	}
-	finalPath := parsed.Path
+	finalPath := parsed.RequestURI
 	if finalPath == "" {
 		finalPath = "/"
 	}
