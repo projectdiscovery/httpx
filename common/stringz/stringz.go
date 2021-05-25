@@ -1,12 +1,10 @@
 package stringz
 
 import (
-	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 
-	"github.com/projectdiscovery/httpx/common/httpx"
+	"github.com/projectdiscovery/urlutil"
 )
 
 // TrimProtocol removes the HTTP scheme from an URI
@@ -51,27 +49,9 @@ func SplitByCharAndTrimSpace(s, splitchar string) (result []string) {
 // http://foo.com -> http://foo.com:80
 // https://foo.com -> https://foo.com:443
 func AddURLDefaultPort(rawURL string) string {
-	u, err := url.Parse(rawURL)
+	u, err := urlutil.Parse(rawURL)
 	if err != nil {
 		return rawURL
-	}
-	// http://[::]
-	if strings.HasPrefix(u.Host, "[") && strings.HasSuffix(u.Host, "]") {
-		if u.Scheme == httpx.HTTPS {
-			u.Host = fmt.Sprintf("%s:%s", u.Host, "443")
-		} else {
-			u.Host = fmt.Sprintf("%s:%s", u.Host, "80")
-		}
-	}
-	// http://foo.com:81
-	// http://foo.com
-	// http://[::]:80
-	if strings.LastIndexByte(u.Host, ':') == -1 {
-		if u.Scheme == httpx.HTTPS {
-			u.Host = fmt.Sprintf("%s:%s", u.Host, "443")
-		} else {
-			u.Host = fmt.Sprintf("%s:%s", u.Host, "80")
-		}
 	}
 	return u.String()
 }
@@ -81,15 +61,13 @@ func AddURLDefaultPort(rawURL string) string {
 // http://foo.com:80 -> http://foo.com
 // https://foo.com:443 -> https://foo.com
 func RemoveURLDefaultPort(rawURL string) string {
-	u, err := url.Parse(rawURL)
+	u, err := urlutil.Parse(rawURL)
 	if err != nil {
 		return rawURL
 	}
-	colon := strings.LastIndexByte(u.Host, ':')
-	if colon != -1 {
-		if (u.Scheme == "https" && u.Host[colon+1:] == "443") || u.Scheme == "http" && u.Host[colon+1:] == "80" {
-			u.Host = u.Host[:colon]
-		}
+
+	if u.Scheme == urlutil.HTTP && u.Port == "80" || u.Scheme == urlutil.HTTPS && u.Port == "443" {
+		u.Port = ""
 	}
 	return u.String()
 }
