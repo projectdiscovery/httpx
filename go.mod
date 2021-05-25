@@ -24,7 +24,7 @@ require (
 	github.com/projectdiscovery/wappalyzergo v0.0.4
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.3.0
-	golang.org/x/net v0.0.0-20210521195947-fe42d452be8f
+	golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 	golang.org/x/sys v0.0.0-20210521203332-0cec03c779c1 // indirect
 	golang.org/x/text v0.3.6
 )
