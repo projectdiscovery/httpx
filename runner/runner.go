@@ -483,8 +483,8 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 				wg.Add()
 				go func(port int, method, protocol string) {
 					defer wg.Done()
-					target, _ := urlutil.ChangePort(target, fmt.Sprint(port))
-					result := r.analyze(hp, protocol, target, method, scanopts)
+					h, _ := urlutil.ChangePort(target, fmt.Sprint(port))
+					result := r.analyze(hp, protocol, h, method, scanopts)
 					output <- result
 					if scanopts.TLSProbe && result.TLSData != nil {
 						scanopts.TLSProbe = false
@@ -530,7 +530,7 @@ func targets(target string) chan string {
 	return results
 }
 
-func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain string, method string, scanopts *scanOptions) Result {
+func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain, method string, scanopts *scanOptions) Result {
 	origProtocol := protocol
 	if protocol == httpx.HTTPorHTTPS {
 		protocol = httpx.HTTPS
