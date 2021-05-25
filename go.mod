@@ -20,7 +20,8 @@ require (
 	github.com/projectdiscovery/mapcidr v0.0.7
 	github.com/projectdiscovery/rawhttp v0.0.6
 	github.com/projectdiscovery/retryablehttp-go v1.0.1
-	github.com/projectdiscovery/urlutil v0.0.0-20210524085509-c534bc15ea60
+	github.com/projectdiscovery/stringsutil v0.0.0-20210525140246-1de418be6fda // indirect
+	github.com/projectdiscovery/urlutil v0.0.0-20210525140139-b874f06ad921
 	github.com/projectdiscovery/wappalyzergo v0.0.4
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.3.0

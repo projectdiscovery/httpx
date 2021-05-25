@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	cutset                       = "\n\t\v\f\r"
-	reTitle       *regexp.Regexp = regexp.MustCompile(`(?im)<\s*title.*>(.*?)<\s*/\s*title>`)
-	reContentType *regexp.Regexp = regexp.MustCompile(`(?im)\s*charset="(.*?)"|charset=(.*?)"\s*`)
+	cutset        = "\n\t\v\f\r"
+	reTitle       = regexp.MustCompile(`(?im)<\s*title.*>(.*?)<\s*/\s*title>`)
+	reContentType = regexp.MustCompile(`(?im)\s*charset="(.*?)"|charset=(.*?)"\s*`)
 )
 
 // ExtractTitle from a response
