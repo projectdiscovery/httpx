@@ -125,8 +125,9 @@ github.com/projectdiscovery/rawhttp v0.0.6 h1:HbgPB1eKXQVV5F9sq0Uxflm95spWFyZYD8
 github.com/projectdiscovery/rawhttp v0.0.6/go.mod h1:PQERZAhAv7yxI/hR6hdDPgK1WTU56l204BweXrBec+0=
 github.com/projectdiscovery/retryabledns v1.0.11 h1:jyzTass/CD3MgaK4pQSXJzwb91ksVYocwiE0AQ1ytEo=
 github.com/projectdiscovery/retryabledns v1.0.11/go.mod h1:4sMC8HZyF01HXukRleSQYwz4870bwgb4+hTSXTMrkf4=
-github.com/projectdiscovery/retryablehttp-go v1.0.1 h1:V7wUvsZNq1Rcz7+IlcyoyQlNwshuwptuBVYWw9lx8RE=
 github.com/projectdiscovery/retryablehttp-go v1.0.1/go.mod h1:SrN6iLZilNG1X4neq1D+SBxoqfAF4nyzvmevkTkWsek=
+github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210524224054-9fbe1f2b0727 h1:CJHP3CLCc/eqdXQEvZy8KiiqtAk9kEsd1URtPyPAQ1s=
+github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210524224054-9fbe1f2b0727/go.mod h1:dx//aY9V247qHdsRf0vdWHTBZuBQ2vm6Dq5dagxrDYI=
 github.com/projectdiscovery/stringsutil v0.0.0-20210524051937-51dabe3b72c0/go.mod h1:TVSdZC0rRQeMIbsNSiGPhbmhyRtxqqtAGA9JiiNp2r4=
 github.com/projectdiscovery/stringsutil v0.0.0-20210525140246-1de418be6fda h1:q9o7dHZ22CGUWUAzp26nYoCugOkwBDdqMfgMDpIrakM=
 github.com/projectdiscovery/stringsutil v0.0.0-20210525140246-1de418be6fda/go.mod h1:TVSdZC0rRQeMIbsNSiGPhbmhyRtxqqtAGA9JiiNp2r4=
@@ -177,6 +178,7 @@ golang.org/x/net v0.0.0-20210226172049-e18ecbb05110/go.mod h1:m0MpNAwzfU5UDzcl9v
 golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4/go.mod h1:p54w0d4576C0XHj96bSt6lcn1PtDYWL6XObtHCRCNQM=
 golang.org/x/net v0.0.0-20210421230115-4e50805a0758/go.mod h1:72T/g9IO56b78aLF+1Kcs5dz7/ng1VjMUvfKvpfy+jM=
 golang.org/x/net v0.0.0-20210428140749-89ef3d95e781/go.mod h1:OJAsFXCWl8Ukc7SiCT/9KSuxbyM7479/AVlXFRxuMCk=
+golang.org/x/net v0.0.0-20210521195947-fe42d452be8f/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/net v0.0.0-20210525063256-abc453219eb5 h1:wjuX4b5yYQnEQHzd+CBcrcC6OVR2J1CN6mUy0oSxIPo=
 golang.org/x/net v0.0.0-20210525063256-abc453219eb5/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
