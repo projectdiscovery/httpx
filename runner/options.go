@@ -51,6 +51,7 @@ type scanOptions struct {
 	OutputResponseTime     bool
 	PreferHTTPS            bool
 	NoFallback             bool
+	NoFallbackScheme       bool
 	TechDetect             bool
 	StoreChain             bool
 	MaxResponseBodySize    int
@@ -88,6 +89,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		OutputResponseTime:     s.OutputResponseTime,
 		PreferHTTPS:            s.PreferHTTPS,
 		NoFallback:             s.NoFallback,
+		NoFallbackScheme:       s.NoFallbackScheme,
 		TechDetect:             s.TechDetect,
 		StoreChain:             s.StoreChain,
 		OutputExtractRegex:     s.OutputExtractRegex,
@@ -159,6 +161,7 @@ type Options struct {
 	OutputCDN                 bool
 	OutputResponseTime        bool
 	NoFallback                bool
+	NoFallbackScheme          bool
 	TechDetect                bool
 	TLSGrab                   bool
 	protocol                  string
@@ -231,6 +234,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.OutputCDN, "cdn", false, "Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)")
 	flag.BoolVar(&options.OutputResponseTime, "response-time", false, "Output the response time")
 	flag.BoolVar(&options.NoFallback, "no-fallback", false, "If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP")
+	flag.BoolVar(&options.NoFallbackScheme, "no-fallback-scheme", false, "The tool will respect and attempt the scheme specified in the url (if HTTPS is specified no HTTP is attempted)")
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
 	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
 	flag.BoolVar(&options.StoreChain, "store-chain", false, "Save chain to file (default 'output')")

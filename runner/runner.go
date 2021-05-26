@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"path"
 	"regexp"
@@ -177,6 +178,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputCDN = options.OutputCDN
 	scanopts.OutputResponseTime = options.OutputResponseTime
 	scanopts.NoFallback = options.NoFallback
+	scanopts.NoFallbackScheme = options.NoFallbackScheme
 	scanopts.TechDetect = options.TechDetect
 	scanopts.StoreChain = options.StoreChain
 	scanopts.MaxResponseBodySize = options.MaxResponseBodySize
@@ -414,8 +416,10 @@ func (r *Runner) RunEnumeration() {
 		var reqs int
 		protocol := r.options.protocol
 		// attempt to parse url as is
-		if u, err := urlutil.Parse(t); err == nil {
-			protocol = u.Scheme
+		if u, err := url.Parse(t); err == nil {
+			if r.options.NoFallbackScheme && u.Scheme == httpx.HTTP || u.Scheme == httpx.HTTPS {
+				protocol = u.Scheme
+			}
 		}
 
 		if len(r.options.requestURIs) > 0 {
@@ -448,7 +452,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 	if scanopts.NoFallback {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
-	for target := range targets(stringz.TrimProtocol(t)) {
+	for target := range targets(stringz.TrimProtocol(t, scanopts.NoFallback || scanopts.NoFallbackScheme)) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
 			for _, method := range scanopts.Methods {
@@ -550,10 +554,13 @@ retry:
 	URL, _ := urlutil.Parse(domain)
 	URL.Scheme = protocol
 
+	if !strings.Contains(domain, URL.Port) {
+		URL.Port = ""
+	}
+
 	if !scanopts.Unsafe {
 		URL.RequestURI += scanopts.RequestURI
 	}
-
 	req, err := hp.NewRequest(method, URL.String())
 	if err != nil {
 		return Result{URL: URL.String(), err: err}
