@@ -8,11 +8,13 @@ import (
 )
 
 // TrimProtocol removes the HTTP scheme from an URI
-func TrimProtocol(targetURL string) string {
+func TrimProtocol(targetURL string, addDefaultPort bool) string {
 	URL := strings.TrimSpace(targetURL)
 	if strings.HasPrefix(strings.ToLower(URL), "http://") || strings.HasPrefix(strings.ToLower(URL), "https://") {
-		URL = AddURLDefaultPort(URL)
-		URL = URL[strings.Index(URL, "//")+2:]
+		if addDefaultPort {
+			URL = AddURLDefaultPort(URL)
+			URL = URL[strings.Index(URL, "//")+2:]
+		}
 	}
 
 	return URL
