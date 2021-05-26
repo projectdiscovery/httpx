@@ -177,6 +177,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputCDN = options.OutputCDN
 	scanopts.OutputResponseTime = options.OutputResponseTime
 	scanopts.NoFallback = options.NoFallback
+	scanopts.NoFallbackScheme = options.NoFallbackScheme
 	scanopts.TechDetect = options.TechDetect
 	scanopts.StoreChain = options.StoreChain
 	scanopts.MaxResponseBodySize = options.MaxResponseBodySize
@@ -414,8 +415,10 @@ func (r *Runner) RunEnumeration() {
 		var reqs int
 		protocol := r.options.protocol
 		// attempt to parse url as is
-		if u, err := urlutil.Parse(t); err == nil {
-			protocol = u.Scheme
+		if r.options.NoFallbackScheme {
+			if u, err := urlutil.Parse(t); err == nil {
+				protocol = u.Scheme
+			}
 		}
 
 		if len(r.options.requestURIs) > 0 {
@@ -444,7 +447,7 @@ func (r *Runner) RunEnumeration() {
 }
 
 func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
-	protocols := []string{httpx.HTTPorHTTPS}
+	protocols := []string{protocol}
 	if scanopts.NoFallback {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
