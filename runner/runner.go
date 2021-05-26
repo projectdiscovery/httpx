@@ -589,7 +589,7 @@ retry:
 		}
 		// The original req.Body gets modified indirectly by httputil.DumpRequestOut so we set it again to nil if it was empty
 		// Otherwise redirects like 307/308 would fail (as they require the body to be sent along)
-		if len(bodyBytes) <= 0 {
+		if len(bodyBytes) == 0 {
 			req.Body = nil
 		}
 	}
