@@ -565,11 +565,14 @@ retry:
 	reqURI := req.URL.RequestURI()
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
+	// We set content-length even if zero to allow net/http to follow 307/308 redirects (it fails on unknown size)
 	if scanopts.RequestBody != "" {
 		req.ContentLength = int64(len(scanopts.RequestBody))
 		req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
+	} else {
+		req.ContentLength = 0
+		req.Body = nil
 	}
-
 	var requestDump []byte
 	if scanopts.Unsafe {
 		requestDump, err = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), reqURI, req.Header, req.Body, rawhttp.DefaultOptions)
@@ -577,12 +580,17 @@ retry:
 			return Result{URL: URL.String(), err: err}
 		}
 	} else {
-		// Create a copy on the fly of the request body - ignore errors
+		// Create a copy on the fly of the request body
 		bodyBytes, _ := req.BodyBytes()
 		req.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
 		requestDump, err = httputil.DumpRequestOut(req.Request, true)
 		if err != nil {
 			return Result{URL: URL.String(), err: err}
+		}
+		// The original req.Body gets modified indirectly by httputil.DumpRequestOut so we set it again to nil if it was empty
+		// Otherwise redirects like 307/308 would fail (as they require the body to be sent along)
+		if len(bodyBytes) <= 0 {
+			req.Body = nil
 		}
 	}
 
