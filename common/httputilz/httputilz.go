@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http/httputil"
-	"net/url"
 	"strings"
 
 	"github.com/projectdiscovery/retryablehttp-go"
+	"github.com/projectdiscovery/urlutil"
 )
 
 const (
@@ -74,8 +74,8 @@ func ParseRequest(req string, unsafe bool) (method, path string, headers map[str
 	// Handle case with the full http url in path. In that case,
 	// ignore any host header that we encounter and use the path as request URL
 	if strings.HasPrefix(parts[1], "http") {
-		var parsed *url.URL
-		parsed, err = url.Parse(parts[1])
+		var parsed *urlutil.URL
+		parsed, err = urlutil.Parse(parts[1])
 		if err != nil {
 			err = fmt.Errorf("could not parse request URL: %s", err)
 			return

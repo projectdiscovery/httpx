@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"os"
 	"path"
 	"regexp"
@@ -22,6 +21,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/projectdiscovery/clistats"
+	"github.com/projectdiscovery/urlutil"
+
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
@@ -409,16 +410,23 @@ func (r *Runner) RunEnumeration() {
 	wg := sizedwaitgroup.New(r.options.Threads)
 
 	r.hm.Scan(func(k, _ []byte) error {
+		t := string(k)
 		var reqs int
+		protocol := r.options.protocol
+		// attempt to parse url as is
+		if u, err := urlutil.Parse(t); err == nil {
+			protocol = u.Scheme
+		}
+
 		if len(r.options.requestURIs) > 0 {
 			for _, p := range r.options.requestURIs {
 				scanopts := r.scanopts.Clone()
 				scanopts.RequestURI = p
-				r.process(string(k), &wg, r.hp, r.options.protocol, scanopts, output)
+				r.process(t, &wg, r.hp, protocol, scanopts, output)
 				reqs++
 			}
 		} else {
-			r.process(string(k), &wg, r.hp, r.options.protocol, &r.scanopts, output)
+			r.process(t, &wg, r.hp, protocol, &r.scanopts, output)
 			reqs++
 		}
 
@@ -448,7 +456,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 					wg.Add()
 					go func(target, method, protocol string) {
 						defer wg.Done()
-						result := r.analyze(hp, protocol, target, 0, method, scanopts)
+						result := r.analyze(hp, protocol, target, method, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
@@ -470,18 +478,13 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 			}
 		}
 
-		// the host name shouldn't have any semicolon - in case remove the port
-		semicolonPosition := strings.LastIndex(target, ":")
-		if semicolonPosition > 0 {
-			target = target[:semicolonPosition]
-		}
-
 		for port, wantedProtocol := range customport.Ports {
 			for _, method := range scanopts.Methods {
 				wg.Add()
 				go func(port int, method, protocol string) {
 					defer wg.Done()
-					result := r.analyze(hp, protocol, target, port, method, scanopts)
+					h, _ := urlutil.ChangePort(target, fmt.Sprint(port))
+					result := r.analyze(hp, protocol, h, method, scanopts)
 					output <- result
 					if scanopts.TLSProbe && result.TLSData != nil {
 						scanopts.TLSProbe = false
@@ -527,7 +530,7 @@ func targets(target string) chan string {
 	return results
 }
 
-func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain string, port int, method string, scanopts *scanOptions) Result {
+func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain, method string, scanopts *scanOptions) Result {
 	origProtocol := protocol
 	if protocol == httpx.HTTPorHTTPS {
 		protocol = httpx.HTTPS
@@ -544,49 +547,50 @@ retry:
 		domain = parts[0]
 		customHost = parts[1]
 	}
-
-	URL := fmt.Sprintf("%s://%s", protocol, domain)
-	if port > 0 {
-		URL = fmt.Sprintf("%s://%s:%d", protocol, domain, port)
-	} else {
-		domainParse := strings.Split(domain, ":")
-		domain = domainParse[0]
-		if len(domainParse) > 1 {
-			port, _ = strconv.Atoi(domainParse[1])
-		}
-	}
+	URL, _ := urlutil.Parse(domain)
+	URL.Scheme = protocol
 
 	if !scanopts.Unsafe {
-		URL += scanopts.RequestURI
+		URL.RequestURI += scanopts.RequestURI
 	}
 
-	req, err := hp.NewRequest(method, URL)
+	req, err := hp.NewRequest(method, URL.String())
 	if err != nil {
-		return Result{URL: URL, err: err}
+		return Result{URL: URL.String(), err: err}
 	}
 	if customHost != "" {
 		req.Host = customHost
 	}
 
+	reqURI := req.URL.RequestURI()
+
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
+	// We set content-length even if zero to allow net/http to follow 307/308 redirects (it fails on unknown size)
 	if scanopts.RequestBody != "" {
 		req.ContentLength = int64(len(scanopts.RequestBody))
 		req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
+	} else {
+		req.ContentLength = 0
+		req.Body = nil
 	}
-
 	var requestDump []byte
 	if scanopts.Unsafe {
-		requestDump, err = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), req.RequestURI, req.Header, req.Body, rawhttp.DefaultOptions)
+		requestDump, err = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), reqURI, req.Header, req.Body, rawhttp.DefaultOptions)
 		if err != nil {
-			return Result{URL: URL, err: err}
+			return Result{URL: URL.String(), err: err}
 		}
 	} else {
-		// Create a copy on the fly of the request body - ignore errors
+		// Create a copy on the fly of the request body
 		bodyBytes, _ := req.BodyBytes()
 		req.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
 		requestDump, err = httputil.DumpRequestOut(req.Request, true)
 		if err != nil {
-			return Result{URL: URL, err: err}
+			return Result{URL: URL.String(), err: err}
+		}
+		// The original req.Body gets modified indirectly by httputil.DumpRequestOut so we set it again to nil if it was empty
+		// Otherwise redirects like 307/308 would fail (as they require the body to be sent along)
+		if len(bodyBytes) == 0 {
+			req.Body = nil
 		}
 	}
 
@@ -601,22 +605,18 @@ retry:
 			retried = true
 			goto retry
 		}
-		return Result{URL: URL, err: err}
+		return Result{URL: URL.String(), err: err}
 	}
 
 	var fullURL string
 
 	if resp.StatusCode >= 0 {
-		if port > 0 {
-			fullURL = fmt.Sprintf("%s://%s:%d%s", protocol, domain, port, scanopts.RequestURI)
-		} else {
-			fullURL = fmt.Sprintf("%s://%s%s", protocol, domain, scanopts.RequestURI)
-		}
+		fullURL = req.URL.String()
 	}
 
 	builder := &strings.Builder{}
 
-	builder.WriteString(fullURL)
+	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
 
 	if scanopts.OutputStatusCode {
 		builder.WriteString(" [")
@@ -725,6 +725,7 @@ retry:
 
 	pipeline := false
 	if scanopts.Pipeline {
+		port, _ := strconv.Atoi(URL.Port)
 		pipeline = hp.SupportPipeline(protocol, method, domain, port)
 		if pipeline {
 			builder.WriteString(" [pipeline]")
@@ -734,7 +735,7 @@ retry:
 	var http2 bool
 	// if requested probes for http2
 	if scanopts.HTTP2Probe {
-		http2 = hp.SupportHTTP2(protocol, method, URL)
+		http2 = hp.SupportHTTP2(protocol, method, URL.String())
 		if http2 {
 			builder.WriteString(" [http2]")
 		}
@@ -799,12 +800,25 @@ retry:
 		}
 	}
 
+	var finalURL string
+	if resp.HasChain() {
+		finalURL = resp.GetChainLastURL()
+	}
+
+	if resp.HasChain() {
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(finalURL).String())
+		} else {
+			builder.WriteString(finalURL)
+		}
+		builder.WriteRune(']')
+	}
+
 	// store responses or chain in directory
 	if scanopts.StoreResponse || scanopts.StoreChain {
-		domainFile := fmt.Sprintf("%s%s", domain, scanopts.RequestURI)
-		if port > 0 {
-			domainFile = fmt.Sprintf("%s.%d%s", domain, port, scanopts.RequestURI)
-		}
+		domainFile := strings.ReplaceAll(urlutil.TrimScheme(URL.String()), ":", ".")
+
 		// On various OS the file max file name length is 255 - https://serverfault.com/questions/9546/filename-length-limits-on-linux
 		// Truncating length at 255
 		if len(domainFile) >= maxFileNameLength {
@@ -833,12 +847,12 @@ retry:
 		}
 	}
 
-	parsed, err := url.Parse(fullURL)
+	parsed, err := urlutil.Parse(fullURL)
 	if err != nil {
-		return Result{URL: URL, err: errors.Wrap(err, "could not parse url")}
+		return Result{URL: fullURL, err: errors.Wrap(err, "could not parse url")}
 	}
 
-	finalPort := parsed.Port()
+	finalPort := parsed.Port
 	if finalPort == "" {
 		if parsed.Scheme == "http" {
 			finalPort = "80"
@@ -846,7 +860,7 @@ retry:
 			finalPort = "443"
 		}
 	}
-	finalPath := parsed.Path
+	finalPath := parsed.RequestURI
 	if finalPath == "" {
 		finalPath = "/"
 	}
@@ -902,6 +916,7 @@ retry:
 		CDN:              isCDN,
 		ResponseTime:     resp.Duration.String(),
 		Technologies:     technologies,
+		FinalURL:         finalURL,
 	}
 }
 
@@ -941,6 +956,7 @@ type Result struct {
 	ResponseTime     string            `json:"response-time,omitempty"`
 	Technologies     []string          `json:"technologies,omitempty"`
 	Chain            []httpx.ChainItem `json:"chain,omitempty"`
+	FinalURL         string            `json:"final-url,omitempty"`
 }
 
 // JSON the result
