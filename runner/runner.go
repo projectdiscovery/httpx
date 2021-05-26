@@ -444,7 +444,7 @@ func (r *Runner) RunEnumeration() {
 }
 
 func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
-	protocols := []string{protocol}
+	protocols := []string{httpx.HTTPorHTTPS}
 	if scanopts.NoFallback {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
