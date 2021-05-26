@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"path"
 	"regexp"
@@ -416,7 +417,7 @@ func (r *Runner) RunEnumeration() {
 		protocol := r.options.protocol
 		// attempt to parse url as is
 		if r.options.NoFallbackScheme {
-			if u, err := urlutil.Parse(t); err == nil {
+			if u, err := url.Parse(t); err == nil && (u.Scheme == httpx.HTTP || u.Scheme == httpx.HTTPS) {
 				protocol = u.Scheme
 			}
 		}
