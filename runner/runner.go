@@ -416,8 +416,8 @@ func (r *Runner) RunEnumeration() {
 		var reqs int
 		protocol := r.options.protocol
 		// attempt to parse url as is
-		if r.options.NoFallbackScheme {
-			if u, err := url.Parse(t); err == nil && (u.Scheme == httpx.HTTP || u.Scheme == httpx.HTTPS) {
+		if u, err := url.Parse(t); err == nil {
+			if r.options.NoFallbackScheme && u.Scheme == httpx.HTTP || u.Scheme == httpx.HTTPS {
 				protocol = u.Scheme
 			}
 		}
@@ -554,10 +554,14 @@ retry:
 	URL, _ := urlutil.Parse(domain)
 	URL.Scheme = protocol
 
+	// if domain doesn't contain port remove it
+	if !strings.Contains(domain, URL.Port) {
+		URL.Port = ""
+	}
+
 	if !scanopts.Unsafe {
 		URL.RequestURI += scanopts.RequestURI
 	}
-
 	req, err := hp.NewRequest(method, URL.String())
 	if err != nil {
 		return Result{URL: URL.String(), err: err}
