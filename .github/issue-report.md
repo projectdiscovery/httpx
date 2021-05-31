@@ -1,8 +1,8 @@
 ---
 name: Issue report
 about: Create a report to help us improve
-title: "[issue]"
-labels: ''
+title: ""
+labels: 'Type:+Bug'
 assignees: ''
 
 ---
@@ -10,9 +10,17 @@ assignees: ''
 **Describe the bug**
 A clear and concise description of what the bug is.
 
-**Nuclei version**
-Please share the version of the httpx you are running with `httpx -version` 
+**Environment details**
+Please share the below details to help us quickly validate/replicate the issue.
+
+- `httpx -version`
+- `go version`
+- `uname -a`
 
 
-**Screenshot of the error or bug**
-please add the screenshot showing bug or issue you are facing.
+**Error details**
+Please copy-paste the error trace or details from terminal to help us quickly validate/replicate the issue.
+
+```bash
+
+```

@@ -62,7 +62,7 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 httpx requires **go1.14+** to install successfully. Run the following command to get the repo - 
 
 ```sh
-▶ GO111MODULE=on go get -v github.com/projectdiscovery/httpx/cmd/httpx
+GO111MODULE=on go get -v github.com/projectdiscovery/httpx/cmd/httpx
 ```
 
 # Usage
