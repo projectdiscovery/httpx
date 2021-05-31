@@ -551,7 +551,10 @@ retry:
 		domain = parts[0]
 		customHost = parts[1]
 	}
-	URL, _ := urlutil.Parse(domain)
+	URL, err := urlutil.Parse(domain)
+	if err != nil {
+		return Result{URL: domain, err: err}
+	}
 	URL.Scheme = protocol
 
 	if !strings.Contains(domain, URL.Port) {
