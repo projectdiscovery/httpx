@@ -286,7 +286,7 @@ https://173.0.84.34
 
 
 ```sh
-▶ subfinder -d hackerone.com | httpx -title -tech-detect -status-code -title -follow-redirects
+▶ subfinder -d hackerone.com | httpx -title -tech-detect -status-code -follow-redirects
 
     __    __  __       _  __
    / /_  / /_/ /_____ | |/ /
