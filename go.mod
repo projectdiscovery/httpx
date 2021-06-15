@@ -18,7 +18,7 @@ require (
 	github.com/projectdiscovery/httputil v0.0.0-20210508183653-2e37c34b438d
 	github.com/projectdiscovery/iputil v0.0.0-20210429152401-c18a5408ca46
 	github.com/projectdiscovery/mapcidr v0.0.7
-	github.com/projectdiscovery/rawhttp v0.0.6
+	github.com/projectdiscovery/rawhttp v0.0.7
 	github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210524224054-9fbe1f2b0727
 	github.com/projectdiscovery/stringsutil v0.0.0-20210525140246-1de418be6fda // indirect
 	github.com/projectdiscovery/urlutil v0.0.0-20210525140139-b874f06ad921
