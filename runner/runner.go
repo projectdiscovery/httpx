@@ -736,7 +736,7 @@ retry:
 	pipeline := false
 	if scanopts.Pipeline {
 		port, _ := strconv.Atoi(URL.Port)
-		pipeline = hp.SupportPipeline(protocol, method, domain, port)
+		pipeline = hp.SupportPipeline(protocol, method, URL.Host, port)
 		if pipeline {
 			builder.WriteString(" [pipeline]")
 		}
@@ -750,7 +750,7 @@ retry:
 			builder.WriteString(" [http2]")
 		}
 	}
-	ip := hp.Dialer.GetDialedIP(domain)
+	ip := hp.Dialer.GetDialedIP(URL.Host)
 	if scanopts.OutputIP {
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
@@ -759,7 +759,7 @@ retry:
 		ips    []string
 		cnames []string
 	)
-	dnsData, err := hp.Dialer.GetDNSData(domain)
+	dnsData, err := hp.Dialer.GetDNSData(URL.Host)
 	if dnsData != nil && err == nil {
 		ips = append(ips, dnsData.A...)
 		ips = append(ips, dnsData.AAAA...)
