@@ -22,7 +22,7 @@ require (
 	github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210524224054-9fbe1f2b0727
 	github.com/projectdiscovery/stringsutil v0.0.0-20210525140246-1de418be6fda // indirect
 	github.com/projectdiscovery/urlutil v0.0.0-20210525140139-b874f06ad921
-	github.com/projectdiscovery/wappalyzergo v0.0.4
+	github.com/projectdiscovery/wappalyzergo v0.0.7
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.3.0
 	golang.org/x/net v0.0.0-20210525063256-abc453219eb5
