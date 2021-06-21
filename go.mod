@@ -6,7 +6,7 @@ require (
 	github.com/corpix/uarand v0.1.1
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/microcosm-cc/bluemonday v1.0.9
+	github.com/microcosm-cc/bluemonday v1.0.14
 	github.com/miekg/dns v1.1.42 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.2
@@ -25,7 +25,7 @@ require (
 	github.com/projectdiscovery/wappalyzergo v0.0.4
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.3.0
-	golang.org/x/net v0.0.0-20210525063256-abc453219eb5
+	golang.org/x/net v0.0.0-20210610132358-84b48f89b13b
 	golang.org/x/sys v0.0.0-20210521203332-0cec03c779c1 // indirect
 	golang.org/x/text v0.3.6
 )
