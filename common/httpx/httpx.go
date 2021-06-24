@@ -126,6 +126,8 @@ func New(options *Options) (*HTTPX, error) {
 func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	timeStart := time.Now()
 
+	var gzipRetry bool
+get_response:
 	httpresp, err := h.getResponse(req)
 	if err != nil {
 		return nil, err
@@ -138,6 +140,13 @@ func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
 	// httputil.DumpResponse does not handle websockets
 	headers, rawResp, err := pdhttputil.DumpResponseHeadersAndRaw(httpresp)
 	if err != nil {
+		// Edge case - some servers respond with gzip encoding header but uncompressed body, in this case the standard library configures the reader as gzip, triggering an error when read.
+		// The bytes slice is not accessible because of abstraction, therefore we need to perform the request again tampering the Accept-Encoding header
+		if !gzipRetry && strings.Contains(err.Error(), "gzip: invalid header") {
+			gzipRetry = true
+			req.Header.Set("Accept-Encoding", "identity")
+			goto get_response
+		}
 		return nil, err
 	}
 	resp.Raw = rawResp
