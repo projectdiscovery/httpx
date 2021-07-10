@@ -381,7 +381,7 @@ func (r *Runner) RunEnumeration() {
 			if r.options.filterRegex != nil && r.options.filterRegex.MatchString(resp.raw) {
 				continue
 			}
-			if r.options.OutputFilterString != "" && strings.Contains(strings.ToLower(resp.raw), strings.ToLower(r.options.OutputFilterString)) {
+			if r.options.OutputFilterString != "" && match_string_array(r, resp) {
 				continue
 			}
 			if len(r.options.matchStatusCode) > 0 && !slice.IntSliceContains(r.options.matchStatusCode, resp.StatusCode) {
@@ -445,6 +445,16 @@ func (r *Runner) RunEnumeration() {
 	close(output)
 
 	wgoutput.Wait()
+}
+
+func match_string_array(r *Runner, resp Result) bool {
+	str_match := strings.Split(r.options.OutputFilterString, ":")
+	for _, s := range str_match {
+		if strings.Contains(strings.ToLower(resp.raw), strings.ToLower(s)) {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
