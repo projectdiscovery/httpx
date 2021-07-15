@@ -365,9 +365,10 @@ func (r *Runner) RunEnumeration() {
 		}
 		for resp := range output {
 			if resp.err != nil {
-				gologger.Debug().Msgf("Failure '%s': %s\n", resp.URL, resp.err)
+				
+			gologger.Debug().Msgf("Failure '%s': %s\n", resp.URL, resp.err)
 			}
-			if resp.str == "" {
+			if resp.str == "" && !resp.Failed{
 				continue
 			}
 
@@ -461,7 +462,9 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 					go func(target, method, protocol string) {
 						defer wg.Done()
 						result := r.analyze(hp, protocol, target, method, scanopts)
+
 						output <- result
+
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
 							for _, tt := range result.TLSData.DNSNames {
@@ -603,7 +606,6 @@ retry:
 			req.Body = nil
 		}
 	}
-
 	resp, err := hp.Do(req)
 	if err != nil {
 		if !retried && origProtocol == httpx.HTTPorHTTPS {
@@ -615,7 +617,7 @@ retry:
 			retried = true
 			goto retry
 		}
-		return Result{URL: URL.String(), err: err}
+		return Result{OriginalInput:  domain, Timestamp: time.Now(), Failed: true}
 	}
 
 	var fullURL string
@@ -893,6 +895,7 @@ retry:
 	}
 
 	return Result{
+		OriginalInput: 	  domain,
 		Timestamp:        time.Now(),
 		Request:          request,
 		ResponseHeader:   responseHeader,
@@ -932,6 +935,7 @@ retry:
 
 // Result of a scan
 type Result struct {
+	OriginalInput	 string		`json:"original-input"`
 	Timestamp        time.Time `json:"timestamp,omitempty"`
 	Request          string    `json:"request,omitempty"`
 	ResponseHeader   string    `json:"response-header,omitempty"`
@@ -967,6 +971,7 @@ type Result struct {
 	Technologies     []string          `json:"technologies,omitempty"`
 	Chain            []httpx.ChainItem `json:"chain,omitempty"`
 	FinalURL         string            `json:"final-url,omitempty"`
+	Failed			 bool			   `json:"failed"`
 }
 
 // JSON the result
