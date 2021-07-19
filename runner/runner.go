@@ -605,6 +605,25 @@ retry:
 	}
 
 	resp, err := hp.Do(req)
+	// If status flag is active and json is inactive or there is an error, return result with desired info
+	if r.options.Status && (!r.options.JSONOutput || err != nil) {
+		fullURL := req.URL.String()
+		builder := &strings.Builder{}
+		builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
+
+		outputStatus := "success"
+		if err != nil {
+			outputStatus = "failure"
+		}
+		builder.WriteString(" [" + outputStatus + "]")
+		errString := ""
+		if err != nil {
+			errString = err.Error()
+			splitErr := strings.Split(errString, ":")
+			errString = strings.TrimSpace(splitErr[len(splitErr)-1])
+		}
+		return Result{URL: URL.String(), OriginalInput: domain, Timestamp: time.Now(), err: err, Failed: err != nil, Error: errString, str: builder.String()}
+	}
 	if err != nil {
 		if !retried && origProtocol == httpx.HTTPorHTTPS {
 			if protocol == httpx.HTTPS {
@@ -944,10 +963,12 @@ type Result struct {
 	CNAMEs           []string  `json:"cnames,omitempty"`
 	raw              string
 	URL              string `json:"url,omitempty"`
+	OriginalInput    string `json:"original-input,omitempty"`
 	Location         string `json:"location,omitempty"`
 	Title            string `json:"title,omitempty"`
 	str              string
 	err              error
+	Error            string            `json:"error,omitempty"`
 	WebServer        string            `json:"webserver,omitempty"`
 	ResponseBody     string            `json:"response-body,omitempty"`
 	ContentType      string            `json:"content-type,omitempty"`
@@ -967,6 +988,7 @@ type Result struct {
 	Technologies     []string          `json:"technologies,omitempty"`
 	Chain            []httpx.ChainItem `json:"chain,omitempty"`
 	FinalURL         string            `json:"final-url,omitempty"`
+	Failed           bool              `json:"failed,omitempty"`
 }
 
 // JSON the result
