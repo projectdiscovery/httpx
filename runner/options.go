@@ -172,6 +172,7 @@ type Options struct {
 	Allow                     customlist.CustomList
 	MaxResponseBodySize       int
 	OutputExtractRegex        string
+	Status                    bool
 }
 
 // ParseOptions parses the command line options for application
@@ -242,6 +243,7 @@ func ParseOptions() *Options {
 	flag.Var(&options.Deny, "deny", "Denylist ip/cidr")
 	flag.IntVar(&options.MaxResponseBodySize, "max-response-body-size", math.MaxInt32, "Maximum response body size")
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
+	flag.BoolVar(&options.Status, "probe", false, "Display probe status")
 
 	flag.Parse()
 

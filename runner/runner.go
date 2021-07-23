@@ -365,7 +365,7 @@ func (r *Runner) RunEnumeration() {
 		}
 		for resp := range output {
 			if resp.err != nil {
-				gologger.Debug().Msgf("Failure '%s': %s\n", resp.URL, resp.err)
+				gologger.Debug().Msgf("Failed '%s': %s\n", resp.URL, resp.err)
 			}
 			if resp.str == "" {
 				continue
@@ -605,7 +605,37 @@ retry:
 	}
 
 	resp, err := hp.Do(req)
+
+	fullURL := req.URL.String()
+	builder := &strings.Builder{}
+	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
+
+	if r.options.Status {
+		builder.WriteString(" [")
+		outputStatus := "SUCCESS"
+
+		if err != nil {
+			outputStatus = "FAILED"
+		}
+
+		switch {
+		case !scanopts.OutputWithNoColor && err != nil:
+			builder.WriteString(aurora.Red(outputStatus).String())
+		case !scanopts.OutputWithNoColor && err == nil:
+			builder.WriteString(aurora.Green(outputStatus).String())
+		default:
+			builder.WriteString(outputStatus)
+		}
+
+		builder.WriteRune(']')
+	}
+
 	if err != nil {
+		errString := ""
+		errString = err.Error()
+		splitErr := strings.Split(errString, ":")
+		errString = strings.TrimSpace(splitErr[len(splitErr)-1])
+
 		if !retried && origProtocol == httpx.HTTPorHTTPS {
 			if protocol == httpx.HTTPS {
 				protocol = httpx.HTTP
@@ -615,18 +645,12 @@ retry:
 			retried = true
 			goto retry
 		}
-		return Result{URL: URL.String(), err: err}
+		return Result{URL: URL.String(), Input: domain, Timestamp: time.Now(), err: err, Failed: err != nil, Error: errString, str: builder.String()}
 	}
-
-	var fullURL string
 
 	if resp.StatusCode >= 0 {
 		fullURL = req.URL.String()
 	}
-
-	builder := &strings.Builder{}
-
-	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
 
 	if scanopts.OutputStatusCode {
 		builder.WriteString(" [")
@@ -903,6 +927,7 @@ retry:
 		HeaderSHA256:     headersSha,
 		raw:              resp.Raw,
 		URL:              fullURL,
+		Input:            domain,
 		ContentLength:    resp.ContentLength,
 		ChainStatusCodes: chainStatusCodes,
 		Chain:            chainItems,
@@ -944,10 +969,12 @@ type Result struct {
 	CNAMEs           []string  `json:"cnames,omitempty"`
 	raw              string
 	URL              string `json:"url,omitempty"`
+	Input            string `json:"input,omitempty"`
 	Location         string `json:"location,omitempty"`
 	Title            string `json:"title,omitempty"`
 	str              string
 	err              error
+	Error            string            `json:"error,omitempty"`
 	WebServer        string            `json:"webserver,omitempty"`
 	ResponseBody     string            `json:"response-body,omitempty"`
 	ContentType      string            `json:"content-type,omitempty"`
@@ -967,6 +994,7 @@ type Result struct {
 	Technologies     []string          `json:"technologies,omitempty"`
 	Chain            []httpx.ChainItem `json:"chain,omitempty"`
 	FinalURL         string            `json:"final-url,omitempty"`
+	Failed           bool              `json:"failed"`
 }
 
 // JSON the result
