@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -605,17 +606,45 @@ retry:
 	}
 
 	resp, err := hp.Do(req)
-	// If status flag is active and json is inactive or there is an error, return result with desired info
-	if r.options.Status && (!r.options.JSONOutput || err != nil) {
+
+	// Count the number of boolean flags that are true
+	count := 0
+	otherFlags := true
+	givenOptions := reflect.ValueOf(r.options).Elem()
+	for i := 0; i < givenOptions.NumField(); i++ {
+		if givenOptions.Field(i).Type().Name() == "bool" && givenOptions.Field(i).Bool() {
+			count++
+		}
+	}
+
+	// if Status and NoColor flags are the only one contributing to the count, set otherFlags to false
+	if r.options.Status && scanopts.OutputWithNoColor && (count-2 <= 0) {
+		otherFlags = false
+	}
+
+	otherFlags = otherFlags || scanopts.extractRegex != nil
+
+	 if r.options.Status && (!otherFlags || err != nil) {
 		fullURL := req.URL.String()
 		builder := &strings.Builder{}
 		builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
-
+		builder.WriteString(" [")
 		outputStatus := "success"
+
 		if err != nil {
 			outputStatus = "failure"
 		}
-		builder.WriteString(" [" + outputStatus + "]")
+
+		switch {
+		case !scanopts.OutputWithNoColor && err != nil:
+			builder.WriteString(aurora.Red(outputStatus).String())
+		case !scanopts.OutputWithNoColor && err == nil:
+			builder.WriteString(aurora.Green(outputStatus).String())
+		default:
+			builder.WriteString(outputStatus)
+		}
+
+		builder.WriteRune(']')
 		errString := ""
 		if err != nil {
 			errString = err.Error()
@@ -624,6 +653,7 @@ retry:
 		}
 		return Result{URL: URL.String(), OriginalInput: domain, Timestamp: time.Now(), err: err, Failed: err != nil, Error: errString, str: builder.String()}
 	}
+
 	if err != nil {
 		if !retried && origProtocol == httpx.HTTPorHTTPS {
 			if protocol == httpx.HTTPS {
@@ -922,6 +952,7 @@ retry:
 		HeaderSHA256:     headersSha,
 		raw:              resp.Raw,
 		URL:              fullURL,
+		OriginalInput:	  domain,
 		ContentLength:    resp.ContentLength,
 		ChainStatusCodes: chainStatusCodes,
 		Chain:            chainItems,
@@ -963,7 +994,7 @@ type Result struct {
 	CNAMEs           []string  `json:"cnames,omitempty"`
 	raw              string
 	URL              string `json:"url,omitempty"`
-	OriginalInput    string `json:"original-input,omitempty"`
+	OriginalInput    string `json:"input,omitempty"`
 	Location         string `json:"location,omitempty"`
 	Title            string `json:"title,omitempty"`
 	str              string
