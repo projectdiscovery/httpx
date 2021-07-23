@@ -243,7 +243,7 @@ func ParseOptions() *Options {
 	flag.Var(&options.Deny, "deny", "Denylist ip/cidr")
 	flag.IntVar(&options.MaxResponseBodySize, "max-response-body-size", math.MaxInt32, "Maximum response body size")
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
-	flag.BoolVar(&options.Status, "status", false, "display status as success or failure")
+	flag.BoolVar(&options.Status, "probe", false, "Display probe status")
 
 	flag.Parse()
 

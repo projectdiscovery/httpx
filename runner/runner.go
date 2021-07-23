@@ -365,7 +365,7 @@ func (r *Runner) RunEnumeration() {
 		}
 		for resp := range output {
 			if resp.err != nil {
-				gologger.Debug().Msgf("Failure '%s': %s\n", resp.URL, resp.err)
+				gologger.Debug().Msgf("Failed '%s': %s\n", resp.URL, resp.err)
 			}
 			if resp.str == "" {
 				continue
@@ -612,10 +612,10 @@ retry:
 
 	if r.options.Status {
 		builder.WriteString(" [")
-		outputStatus := "success"
+		outputStatus := "SUCCESS"
 
 		if err != nil {
-			outputStatus = "failure"
+			outputStatus = "FAILED"
 		}
 
 		switch {
