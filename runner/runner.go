@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -607,27 +606,11 @@ retry:
 
 	resp, err := hp.Do(req)
 
-	// Count the number of boolean flags that are true
-	count := 0
-	otherFlags := true
-	givenOptions := reflect.ValueOf(r.options).Elem()
-	for i := 0; i < givenOptions.NumField(); i++ {
-		if givenOptions.Field(i).Type().Name() == "bool" && givenOptions.Field(i).Bool() {
-			count++
-		}
-	}
+	fullURL := req.URL.String()
+	builder := &strings.Builder{}
+	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
 
-	// if Status and NoColor flags are the only one contributing to the count, set otherFlags to false
-	if r.options.Status && scanopts.OutputWithNoColor && (count-2 <= 0) {
-		otherFlags = false
-	}
-
-	otherFlags = otherFlags || scanopts.extractRegex != nil
-
-	if r.options.Status && (!otherFlags || err != nil) {
-		fullURL := req.URL.String()
-		builder := &strings.Builder{}
-		builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
+	if r.options.Status {
 		builder.WriteString(" [")
 		outputStatus := "success"
 
@@ -645,16 +628,14 @@ retry:
 		}
 
 		builder.WriteRune(']')
-		errString := ""
-		if err != nil {
-			errString = err.Error()
-			splitErr := strings.Split(errString, ":")
-			errString = strings.TrimSpace(splitErr[len(splitErr)-1])
-		}
-		return Result{URL: URL.String(), OriginalInput: domain, Timestamp: time.Now(), err: err, Failed: err != nil, Error: errString, str: builder.String()}
 	}
 
 	if err != nil {
+		errString := ""
+		errString = err.Error()
+		splitErr := strings.Split(errString, ":")
+		errString = strings.TrimSpace(splitErr[len(splitErr)-1])
+
 		if !retried && origProtocol == httpx.HTTPorHTTPS {
 			if protocol == httpx.HTTPS {
 				protocol = httpx.HTTP
@@ -664,18 +645,12 @@ retry:
 			retried = true
 			goto retry
 		}
-		return Result{URL: URL.String(), err: err}
+		return Result{URL: URL.String(), Input: domain, Timestamp: time.Now(), err: err, Failed: err != nil, Error: errString, str: builder.String()}
 	}
-
-	var fullURL string
 
 	if resp.StatusCode >= 0 {
 		fullURL = req.URL.String()
 	}
-
-	builder := &strings.Builder{}
-
-	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
 
 	if scanopts.OutputStatusCode {
 		builder.WriteString(" [")
@@ -952,7 +927,7 @@ retry:
 		HeaderSHA256:     headersSha,
 		raw:              resp.Raw,
 		URL:              fullURL,
-		OriginalInput:    domain,
+		Input:            domain,
 		ContentLength:    resp.ContentLength,
 		ChainStatusCodes: chainStatusCodes,
 		Chain:            chainItems,
@@ -994,7 +969,7 @@ type Result struct {
 	CNAMEs           []string  `json:"cnames,omitempty"`
 	raw              string
 	URL              string `json:"url,omitempty"`
-	OriginalInput    string `json:"input,omitempty"`
+	Input            string `json:"input,omitempty"`
 	Location         string `json:"location,omitempty"`
 	Title            string `json:"title,omitempty"`
 	str              string
