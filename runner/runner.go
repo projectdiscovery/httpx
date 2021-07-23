@@ -624,7 +624,7 @@ retry:
 
 	otherFlags = otherFlags || scanopts.extractRegex != nil
 
-	 if r.options.Status && (!otherFlags || err != nil) {
+	if r.options.Status && (!otherFlags || err != nil) {
 		fullURL := req.URL.String()
 		builder := &strings.Builder{}
 		builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
@@ -952,7 +952,7 @@ retry:
 		HeaderSHA256:     headersSha,
 		raw:              resp.Raw,
 		URL:              fullURL,
-		OriginalInput:	  domain,
+		OriginalInput:    domain,
 		ContentLength:    resp.ContentLength,
 		ChainStatusCodes: chainStatusCodes,
 		Chain:            chainItems,
