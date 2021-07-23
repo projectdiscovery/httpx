@@ -994,7 +994,7 @@ type Result struct {
 	Technologies     []string          `json:"technologies,omitempty"`
 	Chain            []httpx.ChainItem `json:"chain,omitempty"`
 	FinalURL         string            `json:"final-url,omitempty"`
-	Failed           bool              `json:"failed,omitempty"`
+	Failed           bool              `json:"failed"`
 }
 
 // JSON the result
