@@ -610,20 +610,19 @@ retry:
 	builder := &strings.Builder{}
 	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
 
-	if r.options.Status {
+	if r.options.Probe {
 		builder.WriteString(" [")
-		outputStatus := "SUCCESS"
 
+		outputStatus := "SUCCESS"
 		if err != nil {
 			outputStatus = "FAILED"
 		}
 
-		switch {
-		case !scanopts.OutputWithNoColor && err != nil:
+		if !scanopts.OutputWithNoColor && err != nil {
 			builder.WriteString(aurora.Red(outputStatus).String())
-		case !scanopts.OutputWithNoColor && err == nil:
+		} else if !scanopts.OutputWithNoColor && err == nil {
 			builder.WriteString(aurora.Green(outputStatus).String())
-		default:
+		} else {
 			builder.WriteString(outputStatus)
 		}
 
@@ -645,11 +644,11 @@ retry:
 			retried = true
 			goto retry
 		}
-		return Result{URL: URL.String(), Input: domain, Timestamp: time.Now(), err: err, Failed: err != nil, Error: errString, str: builder.String()}
-	}
-
-	if resp.StatusCode >= 0 {
-		fullURL = req.URL.String()
+		if r.options.Probe {
+			return Result{URL: URL.String(), Input: domain, Timestamp: time.Now(), err: err, Failed: err != nil, Error: errString, str: builder.String()}
+		} else {
+			return Result{URL: URL.String(), Input: domain, Timestamp: time.Now(), err: err}
+		}
 	}
 
 	if scanopts.OutputStatusCode {
