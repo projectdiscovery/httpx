@@ -15,14 +15,13 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.2
 	github.com/projectdiscovery/clistats v0.0.8
-	github.com/projectdiscovery/fastdialer v0.0.11
+	github.com/projectdiscovery/fastdialer v0.0.12-0.20210724165058-1e2d64dfd615
 	github.com/projectdiscovery/fdmax v0.0.3
 	github.com/projectdiscovery/gologger v1.1.4
 	github.com/projectdiscovery/hmap v0.0.2-0.20210630092648-6c0a1b362caa
 	github.com/projectdiscovery/httputil v0.0.0-20210508183653-2e37c34b438d
 	github.com/projectdiscovery/iputil v0.0.0-20210705072957-5a968407979b
 	github.com/projectdiscovery/mapcidr v0.0.8
-	github.com/projectdiscovery/networkpolicy v0.0.0-20210721124853-414f44c9df85 // indirect
 	github.com/projectdiscovery/rawhttp v0.0.7
 	github.com/projectdiscovery/retryabledns v1.0.12 // indirect
 	github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210526144436-e15804ddc7dc
@@ -36,6 +35,5 @@ require (
 	golang.org/x/net v0.0.0-20210716203947-853a461950ff
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/text v0.3.6
-	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 )
