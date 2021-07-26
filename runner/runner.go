@@ -7,6 +7,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/logrusorgru/aurora"
+	"github.com/pkg/errors"
+	"github.com/projectdiscovery/clistats"
+	"github.com/projectdiscovery/urlutil"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -17,12 +21,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/logrusorgru/aurora"
-	"github.com/pkg/errors"
-
-	"github.com/projectdiscovery/clistats"
-	"github.com/projectdiscovery/urlutil"
 
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
@@ -40,6 +38,7 @@ import (
 	"github.com/projectdiscovery/rawhttp"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 	"github.com/remeh/sizedwaitgroup"
+	"go.uber.org/ratelimit"
 )
 
 const (
@@ -48,12 +47,13 @@ const (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options    *Options
-	hp         *httpx.HTTPX
-	wappalyzer *wappalyzer.Wappalyze
-	scanopts   scanOptions
-	hm         *hybrid.HybridMap
-	stats      clistats.StatisticsClient
+	options     *Options
+	hp          *httpx.HTTPX
+	wappalyzer  *wappalyzer.Wappalyze
+	scanopts    scanOptions
+	hm          *hybrid.HybridMap
+	stats       clistats.StatisticsClient
+	ratelimiter ratelimit.Limiter
 }
 
 // New creates a new client for running enumeration process.
@@ -208,6 +208,12 @@ func New(options *Options) (*Runner, error) {
 	}
 	runner.hm = hm
 
+	if options.RateLimit > 0 {
+		runner.ratelimiter = ratelimit.New(options.RateLimit)
+	} else {
+		runner.ratelimiter = ratelimit.NewUnlimited()
+	}
+
 	return runner, nil
 }
 
@@ -278,6 +284,9 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	for scanner.Scan() {
 		target := strings.TrimSpace(scanner.Text())
 		// Used just to get the exact number of targets
+		if target == "" {
+			continue
+		}
 		if _, ok := r.hm.Get(target); ok {
 			continue
 		}
@@ -426,10 +435,12 @@ func (r *Runner) RunEnumeration() {
 			for _, p := range r.options.requestURIs {
 				scanopts := r.scanopts.Clone()
 				scanopts.RequestURI = p
+				r.ratelimiter.Take()
 				r.process(t, &wg, r.hp, protocol, scanopts, output)
 				reqs++
 			}
 		} else {
+			r.ratelimiter.Take()
 			r.process(t, &wg, r.hp, protocol, &r.scanopts, output)
 			reqs++
 		}
@@ -452,6 +463,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 	if scanopts.NoFallback {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
+	r.ratelimiter.Take()
 	for target := range targets(stringz.TrimProtocol(t, scanopts.NoFallback || scanopts.NoFallbackScheme)) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
