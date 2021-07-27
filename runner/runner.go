@@ -7,10 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/logrusorgru/aurora"
-	"github.com/pkg/errors"
-	"github.com/projectdiscovery/clistats"
-	"github.com/projectdiscovery/urlutil"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -21,6 +17,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/logrusorgru/aurora"
+	"github.com/pkg/errors"
+	"github.com/projectdiscovery/clistats"
+	"github.com/projectdiscovery/urlutil"
 
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
