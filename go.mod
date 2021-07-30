@@ -32,6 +32,7 @@ require (
 	github.com/rs/xid v1.3.0
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/ratelimit v0.2.0
 	golang.org/x/net v0.0.0-20210716203947-853a461950ff
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/text v0.3.6

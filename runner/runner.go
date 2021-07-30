@@ -20,7 +20,6 @@ import (
 
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
-
 	"github.com/projectdiscovery/clistats"
 	"github.com/projectdiscovery/urlutil"
 
@@ -40,6 +39,7 @@ import (
 	"github.com/projectdiscovery/rawhttp"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 	"github.com/remeh/sizedwaitgroup"
+	"go.uber.org/ratelimit"
 )
 
 const (
@@ -48,12 +48,13 @@ const (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options    *Options
-	hp         *httpx.HTTPX
-	wappalyzer *wappalyzer.Wappalyze
-	scanopts   scanOptions
-	hm         *hybrid.HybridMap
-	stats      clistats.StatisticsClient
+	options     *Options
+	hp          *httpx.HTTPX
+	wappalyzer  *wappalyzer.Wappalyze
+	scanopts    scanOptions
+	hm          *hybrid.HybridMap
+	stats       clistats.StatisticsClient
+	ratelimiter ratelimit.Limiter
 }
 
 // New creates a new client for running enumeration process.
@@ -208,6 +209,12 @@ func New(options *Options) (*Runner, error) {
 	}
 	runner.hm = hm
 
+	if options.RateLimit > 0 {
+		runner.ratelimiter = ratelimit.New(options.RateLimit)
+	} else {
+		runner.ratelimiter = ratelimit.NewUnlimited()
+	}
+
 	return runner, nil
 }
 
@@ -278,6 +285,9 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	for scanner.Scan() {
 		target := strings.TrimSpace(scanner.Text())
 		// Used just to get the exact number of targets
+		if target == "" {
+			continue
+		}
 		if _, ok := r.hm.Get(target); ok {
 			continue
 		}
@@ -603,7 +613,7 @@ retry:
 			req.Body = nil
 		}
 	}
-
+	r.ratelimiter.Take()
 	resp, err := hp.Do(req)
 
 	fullURL := req.URL.String()
@@ -744,6 +754,7 @@ retry:
 	// check for virtual host
 	isvhost := false
 	if scanopts.VHost {
+		r.ratelimiter.Take()
 		isvhost, _ = hp.IsVirtualHost(req)
 		if isvhost {
 			builder.WriteString(" [vhost]")
@@ -759,6 +770,7 @@ retry:
 	pipeline := false
 	if scanopts.Pipeline {
 		port, _ := strconv.Atoi(URL.Port)
+		r.ratelimiter.Take()
 		pipeline = hp.SupportPipeline(protocol, method, URL.Host, port)
 		if pipeline {
 			builder.WriteString(" [pipeline]")
@@ -768,6 +780,7 @@ retry:
 	var http2 bool
 	// if requested probes for http2
 	if scanopts.HTTP2Probe {
+		r.ratelimiter.Take()
 		http2 = hp.SupportHTTP2(protocol, method, URL.String())
 		if http2 {
 			builder.WriteString(" [http2]")
