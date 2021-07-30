@@ -436,12 +436,10 @@ func (r *Runner) RunEnumeration() {
 			for _, p := range r.options.requestURIs {
 				scanopts := r.scanopts.Clone()
 				scanopts.RequestURI = p
-				//r.ratelimiter.Take()
 				r.process(t, &wg, r.hp, protocol, scanopts, output)
 				reqs++
 			}
 		} else {
-			//r.ratelimiter.Take()
 			r.process(t, &wg, r.hp, protocol, &r.scanopts, output)
 			reqs++
 		}
@@ -464,7 +462,6 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 	if scanopts.NoFallback {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
-	//r.ratelimiter.Take()
 	for target := range targets(stringz.TrimProtocol(t, scanopts.NoFallback || scanopts.NoFallbackScheme)) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
