@@ -173,6 +173,7 @@ type Options struct {
 	MaxResponseBodySize       int
 	OutputExtractRegex        string
 	RateLimit                 int
+	Probe                     bool
 }
 
 // ParseOptions parses the command line options for application
@@ -244,6 +245,7 @@ func ParseOptions() *Options {
 	flag.IntVar(&options.MaxResponseBodySize, "max-response-body-size", math.MaxInt32, "Maximum response body size")
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 	flag.IntVar(&options.RateLimit, "rate-limit", 150, "Maximum requests to send per second")
+	flag.BoolVar(&options.Probe, "probe", false, "Display probe status")
 
 	flag.Parse()
 
