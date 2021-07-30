@@ -435,12 +435,12 @@ func (r *Runner) RunEnumeration() {
 			for _, p := range r.options.requestURIs {
 				scanopts := r.scanopts.Clone()
 				scanopts.RequestURI = p
-				r.ratelimiter.Take()
+				//r.ratelimiter.Take()
 				r.process(t, &wg, r.hp, protocol, scanopts, output)
 				reqs++
 			}
 		} else {
-			r.ratelimiter.Take()
+			//r.ratelimiter.Take()
 			r.process(t, &wg, r.hp, protocol, &r.scanopts, output)
 			reqs++
 		}
@@ -463,7 +463,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 	if scanopts.NoFallback {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
-	r.ratelimiter.Take()
+	//r.ratelimiter.Take()
 	for target := range targets(stringz.TrimProtocol(t, scanopts.NoFallback || scanopts.NoFallbackScheme)) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
@@ -615,7 +615,7 @@ retry:
 			req.Body = nil
 		}
 	}
-
+	r.ratelimiter.Take()
 	resp, err := hp.Do(req)
 	if err != nil {
 		if !retried && origProtocol == httpx.HTTPorHTTPS {
@@ -733,6 +733,7 @@ retry:
 	// check for virtual host
 	isvhost := false
 	if scanopts.VHost {
+		r.ratelimiter.Take()
 		isvhost, _ = hp.IsVirtualHost(req)
 		if isvhost {
 			builder.WriteString(" [vhost]")
@@ -748,6 +749,7 @@ retry:
 	pipeline := false
 	if scanopts.Pipeline {
 		port, _ := strconv.Atoi(URL.Port)
+		r.ratelimiter.Take()
 		pipeline = hp.SupportPipeline(protocol, method, URL.Host, port)
 		if pipeline {
 			builder.WriteString(" [pipeline]")
@@ -757,6 +759,7 @@ retry:
 	var http2 bool
 	// if requested probes for http2
 	if scanopts.HTTP2Probe {
+		r.ratelimiter.Take()
 		http2 = hp.SupportHTTP2(protocol, method, URL.String())
 		if http2 {
 			builder.WriteString(" [http2]")
