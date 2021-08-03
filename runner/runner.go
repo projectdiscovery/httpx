@@ -410,7 +410,7 @@ func (r *Runner) RunEnumeration() {
 			}
 			if r.options.ExcludeCDN {
 				keys := make(map[string]bool)
-				if (reqLength+reqLength) == ii {
+				if (reqLength + reqLength) == ii {
 					for _, entry := range resp.UniqueUrl {
 						if _, value := keys[entry]; !value {
 							keys[entry] = true

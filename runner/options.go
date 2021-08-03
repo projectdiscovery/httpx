@@ -57,7 +57,7 @@ type scanOptions struct {
 	MaxResponseBodySize    int
 	OutputExtractRegex     string
 	extractRegex           *regexp.Regexp
-	ExcludeCDN                bool
+	ExcludeCDN             bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
