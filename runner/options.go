@@ -57,6 +57,7 @@ type scanOptions struct {
 	MaxResponseBodySize    int
 	OutputExtractRegex     string
 	extractRegex           *regexp.Regexp
+	ExcludeCDN                bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -174,6 +175,7 @@ type Options struct {
 	OutputExtractRegex        string
 	RateLimit                 int
 	Probe                     bool
+	ExcludeCDN                bool
 }
 
 // ParseOptions parses the command line options for application
@@ -246,6 +248,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 	flag.IntVar(&options.RateLimit, "rate-limit", 150, "Maximum requests to send per second")
 	flag.BoolVar(&options.Probe, "probe", false, "Display probe status")
+	flag.BoolVar(&options.ExcludeCDN, "exclude-cdn", false, "Skip full port scans for CDNs (only checks for 80,443)")
 
 	flag.Parse()
 
