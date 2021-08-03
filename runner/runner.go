@@ -46,10 +46,10 @@ const (
 	statsDisplayInterval = 5
 )
 
-var uniqueUrlStrngs []string
-var portLst []string
-var ii = 1
-var reqLength int
+// var uniqueUrlStrngs []string
+// var portLst []string
+// var ii = 1
+// var reqLength int
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
@@ -85,6 +85,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
 	httpxOptions.CdnCheck = options.OutputCDN
+	httpxOptions.ExcludeCdn = options.ExcludeCDN
 	httpxOptions.RandomAgent = options.RandomAgent
 	httpxOptions.Deny = options.Deny
 	httpxOptions.Allow = options.Allow
@@ -260,7 +261,7 @@ func (r *Runner) prepareInput() {
 		}
 		numTargets += numTargetsStdin
 	}
-	reqLength = numTargets
+	// reqLength = numTargets
 	if r.options.ShowStatistics {
 		numPorts := len(customport.Ports)
 		if numPorts == 0 {
@@ -408,27 +409,28 @@ func (r *Runner) RunEnumeration() {
 			if r.options.JSONOutput {
 				row = resp.JSON(&r.scanopts)
 			}
-			if r.options.ExcludeCDN {
-				keys := make(map[string]bool)
-				if (reqLength + reqLength) == ii {
-					for _, entry := range resp.UniqueUrl {
-						if _, value := keys[entry]; !value {
-							keys[entry] = true
-							var porVal string
-							for _, x := range resp.PortLst {
-								if strings.Contains(x, entry) {
-									newReslt := strings.SplitN(x, ":", 3)
-									porVal = porVal + newReslt[2] + ", "
-								}
-							}
-							gologger.Silent().Msgf("%s\n", entry+" => "+porVal)
-						}
-					}
-				}
-				ii++
-			} else {
-				gologger.Silent().Msgf("%s\n", row)
-			}
+			// if r.options.ExcludeCDN {
+			// 	keys := make(map[string]bool)
+			// 	if (reqLength + reqLength) == ii {
+			// 		for _, entry := range resp.UniqueUrl {
+			// 			if _, value := keys[entry]; !value {
+			// 				keys[entry] = true
+			// 				var porVal string
+			// 				for _, x := range resp.PortLst {
+			// 					if strings.Contains(x, entry) {
+			// 						newReslt := strings.SplitN(x, ":", 3)
+			// 						porVal = porVal + newReslt[2] + ", "
+			// 					}
+			// 				}
+			// 				gologger.Silent().Msgf("%s\n", entry+" => "+porVal)
+			// 			}
+			// 		}
+			// 	}
+			// 	ii++
+			// } else {
+
+			// }
+			gologger.Silent().Msgf("%s\n", row)
 			if f != nil {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				f.WriteString(row + "\n")
@@ -583,6 +585,13 @@ retry:
 	if err != nil {
 		return Result{URL: domain, err: err}
 	}
+
+	// check if the combination host:port should be skipped if belonging to a cdn
+	if r.skipCDNPort(URL.Host, URL.Port) {
+		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port)
+		return Result{URL: domain, err: errors.New("cdn target only allows ports 80 and 443")}
+	}
+
 	URL.Scheme = protocol
 
 	if !strings.Contains(domain, URL.Port) {
@@ -600,19 +609,18 @@ retry:
 		req.Host = customHost
 	}
 
-	ipHost := hp.Dialer.GetDialedIP(URL.Host)
-	if domain != "" {
-		u, _ := url.ParseRequestURI(domain)
-		if u != nil {
-			splitUrl := strings.SplitN(u.Host, ":", two)
-			uniqueUrlStrngs = append(uniqueUrlStrngs, splitUrl[0])
-		}
-	}
-	if !r.skipCDNPort(URL.RequestURI, URL.Port) {
-		gologger.Debug().Msgf("Skipping cdn target: %s:%d\n", ipHost, URL.Port) //nolint
-		//fmt.Println("CDN CHECK")
-		return Result{}
-	}
+	// ipHost := hp.Dialer.GetDialedIP(URL.Host)
+	// if domain != "" {
+	// 	u, _ := url.ParseRequestURI(domain)
+	// 	if u != nil {
+	// 		splitUrl := strings.SplitN(u.Host, ":", two)
+	// 		uniqueUrlStrngs = append(uniqueUrlStrngs, splitUrl[0])
+	// 	}
+	// }
+	// if !r.skipCDNPort(URL.RequestURI, URL.Port) {
+	// 	gologger.Debug().Msgf("Skipping cdn target: %s:%d\n", ipHost, URL.Port) //nolint
+	// 	return Result{}
+	// }
 	reqURI := req.URL.RequestURI()
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
@@ -668,7 +676,7 @@ retry:
 	builder := &strings.Builder{}
 
 	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
-	portLst = append(portLst, fullURL)
+	// portLst = append(portLst, fullURL)
 	if scanopts.OutputStatusCode {
 		builder.WriteString(" [")
 		for i, chainItem := range resp.Chain {
@@ -967,8 +975,8 @@ retry:
 		ResponseTime:     resp.Duration.String(),
 		Technologies:     technologies,
 		FinalURL:         finalURL,
-		UniqueUrl:        uniqueUrlStrngs,
-		PortLst:          portLst,
+		// UniqueUrl:        uniqueUrlStrngs,
+		// PortLst:          portLst,
 	}
 }
 
@@ -1009,8 +1017,8 @@ type Result struct {
 	Technologies     []string          `json:"technologies,omitempty"`
 	Chain            []httpx.ChainItem `json:"chain,omitempty"`
 	FinalURL         string            `json:"final-url,omitempty"`
-	UniqueUrl        []string          `json:"unique-url,omitempty"`
-	PortLst          []string          `json:"port-lst,omitempty"`
+	// UniqueUrl        []string          `json:"unique-url,omitempty"`
+	// PortLst          []string          `json:"port-lst,omitempty"`
 }
 
 // JSON the result
@@ -1027,14 +1035,33 @@ func (r Result) JSON(scanopts *scanOptions) string { //nolint
 }
 
 func (r *Runner) skipCDNPort(host string, port string) bool {
-	//fmt.Println(host+" : "+ port)
+	// if the option is not enabled we don't skip
 	if !r.options.ExcludeCDN {
+		return false
+	}
+	// uses the dealer to pre-resolve the target
+	dnsData, err := r.hp.Dialer.GetDNSData(host)
+	// if we get an error the target cannot be resolved, so we return false so that the program logic continues as usual and handles the errors accordingly
+	if err != nil {
+		return false
+	}
+
+	if len(dnsData.A) == 0 {
+		return false
+	}
+
+	// pick the first ip as target
+	hostIP := dnsData.A[0]
+
+	isCdnIP, err := r.hp.CdnCheck(hostIP)
+	if err != nil {
+		return false
+	}
+
+	// If the target is part of the CDN ips range - only ports 80 and 443 are allowed
+	if isCdnIP && port != "80" && port != "443" {
 		return true
 	}
 
-	//if ok, err := r.scanopts.CdnCheck(host); err == nil && !ok {
-	//	return true
-	//}
-	// If the cdn is part of the CDN ips range - only ports 80 and 443 are allowed
-	return port == "80" || port == "443"
+	return false
 }
