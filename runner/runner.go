@@ -609,7 +609,7 @@ retry:
 		}
 	}
 	if !r.skipCDNPort(URL.RequestURI, URL.Port) {
-		gologger.Debug().Msgf("Skipping cdn target: %s:%d\n", ipHost, URL.Port)
+		gologger.Debug().Msgf("Skipping cdn target: %s:%d\n", ipHost, URL.Port) //nolint
 		//fmt.Println("CDN CHECK")
 		return Result{}
 	}
