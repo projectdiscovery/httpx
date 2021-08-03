@@ -46,11 +46,6 @@ const (
 	statsDisplayInterval = 5
 )
 
-// var uniqueUrlStrngs []string
-// var portLst []string
-// var ii = 1
-// var reqLength int
-
 // Runner is a client for running the enumeration process.
 type Runner struct {
 	options    *Options
@@ -409,27 +404,7 @@ func (r *Runner) RunEnumeration() {
 			if r.options.JSONOutput {
 				row = resp.JSON(&r.scanopts)
 			}
-			// if r.options.ExcludeCDN {
-			// 	keys := make(map[string]bool)
-			// 	if (reqLength + reqLength) == ii {
-			// 		for _, entry := range resp.UniqueUrl {
-			// 			if _, value := keys[entry]; !value {
-			// 				keys[entry] = true
-			// 				var porVal string
-			// 				for _, x := range resp.PortLst {
-			// 					if strings.Contains(x, entry) {
-			// 						newReslt := strings.SplitN(x, ":", 3)
-			// 						porVal = porVal + newReslt[2] + ", "
-			// 					}
-			// 				}
-			// 				gologger.Silent().Msgf("%s\n", entry+" => "+porVal)
-			// 			}
-			// 		}
-			// 	}
-			// 	ii++
-			// } else {
 
-			// }
 			gologger.Silent().Msgf("%s\n", row)
 			if f != nil {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
@@ -609,18 +584,6 @@ retry:
 		req.Host = customHost
 	}
 
-	// ipHost := hp.Dialer.GetDialedIP(URL.Host)
-	// if domain != "" {
-	// 	u, _ := url.ParseRequestURI(domain)
-	// 	if u != nil {
-	// 		splitUrl := strings.SplitN(u.Host, ":", two)
-	// 		uniqueUrlStrngs = append(uniqueUrlStrngs, splitUrl[0])
-	// 	}
-	// }
-	// if !r.skipCDNPort(URL.RequestURI, URL.Port) {
-	// 	gologger.Debug().Msgf("Skipping cdn target: %s:%d\n", ipHost, URL.Port) //nolint
-	// 	return Result{}
-	// }
 	reqURI := req.URL.RequestURI()
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
@@ -1017,8 +980,6 @@ type Result struct {
 	Technologies     []string          `json:"technologies,omitempty"`
 	Chain            []httpx.ChainItem `json:"chain,omitempty"`
 	FinalURL         string            `json:"final-url,omitempty"`
-	// UniqueUrl        []string          `json:"unique-url,omitempty"`
-	// PortLst          []string          `json:"port-lst,omitempty"`
 }
 
 // JSON the result
