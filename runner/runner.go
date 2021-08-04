@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -826,6 +827,7 @@ retry:
 		}
 
 		if len(technologies) > 0 {
+			sort.Strings(technologies)
 			technologies := strings.Join(technologies, ",")
 
 			builder.WriteString(" [")
