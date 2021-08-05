@@ -26,7 +26,7 @@ require (
 	github.com/projectdiscovery/retryabledns v1.0.12 // indirect
 	github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210526144436-e15804ddc7dc
 	github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d
-	github.com/projectdiscovery/urlutil v0.0.0-20210805122636-eecd5e72b265
+	github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1
 	github.com/projectdiscovery/wappalyzergo v0.0.7
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.3.0
