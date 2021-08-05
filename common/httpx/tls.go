@@ -3,10 +3,10 @@ package httpx
 import (
 	"bytes"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"net/http"
 )
 
 // TLSData contains the relevant Transport Layer Security information
@@ -24,19 +24,19 @@ type TLSData struct {
 }
 
 // TLSGrab fills the TLSData
-func (h *HTTPX) TLSGrab(r *http.Response) *TLSData {
-	if r.TLS != nil {
+func (h *HTTPX) TLSGrab(c *tls.ConnectionState) *TLSData {
+	if c != nil {
 		var tlsdata TLSData
 		// Only PeerCertificates[0] contains useful information
-		cert := r.TLS.PeerCertificates[0]
+		cert := c.PeerCertificates[0]
 		tlsdata.DNSNames = append(tlsdata.DNSNames, cert.DNSNames...)
 		tlsdata.Emails = append(tlsdata.Emails, cert.EmailAddresses...)
 		tlsdata.CommonName = append(tlsdata.CommonName, cert.Subject.CommonName)
 		tlsdata.Organization = append(tlsdata.Organization, cert.Subject.Organization...)
 		tlsdata.IssuerOrg = append(tlsdata.IssuerOrg, cert.Issuer.Organization...)
 		tlsdata.IssuerCommonName = append(tlsdata.IssuerCommonName, cert.Issuer.CommonName)
-		tlsdata.ExtensionServerName = r.TLS.ServerName
-		if v, ok := tlsVersionStringMap[r.TLS.Version]; ok {
+		tlsdata.ExtensionServerName = c.ServerName
+		if v, ok := tlsVersionStringMap[c.Version]; ok {
 			tlsdata.TLSVersion = v
 		}
 
@@ -57,13 +57,13 @@ var tlsVersionStringMap = map[uint16]string{
 	0x0304: "TLS13",
 }
 
-func calculateFingerprints(r *http.Response) (fingerprintSHA256 []byte, err error) {
-	if len(r.TLS.PeerCertificates) == 0 {
+func calculateFingerprints(c *tls.ConnectionState) (fingerprintSHA256 []byte, err error) {
+	if len(c.PeerCertificates) == 0 {
 		err = errors.New("no certificates found")
 		return
 	}
 
-	cert := r.TLS.PeerCertificates[0]
+	cert := c.PeerCertificates[0]
 	dataSHA256 := sha256.Sum256(cert.Raw)
 	fingerprintSHA256 = dataSHA256[:]
 	return

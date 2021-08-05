@@ -186,7 +186,7 @@ get_response:
 
 	if !h.Options.Unsafe && h.Options.TLSGrab {
 		// extracts TLS data if any
-		resp.TLSData = h.TLSGrab(httpresp)
+		resp.TLSData = h.TLSGrab(httpresp.TLS)
 	}
 
 	resp.CSPData = h.CSPGrab(httpresp)

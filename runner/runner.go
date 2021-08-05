@@ -640,6 +640,17 @@ retry:
 		builder.WriteRune(']')
 	}
 
+	// collect tls data
+	var tlsData *httpx.TLSData
+	if resp != nil {
+		tlsData = resp.TLSData
+	} else {
+		connState, err := r.hp.Dialer.GetTLSData(URL.Host)
+		if err == nil {
+			tlsData = r.hp.TLSGrab(connState)
+		}
+	}
+
 	if err != nil {
 		errString := ""
 		errString = err.Error()
@@ -954,7 +965,7 @@ retry:
 		WebServer:        serverHeader,
 		ResponseBody:     serverResponseRaw,
 		WebSocket:        isWebSocket,
-		TLSData:          resp.TLSData,
+		TLSData:          tlsData,
 		CSPData:          resp.CSPData,
 		Pipeline:         pipeline,
 		HTTP2:            http2,

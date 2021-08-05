@@ -15,7 +15,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.2
 	github.com/projectdiscovery/clistats v0.0.8
-	github.com/projectdiscovery/fastdialer v0.0.12
+	github.com/projectdiscovery/fastdialer v0.0.13-0.20210805133544-1a8da61e2097
 	github.com/projectdiscovery/fdmax v0.0.3
 	github.com/projectdiscovery/gologger v1.1.4
 	github.com/projectdiscovery/hmap v0.0.2-0.20210630092648-6c0a1b362caa
