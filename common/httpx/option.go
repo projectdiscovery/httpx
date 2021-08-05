@@ -24,6 +24,7 @@ type Options struct {
 	FollowHostRedirects  bool
 	Unsafe               bool
 	TLSGrab              bool
+	TLSGrabOnError       bool
 	// VHOSTs options
 	VHostIgnoreStatusCode    bool
 	VHostIgnoreContentLength bool

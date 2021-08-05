@@ -13,6 +13,7 @@ import (
 	"github.com/corpix/uarand"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
+	"github.com/projectdiscovery/cryptoutil"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	pdhttputil "github.com/projectdiscovery/httputil"
 	"github.com/projectdiscovery/rawhttp"
@@ -40,6 +41,7 @@ func New(options *Options) (*HTTPX, error) {
 	fastdialerOpts.EnableFallback = true
 	fastdialerOpts.Deny = options.Deny
 	fastdialerOpts.Allow = options.Allow
+	fastdialerOpts.WithTLSData = options.TLSGrabOnError
 	dialer, err := fastdialer.NewDialer(fastdialerOpts)
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)
@@ -78,6 +80,7 @@ func New(options *Options) (*HTTPX, error) {
 
 	transport := &http.Transport{
 		DialContext:         httpx.Dialer.Dial,
+		DialTLSContext:      httpx.Dialer.DialTLS,
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -186,7 +189,7 @@ get_response:
 
 	if !h.Options.Unsafe && h.Options.TLSGrab {
 		// extracts TLS data if any
-		resp.TLSData = h.TLSGrab(httpresp.TLS)
+		resp.TLSData = cryptoutil.TLSGrab(httpresp.TLS)
 	}
 
 	resp.CSPData = h.CSPGrab(httpresp)

@@ -164,6 +164,7 @@ type Options struct {
 	NoFallbackScheme          bool
 	TechDetect                bool
 	TLSGrab                   bool
+	TLSGrabOnError            bool
 	protocol                  string
 	ShowStatistics            bool
 	RandomAgent               bool
@@ -181,6 +182,7 @@ func ParseOptions() *Options {
 	options := &Options{}
 
 	flag.BoolVar(&options.TLSGrab, "tls-grab", false, "Perform TLS data grabbing")
+	flag.BoolVar(&options.TLSGrabOnError, "tls-on-error", false, "Collect TLS information even on errors")
 	flag.BoolVar(&options.TechDetect, "tech-detect", false, "Perform wappalyzer based technology detection")
 	flag.IntVar(&options.Threads, "threads", 50, "Number of threads")
 	flag.IntVar(&options.Retries, "retries", 0, "Number of retries")
