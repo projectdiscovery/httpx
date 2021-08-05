@@ -167,8 +167,8 @@ github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210526144436-e15804ddc7d
 github.com/projectdiscovery/stringsutil v0.0.0-20210524051937-51dabe3b72c0/go.mod h1:TVSdZC0rRQeMIbsNSiGPhbmhyRtxqqtAGA9JiiNp2r4=
 github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d h1:nlOAex7twmrEqD5i6WLnugF9uO3DQ6jDEKN9gevrTAk=
 github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d/go.mod h1:TVSdZC0rRQeMIbsNSiGPhbmhyRtxqqtAGA9JiiNp2r4=
-github.com/projectdiscovery/urlutil v0.0.0-20210525140139-b874f06ad921 h1:EgaxpJm7+lKppfAHkFHs+S+II0lodp4Gu3leZCCkWlc=
-github.com/projectdiscovery/urlutil v0.0.0-20210525140139-b874f06ad921/go.mod h1:oXLErqOpqEAp/ueQlknysFxHO3CUNoSiDNnkiHG+Jpo=
+github.com/projectdiscovery/urlutil v0.0.0-20210805122636-eecd5e72b265 h1:aXodNCC39FHHyNg7wZnNn8bMP9QQKJvKJQhH6XZiHtM=
+github.com/projectdiscovery/urlutil v0.0.0-20210805122636-eecd5e72b265/go.mod h1:oXLErqOpqEAp/ueQlknysFxHO3CUNoSiDNnkiHG+Jpo=
 github.com/projectdiscovery/wappalyzergo v0.0.7 h1:MvlienkiFUbO3nDvlc5mNy1C5XiHzD2EklLDgnG9Zv4=
 github.com/projectdiscovery/wappalyzergo v0.0.7/go.mod h1:vS+npIOANv7eKsEtODsyRQt2n1v8VofCwj2gjmq72EM=
 github.com/remeh/sizedwaitgroup v1.0.0 h1:VNGGFwNo/R5+MJBf6yrsr110p0m4/OX4S3DCy7Kyl5E=
