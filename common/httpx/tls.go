@@ -40,7 +40,7 @@ func (h *HTTPX) TLSGrab(c *tls.ConnectionState) *TLSData {
 			tlsdata.TLSVersion = v
 		}
 
-		if fingerprintSHA256, err := calculateFingerprints(r); err == nil {
+		if fingerprintSHA256, err := calculateFingerprints(c); err == nil {
 			tlsdata.FingerprintSHA256 = asHex(fingerprintSHA256)
 			tlsdata.FingerprintSHA256OpenSSL = asOpenSSL(fingerprintSHA256)
 		}
