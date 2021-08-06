@@ -228,13 +228,13 @@ func (r *Runner) prepareInput() {
 	}
 
 	// check if file has been provided
-	var numTargets int
+	var numHosts int
 	if fileutil.FileExists(r.options.InputFile) {
 		finput, err := os.Open(r.options.InputFile)
 		if err != nil {
 			gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
 		}
-		numTargets, err = r.loadAndCloseFile(finput)
+		numHosts, err = r.loadAndCloseFile(finput)
 		if err != nil {
 			gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
 		}
@@ -252,7 +252,7 @@ func (r *Runner) prepareInput() {
 			if err != nil {
 				gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
 			}
-			numTargets += numTargetsFile
+			numHosts += numTargetsFile
 		}
 	}
 	if fileutil.HasStdin() {
@@ -260,7 +260,7 @@ func (r *Runner) prepareInput() {
 		if err != nil {
 			gologger.Fatal().Msgf("Could read input from stdin: %s\n", err)
 		}
-		numTargets += numTargetsStdin
+		numHosts += numTargetsStdin
 	}
 
 	if r.options.ShowStatistics {
@@ -271,28 +271,29 @@ func (r *Runner) prepareInput() {
 		}
 
 		// For each target we need to probe numPorts
-		estimatedTotal := uint64(numTargets * numPorts)
+		estimatedTotalRequests := uint64(numHosts * numPorts)
 
 		// For each port we check http and https
 		numProtocolsAttempts := uint64(2)
-		estimatedTotal *= numProtocolsAttempts
+		estimatedTotalRequests *= numProtocolsAttempts
 
 		// if the connection is successful and we have more than one request URI we need to multiply the total
 		numberOfRequestURIs := uint64(len(r.scanopts.Methods))
 		if numberOfRequestURIs > 0 {
-			estimatedTotal *= numberOfRequestURIs
+			estimatedTotalRequests *= numberOfRequestURIs
 		}
 
 		// Also if we need to probe multiple methods we need to multiply the total again
 		numberOfMethods := uint64(len(r.scanopts.Methods))
 		if numberOfMethods > 0 {
-			estimatedTotal *= numberOfMethods
+			estimatedTotalRequests *= numberOfMethods
 		}
 
-		r.stats.AddStatic("hosts", numTargets)
+		r.stats.AddStatic("totalHosts", numHosts)
+		r.stats.AddCounter("hosts", 0)
 		r.stats.AddStatic("startedAt", time.Now())
 		r.stats.AddCounter("requests", 0)
-		r.stats.AddCounter("estimatedTotal", estimatedTotal)
+		r.stats.AddCounter("estimatedTotalRequests", estimatedTotalRequests)
 		err := r.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
 		if err != nil {
 			gologger.Warning().Msgf("Could not create statistic: %s\n", err)
@@ -350,30 +351,41 @@ func makePrintCallback() func(stats clistats.StatisticsClient) {
 		builder.WriteString(clistats.FmtDuration(duration))
 		builder.WriteRune(']')
 
-		hosts, _ := stats.GetStatic("hosts")
-		builder.WriteString(" | Hosts: ")
-		builder.WriteString(clistats.String(hosts))
-
 		var currentRequests float64
 		if reqs, _ := stats.GetCounter("requests"); reqs > 0 {
 			currentRequests = float64(reqs)
 		}
-		total, _ := stats.GetCounter("estimatedTotal")
+		estimatedTotalRequests, _ := stats.GetCounter("estimatedTotalRequests")
 
 		builder.WriteString(" | RPS: ")
 		incrementRequests := currentRequests - lastRequestsCount
 		builder.WriteString(clistats.String(uint64(incrementRequests / duration.Seconds())))
 
-		builder.WriteString(" | Requests: ")
+		builder.WriteString(" | Requests (approx): ")
 		builder.WriteString(fmt.Sprintf("%.0f", currentRequests))
 		builder.WriteRune('/')
-		builder.WriteString(clistats.String(total))
+		builder.WriteString(clistats.String(estimatedTotalRequests))
 		builder.WriteRune(' ')
 		builder.WriteRune('(')
 		//nolint:gomnd // this is not a magic number
-		builder.WriteString(clistats.String(uint64(float64(currentRequests) / float64(total) * 100.0)))
+		builder.WriteString(clistats.String(uint64(float64(currentRequests) / float64(estimatedTotalRequests) * 100.0)))
 		builder.WriteRune('%')
 		builder.WriteRune(')')
+
+		hosts, _ := stats.GetCounter("hosts")
+		totalHosts, _ := stats.GetStatic("totalHosts")
+
+		builder.WriteString(" | Hosts: ")
+		builder.WriteString(clistats.String(hosts))
+		builder.WriteRune('/')
+		builder.WriteString(clistats.String(totalHosts))
+		builder.WriteRune(' ')
+		builder.WriteRune('(')
+		//nolint:gomnd // this is not a magic number
+		builder.WriteString(clistats.String(uint64(float64(hosts) / float64(totalHosts.(int)) * 100.0)))
+		builder.WriteRune('%')
+		builder.WriteRune(')')
+
 		builder.WriteRune('\n')
 
 		fmt.Fprintf(os.Stderr, "%s", builder.String())
@@ -501,6 +513,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 	if scanopts.NoFallback {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
+
 	for target := range targets(stringz.TrimProtocol(t, scanopts.NoFallback || scanopts.NoFallbackScheme)) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
@@ -551,6 +564,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 				}(port, method, wantedProtocol)
 			}
 		}
+		r.stats.IncrementCounter("hosts", 1)
 	}
 }
 
