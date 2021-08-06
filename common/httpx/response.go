@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/projectdiscovery/cryptoutil"
 	"github.com/projectdiscovery/httputil"
 )
 
@@ -17,7 +18,7 @@ type Response struct {
 	RawHeaders    string
 	Words         int
 	Lines         int
-	TLSData       *TLSData
+	TLSData       *cryptoutil.TLSData
 	CSPData       *CSPData
 	HTTP2         bool
 	Pipeline      bool

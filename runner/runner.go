@@ -22,6 +22,7 @@ import (
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
 	"github.com/projectdiscovery/clistats"
+	"github.com/projectdiscovery/cryptoutil"
 	"github.com/projectdiscovery/urlutil"
 
 	// automatic fd max increase if running as root
@@ -988,27 +989,27 @@ type Result struct {
 	Title            string `json:"title,omitempty"`
 	str              string
 	err              error
-	Error            string            `json:"error,omitempty"`
-	WebServer        string            `json:"webserver,omitempty"`
-	ResponseBody     string            `json:"response-body,omitempty"`
-	ContentType      string            `json:"content-type,omitempty"`
-	Method           string            `json:"method,omitempty"`
-	Host             string            `json:"host,omitempty"`
-	ContentLength    int               `json:"content-length,omitempty"`
-	ChainStatusCodes []int             `json:"chain-status-codes,omitempty"`
-	StatusCode       int               `json:"status-code,omitempty"`
-	TLSData          *httpx.TLSData    `json:"tls-grab,omitempty"`
-	CSPData          *httpx.CSPData    `json:"csp,omitempty"`
-	VHost            bool              `json:"vhost,omitempty"`
-	WebSocket        bool              `json:"websocket,omitempty"`
-	Pipeline         bool              `json:"pipeline,omitempty"`
-	HTTP2            bool              `json:"http2,omitempty"`
-	CDN              bool              `json:"cdn,omitempty"`
-	ResponseTime     string            `json:"response-time,omitempty"`
-	Technologies     []string          `json:"technologies,omitempty"`
-	Chain            []httpx.ChainItem `json:"chain,omitempty"`
-	FinalURL         string            `json:"final-url,omitempty"`
-	Failed           bool              `json:"failed"`
+	Error            string              `json:"error,omitempty"`
+	WebServer        string              `json:"webserver,omitempty"`
+	ResponseBody     string              `json:"response-body,omitempty"`
+	ContentType      string              `json:"content-type,omitempty"`
+	Method           string              `json:"method,omitempty"`
+	Host             string              `json:"host,omitempty"`
+	ContentLength    int                 `json:"content-length,omitempty"`
+	ChainStatusCodes []int               `json:"chain-status-codes,omitempty"`
+	StatusCode       int                 `json:"status-code,omitempty"`
+	TLSData          *cryptoutil.TLSData `json:"tls-grab,omitempty"`
+	CSPData          *httpx.CSPData      `json:"csp,omitempty"`
+	VHost            bool                `json:"vhost,omitempty"`
+	WebSocket        bool                `json:"websocket,omitempty"`
+	Pipeline         bool                `json:"pipeline,omitempty"`
+	HTTP2            bool                `json:"http2,omitempty"`
+	CDN              bool                `json:"cdn,omitempty"`
+	ResponseTime     string              `json:"response-time,omitempty"`
+	Technologies     []string            `json:"technologies,omitempty"`
+	Chain            []httpx.ChainItem   `json:"chain,omitempty"`
+	FinalURL         string              `json:"final-url,omitempty"`
+	Failed           bool                `json:"failed"`
 }
 
 // JSON the result
