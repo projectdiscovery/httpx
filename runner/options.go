@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/gologger/formatter"
 	"github.com/projectdiscovery/gologger/levels"
@@ -19,6 +20,7 @@ import (
 const (
 	maxFileNameLength = 255
 	two               = 2
+	DefaultResumeFile = "resume.cfg"
 )
 
 type scanOptions struct {
@@ -174,6 +176,8 @@ type Options struct {
 	OutputExtractRegex        string
 	RateLimit                 int
 	Probe                     bool
+	Resume                    bool
+	resumeCfg                 *ResumeCfg
 }
 
 // ParseOptions parses the command line options for application
@@ -246,11 +250,17 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 	flag.IntVar(&options.RateLimit, "rate-limit", 150, "Maximum requests to send per second")
 	flag.BoolVar(&options.Probe, "probe", false, "Display probe status")
+	flag.BoolVar(&options.Resume, "resume", false, "Resume")
 
 	flag.Parse()
 
 	// Read the inputs and configure the logging
 	options.configureOutput()
+
+	err := options.configureResume()
+	if err != nil {
+		gologger.Fatal().Msgf("%s\n", err)
+	}
 
 	showBanner()
 
@@ -313,4 +323,23 @@ func (options *Options) configureOutput() {
 	if options.Silent {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelSilent)
 	}
+}
+
+func (options *Options) configureResume() error {
+	options.resumeCfg = &ResumeCfg{}
+	if options.Resume && fileutil.FileExists(DefaultResumeFile) {
+		return goconfig.Load(&options.resumeCfg, DefaultResumeFile)
+
+	}
+	return nil
+}
+
+// ShouldLoadResume resume file
+func (options *Options) ShouldLoadResume() bool {
+	return options.Resume && fileutil.FileExists(DefaultResumeFile)
+}
+
+// ShouldSaveResume file
+func (options *Options) ShouldSaveResume() bool {
+	return true
 }

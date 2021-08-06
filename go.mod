@@ -17,6 +17,7 @@ require (
 	github.com/projectdiscovery/clistats v0.0.8
 	github.com/projectdiscovery/fastdialer v0.0.12
 	github.com/projectdiscovery/fdmax v0.0.3
+	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c // indirect
 	github.com/projectdiscovery/gologger v1.1.4
 	github.com/projectdiscovery/hmap v0.0.2-0.20210630092648-6c0a1b362caa
 	github.com/projectdiscovery/httputil v0.0.0-20210508183653-2e37c34b438d
