@@ -272,6 +272,11 @@ func (r *Runner) prepareInput() {
 
 		// For each target we need to probe numPorts
 		estimatedTotal := uint64(numTargets * numPorts)
+
+		// For each port we check http and https
+		numProtocolsAttempts := uint64(2)
+		estimatedTotal *= numProtocolsAttempts
+
 		// if the connection is successful and we have more than one request URI we need to multiply the total
 		numberOfRequestURIs := uint64(len(r.scanopts.Methods))
 		if numberOfRequestURIs > 0 {
@@ -324,12 +329,24 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	return numTargets, err
 }
 
+var (
+	lastPrint         time.Time
+	lastRequestsCount float64
+)
+
 func makePrintCallback() func(stats clistats.StatisticsClient) {
 	builder := &strings.Builder{}
 	return func(stats clistats.StatisticsClient) {
+		var duration time.Duration
+		now := time.Now()
+		if lastPrint.IsZero() {
+			startedAt, _ := stats.GetStatic("startedAt")
+			duration = time.Since(startedAt.(time.Time))
+		} else {
+			duration = time.Since(lastPrint)
+		}
+
 		builder.WriteRune('[')
-		startedAt, _ := stats.GetStatic("startedAt")
-		duration := time.Since(startedAt.(time.Time))
 		builder.WriteString(clistats.FmtDuration(duration))
 		builder.WriteRune(']')
 
@@ -337,26 +354,33 @@ func makePrintCallback() func(stats clistats.StatisticsClient) {
 		builder.WriteString(" | Hosts: ")
 		builder.WriteString(clistats.String(hosts))
 
-		requests, _ := stats.GetCounter("requests")
-		total, _ := stats.GetCounter("total")
+		var currentRequests float64
+		if reqs, _ := stats.GetCounter("requests"); reqs > 0 {
+			currentRequests = float64(reqs)
+		}
+		total, _ := stats.GetCounter("estimatedTotal")
 
 		builder.WriteString(" | RPS: ")
-		builder.WriteString(clistats.String(uint64(float64(requests) / duration.Seconds())))
+		incrementRequests := currentRequests - lastRequestsCount
+		builder.WriteString(clistats.String(uint64(incrementRequests / duration.Seconds())))
 
 		builder.WriteString(" | Requests: ")
-		builder.WriteString(clistats.String(requests))
+		builder.WriteString(fmt.Sprintf("%.0f", currentRequests))
 		builder.WriteRune('/')
 		builder.WriteString(clistats.String(total))
 		builder.WriteRune(' ')
 		builder.WriteRune('(')
 		//nolint:gomnd // this is not a magic number
-		builder.WriteString(clistats.String(uint64(float64(requests) / float64(total) * 100.0)))
+		builder.WriteString(clistats.String(uint64(float64(currentRequests) / float64(total) * 100.0)))
 		builder.WriteRune('%')
 		builder.WriteRune(')')
 		builder.WriteRune('\n')
 
 		fmt.Fprintf(os.Stderr, "%s", builder.String())
 		builder.Reset()
+
+		lastPrint = now
+		lastRequestsCount = currentRequests
 	}
 }
 
