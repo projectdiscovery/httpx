@@ -293,11 +293,17 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 			continue
 		}
 
-		if len(r.options.requestURIs) > 0 {
-			numTargets += len(r.options.requestURIs)
-		} else {
-			numTargets++
+		// if the target is ip or host it counts as 1
+		expandedTarget := 1
+		// input can be a cidr
+		if iputil.IsCIDR(target) {
+			// so we need to count the ips
+			if ipsCount, err := mapcidr.AddressCount(target); err == nil && ipsCount > 0 {
+				expandedTarget = int(ipsCount)
+			}
 		}
+
+		numTargets += expandedTarget
 		r.hm.Set(target, nil) //nolint
 	}
 	err = finput.Close()
