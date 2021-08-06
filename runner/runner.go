@@ -22,6 +22,7 @@ import (
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
 	"github.com/projectdiscovery/clistats"
+	"github.com/projectdiscovery/stringsutil"
 	"github.com/projectdiscovery/urlutil"
 
 	// automatic fd max increase if running as root
@@ -618,7 +619,15 @@ retry:
 	resp, err := hp.Do(req)
 
 	fullURL := req.URL.String()
+
 	builder := &strings.Builder{}
+
+	// if the full url doesn't end with the custom path we pick the original input value
+	if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
+		parsedURL, _ := urlutil.Parse(fullURL)
+		parsedURL.RequestURI = scanopts.RequestURI
+		fullURL = parsedURL.String()
+	}
 	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
 
 	if r.options.Probe {
