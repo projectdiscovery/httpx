@@ -270,10 +270,24 @@ func (r *Runner) prepareInput() {
 			numPorts = 2
 		}
 
+		// For each target we need to probe numPorts
+		estimatedTotal := uint64(numTargets * numPorts)
+		// if the connection is successful and we have more than one request URI we need to multiply the total
+		numberOfRequestURIs := uint64(len(r.scanopts.Methods))
+		if numberOfRequestURIs > 0 {
+			estimatedTotal *= numberOfRequestURIs
+		}
+
+		// Also if we need to probe multiple methods we need to multiply the total again
+		numberOfMethods := uint64(len(r.scanopts.Methods))
+		if numberOfMethods > 0 {
+			estimatedTotal *= numberOfMethods
+		}
+
 		r.stats.AddStatic("hosts", numTargets)
 		r.stats.AddStatic("startedAt", time.Now())
 		r.stats.AddCounter("requests", 0)
-		r.stats.AddCounter("total", uint64(numTargets*numPorts))
+		r.stats.AddCounter("estimatedTotal", estimatedTotal)
 		err := r.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
 		if err != nil {
 			gologger.Warning().Msgf("Could not create statistic: %s\n", err)
@@ -430,7 +444,6 @@ func (r *Runner) RunEnumeration() {
 
 	r.hm.Scan(func(k, _ []byte) error {
 		t := string(k)
-		var reqs int
 		protocol := r.options.protocol
 		// attempt to parse url as is
 		if u, err := url.Parse(t); err == nil {
@@ -444,16 +457,11 @@ func (r *Runner) RunEnumeration() {
 				scanopts := r.scanopts.Clone()
 				scanopts.RequestURI = p
 				r.process(t, &wg, r.hp, protocol, scanopts, output)
-				reqs++
 			}
 		} else {
 			r.process(t, &wg, r.hp, protocol, &r.scanopts, output)
-			reqs++
 		}
 
-		if r.options.ShowStatistics {
-			r.stats.IncrementCounter("requests", reqs)
-		}
 		return nil
 	})
 
@@ -622,6 +630,9 @@ retry:
 	}
 	r.ratelimiter.Take()
 	resp, err := hp.Do(req)
+	if r.options.ShowStatistics {
+		r.stats.IncrementCounter("requests", 1)
+	}
 
 	fullURL := req.URL.String()
 	builder := &strings.Builder{}
@@ -782,6 +793,9 @@ retry:
 		if pipeline {
 			builder.WriteString(" [pipeline]")
 		}
+		if r.options.ShowStatistics {
+			r.stats.IncrementCounter("requests", 1)
+		}
 	}
 
 	var http2 bool
@@ -791,6 +805,9 @@ retry:
 		http2 = hp.SupportHTTP2(protocol, method, URL.String())
 		if http2 {
 			builder.WriteString(" [http2]")
+		}
+		if r.options.ShowStatistics {
+			r.stats.IncrementCounter("requests", 1)
 		}
 	}
 	ip := hp.Dialer.GetDialedIP(URL.Host)
