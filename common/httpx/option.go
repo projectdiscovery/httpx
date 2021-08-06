@@ -32,6 +32,7 @@ type Options struct {
 	VHostStripHTML           bool
 	Allow                    []string
 	Deny                     []string
+	MaxResponseBodySize      int64
 }
 
 // DefaultOptions contains the default options

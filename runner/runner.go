@@ -86,6 +86,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.RandomAgent = options.RandomAgent
 	httpxOptions.Deny = options.Deny
 	httpxOptions.Allow = options.Allow
+	httpxOptions.MaxResponseBodySize = int64(options.MaxResponseBodySize)
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
