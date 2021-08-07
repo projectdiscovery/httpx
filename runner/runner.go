@@ -86,7 +86,12 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.RandomAgent = options.RandomAgent
 	httpxOptions.Deny = options.Deny
 	httpxOptions.Allow = options.Allow
-	httpxOptions.MaxResponseBodySize = int64(options.MaxResponseBodySize)
+	httpxOptions.MaxResponseBodySizeToSave = int64(options.MaxResponseBodySizeToSave)
+	httpxOptions.MaxResponseBodySizeToRead = int64(options.MaxResponseBodySizeToRead)
+	// adjust response size saved according to the max one read by the server
+	if httpxOptions.MaxResponseBodySizeToSave > httpxOptions.MaxResponseBodySizeToRead {
+		httpxOptions.MaxResponseBodySizeToSave = httpxOptions.MaxResponseBodySizeToRead
+	}
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
@@ -185,7 +190,8 @@ func New(options *Options) (*Runner, error) {
 	scanopts.NoFallbackScheme = options.NoFallbackScheme
 	scanopts.TechDetect = options.TechDetect
 	scanopts.StoreChain = options.StoreChain
-	scanopts.MaxResponseBodySize = options.MaxResponseBodySize
+	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
+	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
 	if options.OutputExtractRegex != "" {
 		if scanopts.extractRegex, err = regexp.Compile(options.OutputExtractRegex); err != nil {
 			return nil, err
@@ -888,8 +894,8 @@ retry:
 		// store response
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 		respRaw := resp.Raw
-		if len(respRaw) > scanopts.MaxResponseBodySize {
-			respRaw = respRaw[:scanopts.MaxResponseBodySize]
+		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
+			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
 		}
 		writeErr := ioutil.WriteFile(responsePath, []byte(respRaw), 0644)
 		if writeErr != nil {
@@ -1023,8 +1029,8 @@ type Result struct {
 
 // JSON the result
 func (r Result) JSON(scanopts *scanOptions) string { //nolint
-	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySize {
-		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySize]
+	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySizeToSave {
+		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySizeToSave]
 	}
 
 	if js, err := json.Marshal(r); err == nil {
