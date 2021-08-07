@@ -184,6 +184,7 @@ type Options struct {
 func ParseOptions() *Options {
 	options := &Options{}
 
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	flag.BoolVar(&options.TLSGrab, "tls-grab", false, "Perform TLS data grabbing")
 	flag.BoolVar(&options.TechDetect, "tech-detect", false, "Perform wappalyzer based technology detection")
 	flag.IntVar(&options.Threads, "threads", 50, "Number of threads")
