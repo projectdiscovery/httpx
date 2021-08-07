@@ -134,6 +134,8 @@ github.com/projectdiscovery/cdncheck v0.0.2 h1:ZAaezMvVioC/8fC8iilylGT4FBBryzQdX
 github.com/projectdiscovery/cdncheck v0.0.2/go.mod h1:+vB8400d1Kxq5aDoi/XkVcdvpiqQjSrYJ8bRfUDdymQ=
 github.com/projectdiscovery/clistats v0.0.8 h1:tjmWb15mqsPf/yrQXVHLe2ThZX/5+mgKSfZBKWWLh20=
 github.com/projectdiscovery/clistats v0.0.8/go.mod h1:lV6jUHAv2bYWqrQstqW8iVIydKJhWlVaLl3Xo9ioVGg=
+github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345 h1:jT6f/cdOpLkp9GAfRrxk57BUjYfIrR8E+AjMv5H5U4U=
+github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345/go.mod h1:clhQmPnt35ziJW1AhJRKyu8aygXCSoyWj6dtmZBRjjc=
 github.com/projectdiscovery/fastdialer v0.0.12 h1:TjvM41UfR+A7YsxQZoTvI6C5nVe1d+fvRqtcDNbSwz8=
 github.com/projectdiscovery/fastdialer v0.0.12/go.mod h1:RkRbxqDCcCFhfNUbkzBIz/ieD4uda2JuUA4WJ+RLee0=
 github.com/projectdiscovery/fdmax v0.0.3 h1:FM6lv9expZ/rEEBI9tkRh6tx3DV0gtpwzdc0h7bGPqg=
