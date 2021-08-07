@@ -236,13 +236,13 @@ func (r *Runner) prepareInput() {
 	}
 
 	// check if file has been provided
-	var numTargets int
+	var numHosts int
 	if fileutil.FileExists(r.options.InputFile) {
 		finput, err := os.Open(r.options.InputFile)
 		if err != nil {
 			gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
 		}
-		numTargets, err = r.loadAndCloseFile(finput)
+		numHosts, err = r.loadAndCloseFile(finput)
 		if err != nil {
 			gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
 		}
@@ -260,7 +260,7 @@ func (r *Runner) prepareInput() {
 			if err != nil {
 				gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
 			}
-			numTargets += numTargetsFile
+			numHosts += numTargetsFile
 		}
 	}
 	if fileutil.HasStdin() {
@@ -268,7 +268,7 @@ func (r *Runner) prepareInput() {
 		if err != nil {
 			gologger.Fatal().Msgf("Could read input from stdin: %s\n", err)
 		}
-		numTargets += numTargetsStdin
+		numHosts += numTargetsStdin
 	}
 
 	if r.options.ShowStatistics {
@@ -278,10 +278,30 @@ func (r *Runner) prepareInput() {
 			numPorts = 2
 		}
 
-		r.stats.AddStatic("hosts", numTargets)
+		// For each target we need to probe numPorts
+		estimatedTotalRequests := uint64(numHosts * numPorts)
+
+		// For each port we check http and https
+		numProtocolsAttempts := uint64(2)
+		estimatedTotalRequests *= numProtocolsAttempts
+
+		// if the connection is successful and we have more than one request URI we need to multiply the total
+		numberOfRequestURIs := uint64(len(r.scanopts.Methods))
+		if numberOfRequestURIs > 0 {
+			estimatedTotalRequests *= numberOfRequestURIs
+		}
+
+		// Also if we need to probe multiple methods we need to multiply the total again
+		numberOfMethods := uint64(len(r.scanopts.Methods))
+		if numberOfMethods > 0 {
+			estimatedTotalRequests *= numberOfMethods
+		}
+
+		r.stats.AddStatic("totalHosts", numHosts)
+		r.stats.AddCounter("hosts", 0)
 		r.stats.AddStatic("startedAt", time.Now())
 		r.stats.AddCounter("requests", 0)
-		r.stats.AddCounter("total", uint64(numTargets*numPorts))
+		r.stats.AddCounter("estimatedTotalRequests", estimatedTotalRequests)
 		err := r.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
 		if err != nil {
 			gologger.Warning().Msgf("Could not create statistic: %s\n", err)
@@ -301,50 +321,86 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 			continue
 		}
 
-		if len(r.options.requestURIs) > 0 {
-			numTargets += len(r.options.requestURIs)
-		} else {
-			numTargets++
+		// if the target is ip or host it counts as 1
+		expandedTarget := 1
+		// input can be a cidr
+		if iputil.IsCIDR(target) {
+			// so we need to count the ips
+			if ipsCount, err := mapcidr.AddressCount(target); err == nil && ipsCount > 0 {
+				expandedTarget = int(ipsCount)
+			}
 		}
+
+		numTargets += expandedTarget
 		r.hm.Set(target, nil) //nolint
 	}
 	err = finput.Close()
 	return numTargets, err
 }
 
+var (
+	lastPrint         time.Time
+	lastRequestsCount float64
+)
+
 func makePrintCallback() func(stats clistats.StatisticsClient) {
 	builder := &strings.Builder{}
 	return func(stats clistats.StatisticsClient) {
+		var duration time.Duration
+		now := time.Now()
+		if lastPrint.IsZero() {
+			startedAt, _ := stats.GetStatic("startedAt")
+			duration = time.Since(startedAt.(time.Time))
+		} else {
+			duration = time.Since(lastPrint)
+		}
+
 		builder.WriteRune('[')
-		startedAt, _ := stats.GetStatic("startedAt")
-		duration := time.Since(startedAt.(time.Time))
 		builder.WriteString(clistats.FmtDuration(duration))
 		builder.WriteRune(']')
 
-		hosts, _ := stats.GetStatic("hosts")
-		builder.WriteString(" | Hosts: ")
-		builder.WriteString(clistats.String(hosts))
-
-		requests, _ := stats.GetCounter("requests")
-		total, _ := stats.GetCounter("total")
+		var currentRequests float64
+		if reqs, _ := stats.GetCounter("requests"); reqs > 0 {
+			currentRequests = float64(reqs)
+		}
+		estimatedTotalRequests, _ := stats.GetCounter("estimatedTotalRequests")
 
 		builder.WriteString(" | RPS: ")
-		builder.WriteString(clistats.String(uint64(float64(requests) / duration.Seconds())))
+		incrementRequests := currentRequests - lastRequestsCount
+		builder.WriteString(clistats.String(uint64(incrementRequests / duration.Seconds())))
 
-		builder.WriteString(" | Requests: ")
-		builder.WriteString(clistats.String(requests))
+		builder.WriteString(" | Requests (approx): ")
+		builder.WriteString(fmt.Sprintf("%.0f", currentRequests))
 		builder.WriteRune('/')
-		builder.WriteString(clistats.String(total))
+		builder.WriteString(clistats.String(estimatedTotalRequests))
 		builder.WriteRune(' ')
 		builder.WriteRune('(')
 		//nolint:gomnd // this is not a magic number
-		builder.WriteString(clistats.String(uint64(float64(requests) / float64(total) * 100.0)))
+		builder.WriteString(clistats.String(uint64(float64(currentRequests) / float64(estimatedTotalRequests) * 100.0)))
 		builder.WriteRune('%')
 		builder.WriteRune(')')
+
+		hosts, _ := stats.GetCounter("hosts")
+		totalHosts, _ := stats.GetStatic("totalHosts")
+
+		builder.WriteString(" | Hosts: ")
+		builder.WriteString(clistats.String(hosts))
+		builder.WriteRune('/')
+		builder.WriteString(clistats.String(totalHosts))
+		builder.WriteRune(' ')
+		builder.WriteRune('(')
+		//nolint:gomnd // this is not a magic number
+		builder.WriteString(clistats.String(uint64(float64(hosts) / float64(totalHosts.(int)) * 100.0)))
+		builder.WriteRune('%')
+		builder.WriteRune(')')
+
 		builder.WriteRune('\n')
 
 		fmt.Fprintf(os.Stderr, "%s", builder.String())
 		builder.Reset()
+
+		lastPrint = now
+		lastRequestsCount = currentRequests
 	}
 }
 
@@ -432,7 +488,6 @@ func (r *Runner) RunEnumeration() {
 
 	r.hm.Scan(func(k, _ []byte) error {
 		t := string(k)
-		var reqs int
 		protocol := r.options.protocol
 		// attempt to parse url as is
 		if u, err := url.Parse(t); err == nil {
@@ -446,16 +501,11 @@ func (r *Runner) RunEnumeration() {
 				scanopts := r.scanopts.Clone()
 				scanopts.RequestURI = p
 				r.process(t, &wg, r.hp, protocol, scanopts, output)
-				reqs++
 			}
 		} else {
 			r.process(t, &wg, r.hp, protocol, &r.scanopts, output)
-			reqs++
 		}
 
-		if r.options.ShowStatistics {
-			r.stats.IncrementCounter("requests", reqs)
-		}
 		return nil
 	})
 
@@ -471,6 +521,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 	if scanopts.NoFallback {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
+
 	for target := range targets(stringz.TrimProtocol(t, scanopts.NoFallback || scanopts.NoFallbackScheme)) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
@@ -521,6 +572,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 				}(port, method, wantedProtocol)
 			}
 		}
+		r.stats.IncrementCounter("hosts", 1)
 	}
 }
 
@@ -624,6 +676,9 @@ retry:
 	}
 	r.ratelimiter.Take()
 	resp, err := hp.Do(req)
+	if r.options.ShowStatistics {
+		r.stats.IncrementCounter("requests", 1)
+	}
 
 	fullURL := req.URL.String()
 
@@ -792,6 +847,9 @@ retry:
 		if pipeline {
 			builder.WriteString(" [pipeline]")
 		}
+		if r.options.ShowStatistics {
+			r.stats.IncrementCounter("requests", 1)
+		}
 	}
 
 	var http2 bool
@@ -801,6 +859,9 @@ retry:
 		http2 = hp.SupportHTTP2(protocol, method, URL.String())
 		if http2 {
 			builder.WriteString(" [http2]")
+		}
+		if r.options.ShowStatistics {
+			r.stats.IncrementCounter("requests", 1)
 		}
 	}
 	ip := hp.Dialer.GetDialedIP(URL.Host)
