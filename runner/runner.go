@@ -590,7 +590,9 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 				}(port, method, wantedProtocol)
 			}
 		}
-		r.stats.IncrementCounter("hosts", 1)
+		if r.options.ShowStatistics {
+			r.stats.IncrementCounter("hosts", 1)
+		}
 	}
 }
 
