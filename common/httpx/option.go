@@ -26,13 +26,15 @@ type Options struct {
 	Unsafe               bool
 	TLSGrab              bool
 	// VHOSTs options
-	VHostIgnoreStatusCode    bool
-	VHostIgnoreContentLength bool
-	VHostIgnoreNumberOfWords bool
-	VHostIgnoreNumberOfLines bool
-	VHostStripHTML           bool
-	Allow                    []string
-	Deny                     []string
+	VHostIgnoreStatusCode     bool
+	VHostIgnoreContentLength  bool
+	VHostIgnoreNumberOfWords  bool
+	VHostIgnoreNumberOfLines  bool
+	VHostStripHTML            bool
+	Allow                     []string
+	Deny                      []string
+	MaxResponseBodySizeToSave int64
+	MaxResponseBodySizeToRead int64
 }
 
 // DefaultOptions contains the default options

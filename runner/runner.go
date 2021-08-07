@@ -14,14 +14,15 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
-
 	"github.com/projectdiscovery/clistats"
+	"github.com/projectdiscovery/stringsutil"
 	"github.com/projectdiscovery/urlutil"
 
 	// automatic fd max increase if running as root
@@ -40,6 +41,7 @@ import (
 	"github.com/projectdiscovery/rawhttp"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 	"github.com/remeh/sizedwaitgroup"
+	"go.uber.org/ratelimit"
 )
 
 const (
@@ -48,12 +50,13 @@ const (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options    *Options
-	hp         *httpx.HTTPX
-	wappalyzer *wappalyzer.Wappalyze
-	scanopts   scanOptions
-	hm         *hybrid.HybridMap
-	stats      clistats.StatisticsClient
+	options     *Options
+	hp          *httpx.HTTPX
+	wappalyzer  *wappalyzer.Wappalyze
+	scanopts    scanOptions
+	hm          *hybrid.HybridMap
+	stats       clistats.StatisticsClient
+	ratelimiter ratelimit.Limiter
 }
 
 // New creates a new client for running enumeration process.
@@ -84,6 +87,12 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.RandomAgent = options.RandomAgent
 	httpxOptions.Deny = options.Deny
 	httpxOptions.Allow = options.Allow
+	httpxOptions.MaxResponseBodySizeToSave = int64(options.MaxResponseBodySizeToSave)
+	httpxOptions.MaxResponseBodySizeToRead = int64(options.MaxResponseBodySizeToRead)
+	// adjust response size saved according to the max one read by the server
+	if httpxOptions.MaxResponseBodySizeToSave > httpxOptions.MaxResponseBodySizeToRead {
+		httpxOptions.MaxResponseBodySizeToSave = httpxOptions.MaxResponseBodySizeToRead
+	}
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
@@ -182,7 +191,8 @@ func New(options *Options) (*Runner, error) {
 	scanopts.NoFallbackScheme = options.NoFallbackScheme
 	scanopts.TechDetect = options.TechDetect
 	scanopts.StoreChain = options.StoreChain
-	scanopts.MaxResponseBodySize = options.MaxResponseBodySize
+	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
+	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
 	if options.OutputExtractRegex != "" {
 		if scanopts.extractRegex, err = regexp.Compile(options.OutputExtractRegex); err != nil {
 			return nil, err
@@ -209,6 +219,12 @@ func New(options *Options) (*Runner, error) {
 		return nil, err
 	}
 	runner.hm = hm
+
+	if options.RateLimit > 0 {
+		runner.ratelimiter = ratelimit.New(options.RateLimit)
+	} else {
+		runner.ratelimiter = ratelimit.NewUnlimited()
+	}
 
 	return runner, nil
 }
@@ -256,7 +272,7 @@ func (r *Runner) prepareInput() {
 		}
 		numTargets += numTargetsStdin
 	}
-	// reqLength = numTargets
+
 	if r.options.ShowStatistics {
 		numPorts := len(customport.Ports)
 		if numPorts == 0 {
@@ -280,6 +296,9 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	for scanner.Scan() {
 		target := strings.TrimSpace(scanner.Text())
 		// Used just to get the exact number of targets
+		if target == "" {
+			continue
+		}
 		if _, ok := r.hm.Get(target); ok {
 			continue
 		}
@@ -340,7 +359,6 @@ func (r *Runner) Close() {
 
 // RunEnumeration on targets for httpx client
 func (r *Runner) RunEnumeration() {
-	//fmt.Println("result : == >> 45646 ")
 	// Try to create output folder if it doesnt exist
 	if r.options.StoreResponse && !fileutil.FolderExists(r.options.StoreResponseDir) {
 		if err := os.MkdirAll(r.options.StoreResponseDir, os.ModePerm); err != nil {
@@ -368,7 +386,7 @@ func (r *Runner) RunEnumeration() {
 		}
 		for resp := range output {
 			if resp.err != nil {
-				gologger.Debug().Msgf("Failure '%s': %s\n", resp.URL, resp.err)
+				gologger.Debug().Msgf("Failed '%s': %s\n", resp.URL, resp.err)
 			}
 			if resp.str == "" {
 				continue
@@ -404,7 +422,6 @@ func (r *Runner) RunEnumeration() {
 			if r.options.JSONOutput {
 				row = resp.JSON(&r.scanopts)
 			}
-
 			gologger.Silent().Msgf("%s\n", row)
 			if f != nil {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
@@ -456,7 +473,6 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 	if scanopts.NoFallback {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
-
 	for target := range targets(stringz.TrimProtocol(t, scanopts.NoFallback || scanopts.NoFallbackScheme)) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
@@ -615,9 +631,46 @@ retry:
 			req.Body = nil
 		}
 	}
-
+	r.ratelimiter.Take()
 	resp, err := hp.Do(req)
+
+	fullURL := req.URL.String()
+
+	builder := &strings.Builder{}
+
+	// if the full url doesn't end with the custom path we pick the original input value
+	if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
+		parsedURL, _ := urlutil.Parse(fullURL)
+		parsedURL.RequestURI = scanopts.RequestURI
+		fullURL = parsedURL.String()
+	}
+	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
+
+	if r.options.Probe {
+		builder.WriteString(" [")
+
+		outputStatus := "SUCCESS"
+		if err != nil {
+			outputStatus = "FAILED"
+		}
+
+		if !scanopts.OutputWithNoColor && err != nil {
+			builder.WriteString(aurora.Red(outputStatus).String())
+		} else if !scanopts.OutputWithNoColor && err == nil {
+			builder.WriteString(aurora.Green(outputStatus).String())
+		} else {
+			builder.WriteString(outputStatus)
+		}
+
+		builder.WriteRune(']')
+	}
+
 	if err != nil {
+		errString := ""
+		errString = err.Error()
+		splitErr := strings.Split(errString, ":")
+		errString = strings.TrimSpace(splitErr[len(splitErr)-1])
+
 		if !retried && origProtocol == httpx.HTTPorHTTPS {
 			if protocol == httpx.HTTPS {
 				protocol = httpx.HTTP
@@ -627,19 +680,13 @@ retry:
 			retried = true
 			goto retry
 		}
-		return Result{URL: URL.String(), err: err}
+		if r.options.Probe {
+			return Result{URL: URL.String(), Input: domain, Timestamp: time.Now(), err: err, Failed: err != nil, Error: errString, str: builder.String()}
+		} else {
+			return Result{URL: URL.String(), Input: domain, Timestamp: time.Now(), err: err}
+		}
 	}
 
-	var fullURL string
-
-	if resp.StatusCode >= 0 {
-		fullURL = req.URL.String()
-	}
-
-	builder := &strings.Builder{}
-
-	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
-	// portLst = append(portLst, fullURL)
 	if scanopts.OutputStatusCode {
 		builder.WriteString(" [")
 		for i, chainItem := range resp.Chain {
@@ -733,6 +780,7 @@ retry:
 	// check for virtual host
 	isvhost := false
 	if scanopts.VHost {
+		r.ratelimiter.Take()
 		isvhost, _ = hp.IsVirtualHost(req)
 		if isvhost {
 			builder.WriteString(" [vhost]")
@@ -748,6 +796,7 @@ retry:
 	pipeline := false
 	if scanopts.Pipeline {
 		port, _ := strconv.Atoi(URL.Port)
+		r.ratelimiter.Take()
 		pipeline = hp.SupportPipeline(protocol, method, URL.Host, port)
 		if pipeline {
 			builder.WriteString(" [pipeline]")
@@ -757,6 +806,7 @@ retry:
 	var http2 bool
 	// if requested probes for http2
 	if scanopts.HTTP2Probe {
+		r.ratelimiter.Take()
 		http2 = hp.SupportHTTP2(protocol, method, URL.String())
 		if http2 {
 			builder.WriteString(" [http2]")
@@ -802,6 +852,7 @@ retry:
 		}
 
 		if len(technologies) > 0 {
+			sort.Strings(technologies)
 			technologies := strings.Join(technologies, ",")
 
 			builder.WriteString(" [")
@@ -852,8 +903,8 @@ retry:
 		// store response
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 		respRaw := resp.Raw
-		if len(respRaw) > scanopts.MaxResponseBodySize {
-			respRaw = respRaw[:scanopts.MaxResponseBodySize]
+		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
+			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
 		}
 		writeErr := ioutil.WriteFile(responsePath, []byte(respRaw), 0644)
 		if writeErr != nil {
@@ -903,6 +954,7 @@ retry:
 	if scanopts.ChainInStdout && resp.HasChain() {
 		chainItems = append(chainItems, resp.GetChainAsSlice()...)
 	}
+
 	return Result{
 		Timestamp:        time.Now(),
 		Request:          request,
@@ -914,6 +966,7 @@ retry:
 		HeaderSHA256:     headersSha,
 		raw:              resp.Raw,
 		URL:              fullURL,
+		Input:            domain,
 		ContentLength:    resp.ContentLength,
 		ChainStatusCodes: chainStatusCodes,
 		Chain:            chainItems,
@@ -938,8 +991,6 @@ retry:
 		ResponseTime:     resp.Duration.String(),
 		Technologies:     technologies,
 		FinalURL:         finalURL,
-		// UniqueUrl:        uniqueUrlStrngs,
-		// PortLst:          portLst,
 	}
 }
 
@@ -957,10 +1008,12 @@ type Result struct {
 	CNAMEs           []string  `json:"cnames,omitempty"`
 	raw              string
 	URL              string `json:"url,omitempty"`
+	Input            string `json:"input,omitempty"`
 	Location         string `json:"location,omitempty"`
 	Title            string `json:"title,omitempty"`
 	str              string
 	err              error
+	Error            string            `json:"error,omitempty"`
 	WebServer        string            `json:"webserver,omitempty"`
 	ResponseBody     string            `json:"response-body,omitempty"`
 	ContentType      string            `json:"content-type,omitempty"`
@@ -980,12 +1033,13 @@ type Result struct {
 	Technologies     []string          `json:"technologies,omitempty"`
 	Chain            []httpx.ChainItem `json:"chain,omitempty"`
 	FinalURL         string            `json:"final-url,omitempty"`
+	Failed           bool              `json:"failed"`
 }
 
 // JSON the result
 func (r Result) JSON(scanopts *scanOptions) string { //nolint
-	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySize {
-		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySize]
+	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySizeToSave {
+		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySizeToSave]
 	}
 
 	if js, err := json.Marshal(r); err == nil {

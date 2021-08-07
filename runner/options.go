@@ -22,78 +22,81 @@ const (
 )
 
 type scanOptions struct {
-	Methods                []string
-	StoreResponseDirectory string
-	RequestURI             string
-	RequestBody            string
-	VHost                  bool
-	OutputTitle            bool
-	OutputStatusCode       bool
-	OutputLocation         bool
-	OutputContentLength    bool
-	StoreResponse          bool
-	OutputServerHeader     bool
-	OutputWebSocket        bool
-	OutputWithNoColor      bool
-	OutputMethod           bool
-	ResponseInStdout       bool
-	ChainInStdout          bool
-	TLSProbe               bool
-	CSPProbe               bool
-	VHostInput             bool
-	OutputContentType      bool
-	Unsafe                 bool
-	Pipeline               bool
-	HTTP2Probe             bool
-	OutputIP               bool
-	OutputCName            bool
-	OutputCDN              bool
-	OutputResponseTime     bool
-	PreferHTTPS            bool
-	NoFallback             bool
-	NoFallbackScheme       bool
-	TechDetect             bool
-	StoreChain             bool
-	MaxResponseBodySize    int
-	OutputExtractRegex     string
-	extractRegex           *regexp.Regexp
-	ExcludeCDN             bool
+	Methods                   []string
+	StoreResponseDirectory    string
+	RequestURI                string
+	RequestBody               string
+	VHost                     bool
+	OutputTitle               bool
+	OutputStatusCode          bool
+	OutputLocation            bool
+	OutputContentLength       bool
+	StoreResponse             bool
+	OutputServerHeader        bool
+	OutputWebSocket           bool
+	OutputWithNoColor         bool
+	OutputMethod              bool
+	ResponseInStdout          bool
+	ChainInStdout             bool
+	TLSProbe                  bool
+	CSPProbe                  bool
+	VHostInput                bool
+	OutputContentType         bool
+	Unsafe                    bool
+	Pipeline                  bool
+	HTTP2Probe                bool
+	OutputIP                  bool
+	OutputCName               bool
+	OutputCDN                 bool
+	OutputResponseTime        bool
+	PreferHTTPS               bool
+	NoFallback                bool
+	NoFallbackScheme          bool
+	TechDetect                bool
+	StoreChain                bool
+	MaxResponseBodySizeToSave int
+	MaxResponseBodySizeToRead int
+	OutputExtractRegex        string
+	extractRegex              *regexp.Regexp
+	ExcludeCDN                bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
 	return &scanOptions{
-		Methods:                s.Methods,
-		StoreResponseDirectory: s.StoreResponseDirectory,
-		RequestURI:             s.RequestURI,
-		RequestBody:            s.RequestBody,
-		VHost:                  s.VHost,
-		OutputTitle:            s.OutputTitle,
-		OutputStatusCode:       s.OutputStatusCode,
-		OutputLocation:         s.OutputLocation,
-		OutputContentLength:    s.OutputContentLength,
-		StoreResponse:          s.StoreResponse,
-		OutputServerHeader:     s.OutputServerHeader,
-		OutputWebSocket:        s.OutputWebSocket,
-		OutputWithNoColor:      s.OutputWithNoColor,
-		OutputMethod:           s.OutputMethod,
-		ResponseInStdout:       s.ResponseInStdout,
-		ChainInStdout:          s.ChainInStdout,
-		TLSProbe:               s.TLSProbe,
-		CSPProbe:               s.CSPProbe,
-		OutputContentType:      s.OutputContentType,
-		Unsafe:                 s.Unsafe,
-		Pipeline:               s.Pipeline,
-		HTTP2Probe:             s.HTTP2Probe,
-		OutputIP:               s.OutputIP,
-		OutputCName:            s.OutputCName,
-		OutputCDN:              s.OutputCDN,
-		OutputResponseTime:     s.OutputResponseTime,
-		PreferHTTPS:            s.PreferHTTPS,
-		NoFallback:             s.NoFallback,
-		NoFallbackScheme:       s.NoFallbackScheme,
-		TechDetect:             s.TechDetect,
-		StoreChain:             s.StoreChain,
-		OutputExtractRegex:     s.OutputExtractRegex,
+		Methods:                   s.Methods,
+		StoreResponseDirectory:    s.StoreResponseDirectory,
+		RequestURI:                s.RequestURI,
+		RequestBody:               s.RequestBody,
+		VHost:                     s.VHost,
+		OutputTitle:               s.OutputTitle,
+		OutputStatusCode:          s.OutputStatusCode,
+		OutputLocation:            s.OutputLocation,
+		OutputContentLength:       s.OutputContentLength,
+		StoreResponse:             s.StoreResponse,
+		OutputServerHeader:        s.OutputServerHeader,
+		OutputWebSocket:           s.OutputWebSocket,
+		OutputWithNoColor:         s.OutputWithNoColor,
+		OutputMethod:              s.OutputMethod,
+		ResponseInStdout:          s.ResponseInStdout,
+		ChainInStdout:             s.ChainInStdout,
+		TLSProbe:                  s.TLSProbe,
+		CSPProbe:                  s.CSPProbe,
+		OutputContentType:         s.OutputContentType,
+		Unsafe:                    s.Unsafe,
+		Pipeline:                  s.Pipeline,
+		HTTP2Probe:                s.HTTP2Probe,
+		OutputIP:                  s.OutputIP,
+		OutputCName:               s.OutputCName,
+		OutputCDN:                 s.OutputCDN,
+		OutputResponseTime:        s.OutputResponseTime,
+		PreferHTTPS:               s.PreferHTTPS,
+		NoFallback:                s.NoFallback,
+		NoFallbackScheme:          s.NoFallbackScheme,
+		TechDetect:                s.TechDetect,
+		StoreChain:                s.StoreChain,
+		OutputExtractRegex:        s.OutputExtractRegex,
+		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
+		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
 	}
 }
 
@@ -171,7 +174,8 @@ type Options struct {
 	StoreChain                bool
 	Deny                      customlist.CustomList
 	Allow                     customlist.CustomList
-	MaxResponseBodySize       int
+	MaxResponseBodySizeToSave int
+	MaxResponseBodySizeToRead int
 	OutputExtractRegex        string
 	RateLimit                 int
 	Probe                     bool
@@ -182,6 +186,7 @@ type Options struct {
 func ParseOptions() *Options {
 	options := &Options{}
 
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	flag.BoolVar(&options.TLSGrab, "tls-grab", false, "Perform TLS data grabbing")
 	flag.BoolVar(&options.TechDetect, "tech-detect", false, "Perform wappalyzer based technology detection")
 	flag.IntVar(&options.Threads, "threads", 50, "Number of threads")
@@ -244,7 +249,8 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.StoreChain, "store-chain", false, "Save chain to file (default 'output')")
 	flag.Var(&options.Allow, "allow", "Allowlist ip/cidr")
 	flag.Var(&options.Deny, "deny", "Denylist ip/cidr")
-	flag.IntVar(&options.MaxResponseBodySize, "max-response-body-size", math.MaxInt32, "Maximum response body size")
+	flag.IntVar(&options.MaxResponseBodySizeToSave, "response-size-to-save", math.MaxInt32, "Max response size to save in bytes (default - unlimited)")
+	flag.IntVar(&options.MaxResponseBodySizeToRead, "response-size-to-read", math.MaxInt32, "Max response size to read in bytes (default - unlimited)")
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 	flag.IntVar(&options.RateLimit, "rate-limit", 150, "Maximum requests to send per second")
 	flag.BoolVar(&options.Probe, "probe", false, "Display probe status")
