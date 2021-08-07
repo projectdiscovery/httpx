@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/gologger/formatter"
 	"github.com/projectdiscovery/gologger/levels"
@@ -19,6 +20,7 @@ import (
 const (
 	maxFileNameLength = 255
 	two               = 2
+	DefaultResumeFile = "resume.cfg"
 )
 
 type scanOptions struct {
@@ -179,6 +181,8 @@ type Options struct {
 	OutputExtractRegex        string
 	RateLimit                 int
 	Probe                     bool
+	Resume                    bool
+	resumeCfg                 *ResumeCfg
 	ExcludeCDN                bool
 }
 
@@ -245,7 +249,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.NoFallback, "no-fallback", false, "If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP")
 	flag.BoolVar(&options.NoFallbackScheme, "no-fallback-scheme", false, "The tool will respect and attempt the scheme specified in the url (if HTTPS is specified no HTTP is attempted)")
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
-	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
+	flag.BoolVar(&options.RandomAgent, "random-agent", true, "Use randomly selected HTTP User-Agent header value")
 	flag.BoolVar(&options.StoreChain, "store-chain", false, "Save chain to file (default 'output')")
 	flag.Var(&options.Allow, "allow", "Allowlist ip/cidr")
 	flag.Var(&options.Deny, "deny", "Denylist ip/cidr")
@@ -254,12 +258,18 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 	flag.IntVar(&options.RateLimit, "rate-limit", 150, "Maximum requests to send per second")
 	flag.BoolVar(&options.Probe, "probe", false, "Display probe status")
+	flag.BoolVar(&options.Resume, "resume", false, "Resume")
 	flag.BoolVar(&options.ExcludeCDN, "exclude-cdn", false, "Skip full port scans for CDNs (only checks for 80,443)")
 
 	flag.Parse()
 
 	// Read the inputs and configure the logging
 	options.configureOutput()
+
+	err := options.configureResume()
+	if err != nil {
+		gologger.Fatal().Msgf("%s\n", err)
+	}
 
 	showBanner()
 
@@ -322,4 +332,23 @@ func (options *Options) configureOutput() {
 	if options.Silent {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelSilent)
 	}
+}
+
+func (options *Options) configureResume() error {
+	options.resumeCfg = &ResumeCfg{}
+	if options.Resume && fileutil.FileExists(DefaultResumeFile) {
+		return goconfig.Load(&options.resumeCfg, DefaultResumeFile)
+
+	}
+	return nil
+}
+
+// ShouldLoadResume resume file
+func (options *Options) ShouldLoadResume() bool {
+	return options.Resume && fileutil.FileExists(DefaultResumeFile)
+}
+
+// ShouldSaveResume file
+func (options *Options) ShouldSaveResume() bool {
+	return true
 }

@@ -22,7 +22,8 @@ import (
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
 	"github.com/projectdiscovery/clistats"
-  "github.com/projectdiscovery/cryptoutil"
+	"github.com/projectdiscovery/cryptoutil"
+	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/stringsutil"
 	"github.com/projectdiscovery/urlutil"
 
@@ -425,6 +426,11 @@ func (r *Runner) RunEnumeration() {
 
 	r.prepareInput()
 
+	// if resume is enabled inform the user
+	if r.options.ShouldLoadResume() && r.options.resumeCfg.Index > 0 {
+		gologger.Debug().Msgf("Resuming at position %d: %s\n", r.options.resumeCfg.Index, r.options.resumeCfg.ResumeFrom)
+	}
+
 	// output routine
 	wgoutput := sizedwaitgroup.New(1)
 	wgoutput.Add()
@@ -491,6 +497,15 @@ func (r *Runner) RunEnumeration() {
 
 	r.hm.Scan(func(k, _ []byte) error {
 		t := string(k)
+
+		if r.options.resumeCfg != nil {
+			r.options.resumeCfg.current = t
+			r.options.resumeCfg.currentIndex++
+			if r.options.resumeCfg.currentIndex <= r.options.resumeCfg.Index {
+				return nil
+			}
+		}
+
 		protocol := r.options.protocol
 		// attempt to parse url as is
 		if u, err := url.Parse(t); err == nil {
@@ -575,7 +590,9 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 				}(port, method, wantedProtocol)
 			}
 		}
-		r.stats.IncrementCounter("hosts", 1)
+		if r.options.ShowStatistics {
+			r.stats.IncrementCounter("hosts", 1)
+		}
 	}
 }
 
@@ -1054,6 +1071,14 @@ retry:
 		Technologies:     technologies,
 		FinalURL:         finalURL,
 	}
+}
+
+// SaveResumeConfig to file
+func (r *Runner) SaveResumeConfig() error {
+	var resumeCfg ResumeCfg
+	resumeCfg.Index = r.options.resumeCfg.currentIndex
+	resumeCfg.ResumeFrom = r.options.resumeCfg.current
+	return goconfig.Save(resumeCfg, DefaultResumeFile)
 }
 
 // Result of a scan
