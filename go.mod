@@ -15,10 +15,10 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.2
 	github.com/projectdiscovery/clistats v0.0.8
-	github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345 // indirect
+	github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345
 	github.com/projectdiscovery/fastdialer v0.0.12
 	github.com/projectdiscovery/fdmax v0.0.3
-	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c // indirect
+	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c
 	github.com/projectdiscovery/gologger v1.1.4
 	github.com/projectdiscovery/hmap v0.0.2-0.20210630092648-6c0a1b362caa
 	github.com/projectdiscovery/httputil v0.0.0-20210508183653-2e37c34b438d
@@ -29,7 +29,7 @@ require (
 	github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210526144436-e15804ddc7dc
 	github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d
 	github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1
-	github.com/projectdiscovery/wappalyzergo v0.0.7
+	github.com/projectdiscovery/wappalyzergo v0.0.8
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.3.0
 	go.etcd.io/bbolt v1.3.6 // indirect
