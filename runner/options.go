@@ -234,7 +234,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.OutputFilterContentLength, "fl", "", "Filter content length")
 	flag.StringVar(&options.InputRawRequest, "request", "", "File containing raw request")
 	flag.BoolVar(&options.Unsafe, "unsafe", false, "Send raw requests skipping golang normalization")
-	flag.StringVar(&options.RequestBody, "body", "", "Request Body")
+	flag.StringVar(&options.RequestBody, "body", "", "Content to send in body with HTTP request")
 	flag.BoolVar(&options.Debug, "debug", false, "Debug mode")
 	flag.BoolVar(&options.Pipeline, "pipeline", false, "HTTP1.1 Pipeline")
 	flag.BoolVar(&options.HTTP2Probe, "http2", false, "HTTP2 probe")
@@ -258,7 +258,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
 	flag.IntVar(&options.RateLimit, "rate-limit", 150, "Maximum requests to send per second")
 	flag.BoolVar(&options.Probe, "probe", false, "Display probe status")
-	flag.BoolVar(&options.Resume, "resume", false, "Resume")
+	flag.BoolVar(&options.Resume, "resume", false, "Resume scan using resume.cfg")
 	flag.BoolVar(&options.ExcludeCDN, "exclude-cdn", false, "Skip full port scans for CDNs (only checks for 80,443)")
 
 	flag.Parse()
