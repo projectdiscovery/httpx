@@ -658,7 +658,7 @@ retry:
 	if scanopts.Unsafe {
 		var errDump error
 		requestDump, errDump = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), reqURI, req.Header, req.Body, rawhttp.DefaultOptions)
-		if err != nil {
+		if errDump != nil {
 			return Result{URL: URL.String(), err: errDump}
 		}
 	} else {
@@ -667,7 +667,7 @@ retry:
 		req.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
 		var errDump error
 		requestDump, errDump = httputil.DumpRequestOut(req.Request, true)
-		if err != nil {
+		if errDump != nil {
 			return Result{URL: URL.String(), err: errDump}
 		}
 		// The original req.Body gets modified indirectly by httputil.DumpRequestOut so we set it again to nil if it was empty
