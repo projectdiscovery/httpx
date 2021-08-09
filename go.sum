@@ -179,8 +179,8 @@ github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d h1:nl
 github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d/go.mod h1:TVSdZC0rRQeMIbsNSiGPhbmhyRtxqqtAGA9JiiNp2r4=
 github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1 h1:9dYmONRtwy+xP8UAGHxEQ0cxO3umc9qiFmnYsoDUps4=
 github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1/go.mod h1:oXLErqOpqEAp/ueQlknysFxHO3CUNoSiDNnkiHG+Jpo=
-github.com/projectdiscovery/wappalyzergo v0.0.8 h1:3w2zOVA9gQsc+3ebXNRPbOR5aBIC8JzUS5IfiGsODEM=
-github.com/projectdiscovery/wappalyzergo v0.0.8/go.mod h1:vS+npIOANv7eKsEtODsyRQt2n1v8VofCwj2gjmq72EM=
+github.com/projectdiscovery/wappalyzergo v0.0.9 h1:MR2A7ZmF61bT1y8A9+YVe5bsrPAiFDEQ7Ix4GbqccwQ=
+github.com/projectdiscovery/wappalyzergo v0.0.9/go.mod h1:vS+npIOANv7eKsEtODsyRQt2n1v8VofCwj2gjmq72EM=
 github.com/remeh/sizedwaitgroup v1.0.0 h1:VNGGFwNo/R5+MJBf6yrsr110p0m4/OX4S3DCy7Kyl5E=
 github.com/remeh/sizedwaitgroup v1.0.0/go.mod h1:3j2R4OIe/SeS6YDhICBy22RWjJC5eNCJ1V+9+NVNYlo=
 github.com/rs/xid v1.3.0 h1:6NjYksEUlhurdVehpc7S7dk6DAmcKv8V9gG0FsVN2U4=
