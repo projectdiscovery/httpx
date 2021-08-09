@@ -276,36 +276,10 @@ func (r *Runner) prepareInput() {
 	}
 
 	if r.options.ShowStatistics {
-		numPorts := len(customport.Ports)
-		if numPorts == 0 {
-			// Default Ports 80, 443
-			numPorts = 2
-		}
-
-		// For each target we need to probe numPorts
-		estimatedTotalRequests := uint64(numHosts * numPorts)
-
-		// For each port we check http and https
-		numProtocolsAttempts := uint64(2)
-		estimatedTotalRequests *= numProtocolsAttempts
-
-		// if the connection is successful and we have more than one request URI we need to multiply the total
-		numberOfRequestURIs := uint64(len(r.scanopts.Methods))
-		if numberOfRequestURIs > 0 {
-			estimatedTotalRequests *= numberOfRequestURIs
-		}
-
-		// Also if we need to probe multiple methods we need to multiply the total again
-		numberOfMethods := uint64(len(r.scanopts.Methods))
-		if numberOfMethods > 0 {
-			estimatedTotalRequests *= numberOfMethods
-		}
-
 		r.stats.AddStatic("totalHosts", numHosts)
 		r.stats.AddCounter("hosts", 0)
 		r.stats.AddStatic("startedAt", time.Now())
 		r.stats.AddCounter("requests", 0)
-		r.stats.AddCounter("estimatedTotalRequests", estimatedTotalRequests)
 		err := r.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
 		if err != nil {
 			gologger.Warning().Msgf("Could not create statistic: %s\n", err)
@@ -367,22 +341,13 @@ func makePrintCallback() func(stats clistats.StatisticsClient) {
 		if reqs, _ := stats.GetCounter("requests"); reqs > 0 {
 			currentRequests = float64(reqs)
 		}
-		estimatedTotalRequests, _ := stats.GetCounter("estimatedTotalRequests")
 
 		builder.WriteString(" | RPS: ")
 		incrementRequests := currentRequests - lastRequestsCount
 		builder.WriteString(clistats.String(uint64(incrementRequests / duration.Seconds())))
 
-		builder.WriteString(" | Requests (approx): ")
+		builder.WriteString(" | Requests: ")
 		builder.WriteString(fmt.Sprintf("%.0f", currentRequests))
-		builder.WriteRune('/')
-		builder.WriteString(clistats.String(estimatedTotalRequests))
-		builder.WriteRune(' ')
-		builder.WriteRune('(')
-		//nolint:gomnd // this is not a magic number
-		builder.WriteString(clistats.String(uint64(float64(currentRequests) / float64(estimatedTotalRequests) * 100.0)))
-		builder.WriteRune('%')
-		builder.WriteRune(')')
 
 		hosts, _ := stats.GetCounter("hosts")
 		totalHosts, _ := stats.GetStatic("totalHosts")
@@ -681,30 +646,36 @@ retry:
 		req.ContentLength = 0
 		req.Body = nil
 	}
+
+	r.ratelimiter.Take()
+
+	resp, err := hp.Do(req)
+	if r.options.ShowStatistics {
+		r.stats.IncrementCounter("requests", 1)
+	}
+
 	var requestDump []byte
 	if scanopts.Unsafe {
-		requestDump, err = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), reqURI, req.Header, req.Body, rawhttp.DefaultOptions)
+		var errDump error
+		requestDump, errDump = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), reqURI, req.Header, req.Body, rawhttp.DefaultOptions)
 		if err != nil {
-			return Result{URL: URL.String(), err: err}
+			return Result{URL: URL.String(), err: errDump}
 		}
 	} else {
 		// Create a copy on the fly of the request body
 		bodyBytes, _ := req.BodyBytes()
 		req.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
-		requestDump, err = httputil.DumpRequestOut(req.Request, true)
+		var errDump error
+		requestDump, errDump = httputil.DumpRequestOut(req.Request, true)
 		if err != nil {
-			return Result{URL: URL.String(), err: err}
+			return Result{URL: URL.String(), err: errDump}
 		}
 		// The original req.Body gets modified indirectly by httputil.DumpRequestOut so we set it again to nil if it was empty
 		// Otherwise redirects like 307/308 would fail (as they require the body to be sent along)
 		if len(bodyBytes) == 0 {
+			req.ContentLength = 0
 			req.Body = nil
 		}
-	}
-	r.ratelimiter.Take()
-	resp, err := hp.Do(req)
-	if r.options.ShowStatistics {
-		r.stats.IncrementCounter("requests", 1)
 	}
 
 	fullURL := req.URL.String()
