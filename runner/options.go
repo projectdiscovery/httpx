@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/gologger/formatter"
 	"github.com/projectdiscovery/gologger/levels"
@@ -19,80 +20,85 @@ import (
 const (
 	maxFileNameLength = 255
 	two               = 2
+	DefaultResumeFile = "resume.cfg"
 )
 
 type scanOptions struct {
-	Methods                []string
-	StoreResponseDirectory string
-	RequestURI             string
-	RequestBody            string
-	VHost                  bool
-	OutputTitle            bool
-	OutputStatusCode       bool
-	OutputLocation         bool
-	OutputContentLength    bool
-	StoreResponse          bool
-	OutputServerHeader     bool
-	OutputWebSocket        bool
-	OutputWithNoColor      bool
-	OutputMethod           bool
-	ResponseInStdout       bool
-	ChainInStdout          bool
-	TLSProbe               bool
-	CSPProbe               bool
-	VHostInput             bool
-	OutputContentType      bool
-	Unsafe                 bool
-	Pipeline               bool
-	HTTP2Probe             bool
-	OutputIP               bool
-	OutputCName            bool
-	OutputCDN              bool
-	OutputResponseTime     bool
-	PreferHTTPS            bool
-	NoFallback             bool
-	NoFallbackScheme       bool
-	TechDetect             bool
-	StoreChain             bool
-	MaxResponseBodySize    int
-	OutputExtractRegex     string
-	extractRegex           *regexp.Regexp
+	Methods                   []string
+	StoreResponseDirectory    string
+	RequestURI                string
+	RequestBody               string
+	VHost                     bool
+	OutputTitle               bool
+	OutputStatusCode          bool
+	OutputLocation            bool
+	OutputContentLength       bool
+	StoreResponse             bool
+	OutputServerHeader        bool
+	OutputWebSocket           bool
+	OutputWithNoColor         bool
+	OutputMethod              bool
+	ResponseInStdout          bool
+	ChainInStdout             bool
+	TLSProbe                  bool
+	CSPProbe                  bool
+	VHostInput                bool
+	OutputContentType         bool
+	Unsafe                    bool
+	Pipeline                  bool
+	HTTP2Probe                bool
+	OutputIP                  bool
+	OutputCName               bool
+	OutputCDN                 bool
+	OutputResponseTime        bool
+	PreferHTTPS               bool
+	NoFallback                bool
+	NoFallbackScheme          bool
+	TechDetect                bool
+	StoreChain                bool
+	MaxResponseBodySizeToSave int
+	MaxResponseBodySizeToRead int
+	OutputExtractRegex        string
+	extractRegex              *regexp.Regexp
+	ExcludeCDN                bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
 	return &scanOptions{
-		Methods:                s.Methods,
-		StoreResponseDirectory: s.StoreResponseDirectory,
-		RequestURI:             s.RequestURI,
-		RequestBody:            s.RequestBody,
-		VHost:                  s.VHost,
-		OutputTitle:            s.OutputTitle,
-		OutputStatusCode:       s.OutputStatusCode,
-		OutputLocation:         s.OutputLocation,
-		OutputContentLength:    s.OutputContentLength,
-		StoreResponse:          s.StoreResponse,
-		OutputServerHeader:     s.OutputServerHeader,
-		OutputWebSocket:        s.OutputWebSocket,
-		OutputWithNoColor:      s.OutputWithNoColor,
-		OutputMethod:           s.OutputMethod,
-		ResponseInStdout:       s.ResponseInStdout,
-		ChainInStdout:          s.ChainInStdout,
-		TLSProbe:               s.TLSProbe,
-		CSPProbe:               s.CSPProbe,
-		OutputContentType:      s.OutputContentType,
-		Unsafe:                 s.Unsafe,
-		Pipeline:               s.Pipeline,
-		HTTP2Probe:             s.HTTP2Probe,
-		OutputIP:               s.OutputIP,
-		OutputCName:            s.OutputCName,
-		OutputCDN:              s.OutputCDN,
-		OutputResponseTime:     s.OutputResponseTime,
-		PreferHTTPS:            s.PreferHTTPS,
-		NoFallback:             s.NoFallback,
-		NoFallbackScheme:       s.NoFallbackScheme,
-		TechDetect:             s.TechDetect,
-		StoreChain:             s.StoreChain,
-		OutputExtractRegex:     s.OutputExtractRegex,
+		Methods:                   s.Methods,
+		StoreResponseDirectory:    s.StoreResponseDirectory,
+		RequestURI:                s.RequestURI,
+		RequestBody:               s.RequestBody,
+		VHost:                     s.VHost,
+		OutputTitle:               s.OutputTitle,
+		OutputStatusCode:          s.OutputStatusCode,
+		OutputLocation:            s.OutputLocation,
+		OutputContentLength:       s.OutputContentLength,
+		StoreResponse:             s.StoreResponse,
+		OutputServerHeader:        s.OutputServerHeader,
+		OutputWebSocket:           s.OutputWebSocket,
+		OutputWithNoColor:         s.OutputWithNoColor,
+		OutputMethod:              s.OutputMethod,
+		ResponseInStdout:          s.ResponseInStdout,
+		ChainInStdout:             s.ChainInStdout,
+		TLSProbe:                  s.TLSProbe,
+		CSPProbe:                  s.CSPProbe,
+		OutputContentType:         s.OutputContentType,
+		Unsafe:                    s.Unsafe,
+		Pipeline:                  s.Pipeline,
+		HTTP2Probe:                s.HTTP2Probe,
+		OutputIP:                  s.OutputIP,
+		OutputCName:               s.OutputCName,
+		OutputCDN:                 s.OutputCDN,
+		OutputResponseTime:        s.OutputResponseTime,
+		PreferHTTPS:               s.PreferHTTPS,
+		NoFallback:                s.NoFallback,
+		NoFallbackScheme:          s.NoFallbackScheme,
+		TechDetect:                s.TechDetect,
+		StoreChain:                s.StoreChain,
+		OutputExtractRegex:        s.OutputExtractRegex,
+		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
+		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
 	}
 }
 
@@ -170,14 +176,21 @@ type Options struct {
 	StoreChain                bool
 	Deny                      customlist.CustomList
 	Allow                     customlist.CustomList
-	MaxResponseBodySize       int
+	MaxResponseBodySizeToSave int
+	MaxResponseBodySizeToRead int
 	OutputExtractRegex        string
+	RateLimit                 int
+	Probe                     bool
+	Resume                    bool
+	resumeCfg                 *ResumeCfg
+	ExcludeCDN                bool
 }
 
 // ParseOptions parses the command line options for application
 func ParseOptions() *Options {
 	options := &Options{}
 
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	flag.BoolVar(&options.TLSGrab, "tls-grab", false, "Perform TLS data grabbing")
 	flag.BoolVar(&options.TechDetect, "tech-detect", false, "Perform wappalyzer based technology detection")
 	flag.IntVar(&options.Threads, "threads", 50, "Number of threads")
@@ -221,7 +234,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.OutputFilterContentLength, "fl", "", "Filter content length")
 	flag.StringVar(&options.InputRawRequest, "request", "", "File containing raw request")
 	flag.BoolVar(&options.Unsafe, "unsafe", false, "Send raw requests skipping golang normalization")
-	flag.StringVar(&options.RequestBody, "body", "", "Request Body")
+	flag.StringVar(&options.RequestBody, "body", "", "Content to send in body with HTTP request")
 	flag.BoolVar(&options.Debug, "debug", false, "Debug mode")
 	flag.BoolVar(&options.Pipeline, "pipeline", false, "HTTP1.1 Pipeline")
 	flag.BoolVar(&options.HTTP2Probe, "http2", false, "HTTP2 probe")
@@ -236,17 +249,27 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.NoFallback, "no-fallback", false, "If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP")
 	flag.BoolVar(&options.NoFallbackScheme, "no-fallback-scheme", false, "The tool will respect and attempt the scheme specified in the url (if HTTPS is specified no HTTP is attempted)")
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
-	flag.BoolVar(&options.RandomAgent, "random-agent", false, "Use randomly selected HTTP User-Agent header value")
+	flag.BoolVar(&options.RandomAgent, "random-agent", true, "Use randomly selected HTTP User-Agent header value")
 	flag.BoolVar(&options.StoreChain, "store-chain", false, "Save chain to file (default 'output')")
 	flag.Var(&options.Allow, "allow", "Allowlist ip/cidr")
 	flag.Var(&options.Deny, "deny", "Denylist ip/cidr")
-	flag.IntVar(&options.MaxResponseBodySize, "max-response-body-size", math.MaxInt32, "Maximum response body size")
+	flag.IntVar(&options.MaxResponseBodySizeToSave, "response-size-to-save", math.MaxInt32, "Max response size to save in bytes (default - unlimited)")
+	flag.IntVar(&options.MaxResponseBodySizeToRead, "response-size-to-read", math.MaxInt32, "Max response size to read in bytes (default - unlimited)")
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
+	flag.IntVar(&options.RateLimit, "rate-limit", 150, "Maximum requests to send per second")
+	flag.BoolVar(&options.Probe, "probe", false, "Display probe status")
+	flag.BoolVar(&options.Resume, "resume", false, "Resume scan using resume.cfg")
+	flag.BoolVar(&options.ExcludeCDN, "exclude-cdn", false, "Skip full port scans for CDNs (only checks for 80,443)")
 
 	flag.Parse()
 
 	// Read the inputs and configure the logging
 	options.configureOutput()
+
+	err := options.configureResume()
+	if err != nil {
+		gologger.Fatal().Msgf("%s\n", err)
+	}
 
 	showBanner()
 
@@ -309,4 +332,23 @@ func (options *Options) configureOutput() {
 	if options.Silent {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelSilent)
 	}
+}
+
+func (options *Options) configureResume() error {
+	options.resumeCfg = &ResumeCfg{}
+	if options.Resume && fileutil.FileExists(DefaultResumeFile) {
+		return goconfig.Load(&options.resumeCfg, DefaultResumeFile)
+
+	}
+	return nil
+}
+
+// ShouldLoadResume resume file
+func (options *Options) ShouldLoadResume() bool {
+	return options.Resume && fileutil.FileExists(DefaultResumeFile)
+}
+
+// ShouldSaveResume file
+func (options *Options) ShouldSaveResume() bool {
+	return true
 }
