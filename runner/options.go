@@ -61,6 +61,7 @@ type scanOptions struct {
 	OutputExtractRegex        string
 	extractRegex              *regexp.Regexp
 	ExcludeCDN                bool
+	SkipRemainingPathsOnError bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -99,6 +100,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		OutputExtractRegex:        s.OutputExtractRegex,
 		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
+		SkipRemainingPathsOnError: s.SkipRemainingPathsOnError,
 	}
 }
 
@@ -184,6 +186,7 @@ type Options struct {
 	Resume                    bool
 	resumeCfg                 *ResumeCfg
 	ExcludeCDN                bool
+	SkipRemainingPathsOnError bool
 }
 
 // ParseOptions parses the command line options for application
@@ -260,6 +263,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Probe, "probe", false, "Display probe status")
 	flag.BoolVar(&options.Resume, "resume", false, "Resume scan using resume.cfg")
 	flag.BoolVar(&options.ExcludeCDN, "exclude-cdn", false, "Skip full port scans for CDNs (only checks for 80,443)")
+	flag.BoolVar(&options.SkipRemainingPathsOnError, "skip-paths-on-error", false, "Skip remaining paths on unresponsive servers")
 
 	flag.Parse()
 

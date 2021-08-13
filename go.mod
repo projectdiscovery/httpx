@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/akrylysov/pogreb v0.10.1 // indirect
+	github.com/bluele/gcache v0.0.2 // indirect
 	github.com/corpix/uarand v0.1.1
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/golang/glog v0.0.0-20210429001901-424d2337a529 // indirect
