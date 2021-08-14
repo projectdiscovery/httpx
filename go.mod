@@ -24,7 +24,7 @@ require (
 	github.com/projectdiscovery/httputil v0.0.0-20210508183653-2e37c34b438d
 	github.com/projectdiscovery/iputil v0.0.0-20210705072957-5a968407979b
 	github.com/projectdiscovery/mapcidr v0.0.8
-	github.com/projectdiscovery/rawhttp v0.0.7
+	github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e
 	github.com/projectdiscovery/retryabledns v1.0.12 // indirect
 	github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210526144436-e15804ddc7dc
 	github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d
@@ -35,8 +35,8 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/ratelimit v0.2.0
-	golang.org/x/net v0.0.0-20210716203947-853a461950ff
+	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
-	golang.org/x/text v0.3.6
+	golang.org/x/text v0.3.7
 	google.golang.org/protobuf v1.27.1 // indirect
 )

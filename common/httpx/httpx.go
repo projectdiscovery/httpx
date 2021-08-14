@@ -226,7 +226,9 @@ func (h *HTTPX) doUnsafe(req *retryablehttp.Request) (*http.Response, error) {
 	headers := req.Header
 	targetURL := req.URL.String()
 	body := req.Body
-	return rawhttp.DoRaw(method, targetURL, h.RequestOverride.URIPath, headers, body)
+	options := rawhttp.DefaultOptions
+	options.Timeout = h.Options.Timeout
+	return rawhttp.DoRawWithOptions(method, targetURL, h.RequestOverride.URIPath, headers, body, options)
 }
 
 // Verify the http calls and apply-cascade all the filters, as soon as one matches it returns true
