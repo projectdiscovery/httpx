@@ -142,6 +142,8 @@ github.com/projectdiscovery/fastdialer v0.0.12 h1:TjvM41UfR+A7YsxQZoTvI6C5nVe1d+
 github.com/projectdiscovery/fastdialer v0.0.12/go.mod h1:RkRbxqDCcCFhfNUbkzBIz/ieD4uda2JuUA4WJ+RLee0=
 github.com/projectdiscovery/fastdialer v0.0.13-0.20210814183457-4084195d84b2 h1:nnzfSmfCGLcdkDtMMReY5axGqxne21GDfWZ9p76kLqs=
 github.com/projectdiscovery/fastdialer v0.0.13-0.20210814183457-4084195d84b2/go.mod h1:RkRbxqDCcCFhfNUbkzBIz/ieD4uda2JuUA4WJ+RLee0=
+github.com/projectdiscovery/fastdialer v0.0.13-0.20210815100514-360f851a5b80 h1:Hyt1AcK5hAgE7LuaNyRD3mFc8zaS7LP4vTk6Yp83f8E=
+github.com/projectdiscovery/fastdialer v0.0.13-0.20210815100514-360f851a5b80/go.mod h1:RkRbxqDCcCFhfNUbkzBIz/ieD4uda2JuUA4WJ+RLee0=
 github.com/projectdiscovery/fdmax v0.0.3 h1:FM6lv9expZ/rEEBI9tkRh6tx3DV0gtpwzdc0h7bGPqg=
 github.com/projectdiscovery/fdmax v0.0.3/go.mod h1:NWRcaR7JTO7fC27H4jCl9n7Z+KIredwpgw1fV+4KrKI=
 github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c h1:1XRSp+44bhWudAWz+2+wHYJBHvDfE8mk9uWpzX+DU9k=
