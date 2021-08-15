@@ -61,7 +61,7 @@ type scanOptions struct {
 	OutputExtractRegex        string
 	extractRegex              *regexp.Regexp
 	ExcludeCDN                bool
-	SkipRemainingPathsOnError bool
+	HostMaxErrors             int
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -100,7 +100,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		OutputExtractRegex:        s.OutputExtractRegex,
 		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
-		SkipRemainingPathsOnError: s.SkipRemainingPathsOnError,
+		HostMaxErrors:             s.HostMaxErrors,
 	}
 }
 
@@ -186,7 +186,7 @@ type Options struct {
 	Resume                    bool
 	resumeCfg                 *ResumeCfg
 	ExcludeCDN                bool
-	SkipRemainingPathsOnError bool
+	HostMaxErrors             int
 }
 
 // ParseOptions parses the command line options for application
@@ -263,7 +263,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Probe, "probe", false, "Display probe status")
 	flag.BoolVar(&options.Resume, "resume", false, "Resume scan using resume.cfg")
 	flag.BoolVar(&options.ExcludeCDN, "exclude-cdn", false, "Skip full port scans for CDNs (only checks for 80,443)")
-	flag.BoolVar(&options.SkipRemainingPathsOnError, "skip-paths-on-error", false, "Skip remaining paths on unresponsive servers")
+	flag.IntVar(&options.HostMaxErrors, "host-max-errors", -1, "Allowed error count per host before skipping remaining path/s")
 
 	flag.Parse()
 

@@ -210,7 +210,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	scanopts.ExcludeCDN = options.ExcludeCDN
-	scanopts.SkipRemainingPathsOnError = options.SkipRemainingPathsOnError
+	scanopts.HostMaxErrors = options.HostMaxErrors
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
@@ -232,7 +232,7 @@ func New(options *Options) (*Runner, error) {
 		runner.ratelimiter = ratelimit.NewUnlimited()
 	}
 
-	if options.SkipRemainingPathsOnError {
+	if options.HostMaxErrors >= 0 {
 		gc := gcache.New(1000).
 			ARC().
 			Build()
@@ -389,7 +389,7 @@ func (r *Runner) Close() {
 	// nolint:errcheck // ignore
 	r.hm.Close()
 	r.hp.Dialer.Close()
-	if r.options.SkipRemainingPathsOnError {
+	if r.options.HostMaxErrors >= 0 {
 		r.FailedTargets.Purge()
 	}
 }
@@ -628,8 +628,11 @@ retry:
 
 	// check if we have to skip the host:port as a result of a previous failure
 	hostPort := net.JoinHostPort(URL.Host, URL.Port)
-	if r.options.SkipRemainingPathsOnError && r.FailedTargets.Has(hostPort) {
-		return Result{URL: domain, err: errors.New("skipping as previously unresponsive")}
+	if r.options.HostMaxErrors >= 0 && r.FailedTargets.Has(hostPort) {
+		numberOfErrors, err := r.FailedTargets.GetIFPresent(hostPort)
+		if err == nil && numberOfErrors.(int) >= r.options.HostMaxErrors {
+			return Result{URL: domain, err: errors.New("skipping as previously unresponsive")}
+		}
 	}
 
 	// check if the combination host:port should be skipped if belonging to a cdn
@@ -746,8 +749,13 @@ retry:
 		}
 
 		// mark the host:port as failed to avoid further checks
-		if r.options.SkipRemainingPathsOnError {
-			_ = r.FailedTargets.Set(hostPort, nil)
+		if r.options.HostMaxErrors >= 0 {
+			errorCount, err := r.FailedTargets.GetIFPresent(hostPort)
+			if err != nil || errorCount == nil {
+				_ = r.FailedTargets.Set(hostPort, 1)
+			} else if errorCount != nil {
+				_ = r.FailedTargets.Set(hostPort, errorCount.(int)+1)
+			}
 		}
 
 		if r.options.Probe {
