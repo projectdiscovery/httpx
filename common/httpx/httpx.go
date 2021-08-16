@@ -3,6 +3,7 @@ package httpx
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -112,7 +113,7 @@ func New(options *Options) (*HTTPX, error) {
 	httpx.htmlPolicy = bluemonday.NewPolicy()
 	httpx.CustomHeaders = httpx.Options.CustomHeaders
 	httpx.RequestOverride = &options.RequestOverride
-	if options.CdnCheck {
+	if options.CdnCheck || options.ExcludeCdn {
 		httpx.cdn, err = cdncheck.NewWithCache()
 		if err != nil {
 			return nil, fmt.Errorf("could not create cdn check: %s", err)
@@ -156,7 +157,7 @@ get_response:
 	// websockets don't have a readable body
 	if httpresp.StatusCode != http.StatusSwitchingProtocols {
 		var err error
-		respbody, err = ioutil.ReadAll(httpresp.Body)
+		respbody, err = ioutil.ReadAll(io.LimitReader(httpresp.Body, h.Options.MaxResponseBodySizeToRead))
 		if err != nil {
 			return nil, err
 		}

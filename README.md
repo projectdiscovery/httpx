@@ -77,14 +77,12 @@ This will display help for the tool. Here are all the switches it supports.
 <summary> 👉 httpx help menu 👈</summary>
 
 ```
-Usage of ./httpx:
-
   -H value
       Custom Header
   -allow value
       Allowlist ip/cidr
   -body string
-      Request Body
+      Content to send in body with HTTP request
   -cdn
       Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)
   -cname
@@ -99,6 +97,8 @@ Usage of ./httpx:
       Debug mode
   -deny value
       Denylist ip/cidr
+  -exclude-cdn
+      Skip full port scans for CDNs (only checks for 80,443)
   -extract-regex string
       Extract Regex
   -fc string
@@ -133,18 +133,18 @@ Usage of ./httpx:
       Match Regex
   -match-string string
       Match string
-  -max-response-body-size int
-      Maximum response body size (default 2147483647)
   -mc string
       Match status code
   -method
-      Output method
+      Display request method
   -ml string
       Match content length
   -no-color
       No Color
   -no-fallback
       If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP
+  -no-fallback-scheme
+      The tool will respect and attempt the scheme specified in the url (if HTTPS is specified no HTTP is attempted)
   -o string
       File to write output to (optional)
   -path string
@@ -155,14 +155,24 @@ Usage of ./httpx:
       HTTP1.1 Pipeline
   -ports value
       ports range (nmap syntax: eg 1,2-10,11)
+  -probe
+      Display probe status
   -random-agent
-      Use randomly selected HTTP User-Agent header value
+      Use randomly selected HTTP User-Agent header value (default true)
+  -rate-limit int
+      Maximum requests to send per second (default 150)
   -request string
       File containing raw request
   -response-in-json
       Show Raw HTTP Response In Output (-json only) (deprecated)
+  -response-size-to-read int
+      Max response size to read in bytes (default - unlimited)
+  -response-size-to-save int
+      Max response size to save in bytes (default - unlimited)
   -response-time
       Output the response time
+  -resume
+      Resume scan using resume.cfg
   -retries int
       Number of retries
   -silent
@@ -241,19 +251,31 @@ https://support.hackerone.com
 
 ### Running httpx with file input  
 
-This will run the tool against all the hosts and subdomains in `hosts.txt` and returns URLs running HTTP webserver.
+This will run the tool with the `probe` flag against all of the hosts in **hosts.txt** and return URLs with probed status.
 
 ```sh
-▶ httpx -l hosts.txt -silent
+▶ httpx -l hosts.txt -silent -probe
 
-https://docs.hackerone.com
-https://mta-sts.hackerone.com
-https://mta-sts.managed.hackerone.com
-https://mta-sts.forwarding.hackerone.com
-https://www.hackerone.com
-https://resources.hackerone.com
-https://api.hackerone.com
-https://support.hackerone.com
+http://ns.hackerone.com [FAILED]
+https://docs.hackerone.com [SUCCESS]
+https://mta-sts.hackerone.com [SUCCESS]
+https://mta-sts.managed.hackerone.com [SUCCESS]
+http://email.hackerone.com [FAILED]
+https://mta-sts.forwarding.hackerone.com [SUCCESS]
+http://links.hackerone.com [FAILED]
+https://api.hackerone.com [SUCCESS]
+https://www.hackerone.com [SUCCESS]
+http://events.hackerone.com [FAILED]
+https://support.hackerone.com [SUCCESS]
+https://gslink.hackerone.com [SUCCESS]
+http://o1.email.hackerone.com [FAILED]
+http://info.hackerone.com [FAILED]
+https://resources.hackerone.com [SUCCESS]
+http://o2.email.hackerone.com [FAILED]
+http://o3.email.hackerone.com [FAILED]
+http://go.hackerone.com [FAILED]
+http://a.ns.hackerone.com [FAILED]
+http://b.ns.hackerone.com [FAILED]
 ```
 
 ### Running httpx with CIDR input   
@@ -286,7 +308,7 @@ https://173.0.84.34
 
 
 ```sh
-▶ subfinder -d hackerone.com | httpx -title -tech-detect -status-code -follow-redirects
+subfinder -d hackerone.com | httpx -title -tech-detect -status-code
 
     __    __  __       _  __
    / /_  / /_/ /_____ | |/ /
