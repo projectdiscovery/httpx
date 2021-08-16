@@ -501,7 +501,7 @@ func (r *Runner) RunEnumeration() {
 
 func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
 	protocols := []string{protocol}
-	if scanopts.NoFallback {
+	if scanopts.NoFallback || protocol == httpx.HTTPandHTTPS {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
 
@@ -535,24 +535,30 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 			}
 		}
 
-		for port, wantedProtocol := range customport.Ports {
-			for _, method := range scanopts.Methods {
-				wg.Add()
-				go func(port int, method, protocol string) {
-					defer wg.Done()
-					h, _ := urlutil.ChangePort(target, fmt.Sprint(port))
-					result := r.analyze(hp, protocol, h, method, scanopts)
-					output <- result
-					if scanopts.TLSProbe && result.TLSData != nil {
-						scanopts.TLSProbe = false
-						for _, tt := range result.TLSData.DNSNames {
-							r.process(tt, wg, hp, protocol, scanopts, output)
+		for port, wantedProtocolForPort := range customport.Ports {
+			wantedProtocols := []string{wantedProtocolForPort}
+			if wantedProtocolForPort == httpx.HTTPandHTTPS {
+				wantedProtocols = []string{httpx.HTTPS, httpx.HTTP}
+			}
+			for _, wantedProtocol := range wantedProtocols {
+				for _, method := range scanopts.Methods {
+					wg.Add()
+					go func(port int, method, protocol string) {
+						defer wg.Done()
+						h, _ := urlutil.ChangePort(target, fmt.Sprint(port))
+						result := r.analyze(hp, protocol, h, method, scanopts)
+						output <- result
+						if scanopts.TLSProbe && result.TLSData != nil {
+							scanopts.TLSProbe = false
+							for _, tt := range result.TLSData.DNSNames {
+								r.process(tt, wg, hp, protocol, scanopts, output)
+							}
+							for _, tt := range result.TLSData.CommonName {
+								r.process(tt, wg, hp, protocol, scanopts, output)
+							}
 						}
-						for _, tt := range result.TLSData.CommonName {
-							r.process(tt, wg, hp, protocol, scanopts, output)
-						}
-					}
-				}(port, method, wantedProtocol)
+					}(port, method, wantedProtocol)
+				}
 			}
 		}
 		if r.options.ShowStatistics {
@@ -592,7 +598,7 @@ func targets(target string) chan string {
 
 func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain, method string, scanopts *scanOptions) Result {
 	origProtocol := protocol
-	if protocol == httpx.HTTPorHTTPS {
+	if protocol == httpx.HTTPorHTTPS || protocol == httpx.HTTPandHTTPS {
 		protocol = httpx.HTTPS
 	}
 	retried := false

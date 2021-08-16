@@ -16,8 +16,10 @@ const (
 	HTTP = "http"
 	// HTTPS defines the secure http scheme
 	HTTPS = "https"
-	// HTTPorHTTPS defines the both http and https scheme
+	// HTTPorHTTPS defines both http and https scheme in mutual exclusion
 	HTTPorHTTPS = "http|https"
+	// HTTPandHTTPS defines both http and https scheme
+	HTTPandHTTPS = "http&https"
 )
 
 // SupportHTTP2 checks if the target host supports HTTP2
