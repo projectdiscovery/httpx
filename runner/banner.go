@@ -8,7 +8,7 @@ const banner = `
   / __ \/ __/ __/ __ \|   /
  / / / / /_/ /_/ /_/ /   |
 /_/ /_/\__/\__/ .___/_/|_|
-             /_/              v1.1.1
+             /_/              v1.1.1-np
 `
 
 // Version is the current version of httpx
