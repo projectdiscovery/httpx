@@ -154,6 +154,7 @@ type Options struct {
 	responseInStdout          bool
 	chainInStdout             bool
 	FollowHostRedirects       bool
+	MaxRedirects              int
 	OutputMethod              bool
 	TLSProbe                  bool
 	CSPProbe                  bool
@@ -209,6 +210,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.StoreResponseDir, "srd", "output", "Save response directory")
 	flag.BoolVar(&options.FollowRedirects, "follow-redirects", false, "Follow Redirects")
 	flag.BoolVar(&options.FollowHostRedirects, "follow-host-redirects", false, "Only follow redirects on the same host")
+	flag.IntVar(&options.MaxRedirects, "max-redirects", 10, "Max number of redirects to follow")
 	flag.StringVar(&options.HTTPProxy, "http-proxy", "", "HTTP Proxy, eg http://127.0.0.1:8080")
 	flag.BoolVar(&options.JSONOutput, "json", false, "JSON Output")
 	flag.StringVar(&options.InputFile, "l", "", "File containing domains")
