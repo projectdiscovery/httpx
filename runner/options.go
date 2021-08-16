@@ -263,7 +263,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Probe, "probe", false, "Display probe status")
 	flag.BoolVar(&options.Resume, "resume", false, "Resume scan using resume.cfg")
 	flag.BoolVar(&options.ExcludeCDN, "exclude-cdn", false, "Skip full port scans for CDNs (only checks for 80,443)")
-	flag.IntVar(&options.HostMaxErrors, "host-max-errors", -1, "Allowed error count per host before skipping remaining path/s")
+	flag.IntVar(&options.HostMaxErrors, "max-host-error", -1, "Max error count per host before skipping remaining path/s")
 
 	flag.Parse()
 
