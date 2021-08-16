@@ -159,6 +159,10 @@ func New(options *Options) (*Runner, error) {
 	if strings.EqualFold(options.Methods, "all") {
 		scanopts.Methods = pdhttputil.AllHTTPMethods()
 	} else if options.Methods != "" {
+		// if unsafe is specified then converts the methods to uppercase
+		if !options.Unsafe {
+			options.Methods = strings.ToUpper(options.Methods)
+		}
 		scanopts.Methods = append(scanopts.Methods, stringz.SplitByCharAndTrimSpace(options.Methods, ",")...)
 	}
 	if len(scanopts.Methods) == 0 {

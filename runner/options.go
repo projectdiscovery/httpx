@@ -217,7 +217,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.HTTPProxy, "http-proxy", "", "HTTP Proxy, eg http://127.0.0.1:8080")
 	flag.BoolVar(&options.JSONOutput, "json", false, "JSON Output")
 	flag.StringVar(&options.InputFile, "l", "", "File containing domains")
-	flag.StringVar(&options.Methods, "x", "", "Request Methods, use ALL to check all verbs ()")
+	flag.StringVar(&options.Methods, "x", "", "Request Methods, use ALL to check all verbs (GET, POST, PUT, PATCH, DELETE, CONNECT, OPTIONS and TRACE)")
 	flag.BoolVar(&options.OutputMethod, "method", false, "Display request method")
 	flag.BoolVar(&options.Silent, "silent", false, "Silent mode")
 	flag.BoolVar(&options.Version, "version", false, "Show version of httpx")
