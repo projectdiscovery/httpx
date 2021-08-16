@@ -54,14 +54,14 @@ const (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options       *Options
-	hp            *httpx.HTTPX
-	wappalyzer    *wappalyzer.Wappalyze
-	scanopts      scanOptions
-	hm            *hybrid.HybridMap
-	stats         clistats.StatisticsClient
-	ratelimiter   ratelimit.Limiter
-	FailedTargets gcache.Cache
+	options         *Options
+	hp              *httpx.HTTPX
+	wappalyzer      *wappalyzer.Wappalyze
+	scanopts        scanOptions
+	hm              *hybrid.HybridMap
+	stats           clistats.StatisticsClient
+	ratelimiter     ratelimit.Limiter
+	HostErrorsCache gcache.Cache
 }
 
 // New creates a new client for running enumeration process.
@@ -84,6 +84,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.RetryMax = options.Retries
 	httpxOptions.FollowRedirects = options.FollowRedirects
 	httpxOptions.FollowHostRedirects = options.FollowHostRedirects
+	httpxOptions.MaxRedirects = options.MaxRedirects
 	httpxOptions.HTTPProxy = options.HTTPProxy
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
@@ -236,7 +237,7 @@ func New(options *Options) (*Runner, error) {
 		gc := gcache.New(1000).
 			ARC().
 			Build()
-		runner.FailedTargets = gc
+		runner.HostErrorsCache = gc
 	}
 
 	return runner, nil
@@ -390,7 +391,7 @@ func (r *Runner) Close() {
 	r.hm.Close()
 	r.hp.Dialer.Close()
 	if r.options.HostMaxErrors >= 0 {
-		r.FailedTargets.Purge()
+		r.HostErrorsCache.Purge()
 	}
 }
 
@@ -628,8 +629,8 @@ retry:
 
 	// check if we have to skip the host:port as a result of a previous failure
 	hostPort := net.JoinHostPort(URL.Host, URL.Port)
-	if r.options.HostMaxErrors >= 0 && r.FailedTargets.Has(hostPort) {
-		numberOfErrors, err := r.FailedTargets.GetIFPresent(hostPort)
+	if r.options.HostMaxErrors >= 0 && r.HostErrorsCache.Has(hostPort) {
+		numberOfErrors, err := r.HostErrorsCache.GetIFPresent(hostPort)
 		if err == nil && numberOfErrors.(int) >= r.options.HostMaxErrors {
 			return Result{URL: domain, err: errors.New("skipping as previously unresponsive")}
 		}
@@ -750,11 +751,11 @@ retry:
 
 		// mark the host:port as failed to avoid further checks
 		if r.options.HostMaxErrors >= 0 {
-			errorCount, err := r.FailedTargets.GetIFPresent(hostPort)
+			errorCount, err := r.HostErrorsCache.GetIFPresent(hostPort)
 			if err != nil || errorCount == nil {
-				_ = r.FailedTargets.Set(hostPort, 1)
+				_ = r.HostErrorsCache.Set(hostPort, 1)
 			} else if errorCount != nil {
-				_ = r.FailedTargets.Set(hostPort, errorCount.(int)+1)
+				_ = r.HostErrorsCache.Set(hostPort, errorCount.(int)+1)
 			}
 		}
 

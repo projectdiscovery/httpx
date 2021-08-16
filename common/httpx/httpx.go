@@ -59,18 +59,28 @@ func New(options *Options) (*HTTPX, error) {
 	}
 
 	if httpx.Options.FollowRedirects {
-		// Follow redirects
-		redirectFunc = nil
+		// Follow redirects up to a maximum number
+		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
+			if len(previousRequests) >= options.MaxRedirects {
+				// https://github.com/golang/go/issues/10069
+				return http.ErrUseLastResponse
+			}
+			return nil
+		}
 	}
 
 	if httpx.Options.FollowHostRedirects {
-		// Only follow redirects on the same host
-		redirectFunc = func(redirectedRequest *http.Request, previousRequest []*http.Request) error {
+		// Only follow redirects on the same host up to a maximum number
+		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
 			// Check if we get a redirect to a differen host
 			var newHost = redirectedRequest.URL.Host
-			var oldHost = previousRequest[0].URL.Host
+			var oldHost = previousRequests[0].URL.Host
 			if newHost != oldHost {
 				// Tell the http client to not follow redirect
+				return http.ErrUseLastResponse
+			}
+			if len(previousRequests) >= options.MaxRedirects {
+				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
 			}
 			return nil
