@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -19,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bluele/gcache"
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
 	"github.com/projectdiscovery/clistats"
@@ -52,13 +54,14 @@ const (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options     *Options
-	hp          *httpx.HTTPX
-	wappalyzer  *wappalyzer.Wappalyze
-	scanopts    scanOptions
-	hm          *hybrid.HybridMap
-	stats       clistats.StatisticsClient
-	ratelimiter ratelimit.Limiter
+	options       *Options
+	hp            *httpx.HTTPX
+	wappalyzer    *wappalyzer.Wappalyze
+	scanopts      scanOptions
+	hm            *hybrid.HybridMap
+	stats         clistats.StatisticsClient
+	ratelimiter   ratelimit.Limiter
+	FailedTargets gcache.Cache
 }
 
 // New creates a new client for running enumeration process.
@@ -208,6 +211,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	scanopts.ExcludeCDN = options.ExcludeCDN
+	scanopts.HostMaxErrors = options.HostMaxErrors
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
@@ -227,6 +231,13 @@ func New(options *Options) (*Runner, error) {
 		runner.ratelimiter = ratelimit.New(options.RateLimit)
 	} else {
 		runner.ratelimiter = ratelimit.NewUnlimited()
+	}
+
+	if options.HostMaxErrors >= 0 {
+		gc := gcache.New(1000).
+			ARC().
+			Build()
+		runner.FailedTargets = gc
 	}
 
 	return runner, nil
@@ -379,6 +390,9 @@ func (r *Runner) Close() {
 	// nolint:errcheck // ignore
 	r.hm.Close()
 	r.hp.Dialer.Close()
+	if r.options.HostMaxErrors >= 0 {
+		r.FailedTargets.Purge()
+	}
 }
 
 // RunEnumeration on targets for httpx client
@@ -613,6 +627,15 @@ retry:
 		return Result{URL: domain, err: err}
 	}
 
+	// check if we have to skip the host:port as a result of a previous failure
+	hostPort := net.JoinHostPort(URL.Host, URL.Port)
+	if r.options.HostMaxErrors >= 0 && r.FailedTargets.Has(hostPort) {
+		numberOfErrors, err := r.FailedTargets.GetIFPresent(hostPort)
+		if err == nil && numberOfErrors.(int) >= r.options.HostMaxErrors {
+			return Result{URL: domain, err: errors.New("skipping as previously unresponsive")}
+		}
+	}
+
 	// check if the combination host:port should be skipped if belonging to a cdn
 	if r.skipCDNPort(URL.Host, URL.Port) {
 		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port)
@@ -725,6 +748,17 @@ retry:
 			retried = true
 			goto retry
 		}
+
+		// mark the host:port as failed to avoid further checks
+		if r.options.HostMaxErrors >= 0 {
+			errorCount, err := r.FailedTargets.GetIFPresent(hostPort)
+			if err != nil || errorCount == nil {
+				_ = r.FailedTargets.Set(hostPort, 1)
+			} else if errorCount != nil {
+				_ = r.FailedTargets.Set(hostPort, errorCount.(int)+1)
+			}
+		}
+
 		if r.options.Probe {
 			return Result{URL: URL.String(), Input: domain, Timestamp: time.Now(), err: err, Failed: err != nil, Error: errString, str: builder.String()}
 		} else {

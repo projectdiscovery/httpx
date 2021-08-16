@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/akrylysov/pogreb v0.10.1 // indirect
+	github.com/bluele/gcache v0.0.2 // indirect
 	github.com/corpix/uarand v0.1.1
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/golang/glog v0.0.0-20210429001901-424d2337a529 // indirect
@@ -29,7 +30,7 @@ require (
 	github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210526144436-e15804ddc7dc
 	github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d
 	github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1
-	github.com/projectdiscovery/wappalyzergo v0.0.9
+	github.com/projectdiscovery/wappalyzergo v0.0.10
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.3.0
 	go.etcd.io/bbolt v1.3.6 // indirect
