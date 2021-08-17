@@ -22,7 +22,7 @@ builds:
       goarch: 'arm'
 
   binary: '{{ .ProjectName }}'
-  main: cmd/httpx/main.go
+  main: cmd/httpx/httpx.go
 
 archives:
 - format: zip
