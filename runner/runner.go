@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -19,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bluele/gcache"
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
 	"github.com/projectdiscovery/clistats"
@@ -52,13 +54,14 @@ const (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options     *Options
-	hp          *httpx.HTTPX
-	wappalyzer  *wappalyzer.Wappalyze
-	scanopts    scanOptions
-	hm          *hybrid.HybridMap
-	stats       clistats.StatisticsClient
-	ratelimiter ratelimit.Limiter
+	options         *Options
+	hp              *httpx.HTTPX
+	wappalyzer      *wappalyzer.Wappalyze
+	scanopts        scanOptions
+	hm              *hybrid.HybridMap
+	stats           clistats.StatisticsClient
+	ratelimiter     ratelimit.Limiter
+	HostErrorsCache gcache.Cache
 }
 
 // New creates a new client for running enumeration process.
@@ -81,6 +84,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.RetryMax = options.Retries
 	httpxOptions.FollowRedirects = options.FollowRedirects
 	httpxOptions.FollowHostRedirects = options.FollowHostRedirects
+	httpxOptions.MaxRedirects = options.MaxRedirects
 	httpxOptions.HTTPProxy = options.HTTPProxy
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
@@ -155,6 +159,10 @@ func New(options *Options) (*Runner, error) {
 	if strings.EqualFold(options.Methods, "all") {
 		scanopts.Methods = pdhttputil.AllHTTPMethods()
 	} else if options.Methods != "" {
+		// if unsafe is specified then converts the methods to uppercase
+		if !options.Unsafe {
+			options.Methods = strings.ToUpper(options.Methods)
+		}
 		scanopts.Methods = append(scanopts.Methods, stringz.SplitByCharAndTrimSpace(options.Methods, ",")...)
 	}
 	if len(scanopts.Methods) == 0 {
@@ -207,6 +215,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	scanopts.ExcludeCDN = options.ExcludeCDN
+	scanopts.HostMaxErrors = options.HostMaxErrors
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
@@ -226,6 +235,13 @@ func New(options *Options) (*Runner, error) {
 		runner.ratelimiter = ratelimit.New(options.RateLimit)
 	} else {
 		runner.ratelimiter = ratelimit.NewUnlimited()
+	}
+
+	if options.HostMaxErrors >= 0 {
+		gc := gcache.New(1000).
+			ARC().
+			Build()
+		runner.HostErrorsCache = gc
 	}
 
 	return runner, nil
@@ -378,6 +394,9 @@ func (r *Runner) Close() {
 	// nolint:errcheck // ignore
 	r.hm.Close()
 	r.hp.Dialer.Close()
+	if r.options.HostMaxErrors >= 0 {
+		r.HostErrorsCache.Purge()
+	}
 }
 
 // RunEnumeration on targets for httpx client
@@ -513,7 +532,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 					wg.Add()
 					go func(target, method, protocol string) {
 						defer wg.Done()
-						result := r.analyze(hp, protocol, target, method, scanopts)
+						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
@@ -546,7 +565,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 					go func(port int, method, protocol string) {
 						defer wg.Done()
 						h, _ := urlutil.ChangePort(target, fmt.Sprint(port))
-						result := r.analyze(hp, protocol, h, method, scanopts)
+						result := r.analyze(hp, protocol, h, method, t, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
@@ -596,7 +615,7 @@ func targets(target string) chan string {
 	return results
 }
 
-func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain, method string, scanopts *scanOptions) Result {
+func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain, method, origInput string, scanopts *scanOptions) Result {
 	origProtocol := protocol
 	if protocol == httpx.HTTPorHTTPS || protocol == httpx.HTTPandHTTPS {
 		protocol = httpx.HTTPS
@@ -608,20 +627,29 @@ retry:
 		parts := strings.Split(domain, ",")
 		//nolint:gomnd // not a magic number
 		if len(parts) != 2 {
-			return Result{}
+			return Result{Input: origInput}
 		}
 		domain = parts[0]
 		customHost = parts[1]
 	}
 	URL, err := urlutil.Parse(domain)
 	if err != nil {
-		return Result{URL: domain, err: err}
+		return Result{URL: domain, Input: origInput, err: err}
+	}
+
+	// check if we have to skip the host:port as a result of a previous failure
+	hostPort := net.JoinHostPort(URL.Host, URL.Port)
+	if r.options.HostMaxErrors >= 0 && r.HostErrorsCache.Has(hostPort) {
+		numberOfErrors, err := r.HostErrorsCache.GetIFPresent(hostPort)
+		if err == nil && numberOfErrors.(int) >= r.options.HostMaxErrors {
+			return Result{URL: domain, err: errors.New("skipping as previously unresponsive")}
+		}
 	}
 
 	// check if the combination host:port should be skipped if belonging to a cdn
 	if r.skipCDNPort(URL.Host, URL.Port) {
 		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port)
-		return Result{URL: domain, err: errors.New("cdn target only allows ports 80 and 443")}
+		return Result{URL: domain, Input: origInput, err: errors.New("cdn target only allows ports 80 and 443")}
 	}
 
 	URL.Scheme = protocol
@@ -635,7 +663,7 @@ retry:
 	}
 	req, err := hp.NewRequest(method, URL.String())
 	if err != nil {
-		return Result{URL: URL.String(), err: err}
+		return Result{URL: URL.String(), Input: origInput, err: err}
 	}
 	if customHost != "" {
 		req.Host = customHost
@@ -665,7 +693,7 @@ retry:
 		var errDump error
 		requestDump, errDump = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), reqURI, req.Header, req.Body, rawhttp.DefaultOptions)
 		if errDump != nil {
-			return Result{URL: URL.String(), err: errDump}
+			return Result{URL: URL.String(), Input: origInput, err: errDump}
 		}
 	} else {
 		// Create a copy on the fly of the request body
@@ -674,7 +702,7 @@ retry:
 		var errDump error
 		requestDump, errDump = httputil.DumpRequestOut(req.Request, true)
 		if errDump != nil {
-			return Result{URL: URL.String(), err: errDump}
+			return Result{URL: URL.String(), Input: origInput, err: errDump}
 		}
 		// The original req.Body gets modified indirectly by httputil.DumpRequestOut so we set it again to nil if it was empty
 		// Otherwise redirects like 307/308 would fail (as they require the body to be sent along)
@@ -730,10 +758,21 @@ retry:
 			retried = true
 			goto retry
 		}
+
+		// mark the host:port as failed to avoid further checks
+		if r.options.HostMaxErrors >= 0 {
+			errorCount, err := r.HostErrorsCache.GetIFPresent(hostPort)
+			if err != nil || errorCount == nil {
+				_ = r.HostErrorsCache.Set(hostPort, 1)
+			} else if errorCount != nil {
+				_ = r.HostErrorsCache.Set(hostPort, errorCount.(int)+1)
+			}
+		}
+
 		if r.options.Probe {
-			return Result{URL: URL.String(), Input: domain, Timestamp: time.Now(), err: err, Failed: err != nil, Error: errString, str: builder.String()}
+			return Result{URL: URL.String(), Input: origInput, Timestamp: time.Now(), err: err, Failed: err != nil, Error: errString, str: builder.String()}
 		} else {
-			return Result{URL: URL.String(), Input: domain, Timestamp: time.Now(), err: err}
+			return Result{URL: URL.String(), Input: origInput, Timestamp: time.Now(), err: err}
 		}
 	}
 
@@ -978,7 +1017,7 @@ retry:
 
 	parsed, err := urlutil.Parse(fullURL)
 	if err != nil {
-		return Result{URL: fullURL, err: errors.Wrap(err, "could not parse url")}
+		return Result{URL: fullURL, Input: origInput, err: errors.Wrap(err, "could not parse url")}
 	}
 
 	finalPort := parsed.Port
@@ -1022,7 +1061,7 @@ retry:
 		HeaderSHA256:     headersSha,
 		raw:              resp.Raw,
 		URL:              fullURL,
-		Input:            domain,
+		Input:            origInput,
 		ContentLength:    resp.ContentLength,
 		ChainStatusCodes: chainStatusCodes,
 		Chain:            chainItems,

@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/akrylysov/pogreb v0.10.1 // indirect
+	github.com/bluele/gcache v0.0.2 // indirect
 	github.com/corpix/uarand v0.1.1
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/golang/glog v0.0.0-20210429001901-424d2337a529 // indirect
@@ -21,7 +22,7 @@ require (
 	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c
 	github.com/projectdiscovery/gologger v1.1.4
 	github.com/projectdiscovery/hmap v0.0.2-0.20210630092648-6c0a1b362caa
-	github.com/projectdiscovery/httputil v0.0.0-20210508183653-2e37c34b438d
+	github.com/projectdiscovery/httputil v0.0.0-20210816170244-86fd46bc09f5
 	github.com/projectdiscovery/iputil v0.0.0-20210705072957-5a968407979b
 	github.com/projectdiscovery/mapcidr v0.0.8
 	github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e

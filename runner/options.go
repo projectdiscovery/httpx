@@ -61,6 +61,7 @@ type scanOptions struct {
 	OutputExtractRegex        string
 	extractRegex              *regexp.Regexp
 	ExcludeCDN                bool
+	HostMaxErrors             int
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -99,6 +100,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		OutputExtractRegex:        s.OutputExtractRegex,
 		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
+		HostMaxErrors:             s.HostMaxErrors,
 	}
 }
 
@@ -154,6 +156,7 @@ type Options struct {
 	responseInStdout          bool
 	chainInStdout             bool
 	FollowHostRedirects       bool
+	MaxRedirects              int
 	OutputMethod              bool
 	TLSProbe                  bool
 	CSPProbe                  bool
@@ -184,6 +187,7 @@ type Options struct {
 	Resume                    bool
 	resumeCfg                 *ResumeCfg
 	ExcludeCDN                bool
+	HostMaxErrors             int
 }
 
 // ParseOptions parses the command line options for application
@@ -209,10 +213,11 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.StoreResponseDir, "srd", "output", "Save response directory")
 	flag.BoolVar(&options.FollowRedirects, "follow-redirects", false, "Follow Redirects")
 	flag.BoolVar(&options.FollowHostRedirects, "follow-host-redirects", false, "Only follow redirects on the same host")
+	flag.IntVar(&options.MaxRedirects, "max-redirects", 10, "Max number of redirects to follow per host")
 	flag.StringVar(&options.HTTPProxy, "http-proxy", "", "HTTP Proxy, eg http://127.0.0.1:8080")
 	flag.BoolVar(&options.JSONOutput, "json", false, "JSON Output")
 	flag.StringVar(&options.InputFile, "l", "", "File containing domains")
-	flag.StringVar(&options.Methods, "x", "", "Request Methods, use ALL to check all verbs ()")
+	flag.StringVar(&options.Methods, "x", "", "Request Methods, use ALL to check all verbs (GET, POST, PUT, PATCH, DELETE, CONNECT, OPTIONS and TRACE)")
 	flag.BoolVar(&options.OutputMethod, "method", false, "Display request method")
 	flag.BoolVar(&options.Silent, "silent", false, "Silent mode")
 	flag.BoolVar(&options.Version, "version", false, "Show version of httpx")
@@ -260,6 +265,7 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.Probe, "probe", false, "Display probe status")
 	flag.BoolVar(&options.Resume, "resume", false, "Resume scan using resume.cfg")
 	flag.BoolVar(&options.ExcludeCDN, "exclude-cdn", false, "Skip full port scans for CDNs (only checks for 80,443)")
+	flag.IntVar(&options.HostMaxErrors, "max-host-error", -1, "Max error count per host before skipping remaining path/s")
 
 	flag.Parse()
 

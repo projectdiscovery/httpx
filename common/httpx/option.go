@@ -23,6 +23,7 @@ type Options struct {
 	VHostSimilarityRatio int
 	FollowRedirects      bool
 	FollowHostRedirects  bool
+	MaxRedirects         int
 	Unsafe               bool
 	TLSGrab              bool
 	// VHOSTs options
@@ -39,13 +40,14 @@ type Options struct {
 
 // DefaultOptions contains the default options
 var DefaultOptions = Options{
-	RandomAgent: true,
-	Threads:     25,
-	Timeout:     30 * time.Second,
-	RetryMax:    5,
-	Unsafe:      false,
-	CdnCheck:    true,
-	ExcludeCdn:  false,
+	RandomAgent:  true,
+	Threads:      25,
+	Timeout:      30 * time.Second,
+	RetryMax:     5,
+	MaxRedirects: 10,
+	Unsafe:       false,
+	CdnCheck:     true,
+	ExcludeCdn:   false,
 	// VHOSTs options
 	VHostIgnoreStatusCode:    false,
 	VHostIgnoreContentLength: true,

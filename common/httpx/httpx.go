@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -18,6 +19,7 @@ import (
 	pdhttputil "github.com/projectdiscovery/httputil"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
+	"github.com/projectdiscovery/stringsutil"
 	"golang.org/x/net/http2"
 )
 
@@ -59,18 +61,28 @@ func New(options *Options) (*HTTPX, error) {
 	}
 
 	if httpx.Options.FollowRedirects {
-		// Follow redirects
-		redirectFunc = nil
+		// Follow redirects up to a maximum number
+		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
+			if len(previousRequests) >= options.MaxRedirects {
+				// https://github.com/golang/go/issues/10069
+				return http.ErrUseLastResponse
+			}
+			return nil
+		}
 	}
 
 	if httpx.Options.FollowHostRedirects {
-		// Only follow redirects on the same host
-		redirectFunc = func(redirectedRequest *http.Request, previousRequest []*http.Request) error {
+		// Only follow redirects on the same host up to a maximum number
+		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
 			// Check if we get a redirect to a differen host
 			var newHost = redirectedRequest.URL.Host
-			var oldHost = previousRequest[0].URL.Host
+			var oldHost = previousRequests[0].URL.Host
 			if newHost != oldHost {
 				// Tell the http client to not follow redirect
+				return http.ErrUseLastResponse
+			}
+			if len(previousRequests) >= options.MaxRedirects {
+				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
 			}
 			return nil
@@ -134,6 +146,13 @@ get_response:
 		return nil, err
 	}
 
+	var shouldIgnoreErrors, shouldIgnoreBodyErrors bool
+	switch {
+	case h.Options.Unsafe && req.Method == http.MethodHead && !stringsutil.ContainsAny("i/o timeout"):
+		shouldIgnoreErrors = true
+		shouldIgnoreBodyErrors = true
+	}
+
 	var resp Response
 
 	resp.Headers = httpresp.Header.Clone()
@@ -148,23 +167,25 @@ get_response:
 			req.Header.Set("Accept-Encoding", "identity")
 			goto get_response
 		}
-		return nil, err
+		if !shouldIgnoreErrors {
+			return nil, err
+		}
 	}
-	resp.Raw = rawResp
-	resp.RawHeaders = headers
+	resp.Raw = string(rawResp)
+	resp.RawHeaders = string(headers)
 
 	var respbody []byte
 	// websockets don't have a readable body
 	if httpresp.StatusCode != http.StatusSwitchingProtocols {
 		var err error
 		respbody, err = ioutil.ReadAll(io.LimitReader(httpresp.Body, h.Options.MaxResponseBodySizeToRead))
-		if err != nil {
+		if err != nil && !shouldIgnoreBodyErrors {
 			return nil, err
 		}
 	}
 
 	closeErr := httpresp.Body.Close()
-	if closeErr != nil {
+	if closeErr != nil && !shouldIgnoreBodyErrors {
 		return nil, closeErr
 	}
 
@@ -175,7 +196,15 @@ get_response:
 		respbodystr = h.htmlPolicy.Sanitize(respbodystr)
 	}
 
-	resp.ContentLength = utf8.RuneCountInString(respbodystr)
+	if contentLength, ok := resp.Headers["Content-Length"]; ok {
+		contentLengthInt, err := strconv.Atoi(strings.Join(contentLength, ""))
+		if err != nil {
+			resp.ContentLength = utf8.RuneCountInString(respbodystr)
+		} else {
+			resp.ContentLength = contentLengthInt
+		}
+	}
+
 	resp.Data = respbody
 
 	// fill metrics
