@@ -153,8 +153,6 @@ github.com/projectdiscovery/hmap v0.0.1/go.mod h1:VDEfgzkKQdq7iGTKz8Ooul0NuYHQ8q
 github.com/projectdiscovery/hmap v0.0.2-0.20210616215655-7b78e7f33d1f/go.mod h1:FH+MS/WNKTXJQtdRn+/Zg5WlKCiMN0Z1QUedUIuM5n8=
 github.com/projectdiscovery/hmap v0.0.2-0.20210630092648-6c0a1b362caa h1:KeN6/bZOVxtS4XkgzRvYxpXWZSZt+AoGP5Myyr3/Duk=
 github.com/projectdiscovery/hmap v0.0.2-0.20210630092648-6c0a1b362caa/go.mod h1:FH+MS/WNKTXJQtdRn+/Zg5WlKCiMN0Z1QUedUIuM5n8=
-github.com/projectdiscovery/httputil v0.0.0-20210508183653-2e37c34b438d h1:IdBTOSGaPrZ8+FK0uYMQIva9dYIR5F55PLFWYtBBKc0=
-github.com/projectdiscovery/httputil v0.0.0-20210508183653-2e37c34b438d/go.mod h1:Vm2DY4NwUV5yA6TNzJOOjTYGjTcVfuEN8m9Y5dAksLQ=
 github.com/projectdiscovery/httputil v0.0.0-20210816170244-86fd46bc09f5 h1:GzruqQhb+sj1rEuHRFLhWX8gH/tJ+sj1udRjOy9VCJo=
 github.com/projectdiscovery/httputil v0.0.0-20210816170244-86fd46bc09f5/go.mod h1:BueJPSPWAX11IFS6bdAqTkekiIz5Fgco5LVc1kqO9L4=
 github.com/projectdiscovery/ipranger v0.0.2/go.mod h1:kcAIk/lo5rW+IzUrFkeYyXnFJ+dKwYooEOHGVPP/RWE=
@@ -178,6 +176,8 @@ github.com/projectdiscovery/retryabledns v1.0.12/go.mod h1:4sMC8HZyF01HXukRleSQY
 github.com/projectdiscovery/retryablehttp-go v1.0.1/go.mod h1:SrN6iLZilNG1X4neq1D+SBxoqfAF4nyzvmevkTkWsek=
 github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210526144436-e15804ddc7dc h1:769c7sQOl9BP8dhE8uv0mQX9WmcXo6Jzv//Nm+qAf50=
 github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210526144436-e15804ddc7dc/go.mod h1:dx//aY9V247qHdsRf0vdWHTBZuBQ2vm6Dq5dagxrDYI=
+github.com/projectdiscovery/sliceutil v0.0.0-20210804143453-61f3e7fd43ea h1:S+DC2tmKG93Om42cnTqrBfIv699pwSIhafqZvip+RIA=
+github.com/projectdiscovery/sliceutil v0.0.0-20210804143453-61f3e7fd43ea/go.mod h1:QHXvznfPfA5f0AZUIBkbLapoUJJlsIDgUlkKva6dOr4=
 github.com/projectdiscovery/stringsutil v0.0.0-20210524051937-51dabe3b72c0/go.mod h1:TVSdZC0rRQeMIbsNSiGPhbmhyRtxqqtAGA9JiiNp2r4=
 github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d h1:nlOAex7twmrEqD5i6WLnugF9uO3DQ6jDEKN9gevrTAk=
 github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d/go.mod h1:TVSdZC0rRQeMIbsNSiGPhbmhyRtxqqtAGA9JiiNp2r4=

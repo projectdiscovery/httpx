@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/akrylysov/pogreb v0.10.1 // indirect
-	github.com/bluele/gcache v0.0.2 // indirect
+	github.com/bluele/gcache v0.0.2
 	github.com/corpix/uarand v0.1.1
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/golang/glog v0.0.0-20210429001901-424d2337a529 // indirect
@@ -28,6 +28,7 @@ require (
 	github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e
 	github.com/projectdiscovery/retryabledns v1.0.12 // indirect
 	github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210526144436-e15804ddc7dc
+	github.com/projectdiscovery/sliceutil v0.0.0-20210804143453-61f3e7fd43ea
 	github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d
 	github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1
 	github.com/projectdiscovery/wappalyzergo v0.0.10

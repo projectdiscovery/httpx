@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/sliceutil"
 
 	"github.com/projectdiscovery/httpx/common/httpx"
 )
@@ -31,7 +32,7 @@ func (c *CustomPorts) String() string {
 func (c *CustomPorts) Set(value string) error {
 	// ports can be like nmap -p [https|http:]start-end,[https|http:]port1,[https|http:]port2,[https|http:]port3
 	// splits on comma
-	potentialPorts := strings.Split(value, ",")
+	potentialPorts := sliceutil.Dedupe(strings.Split(value, ","))
 
 	// check if port is a single integer value or needs to be expanded further
 	for _, potentialPort := range potentialPorts {
