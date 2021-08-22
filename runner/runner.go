@@ -87,7 +87,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.MaxRedirects = options.MaxRedirects
 	httpxOptions.HTTPProxy = options.HTTPProxy
 	httpxOptions.Unsafe = options.Unsafe
-	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
+	httpxOptions.UnsafeURI = options.RequestURI
 	httpxOptions.CdnCheck = options.OutputCDN
 	httpxOptions.ExcludeCdn = options.ExcludeCDN
 	httpxOptions.RandomAgent = options.RandomAgent
@@ -658,18 +658,24 @@ retry:
 		URL.Port = ""
 	}
 
-	if !scanopts.Unsafe {
+	var reqURI string
+	// retry with unsafe
+	if scanopts.Unsafe {
+		reqURI = URL.RequestURI + scanopts.RequestURI
+		// then create a base request without it to avoid go errors
+		URL.RequestURI = ""
+	} else {
+		// in case of standard requests append the new path to the existing one
 		URL.RequestURI += scanopts.RequestURI
 	}
 	req, err := hp.NewRequest(method, URL.String())
 	if err != nil {
 		return Result{URL: URL.String(), Input: origInput, err: err}
 	}
+
 	if customHost != "" {
 		req.Host = customHost
 	}
-
-	reqURI := req.URL.RequestURI()
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
 	// We set content-length even if zero to allow net/http to follow 307/308 redirects (it fails on unknown size)
@@ -683,7 +689,11 @@ retry:
 
 	r.ratelimiter.Take()
 
-	resp, err := hp.Do(req)
+	// with rawhttp we should say to the server to close the connection, otherwise it will remain open
+	if scanopts.Unsafe {
+		req.Header.Add("Connection", "close")
+	}
+	resp, err := hp.Do(req, httpx.UnsafeOptions{URIPath: reqURI})
 	if r.options.ShowStatistics {
 		r.stats.IncrementCounter("requests", 1)
 	}
@@ -719,7 +729,12 @@ retry:
 	// if the full url doesn't end with the custom path we pick the original input value
 	if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
 		parsedURL, _ := urlutil.Parse(fullURL)
-		parsedURL.RequestURI = scanopts.RequestURI
+		if scanopts.Unsafe {
+			parsedURL.RequestURI = reqURI
+		} else {
+			parsedURL.RequestURI = scanopts.RequestURI
+		}
+
 		fullURL = parsedURL.String()
 	}
 	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
@@ -870,7 +885,7 @@ retry:
 	isvhost := false
 	if scanopts.VHost {
 		r.ratelimiter.Take()
-		isvhost, _ = hp.IsVirtualHost(req)
+		isvhost, _ = hp.IsVirtualHost(req, httpx.UnsafeOptions{})
 		if isvhost {
 			builder.WriteString(" [vhost]")
 		}

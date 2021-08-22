@@ -8,7 +8,6 @@ import (
 type Options struct {
 	RandomAgent      bool
 	DefaultUserAgent string
-	RequestOverride  RequestOverride
 	HTTPProxy        string
 	SocksProxy       string
 	Threads          int
@@ -36,6 +35,7 @@ type Options struct {
 	Deny                      []string
 	MaxResponseBodySizeToSave int64
 	MaxResponseBodySizeToRead int64
+	UnsafeURI                 string
 }
 
 // DefaultOptions contains the default options
