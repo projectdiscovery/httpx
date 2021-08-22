@@ -1,5 +1,7 @@
 package customlist
 
+import "github.com/projectdiscovery/httpx/common/fileutil"
+
 // CustomList for fastdialer
 type CustomList []string
 
@@ -10,6 +12,7 @@ func (c *CustomList) String() string {
 
 // Set a new global header
 func (c *CustomList) Set(value string) error {
-	*c = append(*c, value)
+	values := fileutil.LoadCidrsFromSliceOrFile(value)
+	*c = append(*c, values...)
 	return nil
 }

@@ -3,9 +3,14 @@ package fileutil
 import (
 	"bufio"
 	"errors"
+	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"github.com/projectdiscovery/fileutil"
+	"github.com/projectdiscovery/httpx/common/stringz"
 )
 
 // FileExists checks if a file exists and is not a directory
@@ -69,4 +74,22 @@ func ListFilesWithPattern(rootpattern string) ([]string, error) {
 func FileNameIsGlob(pattern string) bool {
 	_, err := regexp.Compile(pattern)
 	return err == nil
+}
+
+func LoadCidrsFromSliceOrFile(option string) (networkList []string) {
+	items := stringz.SplitByCharAndTrimSpace(option, ",")
+	for _, item := range items {
+		// ip
+		if net.ParseIP(item) != nil {
+			networkList = append(networkList, item)
+		} else if _, _, err := net.ParseCIDR(item); err == nil {
+			networkList = append(networkList, item)
+		} else if fileutil.FileExists(item) {
+			if filedata, err := ioutil.ReadFile(item); err == nil && len(filedata) > 0 {
+				networkList = append(networkList, LoadCidrsFromSliceOrFile(string(filedata))...)
+			}
+		}
+	}
+
+	return networkList
 }
