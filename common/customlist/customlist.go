@@ -12,7 +12,7 @@ func (c *CustomList) String() string {
 
 // Set a new global header
 func (c *CustomList) Set(value string) error {
-	values := fileutil.LoadCidrsFromSliceOrFile(value)
+	values := fileutil.LoadCidrsFromSliceOrFile(value, ",")
 	*c = append(*c, values...)
 	return nil
 }

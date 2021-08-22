@@ -76,8 +76,8 @@ func FileNameIsGlob(pattern string) bool {
 	return err == nil
 }
 
-func LoadCidrsFromSliceOrFile(option string) (networkList []string) {
-	items := stringz.SplitByCharAndTrimSpace(option, ",")
+func LoadCidrsFromSliceOrFile(option string, splitchar string) (networkList []string) {
+	items := stringz.SplitByCharAndTrimSpace(option, splitchar)
 	for _, item := range items {
 		// ip
 		if net.ParseIP(item) != nil {
@@ -86,7 +86,7 @@ func LoadCidrsFromSliceOrFile(option string) (networkList []string) {
 			networkList = append(networkList, item)
 		} else if fileutil.FileExists(item) {
 			if filedata, err := ioutil.ReadFile(item); err == nil && len(filedata) > 0 {
-				networkList = append(networkList, LoadCidrsFromSliceOrFile(string(filedata))...)
+				networkList = append(networkList, LoadCidrsFromSliceOrFile(string(filedata), "\n")...)
 			}
 		}
 	}
