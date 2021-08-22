@@ -722,21 +722,18 @@ retry:
 		}
 	}
 
+	// fix the final output url
 	fullURL := req.URL.String()
+	parsedURL, _ := urlutil.Parse(fullURL)
+	if r.options.Unsafe {
+		parsedURL.RequestURI = reqURI
+		// if the full url doesn't end with the custom path we pick the original input value
+	} else if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
+		parsedURL.RequestURI = scanopts.RequestURI
+	}
+	fullURL = parsedURL.String()
 
 	builder := &strings.Builder{}
-
-	// if the full url doesn't end with the custom path we pick the original input value
-	if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
-		parsedURL, _ := urlutil.Parse(fullURL)
-		if scanopts.Unsafe {
-			parsedURL.RequestURI = reqURI
-		} else {
-			parsedURL.RequestURI = scanopts.RequestURI
-		}
-
-		fullURL = parsedURL.String()
-	}
 	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
 
 	if r.options.Probe {
