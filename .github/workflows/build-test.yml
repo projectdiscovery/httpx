@@ -19,8 +19,11 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Test
-        run: go test .
-        working-directory: cmd/httpx/
+        run: go test ./...
+
+      - name: Integration Tests
+        run: bash run.sh
+        working-directory: integration_tests/
 
       - name: Build
         run: go build .

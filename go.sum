@@ -87,6 +87,8 @@ github.com/json-iterator/go v1.1.11 h1:uVUAXhF2To8cbw/3xN3pxj6kk7TYKs98NIrTqPlMW
 github.com/json-iterator/go v1.1.11/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/jtolds/gls v4.20.0+incompatible h1:xdiiI2gbIgH/gLH7ADydsJ1uDOEzR8yvV7C0MuV77Wo=
 github.com/jtolds/gls v4.20.0+incompatible/go.mod h1:QJZ7F/aHp+rZTRtaJ1ow/lLfFfVYBRgL+9YlvaHOwJU=
+github.com/julienschmidt/httprouter v1.3.0 h1:U0609e9tgbseu3rBINet9P48AI/D3oJs4dN7jwJOQ1U=
+github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=
 github.com/kr/pretty v0.2.0/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pretty v0.2.1 h1:Fmg33tUaq4/8ym9TJN1x7sLJnHVwhP33CNkpYV/7rwI=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
@@ -179,8 +181,8 @@ github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210526144436-e15804ddc7d
 github.com/projectdiscovery/sliceutil v0.0.0-20210804143453-61f3e7fd43ea h1:S+DC2tmKG93Om42cnTqrBfIv699pwSIhafqZvip+RIA=
 github.com/projectdiscovery/sliceutil v0.0.0-20210804143453-61f3e7fd43ea/go.mod h1:QHXvznfPfA5f0AZUIBkbLapoUJJlsIDgUlkKva6dOr4=
 github.com/projectdiscovery/stringsutil v0.0.0-20210524051937-51dabe3b72c0/go.mod h1:TVSdZC0rRQeMIbsNSiGPhbmhyRtxqqtAGA9JiiNp2r4=
-github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d h1:nlOAex7twmrEqD5i6WLnugF9uO3DQ6jDEKN9gevrTAk=
-github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d/go.mod h1:TVSdZC0rRQeMIbsNSiGPhbmhyRtxqqtAGA9JiiNp2r4=
+github.com/projectdiscovery/stringsutil v0.0.0-20210804142656-fd3c28dbaafe h1:tQTgf5XLBgZbkJDPtnV3SfdP9tzz5ZWeDBwv8WhnH9Q=
+github.com/projectdiscovery/stringsutil v0.0.0-20210804142656-fd3c28dbaafe/go.mod h1:oTRc18WBv9t6BpaN9XBY+QmG28PUpsyDzRht56Qf49I=
 github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1 h1:9dYmONRtwy+xP8UAGHxEQ0cxO3umc9qiFmnYsoDUps4=
 github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1/go.mod h1:oXLErqOpqEAp/ueQlknysFxHO3CUNoSiDNnkiHG+Jpo=
 github.com/projectdiscovery/wappalyzergo v0.0.10 h1:bmAjI2V99mq5mz5QikkpHQ0tXENEtaNJ5//Opr8vb5g=
@@ -190,8 +192,9 @@ github.com/remeh/sizedwaitgroup v1.0.0/go.mod h1:3j2R4OIe/SeS6YDhICBy22RWjJC5eNC
 github.com/rs/xid v1.3.0 h1:6NjYksEUlhurdVehpc7S7dk6DAmcKv8V9gG0FsVN2U4=
 github.com/rs/xid v1.3.0/go.mod h1:trrq9SKmegXys3aeAKXMUTdJsYXVwGY3RLcfgqegfbg=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
-github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d h1:zE9ykElWQ6/NYmHa3jpm/yHnI4xSofP+UP6SpjHcSeM=
 github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d/go.mod h1:OnSkiWE9lh6wB0YB77sQom3nweQdgAjqCqsofrRNTgc=
+github.com/smartystreets/assertions v1.0.0 h1:UVQPSSmc3qtTi+zPPkCXvZX9VvW/xT/NsRvKfwY81a8=
+github.com/smartystreets/assertions v1.0.0/go.mod h1:kHHU4qYBaI3q23Pp3VPrmWhuIUrLW/7eUrw0BU5VaoM=
 github.com/smartystreets/goconvey v1.6.4 h1:fv0U8FUIMPNf1L9lnHLvLhgicrIVChEkdzIKYqbNC9s=
 github.com/smartystreets/goconvey v1.6.4/go.mod h1:syvi0/a8iFYH4r/RixwvyeAJjdLS9QV7WQ/tjFTllLA=
 github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=

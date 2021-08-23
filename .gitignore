@@ -1,2 +1,4 @@
 
 cmd/httpx/httpx
+integration_tests/httpx
+integration_tests/integration-test
