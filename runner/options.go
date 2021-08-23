@@ -229,7 +229,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.RequestURIs, "paths", "", "Command separated paths or file containing one path per line (example '/api/v1,/apiv2')")
 	flag.BoolVar(&options.OutputContentType, "content-type", false, "Extracts content-type")
 	flag.StringVar(&options.OutputMatchStatusCode, "mc", "", "Match status code")
-	flag.StringVar(&options.OutputMatchStatusCode, "ml", "", "Match content length")
+	flag.StringVar(&options.OutputMatchContentLength, "ml", "", "Match content length")
 	flag.StringVar(&options.OutputFilterStatusCode, "fc", "", "Filter status code")
 	flag.StringVar(&options.OutputFilterContentLength, "fl", "", "Filter content length")
 	flag.StringVar(&options.InputRawRequest, "request", "", "File containing raw request")
