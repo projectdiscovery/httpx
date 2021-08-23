@@ -11,21 +11,30 @@ import (
 )
 
 var httpTestcases = map[string]testutils.TestCase{
-	"Standard HTTP GET Request":  &standardHttpGet{},
-	"Standard HTTPS GET Request": &standardHttpGet{tls: true},
-	"Regression test for: https://github.com/projectdiscovery/httpx/issues/276": &issue276{},
-	"Regression test for: https://github.com/projectdiscovery/httpx/issues/277": &issue277{},
-	"Regression test for: https://github.com/projectdiscovery/httpx/issues/303": &issue303{},
+	"Standard HTTP GET Request":                                                 &standardHttpGet{},
+	"Standard HTTPS GET Request":                                                &standardHttpGet{tls: true},
+	"Raw HTTP GET Request":                                                      &standardHttpGet{unsafe: true},
+	"Raw request with non standard rfc path via stdin":                          &standardHttpGet{unsafe: true, stdinPath: "/%invalid"},
+	"Raw request with non standard rfc path via cli flag":                       &standardHttpGet{unsafe: true, path: "/%invalid"},
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/363": &issue363{}, // infinite redirect
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/276": &issue276{}, // full path with port in output
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/277": &issue277{}, // scheme://host:port via stdin
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/303": &issue303{}, // misconfigured gzip header with uncompressed body
 }
 
 type standardHttpGet struct {
-	tls bool
+	tls            bool
+	unsafe         bool
+	stdinPath      string
+	path           string
+	expectedOutput string
 }
 
 func (h *standardHttpGet) Execute() error {
 	router := httprouter.New()
 	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		fmt.Fprintf(w, "This is a test")
+		r.Close = true
 	}))
 	var ts *httptest.Server
 	if h.tls {
@@ -34,14 +43,31 @@ func (h *standardHttpGet) Execute() error {
 		ts = httptest.NewServer(router)
 	}
 	defer ts.Close()
+	var extra []string
+	if h.unsafe {
+		extra = append(extra, "-unsafe")
+	}
+	if h.path != "" {
+		extra = append(extra, "-path", "\""+h.path+"\"")
+	}
 
-	results, err := testutils.RunHttpxAndGetResults(ts.URL, debug)
+	URL := ts.URL
+	if h.stdinPath != "" {
+		URL += h.stdinPath
+	}
+
+	results, err := testutils.RunHttpxAndGetResults(URL, debug, extra...)
 	if err != nil {
 		return err
 	}
 	if len(results) != 1 {
 		return errIncorrectResultsCount(results)
 	}
+
+	if h.expectedOutput != "" && !strings.EqualFold(results[0], h.expectedOutput) {
+		return errIncorrectResult(results[0], h.expectedOutput)
+	}
+
 	return nil
 }
 
@@ -70,7 +96,6 @@ func (h *issue276) Execute() error {
 	// status code
 	// title
 	expected := ts.URL + "/redirect" + " [302] [Object moved]"
-	// log.Fatal(results[0], expected)
 	if !strings.EqualFold(results[0], expected) {
 		return errIncorrectResult(results[0], expected)
 	}
@@ -133,6 +158,29 @@ func (h *issue303) Execute() error {
 	expected := ts.URL
 	if !strings.EqualFold(results[0], expected) {
 		return errIncorrectResult(results[0], expected)
+	}
+	return nil
+}
+
+type issue363 struct{}
+
+func (h *issue363) Execute() error {
+	var ts *httptest.Server
+	router := httprouter.New()
+	router.GET("/redirect", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		w.Header().Add("Location", ts.URL+"/redirect")
+		w.WriteHeader(302)
+		fmt.Fprintf(w, "<html><body><title>Object moved</title></body></html>")
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+
+	results, err := testutils.RunHttpxAndGetResults(ts.URL+"/redirect", debug, "-no-color", "-follow-redirects")
+	if err != nil {
+		return err
+	}
+	if len(results) != 1 {
+		return errIncorrectResultsCount(results)
 	}
 	return nil
 }

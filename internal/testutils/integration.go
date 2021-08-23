@@ -9,7 +9,7 @@ import (
 // RunNucleiAndGetResults returns a list of results for a template
 func RunHttpxAndGetResults(url string, debug bool, extra ...string) ([]string, error) {
 	cmd := exec.Command("bash", "-c")
-	cmdLine := `echo ` + url + ` | ./httpx `
+	cmdLine := `echo "` + url + `" | ./httpx `
 	cmdLine += strings.Join(extra, " ")
 	if debug {
 		cmdLine += " -debug"

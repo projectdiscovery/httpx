@@ -9,7 +9,6 @@ go build
 mv integration-test ../../integration_tests/integration-test 
 cd ../../integration_tests
 ./integration-test
-rm integration-test httpx 2>/dev/null
 if [ $? -eq 0 ]
 then
   exit 0
