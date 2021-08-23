@@ -31,7 +31,7 @@ require (
 	github.com/projectdiscovery/sliceutil v0.0.0-20210804143453-61f3e7fd43ea
 	github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d
 	github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1
-	github.com/projectdiscovery/wappalyzergo v0.0.10
+	github.com/projectdiscovery/wappalyzergo v0.0.11
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.3.0
 	go.etcd.io/bbolt v1.3.6 // indirect
