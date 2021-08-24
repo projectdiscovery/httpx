@@ -10,6 +10,7 @@ require (
 	github.com/golang/glog v0.0.0-20210429001901-424d2337a529 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
+	github.com/julienschmidt/httprouter v1.3.0
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/microcosm-cc/bluemonday v1.0.15
 	github.com/miekg/dns v1.1.43 // indirect
@@ -30,11 +31,12 @@ require (
 	github.com/projectdiscovery/retryabledns v1.0.12 // indirect
 	github.com/projectdiscovery/retryablehttp-go v1.0.2-0.20210526144436-e15804ddc7dc
 	github.com/projectdiscovery/sliceutil v0.0.0-20210804143453-61f3e7fd43ea
-	github.com/projectdiscovery/stringsutil v0.0.0-20210617141317-00728870f68d
+	github.com/projectdiscovery/stringsutil v0.0.0-20210804142656-fd3c28dbaafe
 	github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1
 	github.com/projectdiscovery/wappalyzergo v0.0.11
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.3.0
+	github.com/smartystreets/assertions v1.0.0 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/ratelimit v0.2.0
