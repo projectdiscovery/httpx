@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/gologger/formatter"
@@ -13,7 +14,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/customheader"
 	"github.com/projectdiscovery/httpx/common/customlist"
 	customport "github.com/projectdiscovery/httpx/common/customports"
-	"github.com/projectdiscovery/httpx/common/fileutil"
+	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/stringz"
 )
 
@@ -256,8 +257,8 @@ func ParseOptions() *Options {
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
 	flag.BoolVar(&options.RandomAgent, "random-agent", true, "Use randomly selected HTTP User-Agent header value")
 	flag.BoolVar(&options.StoreChain, "store-chain", false, "Save chain to file (default 'output')")
-	flag.Var(&options.Allow, "allow", "Allowlist ip/cidr")
-	flag.Var(&options.Deny, "deny", "Denylist ip/cidr")
+	flag.Var(&options.Allow, "allow", "Allow list of IP/CIDR's to process (file or comma separated)")
+	flag.Var(&options.Deny, "deny", "Deny list of IP/CIDR's to process (file or comma separated)")
 	flag.IntVar(&options.MaxResponseBodySizeToSave, "response-size-to-save", math.MaxInt32, "Max response size to save in bytes (default - unlimited)")
 	flag.IntVar(&options.MaxResponseBodySizeToRead, "response-size-to-read", math.MaxInt32, "Max response size to read in bytes (default - unlimited)")
 	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
@@ -290,7 +291,7 @@ func ParseOptions() *Options {
 }
 
 func (options *Options) validateOptions() {
-	if options.InputFile != "" && !fileutil.FileNameIsGlob(options.InputFile) && !fileutil.FileExists(options.InputFile) {
+	if options.InputFile != "" && !fileutilz.FileNameIsGlob(options.InputFile) && !fileutil.FileExists(options.InputFile) {
 		gologger.Fatal().Msgf("File %s does not exist!\n", options.InputFile)
 	}
 
