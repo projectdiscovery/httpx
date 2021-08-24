@@ -31,11 +31,12 @@ import (
 
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
+	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/hmap/store/hybrid"
 	pdhttputil "github.com/projectdiscovery/httputil"
 	customport "github.com/projectdiscovery/httpx/common/customports"
-	"github.com/projectdiscovery/httpx/common/fileutil"
+	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/httpx/common/slice"
@@ -250,7 +251,7 @@ func New(options *Options) (*Runner, error) {
 func (r *Runner) prepareInput() {
 	// Check if the user requested multiple paths
 	if fileutil.FileExists(r.options.RequestURIs) {
-		r.options.requestURIs = fileutil.LoadFile(r.options.RequestURIs)
+		r.options.requestURIs = fileutilz.LoadFile(r.options.RequestURIs)
 	} else if r.options.RequestURIs != "" {
 		r.options.requestURIs = strings.Split(r.options.RequestURIs, ",")
 	}
@@ -267,7 +268,7 @@ func (r *Runner) prepareInput() {
 			gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
 		}
 	} else if r.options.InputFile != "" {
-		files, err := fileutil.ListFilesWithPattern(r.options.InputFile)
+		files, err := fileutilz.ListFilesWithPattern(r.options.InputFile)
 		if err != nil {
 			gologger.Fatal().Msgf("No input provided: %s", err)
 		}
