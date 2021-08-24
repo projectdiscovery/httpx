@@ -25,15 +25,14 @@ import (
 
 // HTTPX represent an instance of the library client
 type HTTPX struct {
-	client          *retryablehttp.Client
-	client2         *http.Client
-	Filters         []Filter
-	Options         *Options
-	htmlPolicy      *bluemonday.Policy
-	CustomHeaders   map[string]string
-	RequestOverride *RequestOverride
-	cdn             *cdncheck.Client
-	Dialer          *fastdialer.Dialer
+	client        *retryablehttp.Client
+	client2       *http.Client
+	Filters       []Filter
+	Options       *Options
+	htmlPolicy    *bluemonday.Policy
+	CustomHeaders map[string]string
+	cdn           *cdncheck.Client
+	Dialer        *fastdialer.Dialer
 }
 
 // New httpx instance
@@ -124,7 +123,6 @@ func New(options *Options) (*HTTPX, error) {
 
 	httpx.htmlPolicy = bluemonday.NewPolicy()
 	httpx.CustomHeaders = httpx.Options.CustomHeaders
-	httpx.RequestOverride = &options.RequestOverride
 	if options.CdnCheck || options.ExcludeCdn {
 		httpx.cdn, err = cdncheck.NewWithCache()
 		if err != nil {
@@ -136,12 +134,12 @@ func New(options *Options) (*HTTPX, error) {
 }
 
 // Do http request
-func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
+func (h *HTTPX) Do(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (*Response, error) {
 	timeStart := time.Now()
 
 	var gzipRetry bool
 get_response:
-	httpresp, err := h.getResponse(req)
+	httpresp, err := h.getResponse(req, unsafeOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -236,33 +234,33 @@ get_response:
 }
 
 // RequestOverride contains the URI path to override the request
-type RequestOverride struct {
+type UnsafeOptions struct {
 	URIPath string
 }
 
 // getResponse returns response from safe / unsafe request
-func (h *HTTPX) getResponse(req *retryablehttp.Request) (*http.Response, error) {
+func (h *HTTPX) getResponse(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (*http.Response, error) {
 	if h.Options.Unsafe {
-		return h.doUnsafe(req)
+		return h.doUnsafeWithOptions(req, unsafeOptions)
 	}
 
 	return h.client.Do(req)
 }
 
 // doUnsafe does an unsafe http request
-func (h *HTTPX) doUnsafe(req *retryablehttp.Request) (*http.Response, error) {
+func (h *HTTPX) doUnsafeWithOptions(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (*http.Response, error) {
 	method := req.Method
 	headers := req.Header
 	targetURL := req.URL.String()
 	body := req.Body
 	options := rawhttp.DefaultOptions
 	options.Timeout = h.Options.Timeout
-	return rawhttp.DoRawWithOptions(method, targetURL, h.RequestOverride.URIPath, headers, body, options)
+	return rawhttp.DoRawWithOptions(method, targetURL, unsafeOptions.URIPath, headers, body, options)
 }
 
 // Verify the http calls and apply-cascade all the filters, as soon as one matches it returns true
-func (h *HTTPX) Verify(req *retryablehttp.Request) (bool, error) {
-	resp, err := h.Do(req)
+func (h *HTTPX) Verify(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (bool, error) {
+	resp, err := h.Do(req, unsafeOptions)
 	if err != nil {
 		return false, err
 	}
