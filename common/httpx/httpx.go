@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -18,20 +19,20 @@ import (
 	pdhttputil "github.com/projectdiscovery/httputil"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
+	"github.com/projectdiscovery/stringsutil"
 	"golang.org/x/net/http2"
 )
 
 // HTTPX represent an instance of the library client
 type HTTPX struct {
-	client          *retryablehttp.Client
-	client2         *http.Client
-	Filters         []Filter
-	Options         *Options
-	htmlPolicy      *bluemonday.Policy
-	CustomHeaders   map[string]string
-	RequestOverride *RequestOverride
-	cdn             *cdncheck.Client
-	Dialer          *fastdialer.Dialer
+	client        *retryablehttp.Client
+	client2       *http.Client
+	Filters       []Filter
+	Options       *Options
+	htmlPolicy    *bluemonday.Policy
+	CustomHeaders map[string]string
+	cdn           *cdncheck.Client
+	Dialer        *fastdialer.Dialer
 }
 
 // New httpx instance
@@ -59,18 +60,28 @@ func New(options *Options) (*HTTPX, error) {
 	}
 
 	if httpx.Options.FollowRedirects {
-		// Follow redirects
-		redirectFunc = nil
+		// Follow redirects up to a maximum number
+		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
+			if len(previousRequests) >= options.MaxRedirects {
+				// https://github.com/golang/go/issues/10069
+				return http.ErrUseLastResponse
+			}
+			return nil
+		}
 	}
 
 	if httpx.Options.FollowHostRedirects {
-		// Only follow redirects on the same host
-		redirectFunc = func(redirectedRequest *http.Request, previousRequest []*http.Request) error {
+		// Only follow redirects on the same host up to a maximum number
+		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
 			// Check if we get a redirect to a differen host
 			var newHost = redirectedRequest.URL.Host
-			var oldHost = previousRequest[0].URL.Host
+			var oldHost = previousRequests[0].URL.Host
 			if newHost != oldHost {
 				// Tell the http client to not follow redirect
+				return http.ErrUseLastResponse
+			}
+			if len(previousRequests) >= options.MaxRedirects {
+				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
 			}
 			return nil
@@ -112,7 +123,6 @@ func New(options *Options) (*HTTPX, error) {
 
 	httpx.htmlPolicy = bluemonday.NewPolicy()
 	httpx.CustomHeaders = httpx.Options.CustomHeaders
-	httpx.RequestOverride = &options.RequestOverride
 	if options.CdnCheck || options.ExcludeCdn {
 		httpx.cdn, err = cdncheck.NewWithCache()
 		if err != nil {
@@ -124,14 +134,21 @@ func New(options *Options) (*HTTPX, error) {
 }
 
 // Do http request
-func (h *HTTPX) Do(req *retryablehttp.Request) (*Response, error) {
+func (h *HTTPX) Do(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (*Response, error) {
 	timeStart := time.Now()
 
 	var gzipRetry bool
 get_response:
-	httpresp, err := h.getResponse(req)
+	httpresp, err := h.getResponse(req, unsafeOptions)
 	if err != nil {
 		return nil, err
+	}
+
+	var shouldIgnoreErrors, shouldIgnoreBodyErrors bool
+	switch {
+	case h.Options.Unsafe && req.Method == http.MethodHead && !stringsutil.ContainsAny("i/o timeout"):
+		shouldIgnoreErrors = true
+		shouldIgnoreBodyErrors = true
 	}
 
 	var resp Response
@@ -148,23 +165,25 @@ get_response:
 			req.Header.Set("Accept-Encoding", "identity")
 			goto get_response
 		}
-		return nil, err
+		if !shouldIgnoreErrors {
+			return nil, err
+		}
 	}
-	resp.Raw = rawResp
-	resp.RawHeaders = headers
+	resp.Raw = string(rawResp)
+	resp.RawHeaders = string(headers)
 
 	var respbody []byte
 	// websockets don't have a readable body
 	if httpresp.StatusCode != http.StatusSwitchingProtocols {
 		var err error
 		respbody, err = ioutil.ReadAll(io.LimitReader(httpresp.Body, h.Options.MaxResponseBodySizeToRead))
-		if err != nil {
+		if err != nil && !shouldIgnoreBodyErrors {
 			return nil, err
 		}
 	}
 
 	closeErr := httpresp.Body.Close()
-	if closeErr != nil {
+	if closeErr != nil && !shouldIgnoreBodyErrors {
 		return nil, closeErr
 	}
 
@@ -175,7 +194,15 @@ get_response:
 		respbodystr = h.htmlPolicy.Sanitize(respbodystr)
 	}
 
-	resp.ContentLength = utf8.RuneCountInString(respbodystr)
+	if contentLength, ok := resp.Headers["Content-Length"]; ok {
+		contentLengthInt, err := strconv.Atoi(strings.Join(contentLength, ""))
+		if err != nil {
+			resp.ContentLength = utf8.RuneCountInString(respbodystr)
+		} else {
+			resp.ContentLength = contentLengthInt
+		}
+	}
+
 	resp.Data = respbody
 
 	// fill metrics
@@ -207,31 +234,33 @@ get_response:
 }
 
 // RequestOverride contains the URI path to override the request
-type RequestOverride struct {
+type UnsafeOptions struct {
 	URIPath string
 }
 
 // getResponse returns response from safe / unsafe request
-func (h *HTTPX) getResponse(req *retryablehttp.Request) (*http.Response, error) {
+func (h *HTTPX) getResponse(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (*http.Response, error) {
 	if h.Options.Unsafe {
-		return h.doUnsafe(req)
+		return h.doUnsafeWithOptions(req, unsafeOptions)
 	}
 
 	return h.client.Do(req)
 }
 
 // doUnsafe does an unsafe http request
-func (h *HTTPX) doUnsafe(req *retryablehttp.Request) (*http.Response, error) {
+func (h *HTTPX) doUnsafeWithOptions(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (*http.Response, error) {
 	method := req.Method
 	headers := req.Header
 	targetURL := req.URL.String()
 	body := req.Body
-	return rawhttp.DoRaw(method, targetURL, h.RequestOverride.URIPath, headers, body)
+	options := rawhttp.DefaultOptions
+	options.Timeout = h.Options.Timeout
+	return rawhttp.DoRawWithOptions(method, targetURL, unsafeOptions.URIPath, headers, body, options)
 }
 
 // Verify the http calls and apply-cascade all the filters, as soon as one matches it returns true
-func (h *HTTPX) Verify(req *retryablehttp.Request) (bool, error) {
-	resp, err := h.Do(req)
+func (h *HTTPX) Verify(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (bool, error) {
+	resp, err := h.Do(req, unsafeOptions)
 	if err != nil {
 		return false, err
 	}

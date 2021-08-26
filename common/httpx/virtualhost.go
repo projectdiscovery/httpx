@@ -11,8 +11,8 @@ import (
 const simMultiplier = 100
 
 // IsVirtualHost checks if the target endpoint is a virtual host
-func (h *HTTPX) IsVirtualHost(req *retryablehttp.Request) (bool, error) {
-	httpresp1, err := h.Do(req)
+func (h *HTTPX) IsVirtualHost(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (bool, error) {
+	httpresp1, err := h.Do(req, unsafeOptions)
 	if err != nil {
 		return false, err
 	}
@@ -20,7 +20,7 @@ func (h *HTTPX) IsVirtualHost(req *retryablehttp.Request) (bool, error) {
 	// request a non-existing endpoint
 	req.Host = fmt.Sprintf("%s.%s", xid.New().String(), req.Host)
 
-	httpresp2, err := h.Do(req)
+	httpresp2, err := h.Do(req, unsafeOptions)
 	if err != nil {
 		return false, err
 	}
