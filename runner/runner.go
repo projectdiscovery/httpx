@@ -91,7 +91,11 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.UnsafeURI = options.RequestURI
 	httpxOptions.CdnCheck = options.OutputCDN
 	httpxOptions.ExcludeCdn = options.ExcludeCDN
-	httpxOptions.RandomAgent = options.RandomAgent
+	if options.CustomHeaders.Has("User-Agent:") {
+		httpxOptions.RandomAgent = false
+	} else {
+		httpxOptions.RandomAgent = options.RandomAgent
+	}
 	httpxOptions.Deny = options.Deny
 	httpxOptions.Allow = options.Allow
 	httpxOptions.MaxResponseBodySizeToSave = int64(options.MaxResponseBodySizeToSave)

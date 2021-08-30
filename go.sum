@@ -187,6 +187,8 @@ github.com/projectdiscovery/sliceutil v0.0.0-20210804143453-61f3e7fd43ea/go.mod 
 github.com/projectdiscovery/stringsutil v0.0.0-20210524051937-51dabe3b72c0/go.mod h1:TVSdZC0rRQeMIbsNSiGPhbmhyRtxqqtAGA9JiiNp2r4=
 github.com/projectdiscovery/stringsutil v0.0.0-20210804142656-fd3c28dbaafe h1:tQTgf5XLBgZbkJDPtnV3SfdP9tzz5ZWeDBwv8WhnH9Q=
 github.com/projectdiscovery/stringsutil v0.0.0-20210804142656-fd3c28dbaafe/go.mod h1:oTRc18WBv9t6BpaN9XBY+QmG28PUpsyDzRht56Qf49I=
+github.com/projectdiscovery/stringsutil v0.0.0-20210830151154-f567170afdd9 h1:xbL1/7h0k6HE3RzPdYk9W/8pUxESrGWewTaZdIB5Pes=
+github.com/projectdiscovery/stringsutil v0.0.0-20210830151154-f567170afdd9/go.mod h1:oTRc18WBv9t6BpaN9XBY+QmG28PUpsyDzRht56Qf49I=
 github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1 h1:9dYmONRtwy+xP8UAGHxEQ0cxO3umc9qiFmnYsoDUps4=
 github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1/go.mod h1:oXLErqOpqEAp/ueQlknysFxHO3CUNoSiDNnkiHG+Jpo=
 github.com/projectdiscovery/wappalyzergo v0.0.12 h1:/xSsQBa1Ibt72bsHtUP6zHRZL1yyflj+rANdJ4QuRdI=
