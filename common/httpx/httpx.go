@@ -194,12 +194,17 @@ get_response:
 		respbodystr = h.htmlPolicy.Sanitize(respbodystr)
 	}
 
-	if contentLength, ok := resp.Headers["Content-Length"]; ok {
-		contentLengthInt, err := strconv.Atoi(strings.Join(contentLength, ""))
-		if err != nil {
-			resp.ContentLength = utf8.RuneCountInString(respbodystr)
-		} else {
+	// if content length is not defined
+	if resp.ContentLength <= 0 {
+		// check if it's in the header and convert to int
+		if contentLength, ok := resp.Headers["Content-Length"]; ok {
+			contentLengthInt, _ := strconv.Atoi(strings.Join(contentLength, ""))
 			resp.ContentLength = contentLengthInt
+		}
+
+		// if we have a body, then use the number of bytes in the body if the length is still zero
+		if resp.ContentLength <= 0 && len(respbodystr) > 0 {
+			resp.ContentLength = utf8.RuneCountInString(respbodystr)
 		}
 	}
 
