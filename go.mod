@@ -1,6 +1,6 @@
 module github.com/projectdiscovery/httpx
 
-go 1.14
+go 1.17
 
 require (
 	github.com/akrylysov/pogreb v0.10.1 // indirect
@@ -44,4 +44,26 @@ require (
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/text v0.3.7
 	google.golang.org/protobuf v1.27.1 // indirect
+)
+
+require (
+	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
+	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
+	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/cespare/xxhash/v2 v2.1.1 // indirect
+	github.com/dgraph-io/badger v1.6.2 // indirect
+	github.com/dimchansky/utfbom v1.1.1 // indirect
+	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/gorilla/css v1.0.0 // indirect
+	github.com/json-iterator/go v1.1.11 // indirect
+	github.com/karrick/godirwalk v1.16.1 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/projectdiscovery/blackrock v0.0.0-20210415162320-b38689ae3a2e // indirect
+	github.com/projectdiscovery/networkpolicy v0.0.1 // indirect
+	github.com/projectdiscovery/reflectutil v0.0.0-20210804085554-4d90952bf92f // indirect
+	github.com/syndtr/goleveldb v1.0.0 // indirect
+	github.com/yl2chen/cidranger v1.0.2 // indirect
+	gopkg.in/ini.v1 v1.62.0 // indirect
 )
