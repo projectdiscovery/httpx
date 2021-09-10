@@ -1181,7 +1181,10 @@ func (r Result) JSON(scanopts *scanOptions) string { //nolint
 
 // CSVHeader the CSV headers
 func (r Result) CSVHeader() string { //nolint
-	var header []string
+	buffer := bytes.Buffer{}
+	writer := csv.NewWriter(&buffer)
+
+	var headers []string
 	ty := reflect.TypeOf(r)
 	for i := 0; i < ty.NumField(); i++ {
 		tag := ty.Field(i).Tag.Get("csv")
@@ -1190,9 +1193,12 @@ func (r Result) CSVHeader() string { //nolint
 			continue
 		}
 
-		header = append(header, tag)
+		headers = append(headers, tag)
 	}
-	return strings.Join(header, ",")
+	_ = writer.Write(headers)
+	writer.Flush()
+
+	return strings.TrimSpace(buffer.String())
 }
 
 // CSVRow the CSV Row
