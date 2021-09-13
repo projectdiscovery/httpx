@@ -1219,7 +1219,15 @@ func (r Result) CSVRow(scanopts *scanOptions) string { //nolint
 			continue
 		}
 
-		cells = append(cells, fmt.Sprintf("%v", value.Interface()))
+		str := fmt.Sprintf("%v", value.Interface())
+
+		// defense against csv injection
+		startWithRiskyChar, _ := regexp.Compile("^([=+\\-@])")
+		if startWithRiskyChar.Match([]byte(str)) {
+			str = "'" + str
+		}
+
+		cells = append(cells, str)
 	}
 	_ = writer.Write(cells)
 	writer.Flush()
