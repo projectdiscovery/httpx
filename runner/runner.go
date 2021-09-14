@@ -1222,7 +1222,7 @@ func (r Result) CSVRow(scanopts *scanOptions) string { //nolint
 		str := fmt.Sprintf("%v", value.Interface())
 
 		// defense against csv injection
-		startWithRiskyChar, _ := regexp.Compile("^([=+\\-@])")
+		startWithRiskyChar, _ := regexp.Compile(`^([=+\-@])`)
 		if startWithRiskyChar.Match([]byte(str)) {
 			str = "'" + str
 		}
