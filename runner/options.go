@@ -148,6 +148,7 @@ type Options struct {
 	FollowRedirects           bool
 	StoreResponse             bool
 	JSONOutput                bool
+	CSVOutput                 bool
 	Silent                    bool
 	Version                   bool
 	Verbose                   bool
@@ -217,6 +218,7 @@ func ParseOptions() *Options {
 	flag.IntVar(&options.MaxRedirects, "max-redirects", 10, "Max number of redirects to follow per host")
 	flag.StringVar(&options.HTTPProxy, "http-proxy", "", "HTTP Proxy, eg http://127.0.0.1:8080")
 	flag.BoolVar(&options.JSONOutput, "json", false, "Display output in JSON format")
+	flag.BoolVar(&options.CSVOutput, "csv", false, "Display output in CSV format")
 	flag.StringVar(&options.InputFile, "l", "", "Input file containing list of hosts to process")
 	flag.StringVar(&options.Methods, "x", "", "Request Methods to use, use 'all' to probe all HTTP methods")
 	flag.BoolVar(&options.OutputMethod, "method", false, "Display request method")
@@ -297,6 +299,11 @@ func (options *Options) validateOptions() {
 
 	if options.InputRawRequest != "" && !fileutil.FileExists(options.InputRawRequest) {
 		gologger.Fatal().Msgf("File %s does not exist.\n", options.InputRawRequest)
+	}
+
+	multiOutput := options.CSVOutput && options.JSONOutput
+	if multiOutput {
+		gologger.Fatal().Msg("Results can only be displayed in one format: 'JSON' or 'CSV'\n")
 	}
 
 	var err error

@@ -78,143 +78,149 @@ This will display help for the tool. Here are all the switches it supports.
 
 ```
   -H value
-      Custom Header
+        Custom Header to send with request
   -allow value
-      Allow list of IP/CIDR's (file or comma separated)
+        Allow list of IP/CIDR's to process (file or comma separated)
   -body string
-      Content to send in body with HTTP request
+        Content to send in body with HTTP request
   -cdn
-      Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)
+        Diplay CDN
   -cname
-      Output first cname
+        Display Host cname
   -content-length
-      Extracts content length
+        Display HTTP response content length
   -content-type
-      Extracts content-type
+        Display content-type header
   -csp-probe
-      Send HTTP probes on the extracted CSP domains
+        Send HTTP probes on the extracted CSP domains
+  -csv
+        Display output in CSV format
   -debug
-      Debug mode
+        Debug mode
   -deny value
-      Deny list of IP/CIDR's to process (file or comma separated)
+        Deny list of IP/CIDR's to process (file or comma separated)
   -exclude-cdn
-      Skip full port scans for CDNs (only checks for 80,443)
+        Skip full port scans for CDNs (only checks for 80,443)
   -extract-regex string
-      Extract Regex
+        Display response content with matched regex
   -fc string
-      Filter status code
+        Filter response with specific status code (-fc 403,401)
   -filter-regex string
-      Filter Regex
+        Filter response with specific regex
   -filter-string string
-      Filter String
+        Filter response with specific string
   -fl string
-      Filter content length
+        Filter response with specific content length (-fl 23)
   -follow-host-redirects
-      Only follow redirects on the same host
+        Only Follow redirects on the same host
   -follow-redirects
-      Follow Redirects
+        Follow HTTP Redirects
   -http-proxy string
-      HTTP Proxy, eg http://127.0.0.1:8080
+        HTTP Proxy, eg http://127.0.0.1:8080
   -http2
-      HTTP2 probe
+        HTTP2 probe
   -include-chain
-      Show Raw HTTP Chain In Output (-json only)
+        Show Raw HTTP Chain In Output (-json only)
   -include-response
-      Show Raw HTTP Response In Output (-json only)
+        Show Raw HTTP response In Output (-json only)
   -ip
-      Output target ip
+        Display Host IP
   -json
-      JSON Output
+        Display output in JSON format
   -l string
-      File containing domains
+        Input file containing list of hosts to process
   -location
-      Extracts location header
+        Display location header
   -match-regex string
-      Match Regex
+        Match response with specific regex
   -match-string string
-      Match string
+        Match response with specific string
+  -max-host-error int
+        Max error count per host before skipping remaining path/s (default 30)
+  -max-redirects int
+        Max number of redirects to follow per host (default 10)
   -mc string
-      Match status code
+        Match response with specific status code (-mc 200,302)
   -method
-      Display request method
+        Display request method
   -ml string
-      Match content length
+        Match response with specific content length (-ml 102)
   -no-color
-      No Color
+        Disable colored output
   -no-fallback
-      If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP
+        Probe both protocol (HTTPS and HTTP)
   -no-fallback-scheme
-      The tool will respect and attempt the scheme specified in the url (if HTTPS is specified no HTTP is attempted)
+        Probe with input protocol scheme
   -o string
-      File to write output to (optional)
+        File to write output to (optional)
   -path string
-      Request path/file (example '/api')
+        Request path/file (example '/api')
   -paths string
-      Command separated paths or file containing one path per line (example '/api/v1,/apiv2')
+        Command separated paths or file containing one path per line (example '/api/v1,/apiv2')
   -pipeline
-      HTTP1.1 Pipeline
+        HTTP1.1 Pipeline probe
   -ports value
-      ports range (nmap syntax: eg 1,2-10,11)
+        Port ranges to scan (nmap syntax: eg 1,2-10,11)
   -probe
-      Display probe status
+        Display probe status
   -random-agent
-      Use randomly selected HTTP User-Agent header value (default true)
+        Use randomly selected HTTP User-Agent header value (default true)
   -rate-limit int
-      Maximum requests to send per second (default 150)
+        Maximum requests to send per second (default 150)
   -request string
-      File containing raw request
+        File containing raw request
   -response-in-json
-      Show Raw HTTP Response In Output (-json only) (deprecated)
+        Show Raw HTTP response In Output (-json only) (deprecated)
   -response-size-to-read int
-      Max response size to read in bytes (default - unlimited)
+        Max response size to read in bytes (default - unlimited) (default 2147483647)
   -response-size-to-save int
-      Max response size to save in bytes (default - unlimited)
+        Max response size to save in bytes (default - unlimited) (default 2147483647)
   -response-time
-      Output the response time
+        Display the response time
   -resume
-      Resume scan using resume.cfg
+        Resume scan using resume.cfg
   -retries int
-      Number of retries
+        Number of retries
   -silent
-      Silent mode
+        Silent mode
   -sr
-      Save response to file (default 'output')
+        Store HTTP response to directoy (default 'output')
   -srd string
-      Save response directory (default "output")
+        Custom directory to store HTTP responses (default "output")
   -stats
-      Enable statistic on keypress (terminal may become unresponsive till the end)
+        Enable statistic on keypress (terminal may become unresponsive till the end)
   -status-code
-      Extracts status code
+        Display HTTP response status code
   -store-chain
-      Save chain to file (default 'output')
+        Save chain to file (default 'output')
   -tech-detect
-      Perform wappalyzer based technology detection
+        Perform wappalyzer based technology detection
   -threads int
-      Number of threads (default 50)
+        Number of threads (default 50)
   -timeout int
-      Timeout in seconds (default 5)
+        Timeout in seconds (default 5)
   -title
-      Extracts title
+        Display page title
   -tls-grab
-      Perform TLS data grabbing
+        Perform TLS(SSL) data grabbing
   -tls-probe
-      Send HTTP probes on the extracted TLS domains
+        Send HTTP probes on the extracted TLS domains
   -unsafe
-      Send raw requests skipping golang normalization
+        Send raw requests skipping golang normalization
   -verbose
-      Verbose Mode
+        Verbose Mode
   -version
-      Show version of httpx
+        Show version of httpx
   -vhost
-      Check for VHOSTs
+        Check for VHOSTs
   -vhost-input
-      Get a list of vhosts as input
+        Get a list of vhosts as input
   -web-server
-      Extracts server header
+        Display server header
   -websocket
-      Prints out if the server exposes a websocket
+        Display server using websocket
   -x string
-      Request Methods, use ALL to check all verbs ()
+        Request Methods to use, use 'all' to probe all HTTP methods
 ```
 </details>
 

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/sha256"
+	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -436,6 +438,15 @@ func (r *Runner) RunEnumeration() {
 			}
 			defer f.Close() //nolint
 		}
+		if r.options.CSVOutput {
+			header := Result{}.CSVHeader()
+			gologger.Silent().Msgf("%s\n", header)
+			if f != nil {
+				//nolint:errcheck // this method needs a small refactor to reduce complexity
+				f.WriteString(header + "\n")
+			}
+		}
+
 		for resp := range output {
 			if resp.err != nil {
 				gologger.Debug().Msgf("Failed '%s': %s\n", resp.URL, resp.err)
@@ -473,7 +484,10 @@ func (r *Runner) RunEnumeration() {
 			row := resp.str
 			if r.options.JSONOutput {
 				row = resp.JSON(&r.scanopts)
+			} else if r.options.CSVOutput {
+				row = resp.CSVRow(&r.scanopts)
 			}
+
 			gologger.Silent().Msgf("%s\n", row)
 			if f != nil {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
@@ -1122,44 +1136,44 @@ func (r *Runner) SaveResumeConfig() error {
 
 // Result of a scan
 type Result struct {
-	Timestamp        time.Time `json:"timestamp,omitempty"`
-	Request          string    `json:"request,omitempty"`
-	ResponseHeader   string    `json:"response-header,omitempty"`
-	Scheme           string    `json:"scheme,omitempty"`
-	Port             string    `json:"port,omitempty"`
-	Path             string    `json:"path,omitempty"`
-	BodySHA256       string    `json:"body-sha256,omitempty"`
-	HeaderSHA256     string    `json:"header-sha256,omitempty"`
-	A                []string  `json:"a,omitempty"`
-	CNAMEs           []string  `json:"cnames,omitempty"`
+	Timestamp        time.Time `json:"timestamp,omitempty" csv:"timestamp"`
+	Request          string    `json:"request,omitempty" csv:"request"`
+	ResponseHeader   string    `json:"response-header,omitempty" csv:"response-header"`
+	Scheme           string    `json:"scheme,omitempty" csv:"scheme"`
+	Port             string    `json:"port,omitempty" csv:"port"`
+	Path             string    `json:"path,omitempty" csv:"path"`
+	BodySHA256       string    `json:"body-sha256,omitempty" csv:"body-sha256"`
+	HeaderSHA256     string    `json:"header-sha256,omitempty" csv:"header-sha256"`
+	A                []string  `json:"a,omitempty" csv:"a"`
+	CNAMEs           []string  `json:"cnames,omitempty" csv:"cnames"`
 	raw              string
-	URL              string `json:"url,omitempty"`
-	Input            string `json:"input,omitempty"`
-	Location         string `json:"location,omitempty"`
-	Title            string `json:"title,omitempty"`
+	URL              string `json:"url,omitempty" csv:"url"`
+	Input            string `json:"input,omitempty" csv:"input"`
+	Location         string `json:"location,omitempty" csv:"location"`
+	Title            string `json:"title,omitempty" csv:"title"`
 	str              string
 	err              error
-	Error            string              `json:"error,omitempty"`
-	WebServer        string              `json:"webserver,omitempty"`
-	ResponseBody     string              `json:"response-body,omitempty"`
-	ContentType      string              `json:"content-type,omitempty"`
-	Method           string              `json:"method,omitempty"`
-	Host             string              `json:"host,omitempty"`
-	ContentLength    int                 `json:"content-length,omitempty"`
-	ChainStatusCodes []int               `json:"chain-status-codes,omitempty"`
-	StatusCode       int                 `json:"status-code,omitempty"`
-	TLSData          *cryptoutil.TLSData `json:"tls-grab,omitempty"`
-	CSPData          *httpx.CSPData      `json:"csp,omitempty"`
-	VHost            bool                `json:"vhost,omitempty"`
-	WebSocket        bool                `json:"websocket,omitempty"`
-	Pipeline         bool                `json:"pipeline,omitempty"`
-	HTTP2            bool                `json:"http2,omitempty"`
-	CDN              bool                `json:"cdn,omitempty"`
-	ResponseTime     string              `json:"response-time,omitempty"`
-	Technologies     []string            `json:"technologies,omitempty"`
-	Chain            []httpx.ChainItem   `json:"chain,omitempty"`
-	FinalURL         string              `json:"final-url,omitempty"`
-	Failed           bool                `json:"failed"`
+	Error            string              `json:"error,omitempty" csv:"error"`
+	WebServer        string              `json:"webserver,omitempty" csv:"webserver"`
+	ResponseBody     string              `json:"response-body,omitempty" csv:"response-body"`
+	ContentType      string              `json:"content-type,omitempty" csv:"content-type"`
+	Method           string              `json:"method,omitempty" csv:"method"`
+	Host             string              `json:"host,omitempty" csv:"host"`
+	ContentLength    int                 `json:"content-length,omitempty" csv:"content-length"`
+	ChainStatusCodes []int               `json:"chain-status-codes,omitempty" csv:"chain-status-codes"`
+	StatusCode       int                 `json:"status-code,omitempty" csv:"status-code"`
+	TLSData          *cryptoutil.TLSData `json:"tls-grab,omitempty" csv:"tls-grab"`
+	CSPData          *httpx.CSPData      `json:"csp,omitempty" csv:"csp"`
+	VHost            bool                `json:"vhost,omitempty" csv:"vhost"`
+	WebSocket        bool                `json:"websocket,omitempty" csv:"websocket"`
+	Pipeline         bool                `json:"pipeline,omitempty" csv:"pipeline"`
+	HTTP2            bool                `json:"http2,omitempty" csv:"http2"`
+	CDN              bool                `json:"cdn,omitempty" csv:"cdn"`
+	ResponseTime     string              `json:"response-time,omitempty" csv:"response-time"`
+	Technologies     []string            `json:"technologies,omitempty" csv:"technologies"`
+	Chain            []httpx.ChainItem   `json:"chain,omitempty" csv:"chain"`
+	FinalURL         string              `json:"final-url,omitempty" csv:"final-url"`
+	Failed           bool                `json:"failed" csv:"failed"`
 }
 
 // JSON the result
@@ -1173,6 +1187,62 @@ func (r Result) JSON(scanopts *scanOptions) string { //nolint
 	}
 
 	return ""
+}
+
+// CSVHeader the CSV headers
+func (r Result) CSVHeader() string { //nolint
+	buffer := bytes.Buffer{}
+	writer := csv.NewWriter(&buffer)
+
+	var headers []string
+	ty := reflect.TypeOf(r)
+	for i := 0; i < ty.NumField(); i++ {
+		tag := ty.Field(i).Tag.Get("csv")
+
+		if ignored := tag == ""; ignored {
+			continue
+		}
+
+		headers = append(headers, tag)
+	}
+	_ = writer.Write(headers)
+	writer.Flush()
+
+	return strings.TrimSpace(buffer.String())
+}
+
+// CSVRow the CSV Row
+func (r Result) CSVRow(scanopts *scanOptions) string { //nolint
+	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySizeToSave {
+		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySizeToSave]
+	}
+
+	buffer := bytes.Buffer{}
+	writer := csv.NewWriter(&buffer)
+
+	var cells []string
+	elem := reflect.ValueOf(r)
+	for i := 0; i < elem.NumField(); i++ {
+		value := elem.Field(i)
+		tag := elem.Type().Field(i).Tag.Get(`csv`)
+		if ignored := tag == ""; ignored {
+			continue
+		}
+
+		str := fmt.Sprintf("%v", value.Interface())
+
+		// defense against csv injection
+		startWithRiskyChar, _ := regexp.Compile(`^([=+\-@])`)
+		if startWithRiskyChar.Match([]byte(str)) {
+			str = "'" + str
+		}
+
+		cells = append(cells, str)
+	}
+	_ = writer.Write(cells)
+	writer.Flush()
+
+	return strings.TrimSpace(buffer.String()) // remove "\n" in the end
 }
 
 func (r *Runner) skipCDNPort(host string, port string) bool {
