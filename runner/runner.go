@@ -795,25 +795,31 @@ retry:
 
 	if scanopts.OutputStatusCode {
 		builder.WriteString(" [")
-		for i, chainItem := range resp.Chain {
+		setColor := func(statusCode int) {
 			if !scanopts.OutputWithNoColor {
 				// Color the status code based on its value
 				switch {
-				case chainItem.StatusCode >= http.StatusOK && chainItem.StatusCode < http.StatusMultipleChoices:
-					builder.WriteString(aurora.Green(strconv.Itoa(chainItem.StatusCode)).String())
-				case chainItem.StatusCode >= http.StatusMultipleChoices && chainItem.StatusCode < http.StatusBadRequest:
-					builder.WriteString(aurora.Yellow(strconv.Itoa(chainItem.StatusCode)).String())
-				case chainItem.StatusCode >= http.StatusBadRequest && chainItem.StatusCode < http.StatusInternalServerError:
-					builder.WriteString(aurora.Red(strconv.Itoa(chainItem.StatusCode)).String())
+				case statusCode >= http.StatusOK && statusCode < http.StatusMultipleChoices:
+					builder.WriteString(aurora.Green(strconv.Itoa(statusCode)).String())
+				case statusCode >= http.StatusMultipleChoices && statusCode < http.StatusBadRequest:
+					builder.WriteString(aurora.Yellow(strconv.Itoa(statusCode)).String())
+				case statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError:
+					builder.WriteString(aurora.Red(strconv.Itoa(statusCode)).String())
 				case resp.StatusCode > http.StatusInternalServerError:
-					builder.WriteString(aurora.Bold(aurora.Yellow(strconv.Itoa(chainItem.StatusCode))).String())
+					builder.WriteString(aurora.Bold(aurora.Yellow(strconv.Itoa(statusCode))).String())
 				}
 			} else {
-				builder.WriteString(strconv.Itoa(chainItem.StatusCode))
+				builder.WriteString(strconv.Itoa(statusCode))
 			}
+		}
+		for i, chainItem := range resp.Chain {
+			setColor(chainItem.StatusCode)
 			if i != len(resp.Chain)-1 {
 				builder.WriteRune(',')
 			}
+		}
+		if r.options.Unsafe {
+			setColor(resp.StatusCode)
 		}
 		builder.WriteRune(']')
 	}
