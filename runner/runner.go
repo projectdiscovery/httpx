@@ -135,7 +135,7 @@ func New(options *Options) (*Runner, error) {
 		var rawRequest []byte
 		rawRequest, err = ioutil.ReadFile(options.InputRawRequest)
 		if err != nil {
-			gologger.Fatal().Msgf("Could not read raw request from '%s': %s\n", options.InputRawRequest, err)
+			gologger.Fatal().Msgf("Could not read raw request from path '%s': %s\n", options.InputRawRequest, err)
 		}
 
 		rrMethod, rrPath, rrHeaders, rrBody, errParse := httputilz.ParseRequest(string(rawRequest), options.Unsafe)
@@ -265,11 +265,11 @@ func (r *Runner) prepareInput() {
 	if fileutil.FileExists(r.options.InputFile) {
 		finput, err := os.Open(r.options.InputFile)
 		if err != nil {
-			gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
+			gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
 		}
 		numHosts, err = r.loadAndCloseFile(finput)
 		if err != nil {
-			gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
+			gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
 		}
 	} else if r.options.InputFile != "" {
 		files, err := fileutilz.ListFilesWithPattern(r.options.InputFile)
@@ -279,11 +279,11 @@ func (r *Runner) prepareInput() {
 		for _, file := range files {
 			finput, err := os.Open(file)
 			if err != nil {
-				gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
+				gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
 			}
 			numTargetsFile, err := r.loadAndCloseFile(finput)
 			if err != nil {
-				gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
+				gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
 			}
 			numHosts += numTargetsFile
 		}
@@ -291,7 +291,7 @@ func (r *Runner) prepareInput() {
 	if fileutil.HasStdin() {
 		numTargetsStdin, err := r.loadAndCloseFile(os.Stdin)
 		if err != nil {
-			gologger.Fatal().Msgf("Could read input from stdin: %s\n", err)
+			gologger.Fatal().Msgf("Could not read input from stdin: %s\n", err)
 		}
 		numHosts += numTargetsStdin
 	}
@@ -303,7 +303,7 @@ func (r *Runner) prepareInput() {
 		r.stats.AddCounter("requests", 0)
 		err := r.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
 		if err != nil {
-			gologger.Warning().Msgf("Could not create statistic: %s\n", err)
+			gologger.Warning().Msgf("Could not create statistics: %s\n", err)
 		}
 	}
 }
@@ -1026,14 +1026,14 @@ retry:
 		}
 		writeErr := ioutil.WriteFile(responsePath, []byte(respRaw), 0644)
 		if writeErr != nil {
-			gologger.Warning().Msgf("Could not write response, at path '%s', to disk: %s", responsePath, writeErr)
+			gologger.Warning().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
 		}
 		if scanopts.StoreChain && resp.HasChain() {
 			domainFile = strings.ReplaceAll(domainFile, ".txt", ".chain.txt")
 			responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 			writeErr := ioutil.WriteFile(responsePath, []byte(resp.GetChain()), 0644)
 			if writeErr != nil {
-				gologger.Warning().Msgf("Could not write response, at path '%s', to disk: %s", responsePath, writeErr)
+				gologger.Warning().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
 			}
 		}
 	}
