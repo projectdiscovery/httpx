@@ -19,6 +19,6 @@ func showBanner() {
 	gologger.Print().Msgf("%s\n", banner)
 	gologger.Print().Msgf("\t\tprojectdiscovery.io\n\n")
 
-	gologger.Print().Msgf("Use with caution. You are responsible for your actions\n")
+	gologger.Print().Msgf("Use with caution. You are responsible for your actions.\n")
 	gologger.Print().Msgf("Developers assume no liability and are not responsible for any misuse or damage.\n")
 }
