@@ -726,7 +726,11 @@ retry:
 	} else {
 		// Create a copy on the fly of the request body
 		buf := new(bytes.Buffer)
-		buf.ReadFrom(req.Body)
+		_, err := buf.ReadFrom(req.Body)
+		if err != nil {
+			gologger.Fatal().Msgf("Could not read from request body: %s\n", err)
+		}
+		
 		bodyBytes := buf.Bytes()
 		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 		var errDump error
