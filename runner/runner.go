@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -701,7 +700,7 @@ retry:
 	// We set content-length even if zero to allow net/http to follow 307/308 redirects (it fails on unknown size)
 	if scanopts.RequestBody != "" {
 		req.ContentLength = int64(len(scanopts.RequestBody))
-		req.Body = io.NopCloser(strings.NewReader(scanopts.RequestBody))
+		req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
 	} else {
 		req.ContentLength = 0
 		req.Body = nil
@@ -713,6 +712,7 @@ retry:
 	if scanopts.Unsafe {
 		req.Header.Add("Connection", "close")
 	}
+	resp, err := hp.Do(req, httpx.UnsafeOptions{URIPath: reqURI})
 	if r.options.ShowStatistics {
 		r.stats.IncrementCounter("requests", 1)
 	}
@@ -725,14 +725,12 @@ retry:
 		}
 	} else {
 		// Create a copy on the fly of the request body
-		buf := new(bytes.Buffer)
-		_, err := buf.ReadFrom(req.Body)
-		if err != nil {
-			gologger.Fatal().Msgf("Could not read from request body: %s\n", err)
+		var bodyBytes []byte
+		if scanopts.RequestBody != "" {
+			req.ContentLength = int64(len(scanopts.RequestBody))
+			req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
+			bodyBytes = []byte(scanopts.RequestBody)
 		}
-		
-		bodyBytes := buf.Bytes()
-		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 		var errDump error
 		requestDump, errDump = httputil.DumpRequestOut(req.Request, true)
 		if errDump != nil {
@@ -745,8 +743,6 @@ retry:
 			req.Body = nil
 		}
 	}
-	resp, err := hp.Do(req, httpx.UnsafeOptions{URIPath: reqURI})
-
 	// fix the final output url
 	fullURL := req.URL.String()
 	parsedURL, _ := urlutil.Parse(fullURL)
