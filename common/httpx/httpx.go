@@ -73,7 +73,7 @@ func New(options *Options) (*HTTPX, error) {
 	if httpx.Options.FollowHostRedirects {
 		// Only follow redirects on the same host up to a maximum number
 		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
-			// Check if we get a redirect to a differen host
+			// Check if we get a redirect to a different host
 			var newHost = redirectedRequest.URL.Host
 			var oldHost = previousRequests[0].URL.Host
 			if newHost != oldHost {

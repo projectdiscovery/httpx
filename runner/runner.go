@@ -408,7 +408,7 @@ func (r *Runner) Close() {
 
 // RunEnumeration on targets for httpx client
 func (r *Runner) RunEnumeration() {
-	// Try to create output folder if it doesnt exist
+	// Try to create output folder if it doesn't exist
 	if r.options.StoreResponse && !fileutil.FolderExists(r.options.StoreResponseDir) {
 		if err := os.MkdirAll(r.options.StoreResponseDir, os.ModePerm); err != nil {
 			gologger.Fatal().Msgf("Could not create output directory '%s': %s\n", r.options.StoreResponseDir, err)

@@ -35,7 +35,7 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 </h1>
 
  - Simple and modular code base making it easy to contribute.
- - Fast And fully configurable flags to probe mutiple elements.
+ - Fast And fully configurable flags to probe multiple elements.
  - Supports multiple HTTP based probings.
  - Smart auto fallback from https to http as default. 
  - Supports hosts, URLs and CIDR as input.
