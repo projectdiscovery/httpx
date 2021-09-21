@@ -725,11 +725,9 @@ retry:
 		}
 	} else {
 		// Create a copy on the fly of the request body
-		var bodyBytes []byte
 		if scanopts.RequestBody != "" {
 			req.ContentLength = int64(len(scanopts.RequestBody))
 			req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
-			bodyBytes = []byte(scanopts.RequestBody)
 		}
 		var errDump error
 		requestDump, errDump = httputil.DumpRequestOut(req.Request, true)
@@ -738,7 +736,7 @@ retry:
 		}
 		// The original req.Body gets modified indirectly by httputil.DumpRequestOut so we set it again to nil if it was empty
 		// Otherwise redirects like 307/308 would fail (as they require the body to be sent along)
-		if len(bodyBytes) == 0 {
+		if len(scanopts.RequestBody) == 0 {
 			req.ContentLength = 0
 			req.Body = nil
 		}
