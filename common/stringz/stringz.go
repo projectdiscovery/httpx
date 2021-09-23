@@ -1,6 +1,7 @@
 package stringz
 
 import (
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -72,4 +73,14 @@ func RemoveURLDefaultPort(rawURL string) string {
 		u.Port = ""
 	}
 	return u.String()
+}
+
+func GetInvalidURI(rawURL string) (bool, string) {
+	if _, err := url.Parse(rawURL); err != nil {
+		if u, err := urlutil.Parse(rawURL); err == nil {
+			return true, u.RequestURI
+		}
+	}
+
+	return false, ""
 }

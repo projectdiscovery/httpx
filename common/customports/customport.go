@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/sliceutil"
 
 	"github.com/projectdiscovery/httpx/common/httpx"
 )
@@ -31,7 +32,7 @@ func (c *CustomPorts) String() string {
 func (c *CustomPorts) Set(value string) error {
 	// ports can be like nmap -p [https|http:]start-end,[https|http:]port1,[https|http:]port2,[https|http:]port3
 	// splits on comma
-	potentialPorts := strings.Split(value, ",")
+	potentialPorts := sliceutil.Dedupe(strings.Split(value, ","))
 
 	// check if port is a single integer value or needs to be expanded further
 	for _, potentialPort := range potentialPorts {
@@ -43,12 +44,20 @@ func (c *CustomPorts) Set(value string) error {
 		} else if strings.HasPrefix(potentialPort, httpx.HTTPS+":") {
 			potentialPort = strings.TrimPrefix(potentialPort, httpx.HTTPS+":")
 			protocol = httpx.HTTPS
+		} else if strings.HasPrefix(potentialPort, httpx.HTTPandHTTPS+":") {
+			potentialPort = strings.TrimPrefix(potentialPort, httpx.HTTPandHTTPS+":")
+			protocol = httpx.HTTPandHTTPS
 		}
 
 		potentialRange := strings.Split(potentialPort, "-")
 		// it's a single port?
 		if len(potentialRange) < portRangeParts {
 			if p, err := strconv.Atoi(potentialPort); err == nil {
+				if existingProtocol, ok := Ports[p]; ok {
+					if existingProtocol == httpx.HTTP && protocol == httpx.HTTPS || existingProtocol == httpx.HTTPS && protocol == httpx.HTTP {
+						protocol = httpx.HTTPandHTTPS
+					}
+				}
 				Ports[p] = protocol
 			} else {
 				gologger.Warning().Msgf("Could not cast port to integer, your value: %s, resulting error %s. Skipping it\n",
@@ -79,6 +88,11 @@ func (c *CustomPorts) Set(value string) error {
 			}
 
 			for i := lowP; i <= highP; i++ {
+				if existingProtocol, ok := Ports[i]; ok {
+					if existingProtocol == httpx.HTTP && protocol == httpx.HTTPS || existingProtocol == httpx.HTTPS && protocol == httpx.HTTP {
+						protocol = httpx.HTTPandHTTPS
+					}
+				}
 				Ports[i] = protocol
 			}
 		}

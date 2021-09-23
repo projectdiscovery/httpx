@@ -80,7 +80,7 @@ This will display help for the tool. Here are all the switches it supports.
   -H value
       Custom Header
   -allow value
-      Allowlist ip/cidr
+      Allow list of IP/CIDR's (file or comma separated)
   -body string
       Content to send in body with HTTP request
   -cdn
@@ -96,7 +96,7 @@ This will display help for the tool. Here are all the switches it supports.
   -debug
       Debug mode
   -deny value
-      Denylist ip/cidr
+      Deny list of IP/CIDR's to process (file or comma separated)
   -exclude-cdn
       Skip full port scans for CDNs (only checks for 80,443)
   -extract-regex string

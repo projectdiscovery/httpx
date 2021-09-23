@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/gologger/formatter"
@@ -13,7 +14,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/customheader"
 	"github.com/projectdiscovery/httpx/common/customlist"
 	customport "github.com/projectdiscovery/httpx/common/customports"
-	"github.com/projectdiscovery/httpx/common/fileutil"
+	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/stringz"
 )
 
@@ -61,6 +62,7 @@ type scanOptions struct {
 	OutputExtractRegex        string
 	extractRegex              *regexp.Regexp
 	ExcludeCDN                bool
+	HostMaxErrors             int
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -99,6 +101,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		OutputExtractRegex:        s.OutputExtractRegex,
 		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
+		HostMaxErrors:             s.HostMaxErrors,
 	}
 }
 
@@ -154,6 +157,7 @@ type Options struct {
 	responseInStdout          bool
 	chainInStdout             bool
 	FollowHostRedirects       bool
+	MaxRedirects              int
 	OutputMethod              bool
 	TLSProbe                  bool
 	CSPProbe                  bool
@@ -184,6 +188,7 @@ type Options struct {
 	Resume                    bool
 	resumeCfg                 *ResumeCfg
 	ExcludeCDN                bool
+	HostMaxErrors             int
 }
 
 // ParseOptions parses the command line options for application
@@ -191,7 +196,7 @@ func ParseOptions() *Options {
 	options := &Options{}
 
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	flag.BoolVar(&options.TLSGrab, "tls-grab", false, "Perform TLS data grabbing")
+	flag.BoolVar(&options.TLSGrab, "tls-grab", false, "Perform TLS(SSL) data grabbing")
 	flag.BoolVar(&options.TechDetect, "tech-detect", false, "Perform wappalyzer based technology detection")
 	flag.IntVar(&options.Threads, "threads", 50, "Number of threads")
 	flag.IntVar(&options.Retries, "retries", 0, "Number of retries")
@@ -199,67 +204,69 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.Output, "o", "", "File to write output to (optional)")
 	flag.BoolVar(&options.VHost, "vhost", false, "Check for VHOSTs")
 	flag.BoolVar(&options.VHostInput, "vhost-input", false, "Get a list of vhosts as input")
-	flag.BoolVar(&options.ExtractTitle, "title", false, "Extracts title")
-	flag.BoolVar(&options.StatusCode, "status-code", false, "Extracts status code")
-	flag.BoolVar(&options.Location, "location", false, "Extracts location header")
-	flag.Var(&options.CustomHeaders, "H", "Custom Header")
-	flag.Var(&options.CustomPorts, "ports", "ports range (nmap syntax: eg 1,2-10,11)")
-	flag.BoolVar(&options.ContentLength, "content-length", false, "Extracts content length")
-	flag.BoolVar(&options.StoreResponse, "sr", false, "Save response to file (default 'output')")
-	flag.StringVar(&options.StoreResponseDir, "srd", "output", "Save response directory")
-	flag.BoolVar(&options.FollowRedirects, "follow-redirects", false, "Follow Redirects")
-	flag.BoolVar(&options.FollowHostRedirects, "follow-host-redirects", false, "Only follow redirects on the same host")
+	flag.BoolVar(&options.ExtractTitle, "title", false, "Display page title")
+	flag.BoolVar(&options.StatusCode, "status-code", false, "Display HTTP response status code")
+	flag.BoolVar(&options.Location, "location", false, "Display location header")
+	flag.Var(&options.CustomHeaders, "H", "Custom Header to send with request")
+	flag.Var(&options.CustomPorts, "ports", "Port ranges to scan (nmap syntax: eg 1,2-10,11)")
+	flag.BoolVar(&options.ContentLength, "content-length", false, "Display HTTP response content length")
+	flag.BoolVar(&options.StoreResponse, "sr", false, "Store HTTP response to directoy (default 'output')")
+	flag.StringVar(&options.StoreResponseDir, "srd", "output", "Custom directory to store HTTP responses")
+	flag.BoolVar(&options.FollowRedirects, "follow-redirects", false, "Follow HTTP Redirects")
+	flag.BoolVar(&options.FollowHostRedirects, "follow-host-redirects", false, "Only Follow redirects on the same host")
+	flag.IntVar(&options.MaxRedirects, "max-redirects", 10, "Max number of redirects to follow per host")
 	flag.StringVar(&options.HTTPProxy, "http-proxy", "", "HTTP Proxy, eg http://127.0.0.1:8080")
-	flag.BoolVar(&options.JSONOutput, "json", false, "JSON Output")
-	flag.StringVar(&options.InputFile, "l", "", "File containing domains")
-	flag.StringVar(&options.Methods, "x", "", "Request Methods, use ALL to check all verbs ()")
+	flag.BoolVar(&options.JSONOutput, "json", false, "Display output in JSON format")
+	flag.StringVar(&options.InputFile, "l", "", "Input file containing list of hosts to process")
+	flag.StringVar(&options.Methods, "x", "", "Request Methods to use, use 'all' to probe all HTTP methods")
 	flag.BoolVar(&options.OutputMethod, "method", false, "Display request method")
 	flag.BoolVar(&options.Silent, "silent", false, "Silent mode")
 	flag.BoolVar(&options.Version, "version", false, "Show version of httpx")
 	flag.BoolVar(&options.Verbose, "verbose", false, "Verbose Mode")
-	flag.BoolVar(&options.NoColor, "no-color", false, "No Color")
-	flag.BoolVar(&options.OutputServerHeader, "web-server", false, "Extracts server header")
-	flag.BoolVar(&options.OutputWebSocket, "websocket", false, "Prints out if the server exposes a websocket")
-	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Show Raw HTTP Response In Output (-json only) (deprecated)")
-	flag.BoolVar(&options.responseInStdout, "include-response", false, "Show Raw HTTP Response In Output (-json only)")
+	flag.BoolVar(&options.NoColor, "no-color", false, "Disable colored output")
+	flag.BoolVar(&options.OutputServerHeader, "web-server", false, "Display server header")
+	flag.BoolVar(&options.OutputWebSocket, "websocket", false, "Display server using websocket")
+	flag.BoolVar(&options.responseInStdout, "response-in-json", false, "Show Raw HTTP response In Output (-json only) (deprecated)")
+	flag.BoolVar(&options.responseInStdout, "include-response", false, "Show Raw HTTP response In Output (-json only)")
 	flag.BoolVar(&options.chainInStdout, "include-chain", false, "Show Raw HTTP Chain In Output (-json only)")
 	flag.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains")
 	flag.BoolVar(&options.CSPProbe, "csp-probe", false, "Send HTTP probes on the extracted CSP domains")
 	flag.StringVar(&options.RequestURI, "path", "", "Request path/file (example '/api')")
 	flag.StringVar(&options.RequestURIs, "paths", "", "Command separated paths or file containing one path per line (example '/api/v1,/apiv2')")
-	flag.BoolVar(&options.OutputContentType, "content-type", false, "Extracts content-type")
-	flag.StringVar(&options.OutputMatchStatusCode, "mc", "", "Match status code")
-	flag.StringVar(&options.OutputMatchStatusCode, "ml", "", "Match content length")
-	flag.StringVar(&options.OutputFilterStatusCode, "fc", "", "Filter status code")
-	flag.StringVar(&options.OutputFilterContentLength, "fl", "", "Filter content length")
+	flag.BoolVar(&options.OutputContentType, "content-type", false, "Display content-type header")
+	flag.StringVar(&options.OutputMatchStatusCode, "mc", "", "Match response with specific status code (-mc 200,302)")
+	flag.StringVar(&options.OutputMatchContentLength, "ml", "", "Match response with specific content length (-ml 102)")
+	flag.StringVar(&options.OutputFilterStatusCode, "fc", "", "Filter response with specific status code (-fc 403,401)")
+	flag.StringVar(&options.OutputFilterContentLength, "fl", "", "Filter response with specific content length (-fl 23)")
 	flag.StringVar(&options.InputRawRequest, "request", "", "File containing raw request")
 	flag.BoolVar(&options.Unsafe, "unsafe", false, "Send raw requests skipping golang normalization")
 	flag.StringVar(&options.RequestBody, "body", "", "Content to send in body with HTTP request")
 	flag.BoolVar(&options.Debug, "debug", false, "Debug mode")
-	flag.BoolVar(&options.Pipeline, "pipeline", false, "HTTP1.1 Pipeline")
+	flag.BoolVar(&options.Pipeline, "pipeline", false, "HTTP1.1 Pipeline probe")
 	flag.BoolVar(&options.HTTP2Probe, "http2", false, "HTTP2 probe")
-	flag.BoolVar(&options.OutputIP, "ip", false, "Output target ip")
-	flag.StringVar(&options.OutputFilterString, "filter-string", "", "Filter String")
-	flag.StringVar(&options.OutputMatchString, "match-string", "", "Match string")
-	flag.StringVar(&options.OutputFilterRegex, "filter-regex", "", "Filter Regex")
-	flag.StringVar(&options.OutputMatchRegex, "match-regex", "", "Match Regex")
-	flag.BoolVar(&options.OutputCName, "cname", false, "Output first cname")
-	flag.BoolVar(&options.OutputCDN, "cdn", false, "Check if domain's ip belongs to known CDN (akamai, cloudflare, ..)")
-	flag.BoolVar(&options.OutputResponseTime, "response-time", false, "Output the response time")
-	flag.BoolVar(&options.NoFallback, "no-fallback", false, "If HTTPS on port 443 is successful on default configuration, probes also port 80 for HTTP")
-	flag.BoolVar(&options.NoFallbackScheme, "no-fallback-scheme", false, "The tool will respect and attempt the scheme specified in the url (if HTTPS is specified no HTTP is attempted)")
+	flag.BoolVar(&options.OutputIP, "ip", false, "Display Host IP")
+	flag.StringVar(&options.OutputFilterString, "filter-string", "", "Filter response with specific string")
+	flag.StringVar(&options.OutputMatchString, "match-string", "", "Match response with specific string")
+	flag.StringVar(&options.OutputFilterRegex, "filter-regex", "", "Filter response with specific regex")
+	flag.StringVar(&options.OutputMatchRegex, "match-regex", "", "Match response with specific regex")
+	flag.BoolVar(&options.OutputCName, "cname", false, "Display Host cname")
+	flag.BoolVar(&options.OutputCDN, "cdn", false, "Diplay CDN")
+	flag.BoolVar(&options.OutputResponseTime, "response-time", false, "Display the response time")
+	flag.BoolVar(&options.NoFallback, "no-fallback", false, "Probe both protocol (HTTPS and HTTP)")
+	flag.BoolVar(&options.NoFallbackScheme, "no-fallback-scheme", false, "Probe with input protocol scheme")
 	flag.BoolVar(&options.ShowStatistics, "stats", false, "Enable statistic on keypress (terminal may become unresponsive till the end)")
 	flag.BoolVar(&options.RandomAgent, "random-agent", true, "Use randomly selected HTTP User-Agent header value")
 	flag.BoolVar(&options.StoreChain, "store-chain", false, "Save chain to file (default 'output')")
-	flag.Var(&options.Allow, "allow", "Allowlist ip/cidr")
-	flag.Var(&options.Deny, "deny", "Denylist ip/cidr")
+	flag.Var(&options.Allow, "allow", "Allow list of IP/CIDR's to process (file or comma separated)")
+	flag.Var(&options.Deny, "deny", "Deny list of IP/CIDR's to process (file or comma separated)")
 	flag.IntVar(&options.MaxResponseBodySizeToSave, "response-size-to-save", math.MaxInt32, "Max response size to save in bytes (default - unlimited)")
 	flag.IntVar(&options.MaxResponseBodySizeToRead, "response-size-to-read", math.MaxInt32, "Max response size to read in bytes (default - unlimited)")
-	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Extract Regex")
+	flag.StringVar(&options.OutputExtractRegex, "extract-regex", "", "Display response content with matched regex")
 	flag.IntVar(&options.RateLimit, "rate-limit", 150, "Maximum requests to send per second")
 	flag.BoolVar(&options.Probe, "probe", false, "Display probe status")
 	flag.BoolVar(&options.Resume, "resume", false, "Resume scan using resume.cfg")
 	flag.BoolVar(&options.ExcludeCDN, "exclude-cdn", false, "Skip full port scans for CDNs (only checks for 80,443)")
+	flag.IntVar(&options.HostMaxErrors, "max-host-error", 30, "Max error count per host before skipping remaining path/s")
 
 	flag.Parse()
 
@@ -284,7 +291,7 @@ func ParseOptions() *Options {
 }
 
 func (options *Options) validateOptions() {
-	if options.InputFile != "" && !fileutil.FileNameIsGlob(options.InputFile) && !fileutil.FileExists(options.InputFile) {
+	if options.InputFile != "" && !fileutilz.FileNameIsGlob(options.InputFile) && !fileutil.FileExists(options.InputFile) {
 		gologger.Fatal().Msgf("File %s does not exist!\n", options.InputFile)
 	}
 

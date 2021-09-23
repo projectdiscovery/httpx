@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -19,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bluele/gcache"
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
 	"github.com/projectdiscovery/clistats"
@@ -29,11 +31,12 @@ import (
 
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
+	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/hmap/store/hybrid"
 	pdhttputil "github.com/projectdiscovery/httputil"
 	customport "github.com/projectdiscovery/httpx/common/customports"
-	"github.com/projectdiscovery/httpx/common/fileutil"
+	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/httpx/common/slice"
@@ -52,13 +55,14 @@ const (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options     *Options
-	hp          *httpx.HTTPX
-	wappalyzer  *wappalyzer.Wappalyze
-	scanopts    scanOptions
-	hm          *hybrid.HybridMap
-	stats       clistats.StatisticsClient
-	ratelimiter ratelimit.Limiter
+	options         *Options
+	hp              *httpx.HTTPX
+	wappalyzer      *wappalyzer.Wappalyze
+	scanopts        scanOptions
+	hm              *hybrid.HybridMap
+	stats           clistats.StatisticsClient
+	ratelimiter     ratelimit.Limiter
+	HostErrorsCache gcache.Cache
 }
 
 // New creates a new client for running enumeration process.
@@ -81,9 +85,10 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.RetryMax = options.Retries
 	httpxOptions.FollowRedirects = options.FollowRedirects
 	httpxOptions.FollowHostRedirects = options.FollowHostRedirects
+	httpxOptions.MaxRedirects = options.MaxRedirects
 	httpxOptions.HTTPProxy = options.HTTPProxy
 	httpxOptions.Unsafe = options.Unsafe
-	httpxOptions.RequestOverride = httpx.RequestOverride{URIPath: options.RequestURI}
+	httpxOptions.UnsafeURI = options.RequestURI
 	httpxOptions.CdnCheck = options.OutputCDN
 	httpxOptions.ExcludeCdn = options.ExcludeCDN
 	httpxOptions.RandomAgent = options.RandomAgent
@@ -155,6 +160,10 @@ func New(options *Options) (*Runner, error) {
 	if strings.EqualFold(options.Methods, "all") {
 		scanopts.Methods = pdhttputil.AllHTTPMethods()
 	} else if options.Methods != "" {
+		// if unsafe is specified then converts the methods to uppercase
+		if !options.Unsafe {
+			options.Methods = strings.ToUpper(options.Methods)
+		}
 		scanopts.Methods = append(scanopts.Methods, stringz.SplitByCharAndTrimSpace(options.Methods, ",")...)
 	}
 	if len(scanopts.Methods) == 0 {
@@ -207,6 +216,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	scanopts.ExcludeCDN = options.ExcludeCDN
+	scanopts.HostMaxErrors = options.HostMaxErrors
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
@@ -228,13 +238,20 @@ func New(options *Options) (*Runner, error) {
 		runner.ratelimiter = ratelimit.NewUnlimited()
 	}
 
+	if options.HostMaxErrors >= 0 {
+		gc := gcache.New(1000).
+			ARC().
+			Build()
+		runner.HostErrorsCache = gc
+	}
+
 	return runner, nil
 }
 
 func (r *Runner) prepareInput() {
 	// Check if the user requested multiple paths
 	if fileutil.FileExists(r.options.RequestURIs) {
-		r.options.requestURIs = fileutil.LoadFile(r.options.RequestURIs)
+		r.options.requestURIs = fileutilz.LoadFile(r.options.RequestURIs)
 	} else if r.options.RequestURIs != "" {
 		r.options.requestURIs = strings.Split(r.options.RequestURIs, ",")
 	}
@@ -251,7 +268,7 @@ func (r *Runner) prepareInput() {
 			gologger.Fatal().Msgf("Could read input file '%s': %s\n", r.options.InputFile, err)
 		}
 	} else if r.options.InputFile != "" {
-		files, err := fileutil.ListFilesWithPattern(r.options.InputFile)
+		files, err := fileutilz.ListFilesWithPattern(r.options.InputFile)
 		if err != nil {
 			gologger.Fatal().Msgf("No input provided: %s", err)
 		}
@@ -378,6 +395,9 @@ func (r *Runner) Close() {
 	// nolint:errcheck // ignore
 	r.hm.Close()
 	r.hp.Dialer.Close()
+	if r.options.HostMaxErrors >= 0 {
+		r.HostErrorsCache.Purge()
+	}
 }
 
 // RunEnumeration on targets for httpx client
@@ -511,7 +531,7 @@ func match_string_array(r *Runner, resp Result) bool {
 
 func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
 	protocols := []string{protocol}
-	if scanopts.NoFallback {
+	if scanopts.NoFallback || protocol == httpx.HTTPandHTTPS {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
 
@@ -523,7 +543,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 					wg.Add()
 					go func(target, method, protocol string) {
 						defer wg.Done()
-						result := r.analyze(hp, protocol, target, method, scanopts)
+						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
@@ -545,24 +565,30 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 			}
 		}
 
-		for port, wantedProtocol := range customport.Ports {
-			for _, method := range scanopts.Methods {
-				wg.Add()
-				go func(port int, method, protocol string) {
-					defer wg.Done()
-					h, _ := urlutil.ChangePort(target, fmt.Sprint(port))
-					result := r.analyze(hp, protocol, h, method, scanopts)
-					output <- result
-					if scanopts.TLSProbe && result.TLSData != nil {
-						scanopts.TLSProbe = false
-						for _, tt := range result.TLSData.DNSNames {
-							r.process(tt, wg, hp, protocol, scanopts, output)
+		for port, wantedProtocolForPort := range customport.Ports {
+			wantedProtocols := []string{wantedProtocolForPort}
+			if wantedProtocolForPort == httpx.HTTPandHTTPS {
+				wantedProtocols = []string{httpx.HTTPS, httpx.HTTP}
+			}
+			for _, wantedProtocol := range wantedProtocols {
+				for _, method := range scanopts.Methods {
+					wg.Add()
+					go func(port int, method, protocol string) {
+						defer wg.Done()
+						h, _ := urlutil.ChangePort(target, fmt.Sprint(port))
+						result := r.analyze(hp, protocol, h, method, t, scanopts)
+						output <- result
+						if scanopts.TLSProbe && result.TLSData != nil {
+							scanopts.TLSProbe = false
+							for _, tt := range result.TLSData.DNSNames {
+								r.process(tt, wg, hp, protocol, scanopts, output)
+							}
+							for _, tt := range result.TLSData.CommonName {
+								r.process(tt, wg, hp, protocol, scanopts, output)
+							}
 						}
-						for _, tt := range result.TLSData.CommonName {
-							r.process(tt, wg, hp, protocol, scanopts, output)
-						}
-					}
-				}(port, method, wantedProtocol)
+					}(port, method, wantedProtocol)
+				}
 			}
 		}
 		if r.options.ShowStatistics {
@@ -600,9 +626,9 @@ func targets(target string) chan string {
 	return results
 }
 
-func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain, method string, scanopts *scanOptions) Result {
+func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain, method, origInput string, scanopts *scanOptions) Result {
 	origProtocol := protocol
-	if protocol == httpx.HTTPorHTTPS {
+	if protocol == httpx.HTTPorHTTPS || protocol == httpx.HTTPandHTTPS {
 		protocol = httpx.HTTPS
 	}
 	retried := false
@@ -612,20 +638,29 @@ retry:
 		parts := strings.Split(domain, ",")
 		//nolint:gomnd // not a magic number
 		if len(parts) != 2 {
-			return Result{}
+			return Result{Input: origInput}
 		}
 		domain = parts[0]
 		customHost = parts[1]
 	}
 	URL, err := urlutil.Parse(domain)
 	if err != nil {
-		return Result{URL: domain, err: err}
+		return Result{URL: domain, Input: origInput, err: err}
+	}
+
+	// check if we have to skip the host:port as a result of a previous failure
+	hostPort := net.JoinHostPort(URL.Host, URL.Port)
+	if r.options.HostMaxErrors >= 0 && r.HostErrorsCache.Has(hostPort) {
+		numberOfErrors, err := r.HostErrorsCache.GetIFPresent(hostPort)
+		if err == nil && numberOfErrors.(int) >= r.options.HostMaxErrors {
+			return Result{URL: domain, err: errors.New("skipping as previously unresponsive")}
+		}
 	}
 
 	// check if the combination host:port should be skipped if belonging to a cdn
 	if r.skipCDNPort(URL.Host, URL.Port) {
 		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port)
-		return Result{URL: domain, err: errors.New("cdn target only allows ports 80 and 443")}
+		return Result{URL: domain, Input: origInput, err: errors.New("cdn target only allows ports 80 and 443")}
 	}
 
 	URL.Scheme = protocol
@@ -634,18 +669,24 @@ retry:
 		URL.Port = ""
 	}
 
-	if !scanopts.Unsafe {
+	var reqURI string
+	// retry with unsafe
+	if scanopts.Unsafe {
+		reqURI = URL.RequestURI + scanopts.RequestURI
+		// then create a base request without it to avoid go errors
+		URL.RequestURI = ""
+	} else {
+		// in case of standard requests append the new path to the existing one
 		URL.RequestURI += scanopts.RequestURI
 	}
 	req, err := hp.NewRequest(method, URL.String())
 	if err != nil {
-		return Result{URL: URL.String(), err: err}
+		return Result{URL: URL.String(), Input: origInput, err: err}
 	}
+
 	if customHost != "" {
 		req.Host = customHost
 	}
-
-	reqURI := req.URL.RequestURI()
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
 	// We set content-length even if zero to allow net/http to follow 307/308 redirects (it fails on unknown size)
@@ -659,7 +700,11 @@ retry:
 
 	r.ratelimiter.Take()
 
-	resp, err := hp.Do(req)
+	// with rawhttp we should say to the server to close the connection, otherwise it will remain open
+	if scanopts.Unsafe {
+		req.Header.Add("Connection", "close")
+	}
+	resp, err := hp.Do(req, httpx.UnsafeOptions{URIPath: reqURI})
 	if r.options.ShowStatistics {
 		r.stats.IncrementCounter("requests", 1)
 	}
@@ -669,7 +714,7 @@ retry:
 		var errDump error
 		requestDump, errDump = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), reqURI, req.Header, req.Body, rawhttp.DefaultOptions)
 		if errDump != nil {
-			return Result{URL: URL.String(), err: errDump}
+			return Result{URL: URL.String(), Input: origInput, err: errDump}
 		}
 	} else {
 		// Create a copy on the fly of the request body
@@ -678,7 +723,7 @@ retry:
 		var errDump error
 		requestDump, errDump = httputil.DumpRequestOut(req.Request, true)
 		if errDump != nil {
-			return Result{URL: URL.String(), err: errDump}
+			return Result{URL: URL.String(), Input: origInput, err: errDump}
 		}
 		// The original req.Body gets modified indirectly by httputil.DumpRequestOut so we set it again to nil if it was empty
 		// Otherwise redirects like 307/308 would fail (as they require the body to be sent along)
@@ -688,16 +733,18 @@ retry:
 		}
 	}
 
+	// fix the final output url
 	fullURL := req.URL.String()
+	parsedURL, _ := urlutil.Parse(fullURL)
+	if r.options.Unsafe {
+		parsedURL.RequestURI = reqURI
+		// if the full url doesn't end with the custom path we pick the original input value
+	} else if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
+		parsedURL.RequestURI = scanopts.RequestURI
+	}
+	fullURL = parsedURL.String()
 
 	builder := &strings.Builder{}
-
-	// if the full url doesn't end with the custom path we pick the original input value
-	if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
-		parsedURL, _ := urlutil.Parse(fullURL)
-		parsedURL.RequestURI = scanopts.RequestURI
-		fullURL = parsedURL.String()
-	}
 	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
 
 	if r.options.Probe {
@@ -734,10 +781,21 @@ retry:
 			retried = true
 			goto retry
 		}
+
+		// mark the host:port as failed to avoid further checks
+		if r.options.HostMaxErrors >= 0 {
+			errorCount, err := r.HostErrorsCache.GetIFPresent(hostPort)
+			if err != nil || errorCount == nil {
+				_ = r.HostErrorsCache.Set(hostPort, 1)
+			} else if errorCount != nil {
+				_ = r.HostErrorsCache.Set(hostPort, errorCount.(int)+1)
+			}
+		}
+
 		if r.options.Probe {
-			return Result{URL: URL.String(), Input: domain, Timestamp: time.Now(), err: err, Failed: err != nil, Error: errString, str: builder.String()}
+			return Result{URL: URL.String(), Input: origInput, Timestamp: time.Now(), err: err, Failed: err != nil, Error: errString, str: builder.String()}
 		} else {
-			return Result{URL: URL.String(), Input: domain, Timestamp: time.Now(), err: err}
+			return Result{URL: URL.String(), Input: origInput, Timestamp: time.Now(), err: err}
 		}
 	}
 
@@ -835,7 +893,7 @@ retry:
 	isvhost := false
 	if scanopts.VHost {
 		r.ratelimiter.Take()
-		isvhost, _ = hp.IsVirtualHost(req)
+		isvhost, _ = hp.IsVirtualHost(req, httpx.UnsafeOptions{})
 		if isvhost {
 			builder.WriteString(" [vhost]")
 		}
@@ -982,7 +1040,7 @@ retry:
 
 	parsed, err := urlutil.Parse(fullURL)
 	if err != nil {
-		return Result{URL: fullURL, err: errors.Wrap(err, "could not parse url")}
+		return Result{URL: fullURL, Input: origInput, err: errors.Wrap(err, "could not parse url")}
 	}
 
 	finalPort := parsed.Port
@@ -1026,7 +1084,7 @@ retry:
 		HeaderSHA256:     headersSha,
 		raw:              resp.Raw,
 		URL:              fullURL,
-		Input:            domain,
+		Input:            origInput,
 		ContentLength:    resp.ContentLength,
 		ChainStatusCodes: chainStatusCodes,
 		Chain:            chainItems,
