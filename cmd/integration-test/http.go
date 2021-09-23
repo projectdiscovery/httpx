@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -20,6 +21,7 @@ var httpTestcases = map[string]testutils.TestCase{
 	"Regression test for: https://github.com/projectdiscovery/httpx/issues/276": &issue276{}, // full path with port in output
 	"Regression test for: https://github.com/projectdiscovery/httpx/issues/277": &issue277{}, // scheme://host:port via stdin
 	"Regression test for: https://github.com/projectdiscovery/httpx/issues/303": &issue303{}, // misconfigured gzip header with uncompressed body
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/400": &issue400{}, // post operation with body
 }
 
 type standardHttpGet struct {
@@ -176,6 +178,29 @@ func (h *issue363) Execute() error {
 	defer ts.Close()
 
 	results, err := testutils.RunHttpxAndGetResults(ts.URL+"/redirect", debug, "-no-color", "-follow-redirects")
+	if err != nil {
+		return err
+	}
+	if len(results) != 1 {
+		return errIncorrectResultsCount(results)
+	}
+	return nil
+}
+
+type issue400 struct{}
+
+func (h *issue400) Execute() error {
+	var ts *httptest.Server
+	router := httprouter.New()
+	router.POST("/receive", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		w.Header().Add("Content-Type", "application/json")
+		data, _ := ioutil.ReadAll(r.Body)
+		fmt.Fprintf(w, "data received %s", data)
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+
+	results, err := testutils.RunHttpxAndGetResults(ts.URL+"/receive", debug, "-body 'a=b'", "-x POST", "-status-code")
 	if err != nil {
 		return err
 	}
