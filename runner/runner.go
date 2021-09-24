@@ -716,7 +716,6 @@ retry:
 	if r.options.ShowStatistics {
 		r.stats.IncrementCounter("requests", 1)
 	}
-
 	var requestDump []byte
 	if scanopts.Unsafe {
 		var errDump error
@@ -726,8 +725,10 @@ retry:
 		}
 	} else {
 		// Create a copy on the fly of the request body
-		bodyBytes, _ := req.BodyBytes()
-		req.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+		if scanopts.RequestBody != "" {
+			req.ContentLength = int64(len(scanopts.RequestBody))
+			req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
+		}
 		var errDump error
 		requestDump, errDump = httputil.DumpRequestOut(req.Request, true)
 		if errDump != nil {
@@ -735,12 +736,11 @@ retry:
 		}
 		// The original req.Body gets modified indirectly by httputil.DumpRequestOut so we set it again to nil if it was empty
 		// Otherwise redirects like 307/308 would fail (as they require the body to be sent along)
-		if len(bodyBytes) == 0 {
+		if len(scanopts.RequestBody) == 0 {
 			req.ContentLength = 0
 			req.Body = nil
 		}
 	}
-
 	// fix the final output url
 	fullURL := req.URL.String()
 	parsedURL, _ := urlutil.Parse(fullURL)
