@@ -250,7 +250,7 @@ func ParseOptions() *Options {
 	flag.StringVar(&options.OutputFilterRegex, "filter-regex", "", "Filter response with specific regex")
 	flag.StringVar(&options.OutputMatchRegex, "match-regex", "", "Match response with specific regex")
 	flag.BoolVar(&options.OutputCName, "cname", false, "Display Host cname")
-	flag.BoolVar(&options.OutputCDN, "cdn", false, "Diplay CDN")
+	flag.BoolVar(&options.OutputCDN, "cdn", false, "Display CDN")
 	flag.BoolVar(&options.OutputResponseTime, "response-time", false, "Display the response time")
 	flag.BoolVar(&options.NoFallback, "no-fallback", false, "Probe both protocol (HTTPS and HTTP)")
 	flag.BoolVar(&options.NoFallbackScheme, "no-fallback-scheme", false, "Probe with input protocol scheme")
