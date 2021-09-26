@@ -313,7 +313,7 @@ func (r *Runner) prepareInput() {
 }
 
 func (r *Runner) setSeen(k string) {
-	r.hm.Set(k, nil)
+	_ = r.hm.Set(k, nil)
 }
 
 func (r *Runner) seen(k string) bool {
@@ -612,12 +612,11 @@ func (r *Runner) RunEnumeration() {
 
 	if r.options.Stream {
 		for item := range streamChan {
-			processItem(item)
+			_ = processItem(item)
 		}
 	} else {
 		r.hm.Scan(func(k, _ []byte) error {
-			processItem(string(k))
-			return nil
+			return processItem(string(k))
 		})
 	}
 
