@@ -77,150 +77,90 @@ This will display help for the tool. Here are all the switches it supports.
 <summary> 👉 httpx help menu 👈</summary>
 
 ```
-  -H value
-        Custom Header to send with request
-  -allow value
-        Allow list of IP/CIDR's to process (file or comma separated)
-  -body string
-        Content to send in body with HTTP request
-  -cdn
-        Diplay CDN
-  -cname
-        Display Host cname
-  -content-length
-        Display HTTP response content length
-  -content-type
-        Display content-type header
-  -csp-probe
-        Send HTTP probes on the extracted CSP domains
-  -csv
-        Display output in CSV format
-  -debug
-        Debug mode
-  -deny value
-        Deny list of IP/CIDR's to process (file or comma separated)
-  -exclude-cdn
-        Skip full port scans for CDNs (only checks for 80,443)
-  -extract-regex string
-        Display response content with matched regex
-  -fc string
-        Filter response with specific status code (-fc 403,401)
-  -filter-regex string
-        Filter response with specific regex
-  -filter-string string
-        Filter response with specific string
-  -fl string
-        Filter response with specific content length (-fl 23)
-  -follow-host-redirects
-        Only Follow redirects on the same host
-  -follow-redirects
-        Follow HTTP Redirects
-  -http-proxy string
-        HTTP Proxy, eg http://127.0.0.1:8080
-  -http2
-        HTTP2 probe
-  -include-chain
-        Show Raw HTTP Chain In Output (-json only)
-  -include-response
-        Show Raw HTTP response In Output (-json only)
-  -ip
-        Display Host IP
-  -json
-        Display output in JSON format
-  -l string
-        Input file containing list of hosts to process
-  -location
-        Display location header
-  -match-regex string
-        Match response with specific regex
-  -match-string string
-        Match response with specific string
-  -max-host-error int
-        Max error count per host before skipping remaining path/s (default 30)
-  -max-redirects int
-        Max number of redirects to follow per host (default 10)
-  -mc string
-        Match response with specific status code (-mc 200,302)
-  -method
-        Display request method
-  -ml string
-        Match response with specific content length (-ml 102)
-  -no-color
-        Disable colored output
-  -no-fallback
-        Probe both protocol (HTTPS and HTTP)
-  -no-fallback-scheme
-        Probe with input protocol scheme
-  -o string
-        File to write output to (optional)
-  -path string
-        Request path/file (example '/api')
-  -paths string
-        Command separated paths or file containing one path per line (example '/api/v1,/apiv2')
-  -pipeline
-        HTTP1.1 Pipeline probe
-  -ports value
-        Port ranges to scan (nmap syntax: eg 1,2-10,11)
-  -probe
-        Display probe status
-  -random-agent
-        Use randomly selected HTTP User-Agent header value (default true)
-  -rate-limit int
-        Maximum requests to send per second (default 150)
-  -request string
-        File containing raw request
-  -response-in-json
-        Show Raw HTTP response In Output (-json only) (deprecated)
-  -response-size-to-read int
-        Max response size to read in bytes (default - unlimited) (default 2147483647)
-  -response-size-to-save int
-        Max response size to save in bytes (default - unlimited) (default 2147483647)
-  -response-time
-        Display the response time
-  -resume
-        Resume scan using resume.cfg
-  -retries int
-        Number of retries
-  -silent
-        Silent mode
-  -sr
-        Store HTTP response to directoy (default 'output')
-  -srd string
-        Custom directory to store HTTP responses (default "output")
-  -stats
-        Enable statistic on keypress (terminal may become unresponsive till the end)
-  -status-code
-        Display HTTP response status code
-  -store-chain
-        Save chain to file (default 'output')
-  -tech-detect
-        Perform wappalyzer based technology detection
-  -threads int
-        Number of threads (default 50)
-  -timeout int
-        Timeout in seconds (default 5)
-  -title
-        Display page title
-  -tls-grab
-        Perform TLS(SSL) data grabbing
-  -tls-probe
-        Send HTTP probes on the extracted TLS domains
-  -unsafe
-        Send raw requests skipping golang normalization
-  -verbose
-        Verbose Mode
-  -version
-        Show version of httpx
-  -vhost
-        Check for VHOSTs
-  -vhost-input
-        Get a list of vhosts as input
-  -web-server
-        Display server header
-  -websocket
-        Display server using websocket
-  -x string
-        Request Methods to use, use 'all' to probe all HTTP methods
+Usage:
+  httpx [flags]
+  Flags:
+TARGET:
+   -vhost-input        Get a list of vhosts as input
+   -H string[]         Custom Header to send with request
+   -ports string[]     Port ranges to scan (nmap syntax: eg 1,2-10,11)
+   -http-proxy string  HTTP Proxy, eg http://127.0.0.1:8080
+   -l string           Input file containing list of hosts to process
+   -x string           Request Methods to use, use 'all' to probe all HTTP methods
+   -path string        Request path/file (example '/api')
+   -paths string       Command separated paths or file containing one path per line (example '/api/v1,/apiv2')
+   -body string        Content to send in body with HTTP request
+
+TEMPLATE:
+   -tls-grab                   Perform TLS(SSL) data grabbing
+   -tech-detect                Perform wappalyzer based technology detection
+   -threads int                Number of threads (default 50)
+   -retries int                Number of retries
+   -timeout int                Timeout in seconds (default 5)
+   -vhost                      Check for VHOSTs
+   -follow-redirects           Follow HTTP Redirects
+   -follow-host-redirects      Only Follow redirects on the same host
+   -max-redirects int          Max number of redirects to follow per host (default 10)
+   -tls-probe                  Send HTTP probes on the extracted TLS domains
+   -csp-probe                  Send HTTP probes on the extracted CSP domains
+   -unsafe                     Send raw requests skipping golang normalization
+   -pipeline                   HTTP1.1 Pipeline probe
+   -http2                      HTTP2 probe
+   -no-fallback                Probe both protocol (HTTPS and HTTP)
+   -no-fallback-scheme         Probe with input protocol scheme
+   -random-agent               Use randomly selected HTTP User-Agent header value (default true)
+   -allow string[]             Allow list of IP/CIDR's to process (file or comma separated)
+   -deny string[]              Deny list of IP/CIDR's to process (file or comma separated)
+   -response-size-to-save int  Max response size to save in bytes (default - unlimited) (default 2147483647)
+   -response-size-to-read int  Max response size to read in bytes (default - unlimited) (default 2147483647)
+   -resume                     Resume scan using resume.cfg
+   -exclude-cdn                Skip full port scans for CDNs (only checks for 80,443)
+   -max-host-error int         Max error count per host before skipping remaining path/s (default 30)
+
+FILTERING:
+   -mc string             Match response with specific status code (-mc 200,302)
+   -ml string             Match response with specific content length (-ml 102)
+   -fc string             Filter response with specific status code (-fc 403,401)
+   -fl string             Filter response with specific content length (-fl 23)
+   -filter-string string  Filter response with specific string
+   -match-string string   Match response with specific string
+   -filter-regex string   Filter response with specific regex
+   -match-regex string    Match response with specific regex
+   -extract-regex string  Display response content with matched regex
+
+RATE-LIMIT:
+   -rate-limit int  Maximum requests to send per second (default 150)
+
+OUTPUT:
+   -o string          File to write output to (optional)
+   -status-code       Display HTTP response status code
+   -title             Display page title
+   -location          Display location header
+   -content-length    Display HTTP response content length
+   -sr                Store HTTP response to directory (default 'output')
+   -srd string        Custom directory to store HTTP responses (default "output")
+   -json              Display output in JSON format
+   -csv               Display output in CSV format
+   -method            Display request method
+   -silent            Silent mode
+   -version           Show version of httpx
+   -verbose           Verbose Mode
+   -no-color          Disable colored output
+   -web-server        Display server header
+   -websocket         Display server using websocket
+   -response-in-json  Show Raw HTTP response In Output (-json only) (deprecated)
+   -include-response  Show Raw HTTP response In Output (-json only)
+   -include-chain     Show Raw HTTP Chain In Output (-json only)
+   -content-type      Display content-type header
+   -ip                Display Host IP
+   -request string    File containing raw request
+   -debug             Debug mode
+   -cname             Display Host cname
+   -cdn               Display CDN
+   -response-time     Display the response time
+   -stats             Enable statistic on keypress (terminal may become unresponsive till the end)
+   -store-chain       Save chain to file (default 'output')
+   -probe             Display probe status
 ```
 </details>
 
