@@ -285,7 +285,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "Save chain to file (default 'output')"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "Display probe status"),
 	)
-	flagSet.Parse()
+	_ = flagSet.Parse()
 	// Read the inputs and configure the logging
 	options.configureOutput()
 
