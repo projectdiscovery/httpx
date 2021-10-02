@@ -254,6 +254,18 @@ func ParseOptions() *Options {
 		flagSet.StringVar(&options.RequestURIs, "paths", "", "File or comma separated paths to request (deprecated)"),
 	)
 
+	createGroup(flagSet, "output", "Output",
+		flagSet.StringVarP(&options.Output,"output", "o", "", "File to write output"),
+		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "Store HTTP responses"),
+		flagSet.StringVarP(&options.StoreResponseDir,"store-response-dir", "srd", "output", "Custom directory to store HTTP responses"),
+		flagSet.BoolVar(&options.JSONOutput, "json", false, "Output in JSONL(ines) format"),
+		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr",false, "Include HTTP request/response in JSON output (-json only)"),
+		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "Include redirect HTTP Chain in JSON output (-json only)"),
+		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "Include HTTP redirect chain in responses (-sr only)"),
+		flagSet.BoolVar(&options.CSVOutput, "csv", false, "Output in CSV format"),
+
+	)
+
 	createGroup(flagSet, "configs", "Configurations",
 		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", math.MaxInt32, "Max response size to save in bytes"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToRead,"response-size-to-read", "rstr", math.MaxInt32, "Max response size to read in bytes"),
@@ -274,13 +286,6 @@ func ParseOptions() *Options {
 		flagSet.StringVar(&options.RequestBody, "body", "", "Post body to include in HTTP request"),
 	)
 
-	createGroup(flagSet, "Optimizations", "Optimizations",
-		flagSet.IntVar(&options.Retries, "retries", 0, "Number of retries"),
-		flagSet.IntVar(&options.Timeout, "timeout", 5, "Timeout in seconds"),
-		flagSet.IntVarP(&options.HostMaxErrors,"max-host-error", "maxhr",  30, "Max error count per host before skipping remaining path/s"),
-		flagSet.BoolVarP(&options.ExcludeCDN,"exclude-cdn", "ec", false, "Skip full port scans for CDNs (only checks for 80,443)"),
-	)
-
 	createGroup(flagSet, "debug", "Debug",
 		flagSet.BoolVar(&options.Silent, "silent", false, "Silent mode"),
 		flagSet.BoolVar(&options.Verbose, "verbose", false, "Verbose mode"),
@@ -289,17 +294,13 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.ShowStatistics, "stats", false, "Display scan statistic"),
 	)
 
-	createGroup(flagSet, "output", "Output",
-		flagSet.StringVarP(&options.Output,"output", "o", "", "File to write output"),
-		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "Store HTTP responses"),
-		flagSet.StringVarP(&options.StoreResponseDir,"store-response-dir", "srd", "output", "Custom directory to store HTTP responses"),
-		flagSet.BoolVar(&options.JSONOutput, "json", false, "Output in JSONL(ines) format"),
-		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr",false, "Include HTTP request/response in JSON output (-json only)"),
-		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "Include redirect HTTP Chain in JSON output (-json only)"),
-		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "Include HTTP redirect chain in responses (-sr only)"),
-		flagSet.BoolVar(&options.CSVOutput, "csv", false, "Output in CSV format"),
-
+	createGroup(flagSet, "Optimizations", "Optimizations",
+		flagSet.IntVar(&options.Retries, "retries", 0, "Number of retries"),
+		flagSet.IntVar(&options.Timeout, "timeout", 5, "Timeout in seconds"),
+		flagSet.IntVarP(&options.HostMaxErrors,"max-host-error", "maxhr",  30, "Max error count per host before skipping remaining path/s"),
+		flagSet.BoolVarP(&options.ExcludeCDN,"exclude-cdn", "ec", false, "Skip full port scans for CDNs (only checks for 80,443)"),
 	)
+
 	_ = flagSet.Parse()
 	// Read the inputs and configure the logging
 	options.configureOutput()
