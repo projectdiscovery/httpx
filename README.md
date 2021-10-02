@@ -29,8 +29,8 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 
 # Features
 
-<h1 align="left">
-  <img src="https://user-images.githubusercontent.com/8293321/117307789-8129d400-ae9e-11eb-8bb8-57fc7410b9ef.png" alt="httpx" width="700px"></a>
+<h1 align="center">
+  <img src="https://user-images.githubusercontent.com/8293321/135731750-4c1d38b1-bd2a-40f9-88e9-3c4b9f6da378.png" alt="httpx" width="700px"></a>
   <br>
 </h1>
 
