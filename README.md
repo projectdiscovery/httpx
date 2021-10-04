@@ -282,6 +282,34 @@ https://support.hackerone.com [301,302,301,200] [HackerOne] [Cloudflare,Ruby on 
 https://resources.hackerone.com [301,301,404] [Sorry, no Folders found.]
 ```
 
+### Running httpx with docker
+
+```console
+cat sub_domains.txt | docker run -i projectdiscovery/httpx
+
+    __    __  __       _  __
+   / /_  / /_/ /_____ | |/ /
+  / __ \/ __/ __/ __ \|   /
+ / / / / /_/ /_/ /_/ /   |
+/_/ /_/\__/\__/ .___/_/|_|
+             /_/              v1.1.2
+
+      projectdiscovery.io
+
+Use with caution. You are responsible for your actions
+Developers assume no liability and are not responsible for any misuse or damage.
+https://mta-sts.forwarding.hackerone.com
+https://mta-sts.hackerone.com
+https://mta-sts.managed.hackerone.com
+https://www.hackerone.com
+https://api.hackerone.com
+https://gslink.hackerone.com
+https://resources.hackerone.com
+https://docs.hackerone.com
+https://support.hackerone.com
+```
+
+
 # 📋 Notes
 
 - As default, **httpx** checks for `HTTPS` probe and fall-back to `HTTP` only if `HTTPS` is not reachable.
