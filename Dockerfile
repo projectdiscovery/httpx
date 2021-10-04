@@ -1,6 +1,6 @@
 FROM golang:1.17.1-alpine AS builder
 RUN apk add --no-cache git
-RUN GO111MODULE=on go get -v github.com/projectdiscovery/httpx/cmd/httpx
+RUN go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
 
 FROM alpine:3.14
 RUN apk -U upgrade --no-cache \
