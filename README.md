@@ -59,10 +59,10 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 
 # Installation Instructions
 
-httpx requires **go1.14+** to install successfully. Run the following command to get the repo - 
+httpx requires **go1.17** to install successfully. Run the following command to get the repo - 
 
 ```sh
-GO111MODULE=on go get -v github.com/projectdiscovery/httpx/cmd/httpx
+go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
 ```
 
 # Usage
@@ -73,156 +73,103 @@ httpx -h
 
 This will display help for the tool. Here are all the switches it supports.
 
-<details>
-<summary> 👉 httpx help menu 👈</summary>
 
+```console
+Usage:
+  ./httpx [flags]
+
+Flags:
+INPUT:
+   -l, -list string  Input file containing list of hosts to process
+   -request string   File containing raw request
+
+PROBES:
+   -sc, -status-code     Display Status Code
+   -tech, -tech-detect   Display wappalyzer based technology detection
+   -cl, -content-length  Display Content-Length
+   -server, -web-server  Display Server header
+   -ct, -content-type    Display Content-Type header
+   -rt, -response-time   Display the response time
+   -title                Display page title
+   -location             Display Location header
+   -method               Display Request method
+   -websocket            Display server using websocket
+   -ip                   Display Host IP
+   -cname                Display Host cname
+   -cdn                  Display if CDN in use
+   -probe                Display probe status
+   -nf, -no-fallback     Display both protocol (HTTPS and HTTP)
+
+MATCHERS:
+   -mc, -match-code string     Match response with given status code (-mc 200,302)
+   -ml, -match-length string   Match response with given content length (-ml 100,102)
+   -ms, -match-string string   Match response with given string
+   -mr, -match-regex string    Match response with specific regex
+   -er, -extract-regex string  Display response content with matched regex
+
+FILTERS:
+   -fc, -filter-code string    Filter response with given status code (-fc 403,401)
+   -fl, -filter-length string  Filter response with given content length (-fl 23,33)
+   -fs, -filter-string string  Filter response with specific string
+   -fe, -filter-regex string   Filter response with specific regex
+
+RATE-LIMIT:
+   -t, -threads int      Number of threads (default 50)
+   -rl, -rate-limit int  Maximum requests to send per second (default 150)
+
+MISCELLANEOUS:
+   -tls-grab            Perform TLS(SSL) data grabbing
+   -tls-probe           Send HTTP probes on the extracted TLS domains
+   -csp-probe           Send HTTP probes on the extracted CSP domains
+   -pipeline            HTTP1.1 Pipeline probe
+   -http2               HTTP2 probe
+   -vhost               VHOST Probe
+   -p, -ports string[]  Port to scan (nmap syntax: eg 1,2-10,11)
+   -path string         File or comma separated paths to request
+   -paths string        File or comma separated paths to request (deprecated)
+
+OUTPUT:
+   -o, -output string                File to write output
+   -sr, -store-response              Store HTTP responses
+   -srd, -store-response-dir string  Custom directory to store HTTP responses (default "output")
+   -json                             Output in JSONL(ines) format
+   -irr, -include-response           Include HTTP request/response in JSON output (-json only)
+   -include-chain                    Include redirect HTTP Chain in JSON output (-json only)
+   -store-chain                      Include HTTP redirect chain in responses (-sr only)
+   -csv                              Output in CSV format
+
+CONFIGURATIONS:
+   -rsts, -response-size-to-save int  Max response size to save in bytes (default 2147483647)
+   -rstr, -response-size-to-read int  Max response size to read in bytes (default 2147483647)
+   -allow string[]                    Allowed list of IP/CIDR's to process (file or comma separated)
+   -deny string[]                     Denied list of IP/CIDR's to process (file or comma separated)
+   -random-agent                      Enable Random User-Agent to use (default true)
+   -H, -header string[]               Custom Header to send with request
+   -http-proxy, -proxy string         HTTP Proxy, eg http://127.0.0.1:8080
+   -unsafe                            Send raw requests skipping golang normalization
+   -resume                            Resume scan using resume.cfg
+   -nc, -no-color                     Disable color in output
+   -nfs, -no-fallback-scheme          Probe with input protocol scheme
+   -fr, -follow-redirects             Follow HTTP redirects
+   -fhr, -follow-host-redirects       Follow redirects on the same host
+   -maxr, -max-redirects int          Max number of redirects to follow per host (default 10)
+   -vhost-input                       Get a list of vhosts as input
+   -x string                          Request methods to use, use 'all' to probe all HTTP methods
+   -body string                       Post body to include in HTTP request
+
+OPTIMIZATIONS:
+   -retries int                 Number of retries
+   -timeout int                 Timeout in seconds (default 5)
+   -maxhr, -max-host-error int  Max error count per host before skipping remaining path/s (default 30)
+   -ec, -exclude-cdn            Skip full port scans for CDNs (only checks for 80,443)
+
+DEBUG:
+   -silent   Silent mode
+   -verbose  Verbose mode
+   -version  Display version
+   -debug    Debug mode
+   -stats    Display scan statistic
 ```
-  -H value
-        Custom Header to send with request
-  -allow value
-        Allow list of IP/CIDR's to process (file or comma separated)
-  -body string
-        Content to send in body with HTTP request
-  -cdn
-        Diplay CDN
-  -cname
-        Display Host cname
-  -content-length
-        Display HTTP response content length
-  -content-type
-        Display content-type header
-  -csp-probe
-        Send HTTP probes on the extracted CSP domains
-  -csv
-        Display output in CSV format
-  -debug
-        Debug mode
-  -deny value
-        Deny list of IP/CIDR's to process (file or comma separated)
-  -exclude-cdn
-        Skip full port scans for CDNs (only checks for 80,443)
-  -extract-regex string
-        Display response content with matched regex
-  -fc string
-        Filter response with specific status code (-fc 403,401)
-  -filter-regex string
-        Filter response with specific regex
-  -filter-string string
-        Filter response with specific string
-  -fl string
-        Filter response with specific content length (-fl 23)
-  -follow-host-redirects
-        Only Follow redirects on the same host
-  -follow-redirects
-        Follow HTTP Redirects
-  -http-proxy string
-        HTTP Proxy, eg http://127.0.0.1:8080
-  -http2
-        HTTP2 probe
-  -include-chain
-        Show Raw HTTP Chain In Output (-json only)
-  -include-response
-        Show Raw HTTP response In Output (-json only)
-  -ip
-        Display Host IP
-  -json
-        Display output in JSON format
-  -l string
-        Input file containing list of hosts to process
-  -location
-        Display location header
-  -match-regex string
-        Match response with specific regex
-  -match-string string
-        Match response with specific string
-  -max-host-error int
-        Max error count per host before skipping remaining path/s (default 30)
-  -max-redirects int
-        Max number of redirects to follow per host (default 10)
-  -mc string
-        Match response with specific status code (-mc 200,302)
-  -method
-        Display request method
-  -ml string
-        Match response with specific content length (-ml 102)
-  -no-color
-        Disable colored output
-  -no-fallback
-        Probe both protocol (HTTPS and HTTP)
-  -no-fallback-scheme
-        Probe with input protocol scheme
-  -o string
-        File to write output to (optional)
-  -path string
-        Request path/file (example '/api')
-  -paths string
-        Command separated paths or file containing one path per line (example '/api/v1,/apiv2')
-  -pipeline
-        HTTP1.1 Pipeline probe
-  -ports value
-        Port ranges to scan (nmap syntax: eg 1,2-10,11)
-  -probe
-        Display probe status
-  -random-agent
-        Use randomly selected HTTP User-Agent header value (default true)
-  -rate-limit int
-        Maximum requests to send per second (default 150)
-  -request string
-        File containing raw request
-  -response-in-json
-        Show Raw HTTP response In Output (-json only) (deprecated)
-  -response-size-to-read int
-        Max response size to read in bytes (default - unlimited) (default 2147483647)
-  -response-size-to-save int
-        Max response size to save in bytes (default - unlimited) (default 2147483647)
-  -response-time
-        Display the response time
-  -resume
-        Resume scan using resume.cfg
-  -retries int
-        Number of retries
-  -silent
-        Silent mode
-  -sr
-        Store HTTP response to directoy (default 'output')
-  -srd string
-        Custom directory to store HTTP responses (default "output")
-  -stats
-        Enable statistic on keypress (terminal may become unresponsive till the end)
-  -status-code
-        Display HTTP response status code
-  -store-chain
-        Save chain to file (default 'output')
-  -tech-detect
-        Perform wappalyzer based technology detection
-  -threads int
-        Number of threads (default 50)
-  -timeout int
-        Timeout in seconds (default 5)
-  -title
-        Display page title
-  -tls-grab
-        Perform TLS(SSL) data grabbing
-  -tls-probe
-        Send HTTP probes on the extracted TLS domains
-  -unsafe
-        Send raw requests skipping golang normalization
-  -verbose
-        Verbose Mode
-  -version
-        Show version of httpx
-  -vhost
-        Check for VHOSTs
-  -vhost-input
-        Get a list of vhosts as input
-  -web-server
-        Display server header
-  -websocket
-        Display server using websocket
-  -x string
-        Request Methods to use, use 'all' to probe all HTTP methods
-```
-</details>
 
 # Running httpX
 
@@ -230,14 +177,14 @@ This will display help for the tool. Here are all the switches it supports.
 
 This will run the tool against all the hosts and subdomains in `hosts.txt` and returns URLs running HTTP webserver. 
 
-```sh
-▶ cat hosts.txt | httpx 
+```console
+cat hosts.txt | httpx 
 
     __    __  __       _  __
    / /_  / /_/ /_____ | |/ /
   / __ \/ __/ __/ __ \|   / 
  / / / / /_/ /_/ /_/ /   |  
-/_/ /_/\__/\__/ .___/_/|_|   v1.0  
+/_/ /_/\__/\__/ .___/_/|_|   v1.1.1  
              /_/            
 
     projectdiscovery.io
@@ -259,8 +206,8 @@ https://support.hackerone.com
 
 This will run the tool with the `probe` flag against all of the hosts in **hosts.txt** and return URLs with probed status.
 
-```sh
-▶ httpx -l hosts.txt -silent -probe
+```console
+httpx -list hosts.txt -silent -probe
 
 http://ns.hackerone.com [FAILED]
 https://docs.hackerone.com [SUCCESS]
@@ -286,8 +233,8 @@ http://b.ns.hackerone.com [FAILED]
 
 ### Running httpx with CIDR input   
 
-```sh
-▶ echo 173.0.84.0/24 | httpx -silent
+```console
+echo 173.0.84.0/24 | httpx -silent
 
 https://173.0.84.29
 https://173.0.84.43
@@ -313,15 +260,15 @@ https://173.0.84.34
 ### Running httpx with subfinder
 
 
-```sh
-subfinder -d hackerone.com | httpx -title -tech-detect -status-code
+```console
+subfinder -d hackerone.com -silent| httpx -title -tech-detect -status-code
 
     __    __  __       _  __
    / /_  / /_/ /_____ | |/ /
   / __ \/ __/ __/ __ \|   /
  / / / / /_/ /_/ /_/ /   |
 /_/ /_/\__/\__/ .___/_/|_|
-             /_/              v1.0.6
+             /_/              v1.1.1
 
     projectdiscovery.io
 
@@ -345,7 +292,7 @@ https://resources.hackerone.com [301,301,404] [Sorry, no Folders found.]
 - When using `json` flag, all the information (default probes) included in the JSON output.
 
 
-# Thanks
+# Acknowledgement
 
 httpx is made with 🖤 by the [projectdiscovery](https://projectdiscovery.io) team. Community contributions have made the project what it is. See the **[Thanks.md](https://github.com/projectdiscovery/httpx/blob/master/THANKS.md)** file for more details. Do also check out these similar awesome projects that may fit in your workflow:
 
