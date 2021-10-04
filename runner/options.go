@@ -190,6 +190,8 @@ type Options struct {
 	resumeCfg                 *ResumeCfg
 	ExcludeCDN                bool
 	HostMaxErrors             int
+	Stream                    bool
+	SkipDedupe                bool
 }
 
 // ParseOptions parses the command line options for application
@@ -284,6 +286,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.VHostInput, "vhost-input", false, "Get a list of vhosts as input"),
 		flagSet.StringVar(&options.Methods, "x", "", "Request methods to use, use 'all' to probe all HTTP methods"),
 		flagSet.StringVar(&options.RequestBody, "body", "", "Post body to include in HTTP request"),
+		flagSet.BoolVarP(&options.Stream, "stream","s", false, "Stream mode - start elaborating input targets without sorting"),
+		flagSet.BoolVarP(&options.SkipDedupe, "skip-dedupe","sd", false, "Disable dedupe input items (only used with stream mode)"),
 	)
 
 	createGroup(flagSet, "debug", "Debug",

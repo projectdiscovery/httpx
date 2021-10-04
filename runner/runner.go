@@ -232,6 +232,8 @@ func New(options *Options) (*Runner, error) {
 		}
 	}
 
+	hmapOptions := hybrid.DefaultDiskOptions
+	hmapOptions.DBType = hybrid.PogrebDB
 	hm, err := hybrid.New(hybrid.DefaultDiskOptions)
 	if err != nil {
 		return nil, err
@@ -308,6 +310,77 @@ func (r *Runner) prepareInput() {
 			gologger.Warning().Msgf("Could not create statistics: %s\n", err)
 		}
 	}
+}
+
+func (r *Runner) setSeen(k string) {
+	_ = r.hm.Set(k, nil)
+}
+
+func (r *Runner) seen(k string) bool {
+	_, ok := r.hm.Get(k)
+	return ok
+}
+
+func (r *Runner) testAndSet(k string) bool {
+	// skip empty lines
+	k = strings.TrimSpace(k)
+	if k == "" {
+		return false
+	}
+
+	if r.seen(k) {
+		return false
+	}
+
+	r.setSeen(k)
+	return true
+}
+
+func (r *Runner) streamInput() (chan string, error) {
+	out := make(chan string)
+	go func() {
+		defer close(out)
+
+		if fileutil.FileExists(r.options.InputFile) {
+			fchan, err := fileutil.ReadFile(r.options.InputFile)
+			if err != nil {
+				return
+			}
+			for item := range fchan {
+				if r.options.SkipDedupe || r.testAndSet(item) {
+					out <- item
+				}
+			}
+		} else if r.options.InputFile != "" {
+			files, err := fileutilz.ListFilesWithPattern(r.options.InputFile)
+			if err != nil {
+				gologger.Fatal().Msgf("No input provided: %s", err)
+			}
+			for _, file := range files {
+				fchan, err := fileutil.ReadFile(file)
+				if err != nil {
+					return
+				}
+				for item := range fchan {
+					if r.options.SkipDedupe || r.testAndSet(item) {
+						out <- item
+					}
+				}
+			}
+		}
+		if fileutil.HasStdin() {
+			fchan, err := fileutil.ReadFileWithReader(os.Stdin)
+			if err != nil {
+				return
+			}
+			for item := range fchan {
+				if r.options.SkipDedupe || r.testAndSet(item) {
+					out <- item
+				}
+			}
+		}
+	}()
+	return out, nil
 }
 
 func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
@@ -415,11 +488,20 @@ func (r *Runner) RunEnumeration() {
 		}
 	}
 
-	r.prepareInput()
+	var streamChan chan string
+	if r.options.Stream {
+		var err error
+		streamChan, err = r.streamInput()
+		if err != nil {
+			gologger.Fatal().Msgf("Could not stream input: %s\n", err)
+		}
+	} else {
+		r.prepareInput()
 
-	// if resume is enabled inform the user
-	if r.options.ShouldLoadResume() && r.options.resumeCfg.Index > 0 {
-		gologger.Debug().Msgf("Resuming at position %d: %s\n", r.options.resumeCfg.Index, r.options.resumeCfg.ResumeFrom)
+		// if resume is enabled inform the user
+		if r.options.ShouldLoadResume() && r.options.resumeCfg.Index > 0 {
+			gologger.Debug().Msgf("Resuming at position %d: %s\n", r.options.resumeCfg.Index, r.options.resumeCfg.ResumeFrom)
+		}
 	}
 
 	// output routine
@@ -498,11 +580,9 @@ func (r *Runner) RunEnumeration() {
 
 	wg := sizedwaitgroup.New(r.options.Threads)
 
-	r.hm.Scan(func(k, _ []byte) error {
-		t := string(k)
-
+	processItem := func(k string) error {
 		if r.options.resumeCfg != nil {
-			r.options.resumeCfg.current = t
+			r.options.resumeCfg.current = k
 			r.options.resumeCfg.currentIndex++
 			if r.options.resumeCfg.currentIndex <= r.options.resumeCfg.Index {
 				return nil
@@ -511,7 +591,7 @@ func (r *Runner) RunEnumeration() {
 
 		protocol := r.options.protocol
 		// attempt to parse url as is
-		if u, err := url.Parse(t); err == nil {
+		if u, err := url.Parse(k); err == nil {
 			if r.options.NoFallbackScheme && u.Scheme == httpx.HTTP || u.Scheme == httpx.HTTPS {
 				protocol = u.Scheme
 			}
@@ -521,14 +601,24 @@ func (r *Runner) RunEnumeration() {
 			for _, p := range r.options.requestURIs {
 				scanopts := r.scanopts.Clone()
 				scanopts.RequestURI = p
-				r.process(t, &wg, r.hp, protocol, scanopts, output)
+				r.process(k, &wg, r.hp, protocol, scanopts, output)
 			}
 		} else {
-			r.process(t, &wg, r.hp, protocol, &r.scanopts, output)
+			r.process(k, &wg, r.hp, protocol, &r.scanopts, output)
 		}
 
 		return nil
-	})
+	}
+
+	if r.options.Stream {
+		for item := range streamChan {
+			_ = processItem(item)
+		}
+	} else {
+		r.hm.Scan(func(k, _ []byte) error {
+			return processItem(string(k))
+		})
+	}
 
 	wg.Wait()
 
