@@ -73,7 +73,7 @@ func New(options *Options) (*HTTPX, error) {
 	if httpx.Options.FollowHostRedirects {
 		// Only follow redirects on the same host up to a maximum number
 		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
-			// Check if we get a redirect to a differen host
+			// Check if we get a redirect to a different host
 			var newHost = redirectedRequest.URL.Host
 			var oldHost = previousRequests[0].URL.Host
 			if newHost != oldHost {
@@ -194,12 +194,17 @@ get_response:
 		respbodystr = h.htmlPolicy.Sanitize(respbodystr)
 	}
 
-	if contentLength, ok := resp.Headers["Content-Length"]; ok {
-		contentLengthInt, err := strconv.Atoi(strings.Join(contentLength, ""))
-		if err != nil {
-			resp.ContentLength = utf8.RuneCountInString(respbodystr)
-		} else {
+	// if content length is not defined
+	if resp.ContentLength <= 0 {
+		// check if it's in the header and convert to int
+		if contentLength, ok := resp.Headers["Content-Length"]; ok {
+			contentLengthInt, _ := strconv.Atoi(strings.Join(contentLength, ""))
 			resp.ContentLength = contentLengthInt
+		}
+
+		// if we have a body, then use the number of bytes in the body if the length is still zero
+		if resp.ContentLength <= 0 && len(respbodystr) > 0 {
+			resp.ContentLength = utf8.RuneCountInString(respbodystr)
 		}
 	}
 
