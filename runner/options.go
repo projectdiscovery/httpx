@@ -208,7 +208,7 @@ func ParseOptions() *Options {
 
 	createGroup(flagSet, "Probes", "Probes",
 		flagSet.BoolVarP(&options.StatusCode,"status-code", "sc", false, "Display Status Code"),
-		flagSet.BoolVarP(&options.TechDetect,"tech-detect", "tech", false, "Display wappalyzer based technology detection"),
+		flagSet.BoolVarP(&options.TechDetect,"tech-detect", "td", false, "Display wappalyzer based technology detection"),
 		flagSet.BoolVarP(&options.ContentLength,"content-length", "cl", false, "Display Content-Length"),
 		flagSet.BoolVarP(&options.OutputServerHeader,"web-server","server", false, "Display Server header"),
 		flagSet.BoolVarP(&options.OutputContentType,"content-type", "ct", false, "Display Content-Type header"),
