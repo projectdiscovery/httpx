@@ -85,7 +85,7 @@ INPUT:
 
 PROBES:
    -sc, -status-code     Display Status Code
-   -tech, -tech-detect   Display wappalyzer based technology detection
+   -td, -tech-detect   Display wappalyzer based technology detection
    -cl, -content-length  Display Content-Length
    -server, -web-server  Display Server header
    -ct, -content-type    Display Content-Type header
