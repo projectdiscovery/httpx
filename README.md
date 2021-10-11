@@ -85,7 +85,7 @@ INPUT:
 
 PROBES:
    -sc, -status-code     Display Status Code
-   -td, -tech-detect   Display wappalyzer based technology detection
+   -td, -tech-detect     Display wappalyzer based technology detection
    -cl, -content-length  Display Content-Length
    -server, -web-server  Display Server header
    -ct, -content-type    Display Content-Type header
@@ -156,12 +156,8 @@ CONFIGURATIONS:
    -vhost-input                       Get a list of vhosts as input
    -x string                          Request methods to use, use 'all' to probe all HTTP methods
    -body string                       Post body to include in HTTP request
-
-OPTIMIZATIONS:
-   -retries int                 Number of retries
-   -timeout int                 Timeout in seconds (default 5)
-   -maxhr, -max-host-error int  Max error count per host before skipping remaining path/s (default 30)
-   -ec, -exclude-cdn            Skip full port scans for CDNs (only checks for 80,443)
+   -s, -stream                        Stream mode - start elaborating input targets without sorting
+   -sd, -skip-dedupe                  Disable dedupe input items (only used with stream mode)
 
 DEBUG:
    -silent   Silent mode
@@ -169,6 +165,12 @@ DEBUG:
    -version  Display version
    -debug    Debug mode
    -stats    Display scan statistic
+
+OPTIMIZATIONS:
+   -retries int                 Number of retries
+   -timeout int                 Timeout in seconds (default 5)
+   -maxhr, -max-host-error int  Max error count per host before skipping remaining path/s (default 30)
+   -ec, -exclude-cdn            Skip full port scans for CDNs (only checks for 80,443)
 ```
 
 # Running httpX
