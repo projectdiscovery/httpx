@@ -256,14 +256,16 @@ func New(options *Options) (*Runner, error) {
 	return runner, nil
 }
 
-func (r *Runner) prepareInput() {
+func (r *Runner) prepareInputPaths() {
 	// Check if the user requested multiple paths
 	if fileutil.FileExists(r.options.RequestURIs) {
 		r.options.requestURIs = fileutilz.LoadFile(r.options.RequestURIs)
 	} else if r.options.RequestURIs != "" {
 		r.options.requestURIs = strings.Split(r.options.RequestURIs, ",")
 	}
+}
 
+func (r *Runner) prepareInput() {
 	// check if file has been provided
 	var numHosts int
 	if fileutil.FileExists(r.options.InputFile) {
@@ -487,6 +489,8 @@ func (r *Runner) RunEnumeration() {
 			gologger.Fatal().Msgf("Could not create output directory '%s': %s\n", r.options.StoreResponseDir, err)
 		}
 	}
+
+	r.prepareInputPaths()
 
 	var streamChan chan string
 	if r.options.Stream {
