@@ -840,6 +840,12 @@ retry:
 	} else if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
 		parsedURL.RequestURI = scanopts.RequestURI
 	}
+	if r.options.CustomHeaders.Has("Host:") {
+		hpCustomHost := strings.Split(hp.CustomHeaders["Host"], ":")[0]
+		if parsedURL.Host != hpCustomHost {
+			parsedURL.Host = hpCustomHost
+		}
+	}
 	fullURL = parsedURL.String()
 
 	builder := &strings.Builder{}
