@@ -723,12 +723,16 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan string {
 				results <- ip
 			}
 		} else if r.options.ProbeAllIPS {
-			ips, _, err := getDNSData(hp, target)
+			URL, err := urlutil.Parse(target)
+			if err != nil {
+				results <- target
+			}
+			ips, _, err := getDNSData(hp, URL.Host)
 			if err != nil || len(ips) == 0 {
 				results <- target
 			}
 			for _, ip := range ips {
-				results <- strings.Join([]string{ip, target}, ",")
+				results <- strings.Join([]string{ip, URL.Host, target}, ",")
 			}
 		} else {
 			results <- target
@@ -746,11 +750,11 @@ func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain, method, origInput st
 retry:
 	var customHost, customIP string
 	if scanopts.ProbeAllIPS {
-		parts := strings.SplitN(domain, ",", 2) // support `ProbeAllIPS` with `VHostInput`
-		if len(parts) == 2 {
+		parts := strings.SplitN(domain, ",", 3)
+		if len(parts) == 3 {
 			customIP = parts[0]
-			domain = parts[1]
 			customHost = parts[1]
+			domain = parts[2]
 		}
 	}
 	if scanopts.VHostInput {
