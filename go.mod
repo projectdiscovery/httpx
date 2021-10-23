@@ -12,7 +12,7 @@ require (
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/microcosm-cc/bluemonday v1.0.15
+	github.com/microcosm-cc/bluemonday v1.0.16
 	github.com/miekg/dns v1.1.43 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.2
@@ -22,6 +22,7 @@ require (
 	github.com/projectdiscovery/fdmax v0.0.3
 	github.com/projectdiscovery/fileutil v0.0.0-20210926044607-04f32490aa21
 	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c
+	github.com/projectdiscovery/goflags v0.0.7
 	github.com/projectdiscovery/gologger v1.1.4
 	github.com/projectdiscovery/hmap v0.0.2-0.20210630092648-6c0a1b362caa
 	github.com/projectdiscovery/httputil v0.0.0-20210816170244-86fd46bc09f5
@@ -62,7 +63,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/projectdiscovery/blackrock v0.0.0-20210415162320-b38689ae3a2e // indirect
-	github.com/projectdiscovery/goflags v0.0.7 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.1 // indirect
 	github.com/projectdiscovery/reflectutil v0.0.0-20210804085554-4d90952bf92f // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
