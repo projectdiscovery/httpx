@@ -1043,16 +1043,8 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
-	var (
-		ips    []string
-		cnames []string
-	)
-	dnsData, err := hp.Dialer.GetDNSData(URL.Host)
-	if dnsData != nil && err == nil {
-		ips = append(ips, dnsData.A...)
-		ips = append(ips, dnsData.AAAA...)
-		cnames = dnsData.CNAME
-	} else {
+	ips, cnames, err := getDNSData(hp, URL.Host)
+	if err != nil {
 		ips = append(ips, ip)
 	}
 
@@ -1369,4 +1361,16 @@ func (r *Runner) skipCDNPort(host string, port string) bool {
 	}
 
 	return false
+}
+
+func getDNSData(hp *httpx.HTTPX, hostname string) (ips, cnames []string, err error) {
+	dnsData, err := hp.Dialer.GetDNSData(hostname)
+	if err != nil {
+		return nil, nil, err
+	}
+	ips = make([]string, 0, len(dnsData.A)+len(dnsData.AAAA))
+	ips = append(ips, dnsData.A...)
+	ips = append(ips, dnsData.AAAA...)
+	cnames = dnsData.CNAME
+	return
 }
