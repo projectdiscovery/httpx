@@ -63,6 +63,7 @@ type scanOptions struct {
 	extractRegex              *regexp.Regexp
 	ExcludeCDN                bool
 	HostMaxErrors             int
+	ProbeAllIPS               bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -192,6 +193,7 @@ type Options struct {
 	HostMaxErrors             int
 	Stream                    bool
 	SkipDedupe                bool
+	ProbeAllIPS               bool
 }
 
 // ParseOptions parses the command line options for application
@@ -288,6 +290,7 @@ func ParseOptions() *Options {
 		flagSet.StringVar(&options.RequestBody, "body", "", "Post body to include in HTTP request"),
 		flagSet.BoolVarP(&options.Stream, "stream","s", false, "Stream mode - start elaborating input targets without sorting"),
 		flagSet.BoolVarP(&options.SkipDedupe, "skip-dedupe","sd", false, "Disable dedupe input items (only used with stream mode)"),
+		flagSet.BoolVar(&options.ProbeAllIPS, "probe-all-ips", false, "Probe all the ips"),
 	)
 
 	createGroup(flagSet, "debug", "Debug",

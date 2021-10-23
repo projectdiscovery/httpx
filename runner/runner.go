@@ -223,6 +223,7 @@ func New(options *Options) (*Runner, error) {
 
 	scanopts.ExcludeCDN = options.ExcludeCDN
 	scanopts.HostMaxErrors = options.HostMaxErrors
+	scanopts.ProbeAllIPS = options.ProbeAllIPS
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
@@ -637,7 +638,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
 
-	for target := range targets(stringz.TrimProtocol(t, scanopts.NoFallback || scanopts.NoFallbackScheme)) {
+	for target := range r.targets(hp, stringz.TrimProtocol(t, scanopts.NoFallback || scanopts.NoFallbackScheme)) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
 			for _, method := range scanopts.Methods {
@@ -700,7 +701,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 }
 
 // returns all the targets within a cidr range or the single target
-func targets(target string) chan string {
+func (r *Runner) targets(hp *httpx.HTTPX, target string) chan string {
 	results := make(chan string)
 	go func() {
 		defer close(results)
@@ -721,6 +722,14 @@ func targets(target string) chan string {
 			for _, ip := range cidrIps {
 				results <- ip
 			}
+		} else if r.options.ProbeAllIPS {
+			ips, _, err := getDNSData(hp, target)
+			if err != nil || len(ips) == 0 {
+				results <- target
+			}
+			for _, ip := range ips {
+				results <- strings.Join([]string{ip, target}, ",")
+			}
 		} else {
 			results <- target
 		}
@@ -735,7 +744,15 @@ func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain, method, origInput st
 	}
 	retried := false
 retry:
-	var customHost string
+	var customHost, customIP string
+	if scanopts.ProbeAllIPS {
+		parts := strings.SplitN(domain, ",", 2) // support `ProbeAllIPS` with `VHostInput`
+		if len(parts) == 2 {
+			customIP = parts[0]
+			domain = parts[1]
+			customHost = parts[1]
+		}
+	}
 	if scanopts.VHostInput {
 		parts := strings.Split(domain, ",")
 		//nolint:gomnd // not a magic number
@@ -789,6 +806,9 @@ retry:
 	if customHost != "" {
 		req.Host = customHost
 	}
+	if customIP != "" {
+		req.URL.Host = customIP
+	}
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
 	// We set content-length even if zero to allow net/http to follow 307/308 redirects (it fails on unknown size)
@@ -836,7 +856,7 @@ retry:
 		}
 	}
 	// fix the final output url
-	fullURL := req.URL.String()
+	fullURL := URL.String()
 	parsedURL, _ := urlutil.Parse(fullURL)
 	if r.options.Unsafe {
 		parsedURL.RequestURI = reqURI
@@ -1038,8 +1058,8 @@ retry:
 			r.stats.IncrementCounter("requests", 1)
 		}
 	}
-	ip := hp.Dialer.GetDialedIP(URL.Host)
-	if scanopts.OutputIP {
+	ip := hp.Dialer.GetDialedIP(req.URL.Host)
+	if scanopts.OutputIP || scanopts.ProbeAllIPS {
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
