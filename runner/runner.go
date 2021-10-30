@@ -846,6 +846,15 @@ retry:
 	}
 	fullURL = parsedURL.String()
 
+	if r.options.Debug || r.options.DebugRequests {
+		gologger.Info().Msgf("Dumped HTTP request for %s\n\n", fullURL)
+		gologger.Print().Msgf("%s", string(requestDump))
+	}
+	if r.options.Debug || r.options.DebugResponse {
+		gologger.Info().Msgf("Dumped HTTP response for %s\n\n", fullURL)
+		gologger.Print().Msgf("%s", string(resp.Raw))
+	}
+
 	builder := &strings.Builder{}
 	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
 

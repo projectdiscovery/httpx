@@ -167,6 +167,8 @@ type Options struct {
 	OutputCName               bool
 	Unsafe                    bool
 	Debug                     bool
+	DebugRequests             bool
+	DebugResponse             bool
 	Pipeline                  bool
 	HTTP2Probe                bool
 	OutputCDN                 bool
@@ -295,6 +297,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Verbose, "verbose", false, "Verbose mode"),
 		flagSet.BoolVar(&options.Version, "version", false, "Display version"),
 		flagSet.BoolVar(&options.Debug, "debug", false, "Debug mode"),
+		flagSet.BoolVar(&options.DebugRequests, "debug-req", false, "Show all sent requests"),
+		flagSet.BoolVar(&options.DebugResponse, "debug-resp", false, "Show all received responses"),
 		flagSet.BoolVar(&options.ShowStatistics, "stats", false, "Display scan statistic"),
 	)
 
