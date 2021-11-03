@@ -732,7 +732,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan string {
 				results <- target
 			}
 			for _, ip := range ips {
-				results <- strings.Join([]string{ip, URL.Host, target}, ",")
+				results <- strings.Join([]string{ip, target}, ",")
 			}
 		} else {
 			results <- target
@@ -750,11 +750,10 @@ func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain, method, origInput st
 retry:
 	var customHost, customIP string
 	if scanopts.ProbeAllIPS {
-		parts := strings.SplitN(domain, ",", 3)
-		if len(parts) == 3 {
+		parts := strings.SplitN(domain, ",", 2)
+		if len(parts) == 2 {
 			customIP = parts[0]
-			customHost = parts[1]
-			domain = parts[2]
+			domain = parts[1]
 		}
 	}
 	if scanopts.VHostInput {
@@ -792,6 +791,12 @@ retry:
 		URL.Port = ""
 	}
 
+	origHost := URL.Host
+	if scanopts.ProbeAllIPS && customIP != "" {
+		customHost = URL.Host
+		URL.Host = customIP
+	}
+
 	var reqURI string
 	// retry with unsafe
 	if scanopts.Unsafe {
@@ -809,9 +814,6 @@ retry:
 
 	if customHost != "" {
 		req.Host = customHost
-	}
-	if customIP != "" {
-		req.URL.Host = customIP
 	}
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
@@ -867,6 +869,9 @@ retry:
 		// if the full url doesn't end with the custom path we pick the original input value
 	} else if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
 		parsedURL.RequestURI = scanopts.RequestURI
+	}
+	if scanopts.ProbeAllIPS && customHost != "" {
+		parsedURL.Host = origHost // reset original host
 	}
 	fullURL = parsedURL.String()
 
@@ -1062,12 +1067,12 @@ retry:
 			r.stats.IncrementCounter("requests", 1)
 		}
 	}
-	ip := hp.Dialer.GetDialedIP(req.URL.Host)
+	ip := hp.Dialer.GetDialedIP(URL.Host)
 	if scanopts.OutputIP || scanopts.ProbeAllIPS {
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
-	ips, cnames, err := getDNSData(hp, URL.Host)
+	ips, cnames, err := getDNSData(hp, origHost)
 	if err != nil {
 		ips = append(ips, ip)
 	}
