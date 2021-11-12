@@ -1,0 +1,79 @@
+www.example.com {{binary}}
+www.example.com {{binary}} -l test-data/request.txt
+www.example.com {{binary}} -request test-data/raw-request.txt
+www.example.com {{binary}} -status-code
+www.example.com {{binary}} -tech-detect
+www.example.com {{binary}} -content-length
+www.example.com {{binary}} -web-server
+www.example.com {{binary}} -content-type
+www.example.com {{binary}} -response-time
+www.example.com {{binary}} -title
+www.example.com {{binary}} -location
+www.example.com {{binary}} -method
+www.example.com {{binary}} -websocket
+www.example.com {{binary}} -ip 
+www.example.com {{binary}} -cname
+www.example.com {{binary}} -cdn
+www.example.com {{binary}} -probe
+www.example.com {{binary}} -no-fallback
+www.example.com {{binary}} -match-code 200, -mc 200
+www.example.com {{binary}} -match-length 100, -ml 100
+www.example.com {{binary}} -match-string xyz, -ms xyz
+www.example.com {{binary}} -match-regex bbb, -mr bbb
+www.example.com {{binary}} -extract-regex aaa, -er aaa
+www.example.com {{binary}} -filter-code 401, -fc 401
+www.example.com {{binary}} -filter-length 23, -fl 23
+www.example.com {{binary}} -filter-string
+www.example.com {{binary}} -filter-regex
+www.example.com {{binary}} -threads 50
+www.example.com {{binary}} -rate-limit 5
+www.example.com {{binary}} -tls-grab
+www.example.com {{binary}} -tls-probe
+www.example.com {{binary}} -csp-probe
+www.example.com {{binary}} -pipeline
+www.example.com {{binary}} -http2
+www.example.com {{binary}} -vhost
+www.example.com {{binary}} -ports
+www.example.com {{binary}} -path
+www.example.com {{binary}} -paths
+www.example.com {{binary}} -output test-data/request.txt
+www.example.com {{binary}} -store-response
+www.example.com {{binary}} -store-response-dir test-data/request.txt
+www.example.com {{binary}} -json
+www.example.com {{binary}} -include-response -json
+www.example.com {{binary}} -include-chain
+www.example.com {{binary}} -store-chain
+www.example.com {{binary}} -csv
+www.example.com {{binary}} -response-size-to-save 1028
+www.example.com {{binary}} -response-size-to-read 1028
+www.example.com {{binary}} -allow 127.0.0.1:8080
+www.example.com {{binary}} -deny 127.0.0.1:6089
+www.example.com {{binary}} -random-agent
+www.example.com {{binary}} -header
+www.example.com {{binary}} -proxy www.example.com
+www.example.com {{binary}} -unsafe
+www.example.com {{binary}} -resume
+www.example.com {{binary}} -no-color
+www.example.com {{binary}} -no-fallback-scheme
+www.example.com {{binary}} -follow-redirects
+www.example.com {{binary}} -follow-host-redirects
+www.example.com {{binary}} -max-redirects 10
+www.example.com {{binary}} -vhost-input
+www.example.com {{binary}} -x
+www.example.com {{binary}} -body
+www.example.com {{binary}} -stream
+www.example.com {{binary}} -skip-dedupe -stream
+www.example.com {{binary}} -silent
+www.example.com {{binary}} -verbose
+www.example.com {{binary}} -version
+www.example.com {{binary}} -debug
+www.example.com {{binary}} -debug-req
+www.example.com {{binary}} -debug-resp
+www.example.com {{binary}} -stats
+www.example.com {{binary}} -retries 0
+www.example.com {{binary}} -timeout 10
+www.example.com {{binary}} -max-host-error 30
+www.example.com {{binary}} -exclude-cdn
+
+
+
