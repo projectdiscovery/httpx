@@ -1,49 +1,16 @@
 www.example.com {{binary}} -silent 
 www.example.com {{binary}} -silent -l test-data/request.txt
 www.example.com {{binary}} -silent -request test-data/raw-request.txt
-www.example.com {{binary}} -silent -response-time
 www.example.com {{binary}} -silent -title
-www.example.com {{binary}} -silent -location
-www.example.com {{binary}} -silent -cname
-www.example.com {{binary}} -silent -cdn
+www.example.com {{binary}} -silent -sc
+www.example.com {{binary}} -silent -td
 www.example.com {{binary}} -silent -probe
 www.example.com {{binary}} -silent -no-fallback
-www.example.com {{binary}} -silent -match-code 200 -mc 200
-www.example.com {{binary}} -silent -match-length 100 -ml 100
-www.example.com {{binary}} -silent -match-string xyz -ms xyz
-www.example.com {{binary}} -silent -match-regex bbb -mr bbb
-www.example.com {{binary}} -silent -filter-code 401 -fc 401
-www.example.com {{binary}} -silent -filter-length 23 -fl 23
-www.example.com {{binary}} -silent -filter-string example
-www.example.com {{binary}} -silent -threads 50
-www.example.com {{binary}} -silent -rate-limit 5
+www.example.com {{binary}} -silent -cl
+www.example.com {{binary}} -silent -server
+www.example.com {{binary}} -silent -ip
 www.example.com {{binary}} -silent -tls-grab
-www.example.com {{binary}} -silent -pipeline
-www.example.com {{binary}} -silent -http2
-www.example.com {{binary}} -silent -ports 8080,6089
-www.example.com {{binary}} -silent -paths test-data/request.txt
-www.example.com {{binary}} -silent -output test-data/request.txt
-www.example.com {{binary}} -silent -store-response
-www.example.com {{binary}} -silent -include-response -json
-www.example.com {{binary}} -silent -include-chain
-www.example.com {{binary}} -silent -csv
-www.example.com {{binary}} -silent -response-size-to-save 1028
-www.example.com {{binary}} -silent -response-size-to-read 1028
-www.example.com {{binary}} -silent -allow 127.0.0.1:8080
-www.example.com {{binary}} -silent -deny 127.0.0.1:6089
-www.example.com {{binary}} -random-agent
-www.example.com {{binary}} -silent -proxy www.example.com
 www.example.com {{binary}} -silent -unsafe
-www.example.com {{binary}} -silent -resume
-www.example.com {{binary}} -silent -max-redirects 10
-www.example.com {{binary}} -silent -vhost-input
 www.example.com {{binary}} -silent -x all
 www.example.com {{binary}} -silent -body 'a=b'
-www.example.com {{binary}} -silent -skip-dedupe -stream
-www.example.com {{binary}} -silent -retries 10
-www.example.com {{binary}} -silent -timeout 10
-www.example.com {{binary}} -silent -max-host-error 30
 www.example.com {{binary}} -silent -exclude-cdn
-
-
-
