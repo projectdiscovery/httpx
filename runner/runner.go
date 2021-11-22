@@ -850,7 +850,7 @@ retry:
 		gologger.Info().Msgf("Dumped HTTP request for %s\n\n", fullURL)
 		gologger.Print().Msgf("%s", string(requestDump))
 	}
-	if r.options.Debug || r.options.DebugResponse {
+	if (r.options.Debug || r.options.DebugResponse) && resp != nil {
 		gologger.Info().Msgf("Dumped HTTP response for %s\n\n", fullURL)
 		gologger.Print().Msgf("%s", string(resp.Raw))
 	}
