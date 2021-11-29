@@ -23,6 +23,7 @@ var httpTestcases = map[string]testutils.TestCase{
 	"Regression test for: https://github.com/projectdiscovery/httpx/issues/303": &issue303{}, // misconfigured gzip header with uncompressed body
 	"Regression test for: https://github.com/projectdiscovery/httpx/issues/400": &issue400{}, // post operation with body
 	"Regression test for: https://github.com/projectdiscovery/httpx/issues/414": &issue414{}, // stream mode with path
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/433": &issue433{}, // new line scanning with title flag
 }
 
 type standardHttpGet struct {
@@ -235,6 +236,31 @@ func (h *issue414) Execute() error {
 	expected := ts.URL + uripath
 	if !strings.EqualFold(results[0], expected) {
 		return errIncorrectResult(results[0], expected)
+	}
+	return nil
+}
+
+type issue433 struct{}
+
+func (h *issue433) Execute() error {
+	var ts *httptest.Server
+	router := httprouter.New()
+	uriPath := "/index"
+	router.GET(uriPath, httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		htmlResponse := "<html><head><title>Project\n\r Discovery\n - Httpx></title></head><body>test data</body></html>"
+		fmt.Fprint(w, htmlResponse)
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+	results, err := testutils.RunHttpxAndGetResults(fmt.Sprint(ts.URL, uriPath), debug, "-title", "-no-color")
+	if err != nil {
+		return err
+	}
+	if strings.Contains(results[0], "\n") {
+		return errIncorrectResultsCount(results)
+	}
+	if strings.Contains(results[0], "\r") {
+		return errIncorrectResultsCount(results)
 	}
 	return nil
 }
