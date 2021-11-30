@@ -34,6 +34,8 @@ func ExtractTitle(r *Response) (title string) {
 
 	// remove unwanted chars
 	title = strings.TrimSpace(strings.Trim(title, cutset))
+	title = strings.ReplaceAll(title, "\n", "")
+	title = strings.ReplaceAll(title, "\r", "")
 
 	// Non UTF-8
 	if contentTypes, ok := r.Headers["Content-Type"]; ok {
