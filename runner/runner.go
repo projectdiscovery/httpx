@@ -3,6 +3,7 @@ package runner
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/csv"
 	"encoding/hex"
@@ -28,6 +29,7 @@ import (
 	"github.com/projectdiscovery/clistats"
 	"github.com/projectdiscovery/cryptoutil"
 	"github.com/projectdiscovery/goconfig"
+	"github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/stringsutil"
 	"github.com/projectdiscovery/urlutil"
 
@@ -791,12 +793,6 @@ retry:
 		URL.Port = ""
 	}
 
-	origHost := URL.Host
-	if scanopts.ProbeAllIPS && customIP != "" {
-		customHost = URL.Host
-		URL.Host = customIP
-	}
-
 	var reqURI string
 	// retry with unsafe
 	if scanopts.Unsafe {
@@ -807,7 +803,13 @@ retry:
 		// in case of standard requests append the new path to the existing one
 		URL.RequestURI += scanopts.RequestURI
 	}
-	req, err := hp.NewRequest(method, URL.String())
+	var req *retryablehttp.Request
+	if customIP != "" {
+		ctx := context.WithValue(context.Background(), "ip", customIP) //nolint
+		req, err = hp.NewRequestWithContext(ctx, method, URL.String())
+	} else {
+		req, err = hp.NewRequest(method, URL.String())
+	}
 	if err != nil {
 		return Result{URL: URL.String(), Input: origInput, err: err}
 	}
@@ -862,16 +864,13 @@ retry:
 		}
 	}
 	// fix the final output url
-	fullURL := URL.String()
+	fullURL := req.URL.String()
 	parsedURL, _ := urlutil.Parse(fullURL)
 	if r.options.Unsafe {
 		parsedURL.RequestURI = reqURI
 		// if the full url doesn't end with the custom path we pick the original input value
 	} else if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
 		parsedURL.RequestURI = scanopts.RequestURI
-	}
-	if scanopts.ProbeAllIPS && customHost != "" {
-		parsedURL.Host = origHost // reset original host
 	}
 	fullURL = parsedURL.String()
 
@@ -1072,7 +1071,7 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
-	ips, cnames, err := getDNSData(hp, origHost)
+	ips, cnames, err := getDNSData(hp, domain)
 	if err != nil {
 		ips = append(ips, ip)
 	}

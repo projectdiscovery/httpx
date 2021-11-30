@@ -20,6 +20,7 @@ import (
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/stringsutil"
+	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 )
 
@@ -42,6 +43,7 @@ func New(options *Options) (*HTTPX, error) {
 	fastdialerOpts.EnableFallback = true
 	fastdialerOpts.Deny = options.Deny
 	fastdialerOpts.Allow = options.Allow
+	fastdialerOpts.WithDialerHistory = true
 	dialer, err := fastdialer.NewDialer(fastdialerOpts)
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)
@@ -294,7 +296,12 @@ func (h *HTTPX) AddFilter(f Filter) {
 
 // NewRequest from url
 func (h *HTTPX) NewRequest(method, targetURL string) (req *retryablehttp.Request, err error) {
-	req, err = retryablehttp.NewRequest(method, targetURL, nil)
+	return h.NewRequestWithContext(context.Background(), method, targetURL)
+}
+
+// NewRequest from url
+func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL string) (req *retryablehttp.Request, err error) {
+	req, err = retryablehttp.NewRequestWithContext(ctx, method, targetURL, nil)
 	if err != nil {
 		return
 	}
