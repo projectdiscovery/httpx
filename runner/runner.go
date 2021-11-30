@@ -805,6 +805,7 @@ retry:
 	}
 	var req *retryablehttp.Request
 	if customIP != "" {
+		customHost = URL.Host
 		ctx := context.WithValue(context.Background(), "ip", customIP) //nolint
 		req, err = hp.NewRequestWithContext(ctx, method, URL.String())
 	} else {
@@ -1067,6 +1068,10 @@ retry:
 		}
 	}
 	ip := hp.Dialer.GetDialedIP(URL.Host)
+	// hp.Dialer.GetDialedIP would return only the last dialed one
+	if customIP != "" {
+		ip = customIP
+	}
 	if scanopts.OutputIP || scanopts.ProbeAllIPS {
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
