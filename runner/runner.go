@@ -3,6 +3,7 @@ package runner
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/csv"
 	"encoding/hex"
@@ -28,6 +29,7 @@ import (
 	"github.com/projectdiscovery/clistats"
 	"github.com/projectdiscovery/cryptoutil"
 	"github.com/projectdiscovery/goconfig"
+	"github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/stringsutil"
 	"github.com/projectdiscovery/urlutil"
 
@@ -223,6 +225,7 @@ func New(options *Options) (*Runner, error) {
 
 	scanopts.ExcludeCDN = options.ExcludeCDN
 	scanopts.HostMaxErrors = options.HostMaxErrors
+	scanopts.ProbeAllIPS = options.ProbeAllIPS
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
@@ -637,7 +640,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
 
-	for target := range targets(stringz.TrimProtocol(t, scanopts.NoFallback || scanopts.NoFallbackScheme)) {
+	for target := range r.targets(hp, stringz.TrimProtocol(t, scanopts.NoFallback || scanopts.NoFallbackScheme)) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
 			for _, method := range scanopts.Methods {
@@ -700,7 +703,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 }
 
 // returns all the targets within a cidr range or the single target
-func targets(target string) chan string {
+func (r *Runner) targets(hp *httpx.HTTPX, target string) chan string {
 	results := make(chan string)
 	go func() {
 		defer close(results)
@@ -721,6 +724,18 @@ func targets(target string) chan string {
 			for _, ip := range cidrIps {
 				results <- ip
 			}
+		} else if r.options.ProbeAllIPS {
+			URL, err := urlutil.Parse(target)
+			if err != nil {
+				results <- target
+			}
+			ips, _, err := getDNSData(hp, URL.Host)
+			if err != nil || len(ips) == 0 {
+				results <- target
+			}
+			for _, ip := range ips {
+				results <- strings.Join([]string{ip, target}, ",")
+			}
 		} else {
 			results <- target
 		}
@@ -735,7 +750,14 @@ func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain, method, origInput st
 	}
 	retried := false
 retry:
-	var customHost string
+	var customHost, customIP string
+	if scanopts.ProbeAllIPS {
+		parts := strings.SplitN(domain, ",", 2)
+		if len(parts) == 2 {
+			customIP = parts[0]
+			domain = parts[1]
+		}
+	}
 	if scanopts.VHostInput {
 		parts := strings.Split(domain, ",")
 		//nolint:gomnd // not a magic number
@@ -781,7 +803,14 @@ retry:
 		// in case of standard requests append the new path to the existing one
 		URL.RequestURI += scanopts.RequestURI
 	}
-	req, err := hp.NewRequest(method, URL.String())
+	var req *retryablehttp.Request
+	if customIP != "" {
+		customHost = URL.Host
+		ctx := context.WithValue(context.Background(), "ip", customIP) //nolint
+		req, err = hp.NewRequestWithContext(ctx, method, URL.String())
+	} else {
+		req, err = hp.NewRequest(method, URL.String())
+	}
 	if err != nil {
 		return Result{URL: URL.String(), Input: origInput, err: err}
 	}
@@ -1048,20 +1077,16 @@ retry:
 		}
 	}
 	ip := hp.Dialer.GetDialedIP(URL.Host)
-	if scanopts.OutputIP {
+	// hp.Dialer.GetDialedIP would return only the last dialed one
+	if customIP != "" {
+		ip = customIP
+	}
+	if scanopts.OutputIP || scanopts.ProbeAllIPS {
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
-	var (
-		ips    []string
-		cnames []string
-	)
-	dnsData, err := hp.Dialer.GetDNSData(URL.Host)
-	if dnsData != nil && err == nil {
-		ips = append(ips, dnsData.A...)
-		ips = append(ips, dnsData.AAAA...)
-		cnames = dnsData.CNAME
-	} else {
+	ips, cnames, err := getDNSData(hp, domain)
+	if err != nil {
 		ips = append(ips, ip)
 	}
 
@@ -1378,4 +1403,16 @@ func (r *Runner) skipCDNPort(host string, port string) bool {
 	}
 
 	return false
+}
+
+func getDNSData(hp *httpx.HTTPX, hostname string) (ips, cnames []string, err error) {
+	dnsData, err := hp.Dialer.GetDNSData(hostname)
+	if err != nil {
+		return nil, nil, err
+	}
+	ips = make([]string, 0, len(dnsData.A)+len(dnsData.AAAA))
+	ips = append(ips, dnsData.A...)
+	ips = append(ips, dnsData.AAAA...)
+	cnames = dnsData.CNAME
+	return
 }
