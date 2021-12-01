@@ -13,21 +13,6 @@ import (
 	"github.com/projectdiscovery/httpx/common/stringz"
 )
 
-// FileExists checks if a file exists and is not a directory
-func FileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) || err != nil || info == nil {
-		return false
-	}
-	return !info.IsDir()
-}
-
-// FolderExists checks if a folder exists
-func FolderExists(folderpath string) bool {
-	_, err := os.Stat(folderpath)
-	return !os.IsNotExist(err)
-}
-
 // HasStdin determines if the user has piped input
 func HasStdin() bool {
 	stat, err := os.Stdin.Stat()
@@ -76,20 +61,22 @@ func FileNameIsGlob(pattern string) bool {
 	return err == nil
 }
 
-func LoadCidrsFromSliceOrFile(option string, splitchar string) (networkList []string) {
+func LoadCidrsFromSliceOrFileWithMaxRecursion(option string, splitchar string, maxRecursion int) (networkList []string) {
+	if maxRecursion < 0 {
+		return
+	}
 	items := stringz.SplitByCharAndTrimSpace(option, splitchar)
 	for _, item := range items {
-		// ip
 		if net.ParseIP(item) != nil {
 			networkList = append(networkList, item)
 		} else if _, _, err := net.ParseCIDR(item); err == nil {
 			networkList = append(networkList, item)
 		} else if fileutil.FileExists(item) {
 			if filedata, err := ioutil.ReadFile(item); err == nil && len(filedata) > 0 {
-				networkList = append(networkList, LoadCidrsFromSliceOrFile(string(filedata), "\n")...)
+				networkList = append(networkList, LoadCidrsFromSliceOrFileWithMaxRecursion(string(filedata), "\n", maxRecursion-1)...)
 			}
 		}
 	}
 
-	return networkList
+	return
 }

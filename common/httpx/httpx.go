@@ -20,6 +20,7 @@ import (
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/stringsutil"
+	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 )
 
@@ -42,6 +43,7 @@ func New(options *Options) (*HTTPX, error) {
 	fastdialerOpts.EnableFallback = true
 	fastdialerOpts.Deny = options.Deny
 	fastdialerOpts.Allow = options.Allow
+	fastdialerOpts.WithDialerHistory = true
 	dialer, err := fastdialer.NewDialer(fastdialerOpts)
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)
@@ -75,7 +77,10 @@ func New(options *Options) (*HTTPX, error) {
 		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
 			// Check if we get a redirect to a different host
 			var newHost = redirectedRequest.URL.Host
-			var oldHost = previousRequests[0].URL.Host
+			var oldHost = previousRequests[0].Host
+			if oldHost == "" {
+				oldHost = previousRequests[0].URL.Host
+			}
 			if newHost != oldHost {
 				// Tell the http client to not follow redirect
 				return http.ErrUseLastResponse
@@ -291,7 +296,12 @@ func (h *HTTPX) AddFilter(f Filter) {
 
 // NewRequest from url
 func (h *HTTPX) NewRequest(method, targetURL string) (req *retryablehttp.Request, err error) {
-	req, err = retryablehttp.NewRequest(method, targetURL, nil)
+	return h.NewRequestWithContext(context.Background(), method, targetURL)
+}
+
+// NewRequest from url
+func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL string) (req *retryablehttp.Request, err error) {
+	req, err = retryablehttp.NewRequestWithContext(ctx, method, targetURL, nil)
 	if err != nil {
 		return
 	}

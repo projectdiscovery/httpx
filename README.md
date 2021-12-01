@@ -160,11 +160,13 @@ CONFIGURATIONS:
    -sd, -skip-dedupe                  Disable dedupe input items (only used with stream mode)
 
 DEBUG:
-   -silent   Silent mode
-   -verbose  Verbose mode
-   -version  Display version
-   -debug    Debug mode
-   -stats    Display scan statistic
+   -silent      Silent mode
+   -verbose     Verbose mode
+   -version     Display version
+   -debug       Debug mode
+   -debug-req   Show all sent requests
+   -debug-resp  Show all received responses
+   -stats       Display scan statistic
 
 OPTIMIZATIONS:
    -retries int                 Number of retries
