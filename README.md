@@ -98,7 +98,6 @@ PROBES:
    -cname                Display Host cname
    -cdn                  Display if CDN in use
    -probe                Display probe status
-   -nf, -no-fallback     Display both protocol (HTTPS and HTTP)
 
 MATCHERS:
    -mc, -match-code string     Match response with given status code (-mc 200,302)
@@ -139,40 +138,42 @@ OUTPUT:
    -csv                              Output in CSV format
 
 CONFIGURATIONS:
-   -rsts, -response-size-to-save int  Max response size to save in bytes (default 2147483647)
-   -rstr, -response-size-to-read int  Max response size to read in bytes (default 2147483647)
-   -allow string[]                    Allowed list of IP/CIDR's to process (file or comma separated)
-   -deny string[]                     Denied list of IP/CIDR's to process (file or comma separated)
-   -random-agent                      Enable Random User-Agent to use (default true)
-   -H, -header string[]               Custom Header to send with request
-   -http-proxy, -proxy string         HTTP Proxy, eg http://127.0.0.1:8080
-   -unsafe                            Send raw requests skipping golang normalization
-   -resume                            Resume scan using resume.cfg
-   -nc, -no-color                     Disable color in output
-   -nfs, -no-fallback-scheme          Probe with input protocol scheme
-   -fr, -follow-redirects             Follow HTTP redirects
-   -fhr, -follow-host-redirects       Follow redirects on the same host
-   -maxr, -max-redirects int          Max number of redirects to follow per host (default 10)
-   -vhost-input                       Get a list of vhosts as input
-   -x string                          Request methods to use, use 'all' to probe all HTTP methods
-   -body string                       Post body to include in HTTP request
-   -s, -stream                        Stream mode - start elaborating input targets without sorting
-   -sd, -skip-dedupe                  Disable dedupe input items (only used with stream mode)
+   -allow string[]               Allowed list of IP/CIDR's to process (file or comma separated)
+   -deny string[]                Denied list of IP/CIDR's to process (file or comma separated)
+   -random-agent                 Enable Random User-Agent to use (default true)
+   -H, -header string[]          Custom Header to send with request
+   -http-proxy, -proxy string    HTTP Proxy, eg http://127.0.0.1:8080
+   -unsafe                       Send raw requests skipping golang normalization
+   -resume                       Resume scan using resume.cfg
+   -fr, -follow-redirects        Follow HTTP redirects
+   -maxr, -max-redirects int     Max number of redirects to follow per host (default 10)
+   -fhr, -follow-host-redirects  Follow redirects on the same host
+   -vhost-input                  Get a list of vhosts as input
+   -x string                     Request methods to use, use 'all' to probe all HTTP methods
+   -body string                  Post body to include in HTTP request
+   -s, -stream                   Stream mode - start elaborating input targets without sorting
+   -sd, -skip-dedupe             Disable dedupe input items (only used with stream mode)
+   -pa, -probe-all-ips           Probe all the ips associated with same host
 
 DEBUG:
-   -silent      Silent mode
-   -verbose     Verbose mode
-   -version     Display version
-   -debug       Debug mode
-   -debug-req   Show all sent requests
-   -debug-resp  Show all received responses
-   -stats       Display scan statistic
+   -silent         Silent mode
+   -v, -verbose    Verbose mode
+   -version        Display version
+   -nc, -no-color  Disable color in output
+   -debug          Debug mode
+   -debug-req      Show all sent requests
+   -debug-resp     Show all received responses
+   -stats          Display scan statistic
 
 OPTIMIZATIONS:
-   -retries int                 Number of retries
-   -timeout int                 Timeout in seconds (default 5)
-   -maxhr, -max-host-error int  Max error count per host before skipping remaining path/s (default 30)
-   -ec, -exclude-cdn            Skip full port scans for CDNs (only checks for 80,443)
+   -nf, -no-fallback                  Display both probbed protocol (HTTPS and HTTP)
+   -nfs, -no-fallback-scheme          Probe with input protocol scheme
+   -maxhr, -max-host-error int        Max error count per host before skipping remaining path/s (default 30)
+   -ec, -exclude-cdn                  Skip full port scans for CDNs (only checks for 80,443)
+   -retries int                       Number of retries
+   -timeout int                       Timeout in seconds (default 5)
+   -rsts, -response-size-to-save int  Max response size to save in bytes (default 2147483647)
+   -rstr, -response-size-to-read int  Max response size to read in bytes (default 2147483647)
 ```
 
 # Running httpX
