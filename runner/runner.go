@@ -712,7 +712,8 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan string {
 		// *
 		// spaces
 		if strings.ContainsAny(target, " *") {
-			return
+			// trim *. from the target to return the domain instead of wildard
+			target = strings.Trim(target, "*.")
 		}
 
 		// test if the target is a cidr
