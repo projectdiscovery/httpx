@@ -711,9 +711,9 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan string {
 		// A valid target does not contain:
 		// *
 		// spaces
-		if strings.ContainsAny(target, " *") {
-			// trim *. from the target to return the domain instead of wildard
-			target = strings.Trim(target, "*.")
+		if strings.ContainsAny(target, "*") ||  strings.HasPrefix(target, ".") {
+			// trim * and/or . (prefix) from the target to return the domain instead of wildard
+			target = strings.TrimPrefix(strings.Trim(target, "*"), ".")
 		}
 
 		// test if the target is a cidr
