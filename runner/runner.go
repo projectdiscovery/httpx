@@ -653,15 +653,24 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
 							for _, tt := range result.TLSData.DNSNames {
+								if !r.testAndSet(tt) {
+									continue
+								}
 								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
 							for _, tt := range result.TLSData.CommonName {
+								if !r.testAndSet(tt) {
+									continue
+								}
 								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
 						}
 						if scanopts.CSPProbe && result.CSPData != nil {
 							scanopts.CSPProbe = false
 							for _, tt := range result.CSPData.Domains {
+								if !r.testAndSet(tt) {
+									continue
+								}
 								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
 						}
@@ -686,9 +695,15 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
 							for _, tt := range result.TLSData.DNSNames {
+								if !r.testAndSet(tt) {
+									continue
+								}
 								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
 							for _, tt := range result.TLSData.CommonName {
+								if !r.testAndSet(tt) {
+									continue
+								}
 								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
 						}
@@ -711,9 +726,12 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan string {
 		// A valid target does not contain:
 		// *
 		// spaces
-		if strings.ContainsAny(target, "*") ||  strings.HasPrefix(target, ".") {
+		if strings.ContainsAny(target, "*") || strings.HasPrefix(target, ".") {
 			// trim * and/or . (prefix) from the target to return the domain instead of wildard
 			target = strings.TrimPrefix(strings.Trim(target, "*"), ".")
+			if !r.testAndSet(target) {
+				return
+			}
 		}
 
 		// test if the target is a cidr
