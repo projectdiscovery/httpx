@@ -22,6 +22,8 @@ var httpTestcases = map[string]testutils.TestCase{
 	"Regression test for: https://github.com/projectdiscovery/httpx/issues/277": &issue277{}, // scheme://host:port via stdin
 	"Regression test for: https://github.com/projectdiscovery/httpx/issues/303": &issue303{}, // misconfigured gzip header with uncompressed body
 	"Regression test for: https://github.com/projectdiscovery/httpx/issues/400": &issue400{}, // post operation with body
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/414": &issue414{}, // stream mode with path
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/433": &issue433{}, // new line scanning with title flag
 }
 
 type standardHttpGet struct {
@@ -205,6 +207,59 @@ func (h *issue400) Execute() error {
 		return err
 	}
 	if len(results) != 1 {
+		return errIncorrectResultsCount(results)
+	}
+	return nil
+}
+
+type issue414 struct{}
+
+func (h *issue414) Execute() error {
+	var ts *httptest.Server
+	uripath := "/path"
+	router := httprouter.New()
+	router.POST(uripath, httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		w.Header().Add("Content-Type", "application/json")
+		data, _ := ioutil.ReadAll(r.Body)
+		fmt.Fprintf(w, "data received %s", data)
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+
+	results, err := testutils.RunHttpxAndGetResults(ts.URL, debug, fmt.Sprintf("-path '%s'", uripath))
+	if err != nil {
+		return err
+	}
+	if len(results) != 1 {
+		return errIncorrectResultsCount(results)
+	}
+	expected := ts.URL + uripath
+	if !strings.EqualFold(results[0], expected) {
+		return errIncorrectResult(results[0], expected)
+	}
+	return nil
+}
+
+type issue433 struct{}
+
+func (h *issue433) Execute() error {
+	var ts *httptest.Server
+	router := httprouter.New()
+	uriPath := "/index"
+	router.GET(uriPath, httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		htmlResponse := "<html><head><title>Project\n\r Discovery\n - Httpx></title></head><body>test data</body></html>"
+		fmt.Fprint(w, htmlResponse)
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+	results, err := testutils.RunHttpxAndGetResults(fmt.Sprint(ts.URL, uriPath), debug, "-title", "-no-color")
+	if err != nil {
+		return err
+	}
+	if strings.Contains(results[0], "\n") {
+		return errIncorrectResultsCount(results)
+	}
+	if strings.Contains(results[0], "\r") {
 		return errIncorrectResultsCount(results)
 	}
 	return nil

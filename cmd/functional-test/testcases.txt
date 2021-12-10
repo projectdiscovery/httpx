@@ -1,0 +1,16 @@
+www.example.com {{binary}} -silent 
+www.example.com {{binary}} -silent -l test-data/request.txt
+www.example.com {{binary}} -silent -request test-data/raw-request.txt
+www.example.com {{binary}} -silent -title
+www.example.com {{binary}} -silent -sc
+www.example.com {{binary}} -silent -td
+www.example.com {{binary}} -silent -probe
+www.example.com {{binary}} -silent -no-fallback
+www.example.com {{binary}} -silent -cl
+www.example.com {{binary}} -silent -server
+www.example.com {{binary}} -silent -ip
+www.example.com {{binary}} -silent -tls-grab
+www.example.com {{binary}} -silent -unsafe
+www.example.com {{binary}} -silent -x all
+www.example.com {{binary}} -silent -body 'a=b'
+www.example.com {{binary}} -silent -exclude-cdn
