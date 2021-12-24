@@ -1175,7 +1175,7 @@ retry:
 		// Truncating length at 255
 		if len(domainFile) >= maxFileNameLength {
 			// leaving last 4 bytes free to append ".txt"
-			domainFile = domainFile[:maxFileNameLength-1]
+			domainFile = domainFile[:maxFileNameLength]
 		}
 
 		domainFile = strings.ReplaceAll(domainFile, "/", "_") + ".txt"
