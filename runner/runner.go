@@ -108,6 +108,7 @@ func New(options *Options) (*Runner, error) {
 	if httpxOptions.MaxResponseBodySizeToSave > httpxOptions.MaxResponseBodySizeToRead {
 		httpxOptions.MaxResponseBodySizeToSave = httpxOptions.MaxResponseBodySizeToRead
 	}
+	httpxOptions.Resolvers = options.Resolvers
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
