@@ -36,6 +36,7 @@ type Options struct {
 	MaxResponseBodySizeToSave int64
 	MaxResponseBodySizeToRead int64
 	UnsafeURI                 string
+	Resolvers                 []string
 }
 
 // DefaultOptions contains the default options

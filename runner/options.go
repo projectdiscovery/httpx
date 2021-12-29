@@ -4,6 +4,7 @@ import (
 	"math"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
@@ -197,6 +198,7 @@ type Options struct {
 	Stream                    bool
 	SkipDedupe                bool
 	ProbeAllIPS               bool
+	Resolvers                 goflags.NormalizedStringSlice
 }
 
 // ParseOptions parses the command line options for application
@@ -272,6 +274,7 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "configs", "Configurations",
+		flagSet.NormalizedStringSliceVarP(&options.Resolvers, "resolvers", "r", []string{}, "List of custom resolvers (file or comma separated)"),
 		flagSet.Var(&options.Allow, "allow", "Allowed list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.Var(&options.Deny, "deny", "Denied list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.BoolVar(&options.RandomAgent, "random-agent", true, "Enable Random User-Agent to use"),
@@ -369,6 +372,26 @@ func (options *Options) validateOptions() {
 		if options.matchRegex, err = regexp.Compile(options.OutputMatchRegex); err != nil {
 			gologger.Fatal().Msgf("Invalid value for match regex option: %s\n", err)
 		}
+	}
+
+	var resolvers []string
+	for _, resolver := range options.Resolvers {
+		if fileutil.FileExists(resolver) {
+			chFile, err := fileutil.ReadFile(resolver)
+			if err != nil {
+				gologger.Fatal().Msgf("Couldn't process resolver file \"%s\": %s\n", resolver, err)
+			}
+			for line := range chFile {
+				resolvers = append(resolvers, line)
+			}
+		} else {
+			resolvers = append(resolvers, resolver)
+		}
+	}
+	options.Resolvers = resolvers
+	if len(options.Resolvers) > 0 {
+		gologger.Debug().Msgf("Using resolvers: %s\n", strings.Join(options.Resolvers, ","))
+
 	}
 }
 
