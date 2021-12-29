@@ -138,6 +138,7 @@ OUTPUT:
    -csv                              Output in CSV format
 
 CONFIGURATIONS:
+   -r, -resolvers string[]       List of custom resolvers (file or comma separated)
    -allow string[]               Allowed list of IP/CIDR's to process (file or comma separated)
    -deny string[]                Denied list of IP/CIDR's to process (file or comma separated)
    -random-agent                 Enable Random User-Agent to use (default true)
@@ -323,7 +324,8 @@ https://support.hackerone.com
 - `vhost`, `http2`, `pipeline`, `ports`, `csp-probe`, `tls-probe` and `path` are unique flag with different probes.
 - Unique flags should be used for specific use cases instead of running them as default with other flags.
 - When using `json` flag, all the information (default probes) included in the JSON output.
-
+- Custom resolver supports multiple protocol (**doh|tcp|udp**) in form of `protocol:resolver:port`  (eg **udp:127.0.0.1:53**)
+- Invalid custom resolvers/files are ignored.
 
 # Acknowledgement
 

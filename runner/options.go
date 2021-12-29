@@ -274,6 +274,7 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "configs", "Configurations",
+		flagSet.NormalizedStringSliceVarP(&options.Resolvers, "resolvers", "r", []string{}, "List of custom resolvers (file or comma separated)"),
 		flagSet.Var(&options.Allow, "allow", "Allowed list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.Var(&options.Deny, "deny", "Denied list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.BoolVar(&options.RandomAgent, "random-agent", true, "Enable Random User-Agent to use"),
@@ -290,7 +291,6 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.Stream, "stream", "s", false, "Stream mode - start elaborating input targets without sorting"),
 		flagSet.BoolVarP(&options.SkipDedupe, "skip-dedupe", "sd", false, "Disable dedupe input items (only used with stream mode)"),
 		flagSet.BoolVarP(&options.ProbeAllIPS, "probe-all-ips", "pa", false, "Probe all the ips associated with same host"),
-		flagSet.NormalizedStringSliceVarP(&options.Resolvers, "resolvers", "r", []string{}, "List of resolvers (file or comma separated) - each resolver can be in the form protocol:ip|hostname:port - invalid files/resolvers ignored"),
 	)
 
 	createGroup(flagSet, "debug", "Debug",
