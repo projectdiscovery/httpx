@@ -233,6 +233,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.ContentLength, "content-length", "cl", false, "Display Content-Length"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "Display Server header"),
 		flagSet.BoolVarP(&options.OutputContentType, "content-type", "ct", false, "Display Content-Type header"),
+		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, "Display Response body line count"),
+		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "Display Response body word count"),
 		flagSet.BoolVarP(&options.OutputResponseTime, "response-time", "rt", false, "Display the response time"),
 		flagSet.BoolVar(&options.ExtractTitle, "title", false, "Display page title"),
 		flagSet.BoolVar(&options.Location, "location", false, "Display Location header"),
@@ -243,8 +245,6 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "Display if CDN in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "Display probe status"),
 		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
-		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, " Display Response body line count"),
-		flagSet.BoolVarP(&options.OutputWordsCount, "words-count", "wc", false, " Display Response body words count"),
 	)
 
 	createGroup(flagSet, "matchers", "Matchers",
@@ -253,7 +253,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "Match response with given string"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "Match response with specific regex"),
 		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "Match Response body line count"),
-		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-words-count", "mwc", "", "Match Response body words count"),
+		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-word-count", "mwc", "", "Match Response body word count"),
 	)
 
 	createGroup(flagSet, "filters", "Filters",
@@ -262,7 +262,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "Filter response with specific string"),
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "Filter response with specific regex"),
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "Filter Response body line count"),
-		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-words-count", "fwc", "", "Filter Response body words count"),
+		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-word-count", "fwc", "", "Filter Response body word count"),
 	)
 
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
