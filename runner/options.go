@@ -66,6 +66,8 @@ type scanOptions struct {
 	ExcludeCDN                bool
 	HostMaxErrors             int
 	ProbeAllIPS               bool
+	OutputLinesCount          bool
+	OutputWordsCount          bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -105,6 +107,8 @@ func (s *scanOptions) Clone() *scanOptions {
 		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
 		HostMaxErrors:             s.HostMaxErrors,
+		OutputLinesCount:          s.OutputLinesCount,
+		OutputWordsCount:          s.OutputWordsCount,
 	}
 }
 
@@ -199,6 +203,16 @@ type Options struct {
 	SkipDedupe                bool
 	ProbeAllIPS               bool
 	Resolvers                 goflags.NormalizedStringSlice
+	OutputLinesCount          bool
+	OutputMatchLinesCount     string
+	matchLinesCount           []int
+	OutputFilterLinesCount    string
+	filterLinesCount          []int
+	OutputWordsCount          bool
+	OutputMatchWordsCount     string
+	matchWordsCount           []int
+	OutputFilterWordsCount    string
+	filterWordsCount          []int
 }
 
 // ParseOptions parses the command line options for application
@@ -228,6 +242,9 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.OutputCName, "cname", false, "Display Host cname"),
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "Display if CDN in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "Display probe status"),
+		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
+		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, " Display Response body line count"),
+		flagSet.BoolVarP(&options.OutputWordsCount, "words-count", "wc", false, " Display Response body words count"),
 	)
 
 	createGroup(flagSet, "matchers", "Matchers",
@@ -235,7 +252,8 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchContentLength, "match-length", "ml", "", "Match response with given content length (-ml 100,102)"),
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "Match response with given string"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "Match response with specific regex"),
-		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
+		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "Match Response body line count"),
+		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-words-count", "mwc", "", "Match Response body words count"),
 	)
 
 	createGroup(flagSet, "filters", "Filters",
@@ -243,6 +261,8 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "Filter response with given content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "Filter response with specific string"),
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "Filter response with specific regex"),
+		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "Filter Response body line count"),
+		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-words-count", "fwc", "", "Filter Response body words count"),
 	)
 
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
@@ -372,6 +392,18 @@ func (options *Options) validateOptions() {
 		if options.matchRegex, err = regexp.Compile(options.OutputMatchRegex); err != nil {
 			gologger.Fatal().Msgf("Invalid value for match regex option: %s\n", err)
 		}
+	}
+	if options.matchLinesCount, err = stringz.StringToSliceInt(options.OutputMatchLinesCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for match lines count option: %s\n", err)
+	}
+	if options.matchWordsCount, err = stringz.StringToSliceInt(options.OutputMatchWordsCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for match words count option: %s\n", err)
+	}
+	if options.filterLinesCount, err = stringz.StringToSliceInt(options.OutputFilterLinesCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for filter lines count option: %s\n", err)
+	}
+	if options.filterWordsCount, err = stringz.StringToSliceInt(options.OutputFilterWordsCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for filter words count option: %s\n", err)
 	}
 
 	var resolvers []string
