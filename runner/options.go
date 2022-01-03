@@ -66,6 +66,7 @@ type scanOptions struct {
 	ExcludeCDN                bool
 	HostMaxErrors             int
 	ProbeAllIPS               bool
+	LeaveDefaultPorts         bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -105,6 +106,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
 		HostMaxErrors:             s.HostMaxErrors,
+		LeaveDefaultPorts:         s.LeaveDefaultPorts,
 	}
 }
 
@@ -199,6 +201,7 @@ type Options struct {
 	SkipDedupe                bool
 	ProbeAllIPS               bool
 	Resolvers                 goflags.NormalizedStringSlice
+	LeaveDefaultPorts         bool
 }
 
 // ParseOptions parses the command line options for application
@@ -291,6 +294,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.Stream, "stream", "s", false, "Stream mode - start elaborating input targets without sorting"),
 		flagSet.BoolVarP(&options.SkipDedupe, "skip-dedupe", "sd", false, "Disable dedupe input items (only used with stream mode)"),
 		flagSet.BoolVarP(&options.ProbeAllIPS, "probe-all-ips", "pa", false, "Probe all the ips associated with same host"),
+		flagSet.BoolVarP(&options.LeaveDefaultPorts, "leave-default-ports", "ldp", false, "Leave default HTTP/HTTPS ports (eg. http://host:80 - https//host:443"),
 	)
 
 	createGroup(flagSet, "debug", "Debug",
