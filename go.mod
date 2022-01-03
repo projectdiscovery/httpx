@@ -10,7 +10,7 @@ require (
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/microcosm-cc/bluemonday v1.0.16
+	github.com/microcosm-cc/bluemonday v1.0.17
 	github.com/miekg/dns v1.1.43 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.2
