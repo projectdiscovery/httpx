@@ -391,7 +391,11 @@ func (options *Options) validateOptions() {
 	options.Resolvers = resolvers
 	if len(options.Resolvers) > 0 {
 		gologger.Debug().Msgf("Using resolvers: %s\n", strings.Join(options.Resolvers, ","))
+	}
 
+	if options.StoreResponseDir != "" && !options.StoreResponse {
+		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
+		options.StoreResponse = true
 	}
 }
 
