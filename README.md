@@ -128,14 +128,14 @@ MISCELLANEOUS:
    -paths string        File or comma separated paths to request (deprecated)
 
 OUTPUT:
-   -o, -output string                File to write output
-   -sr, -store-response              Store HTTP responses
-   -srd, -store-response-dir string  Custom directory to store HTTP responses (default "output")
-   -json                             Output in JSONL(ines) format
-   -irr, -include-response           Include HTTP request/response in JSON output (-json only)
-   -include-chain                    Include redirect HTTP Chain in JSON output (-json only)
-   -store-chain                      Include HTTP redirect chain in responses (-sr only)
-   -csv                              Output in CSV format
+   -o, -output string                file to write output
+   -sr, -store-response              store http response to output directory
+   -srd, -store-response-dir string  store http response to custom directory (default "output")
+   -csv                              store output in CSV format
+   -json                             store output in JSONL(ines) format
+   -irr, -include-response           include http request/response in JSON output (-json only)
+   -include-chain                    include redirect http chain in JSON output (-json only)
+   -store-chain                      include http redirect chain in responses (-sr only)
 
 CONFIGURATIONS:
    -r, -resolvers string[]       List of custom resolvers (file or comma separated)
