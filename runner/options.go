@@ -66,6 +66,7 @@ type scanOptions struct {
 	ExcludeCDN                bool
 	HostMaxErrors             int
 	ProbeAllIPS               bool
+	Favicon                   bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -105,6 +106,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
 		HostMaxErrors:             s.HostMaxErrors,
+		Favicon:                   s.Favicon,
 	}
 }
 
@@ -114,8 +116,10 @@ type Options struct {
 	CustomPorts               customport.CustomPorts
 	matchStatusCode           []int
 	matchContentLength        []int
+	matchFavicon              []uint32
 	filterStatusCode          []int
 	filterContentLength       []int
+	filterFavicon             []uint32
 	Output                    string
 	StoreResponseDir          string
 	HTTPProxy                 string
@@ -199,6 +203,9 @@ type Options struct {
 	SkipDedupe                bool
 	ProbeAllIPS               bool
 	Resolvers                 goflags.NormalizedStringSlice
+	Favicon                   bool
+	OutputFilterFavicon       string
+	OutputMatchFavicon        string
 }
 
 // ParseOptions parses the command line options for application
@@ -228,6 +235,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.OutputCName, "cname", false, "Display Host cname"),
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "Display if CDN in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "Display probe status"),
+		flagSet.BoolVar(&options.Favicon, "favicon", false, "Probes for favicon (\"favicon.ico\" as path) and display phythonic hash"),
 	)
 
 	createGroup(flagSet, "matchers", "Matchers",
@@ -236,6 +244,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "Match response with given string"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "Match response with specific regex"),
 		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
+		flagSet.StringVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", "", "Match response with specific favicon"),
 	)
 
 	createGroup(flagSet, "filters", "Filters",
@@ -243,6 +252,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "Filter response with given content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "Filter response with specific string"),
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "Filter response with specific regex"),
+		flagSet.StringVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", "", "Filter response with specific favicon"),
 	)
 
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
@@ -357,10 +367,16 @@ func (options *Options) validateOptions() {
 	if options.matchContentLength, err = stringz.StringToSliceInt(options.OutputMatchContentLength); err != nil {
 		gologger.Fatal().Msgf("Invalid value for match content length option: %s\n", err)
 	}
+	if options.matchFavicon, err = stringz.StringToSliceUInt32(options.OutputMatchFavicon); err != nil {
+		gologger.Fatal().Msgf("Invalid value for match favicon option: %s\n", err)
+	}
 	if options.filterStatusCode, err = stringz.StringToSliceInt(options.OutputFilterStatusCode); err != nil {
 		gologger.Fatal().Msgf("Invalid value for filter status code option: %s\n", err)
 	}
 	if options.filterContentLength, err = stringz.StringToSliceInt(options.OutputFilterContentLength); err != nil {
+		gologger.Fatal().Msgf("Invalid value for filter content length option: %s\n", err)
+	}
+	if options.filterFavicon, err = stringz.StringToSliceUInt32(options.OutputFilterFavicon); err != nil {
 		gologger.Fatal().Msgf("Invalid value for filter content length option: %s\n", err)
 	}
 	if options.OutputFilterRegex != "" {
@@ -396,6 +412,11 @@ func (options *Options) validateOptions() {
 	if options.StoreResponseDir != "" && !options.StoreResponse {
 		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
 		options.StoreResponse = true
+	}
+
+	if options.Favicon {
+		gologger.Debug().Msgf("Setting single path to \"favicon.ico\" and ignoring multiple paths settings\n")
+		options.RequestURIs = "/favicon.ico"
 	}
 }
 

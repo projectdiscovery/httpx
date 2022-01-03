@@ -227,6 +227,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.ExcludeCDN = options.ExcludeCDN
 	scanopts.HostMaxErrors = options.HostMaxErrors
 	scanopts.ProbeAllIPS = options.ProbeAllIPS
+	scanopts.Favicon = options.Favicon
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
@@ -558,6 +559,9 @@ func (r *Runner) RunEnumeration() {
 			if r.options.OutputFilterString != "" && strings.Contains(strings.ToLower(resp.raw), strings.ToLower(r.options.OutputFilterString)) {
 				continue
 			}
+			if len(r.options.filterFavicon) > 0 && slice.UInt32SliceContains(r.options.filterFavicon, resp.FavIconMMH3) {
+				continue
+			}
 			if len(r.options.matchStatusCode) > 0 && !slice.IntSliceContains(r.options.matchStatusCode, resp.StatusCode) {
 				continue
 			}
@@ -568,6 +572,9 @@ func (r *Runner) RunEnumeration() {
 				continue
 			}
 			if r.options.OutputMatchString != "" && !strings.Contains(strings.ToLower(resp.raw), strings.ToLower(r.options.OutputMatchString)) {
+				continue
+			}
+			if len(r.options.matchFavicon) > 0 && !slice.UInt32SliceContains(r.options.matchFavicon, resp.FavIconMMH3) {
 				continue
 			}
 
@@ -1168,6 +1175,19 @@ retry:
 		builder.WriteRune(']')
 	}
 
+	var faviconMMH3 uint32
+	if scanopts.Favicon {
+		faviconMMH3 = stringz.FaviconHash(resp.Data)
+		faviconMMH3String := fmt.Sprintf("%d", faviconMMH3)
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(faviconMMH3String).String())
+		} else {
+			builder.WriteString(faviconMMH3String)
+		}
+		builder.WriteRune(']')
+	}
+
 	// store responses or chain in directory
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		domainFile := strings.ReplaceAll(urlutil.TrimScheme(URL.String()), ":", ".")
@@ -1271,6 +1291,7 @@ retry:
 		ResponseTime:     resp.Duration.String(),
 		Technologies:     technologies,
 		FinalURL:         finalURL,
+		FavIconMMH3:      faviconMMH3,
 	}
 }
 
@@ -1322,6 +1343,7 @@ type Result struct {
 	Chain            []httpx.ChainItem   `json:"chain,omitempty" csv:"chain"`
 	FinalURL         string              `json:"final-url,omitempty" csv:"final-url"`
 	Failed           bool                `json:"failed" csv:"failed"`
+	FavIconMMH3      uint32              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
 }
 
 // JSON the result

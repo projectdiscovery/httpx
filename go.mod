@@ -44,6 +44,8 @@ require (
 	golang.org/x/text v0.3.7
 )
 
+require github.com/spaolacci/murmur3 v1.1.0
+
 require (
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect

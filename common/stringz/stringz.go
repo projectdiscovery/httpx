@@ -1,11 +1,14 @@
 package stringz
 
 import (
+	"bytes"
+	"encoding/base64"
 	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/projectdiscovery/urlutil"
+	"github.com/spaolacci/murmur3"
 )
 
 // TrimProtocol removes the HTTP scheme from an URI
@@ -31,6 +34,24 @@ func StringToSliceInt(s string) ([]int, error) {
 		vTrim := strings.TrimSpace(v)
 		if i, err := strconv.Atoi(vTrim); err == nil {
 			r = append(r, i)
+		} else {
+			return r, err
+		}
+	}
+
+	return r, nil
+}
+
+// StringToSliceUInt converts string to slice of ints
+func StringToSliceUInt32(s string) ([]uint32, error) {
+	var r []uint32
+	if s == "" {
+		return r, nil
+	}
+	for _, v := range strings.Split(s, ",") {
+		vTrim := strings.TrimSpace(v)
+		if i, err := strconv.ParseUint(vTrim, 10, 64); err == nil {
+			r = append(r, uint32(i))
 		} else {
 			return r, err
 		}
@@ -83,4 +104,26 @@ func GetInvalidURI(rawURL string) (bool, string) {
 	}
 
 	return false, ""
+}
+
+func FaviconHash(data []byte) uint32 {
+	stdBase64 := base64.StdEncoding.EncodeToString(data)
+	stdBase64 = InsertInto(stdBase64, 76, '\n')
+	hasher := murmur3.New32WithSeed(0)
+	hasher.Write([]byte(stdBase64))
+	return hasher.Sum32()
+}
+
+func InsertInto(s string, interval int, sep rune) string {
+	var buffer bytes.Buffer
+	before := interval - 1
+	last := len(s) - 1
+	for i, char := range s {
+		buffer.WriteRune(char)
+		if i%interval == before && i != last {
+			buffer.WriteRune(sep)
+		}
+	}
+	buffer.WriteRune(sep)
+	return buffer.String()
 }
