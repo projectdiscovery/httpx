@@ -263,14 +263,14 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "output", "Output",
-		flagSet.StringVarP(&options.Output, "output", "o", "", "File to write output"),
-		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "Store HTTP responses"),
-		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "output", "Custom directory to store HTTP responses"),
-		flagSet.BoolVar(&options.JSONOutput, "json", false, "Output in JSONL(ines) format"),
-		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr", false, "Include HTTP request/response in JSON output (-json only)"),
-		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "Include redirect HTTP Chain in JSON output (-json only)"),
-		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "Include HTTP redirect chain in responses (-sr only)"),
-		flagSet.BoolVar(&options.CSVOutput, "csv", false, "Output in CSV format"),
+		flagSet.StringVarP(&options.Output, "output", "o", "", "file to write output results"),
+		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
+		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "output", "store http response to custom directory"),
+		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in CSV format"),
+		flagSet.BoolVar(&options.JSONOutput, "json", false, "store output in JSONL(ines) format"),
+		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr", false, "include http request/response in JSON output (-json only)"),
+		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "include redirect http chain in JSON output (-json only)"),
+		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
 	)
 
 	createGroup(flagSet, "configs", "Configurations",
@@ -391,7 +391,11 @@ func (options *Options) validateOptions() {
 	options.Resolvers = resolvers
 	if len(options.Resolvers) > 0 {
 		gologger.Debug().Msgf("Using resolvers: %s\n", strings.Join(options.Resolvers, ","))
+	}
 
+	if options.StoreResponseDir != "" && !options.StoreResponse {
+		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
+		options.StoreResponse = true
 	}
 }
 
