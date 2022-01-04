@@ -21,9 +21,10 @@ import (
 
 const (
 	// The maximum file length is 251 (255 - 4 bytes for ".ext" suffix)
-	maxFileNameLength = 251
-	two               = 2
-	DefaultResumeFile = "resume.cfg"
+	maxFileNameLength      = 251
+	two                    = 2
+	DefaultResumeFile      = "resume.cfg"
+	DefaultOutputDirectory = "output"
 )
 
 type scanOptions struct {
@@ -67,6 +68,7 @@ type scanOptions struct {
 	HostMaxErrors             int
 	ProbeAllIPS               bool
 	Favicon                   bool
+	LeaveDefaultPorts         bool
 	OutputLinesCount          bool
 	OutputWordsCount          bool
 }
@@ -109,6 +111,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
 		HostMaxErrors:             s.HostMaxErrors,
 		Favicon:                   s.Favicon,
+		LeaveDefaultPorts:         s.LeaveDefaultPorts,
 		OutputLinesCount:          s.OutputLinesCount,
 		OutputWordsCount:          s.OutputWordsCount,
 	}
@@ -208,6 +211,7 @@ type Options struct {
 	Favicon                   bool
 	OutputFilterFavicon       goflags.NormalizedStringSlice
 	OutputMatchFavicon        goflags.NormalizedStringSlice
+	LeaveDefaultPorts         bool
 	OutputLinesCount          bool
 	OutputMatchLinesCount     string
 	matchLinesCount           []int
@@ -293,7 +297,7 @@ func ParseOptions() *Options {
 	createGroup(flagSet, "output", "Output",
 		flagSet.StringVarP(&options.Output, "output", "o", "", "file to write output results"),
 		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
-		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "output", "store http response to custom directory"),
+		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in CSV format"),
 		flagSet.BoolVar(&options.JSONOutput, "json", false, "store output in JSONL(ines) format"),
 		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr", false, "include http request/response in JSON output (-json only)"),
@@ -319,6 +323,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.Stream, "stream", "s", false, "Stream mode - start elaborating input targets without sorting"),
 		flagSet.BoolVarP(&options.SkipDedupe, "skip-dedupe", "sd", false, "Disable dedupe input items (only used with stream mode)"),
 		flagSet.BoolVarP(&options.ProbeAllIPS, "probe-all-ips", "pa", false, "Probe all the ips associated with same host"),
+		flagSet.BoolVarP(&options.LeaveDefaultPorts, "leave-default-ports", "ldp", false, "Leave default HTTP/HTTPS ports (eg. http://host:80 - https//host:443"),
 	)
 
 	createGroup(flagSet, "debug", "Debug",
@@ -433,6 +438,10 @@ func (options *Options) validateOptions() {
 		gologger.Debug().Msgf("Using resolvers: %s\n", strings.Join(options.Resolvers, ","))
 	}
 
+	if options.StoreResponse && options.StoreResponseDir == "" {
+		gologger.Debug().Msgf("Store response directory not specified, using \"%s\"\n", DefaultOutputDirectory)
+		options.StoreResponseDir = DefaultOutputDirectory
+	}
 	if options.StoreResponseDir != "" && !options.StoreResponse {
 		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
 		options.StoreResponse = true
