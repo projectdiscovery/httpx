@@ -227,6 +227,8 @@ func New(options *Options) (*Runner, error) {
 	scanopts.ExcludeCDN = options.ExcludeCDN
 	scanopts.HostMaxErrors = options.HostMaxErrors
 	scanopts.ProbeAllIPS = options.ProbeAllIPS
+	scanopts.OutputLinesCount = options.OutputLinesCount
+	scanopts.OutputWordsCount = options.OutputWordsCount
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
@@ -552,6 +554,12 @@ func (r *Runner) RunEnumeration() {
 			if len(r.options.filterContentLength) > 0 && slice.IntSliceContains(r.options.filterContentLength, resp.ContentLength) {
 				continue
 			}
+			if len(r.options.filterLinesCount) > 0 && slice.IntSliceContains(r.options.filterLinesCount, resp.Lines) {
+				continue
+			}
+			if len(r.options.filterWordsCount) > 0 && slice.IntSliceContains(r.options.filterWordsCount, resp.Words) {
+				continue
+			}
 			if r.options.filterRegex != nil && r.options.filterRegex.MatchString(resp.raw) {
 				continue
 			}
@@ -568,6 +576,12 @@ func (r *Runner) RunEnumeration() {
 				continue
 			}
 			if r.options.OutputMatchString != "" && !strings.Contains(strings.ToLower(resp.raw), strings.ToLower(r.options.OutputMatchString)) {
+				continue
+			}
+			if len(r.options.matchLinesCount) > 0 && !slice.IntSliceContains(r.options.matchLinesCount, resp.Lines) {
+				continue
+			}
+			if len(r.options.matchWordsCount) > 0 && !slice.IntSliceContains(r.options.matchWordsCount, resp.Words) {
 				continue
 			}
 
@@ -1168,6 +1182,26 @@ retry:
 		builder.WriteRune(']')
 	}
 
+	if scanopts.OutputLinesCount {
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(resp.Lines).String())
+		} else {
+			builder.WriteString(fmt.Sprint(resp.Lines))
+		}
+		builder.WriteRune(']')
+	}
+
+	if scanopts.OutputWordsCount {
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(resp.Words).String())
+		} else {
+			builder.WriteString(fmt.Sprint(resp.Words))
+		}
+		builder.WriteRune(']')
+	}
+
 	// store responses or chain in directory
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		domainFile := strings.ReplaceAll(urlutil.TrimScheme(URL.String()), ":", ".")
@@ -1271,6 +1305,8 @@ retry:
 		ResponseTime:     resp.Duration.String(),
 		Technologies:     technologies,
 		FinalURL:         finalURL,
+		Lines:            resp.Lines,
+		Words:            resp.Words,
 	}
 }
 
@@ -1322,6 +1358,8 @@ type Result struct {
 	Chain            []httpx.ChainItem   `json:"chain,omitempty" csv:"chain"`
 	FinalURL         string              `json:"final-url,omitempty" csv:"final-url"`
 	Failed           bool                `json:"failed" csv:"failed"`
+	Lines            int                 `json:"lines" csv:"lines"`
+	Words            int                 `json:"words" csv:"words"`
 }
 
 // JSON the result
