@@ -227,6 +227,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.ExcludeCDN = options.ExcludeCDN
 	scanopts.HostMaxErrors = options.HostMaxErrors
 	scanopts.ProbeAllIPS = options.ProbeAllIPS
+	scanopts.LeaveDefaultPorts = options.LeaveDefaultPorts
 	scanopts.OutputLinesCount = options.OutputLinesCount
 	scanopts.OutputWordsCount = options.OutputWordsCount
 	runner.scanopts = scanopts
@@ -851,6 +852,15 @@ retry:
 
 	if customHost != "" {
 		req.Host = customHost
+	}
+
+	if !scanopts.LeaveDefaultPorts {
+		switch {
+		case protocol == httpx.HTTP && strings.HasSuffix(req.Host, ":80"):
+			req.Host = strings.TrimSuffix(req.Host, ":80")
+		case protocol == httpx.HTTPS && strings.HasSuffix(req.Host, ":443"):
+			req.Host = strings.TrimSuffix(req.Host, ":443")
+		}
 	}
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
