@@ -106,12 +106,12 @@ func GetInvalidURI(rawURL string) (bool, string) {
 	return false, ""
 }
 
-func FaviconHash(data []byte) uint32 {
+func FaviconHash(data []byte) int32 {
 	stdBase64 := base64.StdEncoding.EncodeToString(data)
 	stdBase64 = InsertInto(stdBase64, 76, '\n')
 	hasher := murmur3.New32WithSeed(0)
 	hasher.Write([]byte(stdBase64))
-	return hasher.Sum32()
+	return int32(hasher.Sum32())
 }
 
 func InsertInto(s string, interval int, sep rune) string {

@@ -1198,6 +1198,7 @@ retry:
 		} else {
 			builder.WriteString(faviconMMH3)
 		}
+		builder.WriteRune(']')
 	}
 
 	if scanopts.OutputLinesCount {
