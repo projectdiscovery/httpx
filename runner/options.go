@@ -250,7 +250,6 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "Display if CDN in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "Display probe status"),
 		flagSet.BoolVar(&options.Favicon, "favicon", false, "Probes for favicon (\"favicon.ico\" as path) and display phythonic hash"),
-		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
 	)
 
 	createGroup(flagSet, "matchers", "Matchers",
