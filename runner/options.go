@@ -249,7 +249,6 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.OutputCName, "cname", false, "Display Host cname"),
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "Display if CDN in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "Display probe status"),
-		flagSet.BoolVar(&options.Favicon, "favicon", false, "Probes for favicon (\"favicon.ico\" as path) and display phythonic hash"),
 	)
 
 	createGroup(flagSet, "matchers", "Matchers",
@@ -258,9 +257,9 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "Match response with given string"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "Match response with specific regex"),
 		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
-		flagSet.NormalizedStringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", []string{}, "Match response with specific favicon"),
 		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "Match Response body line count"),
 		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-word-count", "mwc", "", "Match Response body word count"),
+		flagSet.NormalizedStringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", []string{}, "Match response with specific favicon"),
 	)
 
 	createGroup(flagSet, "filters", "Filters",
@@ -268,9 +267,9 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "Filter response with given content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "Filter response with specific string"),
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "Filter response with specific regex"),
-		flagSet.NormalizedStringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", []string{}, "Filter response with specific favicon"),
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "Filter Response body line count"),
 		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-word-count", "fwc", "", "Filter Response body word count"),
+		flagSet.NormalizedStringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", []string{}, "Filter response with specific favicon"),
 	)
 
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
@@ -279,6 +278,7 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "Misc", "Miscellaneous",
+		flagSet.BoolVar(&options.Favicon, "favicon", false, "Probes for favicon (\"favicon.ico\" as path) and display phythonic hash"),
 		flagSet.BoolVar(&options.TLSGrab, "tls-grab", false, "Perform TLS(SSL) data grabbing"),
 		flagSet.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains"),
 		flagSet.BoolVar(&options.CSPProbe, "csp-probe", false, "Send HTTP probes on the extracted CSP domains"),
