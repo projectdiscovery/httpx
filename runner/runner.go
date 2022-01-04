@@ -228,6 +228,8 @@ func New(options *Options) (*Runner, error) {
 	scanopts.HostMaxErrors = options.HostMaxErrors
 	scanopts.ProbeAllIPS = options.ProbeAllIPS
 	scanopts.Favicon = options.Favicon
+	scanopts.OutputLinesCount = options.OutputLinesCount
+	scanopts.OutputWordsCount = options.OutputWordsCount
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
@@ -553,6 +555,12 @@ func (r *Runner) RunEnumeration() {
 			if len(r.options.filterContentLength) > 0 && slice.IntSliceContains(r.options.filterContentLength, resp.ContentLength) {
 				continue
 			}
+			if len(r.options.filterLinesCount) > 0 && slice.IntSliceContains(r.options.filterLinesCount, resp.Lines) {
+				continue
+			}
+			if len(r.options.filterWordsCount) > 0 && slice.IntSliceContains(r.options.filterWordsCount, resp.Words) {
+				continue
+			}
 			if r.options.filterRegex != nil && r.options.filterRegex.MatchString(resp.raw) {
 				continue
 			}
@@ -575,6 +583,12 @@ func (r *Runner) RunEnumeration() {
 				continue
 			}
 			if len(r.options.OutputMatchFavicon) > 0 && !stringsutil.EqualFoldAny(resp.FavIconMMH3, r.options.OutputMatchFavicon...) {
+				continue
+			}
+			if len(r.options.matchLinesCount) > 0 && !slice.IntSliceContains(r.options.matchLinesCount, resp.Lines) {
+				continue
+			}
+			if len(r.options.matchWordsCount) > 0 && !slice.IntSliceContains(r.options.matchWordsCount, resp.Words) {
 				continue
 			}
 
@@ -1184,6 +1198,25 @@ retry:
 		} else {
 			builder.WriteString(faviconMMH3)
 		}
+	}
+
+	if scanopts.OutputLinesCount {
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(resp.Lines).String())
+		} else {
+			builder.WriteString(fmt.Sprint(resp.Lines))
+		}
+		builder.WriteRune(']')
+	}
+
+	if scanopts.OutputWordsCount {
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(resp.Words).String())
+		} else {
+			builder.WriteString(fmt.Sprint(resp.Words))
+		}
 		builder.WriteRune(']')
 	}
 
@@ -1291,6 +1324,8 @@ retry:
 		Technologies:     technologies,
 		FinalURL:         finalURL,
 		FavIconMMH3:      faviconMMH3,
+		Lines:            resp.Lines,
+		Words:            resp.Words,
 	}
 }
 
@@ -1343,6 +1378,8 @@ type Result struct {
 	FinalURL         string              `json:"final-url,omitempty" csv:"final-url"`
 	Failed           bool                `json:"failed" csv:"failed"`
 	FavIconMMH3      string              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
+	Lines            int                 `json:"lines" csv:"lines"`
+	Words            int                 `json:"words" csv:"words"`
 }
 
 // JSON the result

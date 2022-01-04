@@ -67,6 +67,8 @@ type scanOptions struct {
 	HostMaxErrors             int
 	ProbeAllIPS               bool
 	Favicon                   bool
+	OutputLinesCount          bool
+	OutputWordsCount          bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -107,6 +109,8 @@ func (s *scanOptions) Clone() *scanOptions {
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
 		HostMaxErrors:             s.HostMaxErrors,
 		Favicon:                   s.Favicon,
+		OutputLinesCount:          s.OutputLinesCount,
+		OutputWordsCount:          s.OutputWordsCount,
 	}
 }
 
@@ -204,6 +208,16 @@ type Options struct {
 	Favicon                   bool
 	OutputFilterFavicon       goflags.NormalizedStringSlice
 	OutputMatchFavicon        goflags.NormalizedStringSlice
+	OutputLinesCount          bool
+	OutputMatchLinesCount     string
+	matchLinesCount           []int
+	OutputFilterLinesCount    string
+	filterLinesCount          []int
+	OutputWordsCount          bool
+	OutputMatchWordsCount     string
+	matchWordsCount           []int
+	OutputFilterWordsCount    string
+	filterWordsCount          []int
 }
 
 // ParseOptions parses the command line options for application
@@ -224,6 +238,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.ContentLength, "content-length", "cl", false, "Display Content-Length"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "Display Server header"),
 		flagSet.BoolVarP(&options.OutputContentType, "content-type", "ct", false, "Display Content-Type header"),
+		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, "Display Response body line count"),
+		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "Display Response body word count"),
 		flagSet.BoolVarP(&options.OutputResponseTime, "response-time", "rt", false, "Display the response time"),
 		flagSet.BoolVar(&options.ExtractTitle, "title", false, "Display page title"),
 		flagSet.BoolVar(&options.Location, "location", false, "Display Location header"),
@@ -234,6 +250,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "Display if CDN in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "Display probe status"),
 		flagSet.BoolVar(&options.Favicon, "favicon", false, "Probes for favicon (\"favicon.ico\" as path) and display phythonic hash"),
+		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
 	)
 
 	createGroup(flagSet, "matchers", "Matchers",
@@ -243,6 +260,8 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "Match response with specific regex"),
 		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
 		flagSet.NormalizedStringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", []string{}, "Match response with specific favicon"),
+		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "Match Response body line count"),
+		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-word-count", "mwc", "", "Match Response body word count"),
 	)
 
 	createGroup(flagSet, "filters", "Filters",
@@ -251,6 +270,8 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "Filter response with specific string"),
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "Filter response with specific regex"),
 		flagSet.NormalizedStringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", []string{}, "Filter response with specific favicon"),
+		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "Filter Response body line count"),
+		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-word-count", "fwc", "", "Filter Response body word count"),
 	)
 
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
@@ -380,6 +401,18 @@ func (options *Options) validateOptions() {
 		if options.matchRegex, err = regexp.Compile(options.OutputMatchRegex); err != nil {
 			gologger.Fatal().Msgf("Invalid value for match regex option: %s\n", err)
 		}
+	}
+	if options.matchLinesCount, err = stringz.StringToSliceInt(options.OutputMatchLinesCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for match lines count option: %s\n", err)
+	}
+	if options.matchWordsCount, err = stringz.StringToSliceInt(options.OutputMatchWordsCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for match words count option: %s\n", err)
+	}
+	if options.filterLinesCount, err = stringz.StringToSliceInt(options.OutputFilterLinesCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for filter lines count option: %s\n", err)
+	}
+	if options.filterWordsCount, err = stringz.StringToSliceInt(options.OutputFilterWordsCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for filter words count option: %s\n", err)
 	}
 
 	var resolvers []string
