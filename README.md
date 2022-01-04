@@ -43,18 +43,19 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 
 ### Supported probes:-
 
-| Probes             | Default check   | Probes             | Default check   |
-|--------------------|-----------------|--------------------|-----------------|
-| URL                | true            | IP                 | true            |
-| Title              | true            | CNAME              | true            |
-| Status Code        | true            | Raw HTTP           | false           |
-| Content Length     | true            | HTTP2              | false           |
-| TLS Certificate    | true            | HTTP 1.1 Pipeline  | false           |
-| CSP Header         | true            | Virtual host       | false           |
-| Location Header    | true            | CDN                | false           |
-| Web Server         | true            | Path               | false           |
-| Web Socket         | true            | Ports              | false           |
-| Response Time      | true            | Request method     | false           |
+| Probes          | Default check | Probes            | Default check |
+| --------------- | ------------- | ----------------- | ------------- |
+| URL             | true          | IP                | true          |
+| Title           | true          | CNAME             | true          |
+| Status Code     | true          | Raw HTTP          | false         |
+| Content Length  | true          | HTTP2             | false         |
+| Line Count      | true          | Word Count        | true          |
+| TLS Certificate | true          | HTTP 1.1 Pipeline | false         |
+| CSP Header      | true          | Virtual host      | false         |
+| Location Header | true          | CDN               | false         |
+| Web Server      | true          | Paths             | false         |
+| Web Socket      | true          | Ports             | false         |
+| Response Time   | true          | Request Method    | false         |
 
 
 # Installation Instructions
@@ -87,6 +88,8 @@ PROBES:
    -sc, -status-code     Display Status Code
    -td, -tech-detect     Display wappalyzer based technology detection
    -cl, -content-length  Display Content-Length
+   -lc, -line-count      Display Response body line count
+   -wc, -word-count      Display Response body word count
    -server, -web-server  Display Server header
    -ct, -content-type    Display Content-Type header
    -rt, -response-time   Display the response time
@@ -105,12 +108,16 @@ MATCHERS:
    -ms, -match-string string   Match response with given string
    -mr, -match-regex string    Match response with specific regex
    -er, -extract-regex string  Display response content with matched regex
+   -mlc, -match-line-count string  Match Response body line count
+   -mwc, -match-word-count string  Match Response body word count
 
 FILTERS:
    -fc, -filter-code string    Filter response with given status code (-fc 403,401)
    -fl, -filter-length string  Filter response with given content length (-fl 23,33)
    -fs, -filter-string string  Filter response with specific string
    -fe, -filter-regex string   Filter response with specific regex
+   -flc, -filter-line-count string  Filter Response body line count
+   -fwc, -filter-word-count string  Filter Response body word count
 
 RATE-LIMIT:
    -t, -threads int      Number of threads (default 50)
@@ -128,14 +135,14 @@ MISCELLANEOUS:
    -paths string        File or comma separated paths to request (deprecated)
 
 OUTPUT:
-   -o, -output string                File to write output
-   -sr, -store-response              Store HTTP responses
-   -srd, -store-response-dir string  Custom directory to store HTTP responses (default "output")
-   -json                             Output in JSONL(ines) format
-   -irr, -include-response           Include HTTP request/response in JSON output (-json only)
-   -include-chain                    Include redirect HTTP Chain in JSON output (-json only)
-   -store-chain                      Include HTTP redirect chain in responses (-sr only)
-   -csv                              Output in CSV format
+   -o, -output string                file to write output
+   -sr, -store-response              store http response to output directory
+   -srd, -store-response-dir string  store http response to custom directory (default "output")
+   -csv                              store output in CSV format
+   -json                             store output in JSONL(ines) format
+   -irr, -include-response           include http request/response in JSON output (-json only)
+   -include-chain                    include redirect http chain in JSON output (-json only)
+   -store-chain                      include http redirect chain in responses (-sr only)
 
 CONFIGURATIONS:
    -r, -resolvers string[]       List of custom resolvers (file or comma separated)

@@ -67,6 +67,8 @@ type scanOptions struct {
 	HostMaxErrors             int
 	ProbeAllIPS               bool
 	LeaveDefaultPorts         bool
+	OutputLinesCount          bool
+	OutputWordsCount          bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -107,6 +109,8 @@ func (s *scanOptions) Clone() *scanOptions {
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
 		HostMaxErrors:             s.HostMaxErrors,
 		LeaveDefaultPorts:         s.LeaveDefaultPorts,
+		OutputLinesCount:          s.OutputLinesCount,
+		OutputWordsCount:          s.OutputWordsCount,
 	}
 }
 
@@ -202,6 +206,16 @@ type Options struct {
 	ProbeAllIPS               bool
 	Resolvers                 goflags.NormalizedStringSlice
 	LeaveDefaultPorts         bool
+	OutputLinesCount          bool
+	OutputMatchLinesCount     string
+	matchLinesCount           []int
+	OutputFilterLinesCount    string
+	filterLinesCount          []int
+	OutputWordsCount          bool
+	OutputMatchWordsCount     string
+	matchWordsCount           []int
+	OutputFilterWordsCount    string
+	filterWordsCount          []int
 }
 
 // ParseOptions parses the command line options for application
@@ -222,6 +236,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.ContentLength, "content-length", "cl", false, "Display Content-Length"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "Display Server header"),
 		flagSet.BoolVarP(&options.OutputContentType, "content-type", "ct", false, "Display Content-Type header"),
+		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, "Display Response body line count"),
+		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "Display Response body word count"),
 		flagSet.BoolVarP(&options.OutputResponseTime, "response-time", "rt", false, "Display the response time"),
 		flagSet.BoolVar(&options.ExtractTitle, "title", false, "Display page title"),
 		flagSet.BoolVar(&options.Location, "location", false, "Display Location header"),
@@ -231,6 +247,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.OutputCName, "cname", false, "Display Host cname"),
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "Display if CDN in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "Display probe status"),
+		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
 	)
 
 	createGroup(flagSet, "matchers", "Matchers",
@@ -238,7 +255,8 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchContentLength, "match-length", "ml", "", "Match response with given content length (-ml 100,102)"),
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "Match response with given string"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "Match response with specific regex"),
-		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
+		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "Match Response body line count"),
+		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-word-count", "mwc", "", "Match Response body word count"),
 	)
 
 	createGroup(flagSet, "filters", "Filters",
@@ -246,6 +264,8 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "Filter response with given content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "Filter response with specific string"),
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "Filter response with specific regex"),
+		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "Filter Response body line count"),
+		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-word-count", "fwc", "", "Filter Response body word count"),
 	)
 
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
@@ -266,14 +286,14 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "output", "Output",
-		flagSet.StringVarP(&options.Output, "output", "o", "", "File to write output"),
-		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "Store HTTP responses"),
-		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "output", "Custom directory to store HTTP responses"),
-		flagSet.BoolVar(&options.JSONOutput, "json", false, "Output in JSONL(ines) format"),
-		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr", false, "Include HTTP request/response in JSON output (-json only)"),
-		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "Include redirect HTTP Chain in JSON output (-json only)"),
-		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "Include HTTP redirect chain in responses (-sr only)"),
-		flagSet.BoolVar(&options.CSVOutput, "csv", false, "Output in CSV format"),
+		flagSet.StringVarP(&options.Output, "output", "o", "", "file to write output results"),
+		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
+		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "output", "store http response to custom directory"),
+		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in CSV format"),
+		flagSet.BoolVar(&options.JSONOutput, "json", false, "store output in JSONL(ines) format"),
+		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr", false, "include http request/response in JSON output (-json only)"),
+		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "include redirect http chain in JSON output (-json only)"),
+		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
 	)
 
 	createGroup(flagSet, "configs", "Configurations",
@@ -377,6 +397,18 @@ func (options *Options) validateOptions() {
 			gologger.Fatal().Msgf("Invalid value for match regex option: %s\n", err)
 		}
 	}
+	if options.matchLinesCount, err = stringz.StringToSliceInt(options.OutputMatchLinesCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for match lines count option: %s\n", err)
+	}
+	if options.matchWordsCount, err = stringz.StringToSliceInt(options.OutputMatchWordsCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for match words count option: %s\n", err)
+	}
+	if options.filterLinesCount, err = stringz.StringToSliceInt(options.OutputFilterLinesCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for filter lines count option: %s\n", err)
+	}
+	if options.filterWordsCount, err = stringz.StringToSliceInt(options.OutputFilterWordsCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for filter words count option: %s\n", err)
+	}
 
 	var resolvers []string
 	for _, resolver := range options.Resolvers {
@@ -395,7 +427,11 @@ func (options *Options) validateOptions() {
 	options.Resolvers = resolvers
 	if len(options.Resolvers) > 0 {
 		gologger.Debug().Msgf("Using resolvers: %s\n", strings.Join(options.Resolvers, ","))
+	}
 
+	if options.StoreResponseDir != "" && !options.StoreResponse {
+		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
+		options.StoreResponse = true
 	}
 }
 
