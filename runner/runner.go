@@ -559,7 +559,7 @@ func (r *Runner) RunEnumeration() {
 			if r.options.OutputFilterString != "" && strings.Contains(strings.ToLower(resp.raw), strings.ToLower(r.options.OutputFilterString)) {
 				continue
 			}
-			if len(r.options.filterFavicon) > 0 && slice.UInt32SliceContains(r.options.filterFavicon, resp.FavIconMMH3) {
+			if len(r.options.OutputFilterFavicon) > 0 && stringsutil.EqualFoldAny(resp.FavIconMMH3, r.options.OutputFilterFavicon...) {
 				continue
 			}
 			if len(r.options.matchStatusCode) > 0 && !slice.IntSliceContains(r.options.matchStatusCode, resp.StatusCode) {
@@ -574,7 +574,7 @@ func (r *Runner) RunEnumeration() {
 			if r.options.OutputMatchString != "" && !strings.Contains(strings.ToLower(resp.raw), strings.ToLower(r.options.OutputMatchString)) {
 				continue
 			}
-			if len(r.options.matchFavicon) > 0 && !slice.UInt32SliceContains(r.options.matchFavicon, resp.FavIconMMH3) {
+			if len(r.options.OutputMatchFavicon) > 0 && !stringsutil.EqualFoldAny(resp.FavIconMMH3, r.options.OutputMatchFavicon...) {
 				continue
 			}
 
@@ -1175,15 +1175,14 @@ retry:
 		builder.WriteRune(']')
 	}
 
-	var faviconMMH3 uint32
+	var faviconMMH3 string
 	if scanopts.Favicon {
-		faviconMMH3 = stringz.FaviconHash(resp.Data)
-		faviconMMH3String := fmt.Sprintf("%d", faviconMMH3)
+		faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(resp.Data))
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Magenta(faviconMMH3String).String())
+			builder.WriteString(aurora.Magenta(faviconMMH3).String())
 		} else {
-			builder.WriteString(faviconMMH3String)
+			builder.WriteString(faviconMMH3)
 		}
 		builder.WriteRune(']')
 	}
@@ -1343,7 +1342,7 @@ type Result struct {
 	Chain            []httpx.ChainItem   `json:"chain,omitempty" csv:"chain"`
 	FinalURL         string              `json:"final-url,omitempty" csv:"final-url"`
 	Failed           bool                `json:"failed" csv:"failed"`
-	FavIconMMH3      uint32              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
+	FavIconMMH3      string              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
 }
 
 // JSON the result
