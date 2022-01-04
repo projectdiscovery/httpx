@@ -21,9 +21,10 @@ import (
 
 const (
 	// The maximum file length is 251 (255 - 4 bytes for ".ext" suffix)
-	maxFileNameLength = 251
-	two               = 2
-	DefaultResumeFile = "resume.cfg"
+	maxFileNameLength      = 251
+	two                    = 2
+	DefaultResumeFile      = "resume.cfg"
+	DefaultOutputDirectory = "output"
 )
 
 type scanOptions struct {
@@ -288,7 +289,7 @@ func ParseOptions() *Options {
 	createGroup(flagSet, "output", "Output",
 		flagSet.StringVarP(&options.Output, "output", "o", "", "file to write output results"),
 		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
-		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "output", "store http response to custom directory"),
+		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in CSV format"),
 		flagSet.BoolVar(&options.JSONOutput, "json", false, "store output in JSONL(ines) format"),
 		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr", false, "include http request/response in JSON output (-json only)"),
@@ -429,6 +430,10 @@ func (options *Options) validateOptions() {
 		gologger.Debug().Msgf("Using resolvers: %s\n", strings.Join(options.Resolvers, ","))
 	}
 
+	if options.StoreResponse && options.StoreResponseDir == "" {
+		gologger.Debug().Msgf("Store response directory not specified, using \"%s\"\n", DefaultOutputDirectory)
+		options.StoreResponseDir = DefaultOutputDirectory
+	}
 	if options.StoreResponseDir != "" && !options.StoreResponse {
 		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
 		options.StoreResponse = true
