@@ -227,6 +227,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.ExcludeCDN = options.ExcludeCDN
 	scanopts.HostMaxErrors = options.HostMaxErrors
 	scanopts.ProbeAllIPS = options.ProbeAllIPS
+	scanopts.Favicon = options.Favicon
 	scanopts.LeaveDefaultPorts = options.LeaveDefaultPorts
 	scanopts.OutputLinesCount = options.OutputLinesCount
 	scanopts.OutputWordsCount = options.OutputWordsCount
@@ -567,6 +568,9 @@ func (r *Runner) RunEnumeration() {
 			if r.options.OutputFilterString != "" && strings.Contains(strings.ToLower(resp.raw), strings.ToLower(r.options.OutputFilterString)) {
 				continue
 			}
+			if len(r.options.OutputFilterFavicon) > 0 && stringsutil.EqualFoldAny(resp.FavIconMMH3, r.options.OutputFilterFavicon...) {
+				continue
+			}
 			if len(r.options.matchStatusCode) > 0 && !slice.IntSliceContains(r.options.matchStatusCode, resp.StatusCode) {
 				continue
 			}
@@ -577,6 +581,9 @@ func (r *Runner) RunEnumeration() {
 				continue
 			}
 			if r.options.OutputMatchString != "" && !strings.Contains(strings.ToLower(resp.raw), strings.ToLower(r.options.OutputMatchString)) {
+				continue
+			}
+			if len(r.options.OutputMatchFavicon) > 0 && !stringsutil.EqualFoldAny(resp.FavIconMMH3, r.options.OutputMatchFavicon...) {
 				continue
 			}
 			if len(r.options.matchLinesCount) > 0 && !slice.IntSliceContains(r.options.matchLinesCount, resp.Lines) {
@@ -1192,6 +1199,18 @@ retry:
 		builder.WriteRune(']')
 	}
 
+	var faviconMMH3 string
+	if scanopts.Favicon {
+		faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(resp.Data))
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(faviconMMH3).String())
+		} else {
+			builder.WriteString(faviconMMH3)
+		}
+		builder.WriteRune(']')
+	}
+
 	if scanopts.OutputLinesCount {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
@@ -1315,6 +1334,7 @@ retry:
 		ResponseTime:     resp.Duration.String(),
 		Technologies:     technologies,
 		FinalURL:         finalURL,
+		FavIconMMH3:      faviconMMH3,
 		Lines:            resp.Lines,
 		Words:            resp.Words,
 	}
@@ -1368,6 +1388,7 @@ type Result struct {
 	Chain            []httpx.ChainItem   `json:"chain,omitempty" csv:"chain"`
 	FinalURL         string              `json:"final-url,omitempty" csv:"final-url"`
 	Failed           bool                `json:"failed" csv:"failed"`
+	FavIconMMH3      string              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
 	Lines            int                 `json:"lines" csv:"lines"`
 	Words            int                 `json:"words" csv:"words"`
 }

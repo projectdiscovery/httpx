@@ -67,6 +67,7 @@ type scanOptions struct {
 	ExcludeCDN                bool
 	HostMaxErrors             int
 	ProbeAllIPS               bool
+	Favicon                   bool
 	LeaveDefaultPorts         bool
 	OutputLinesCount          bool
 	OutputWordsCount          bool
@@ -109,6 +110,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
 		HostMaxErrors:             s.HostMaxErrors,
+		Favicon:                   s.Favicon,
 		LeaveDefaultPorts:         s.LeaveDefaultPorts,
 		OutputLinesCount:          s.OutputLinesCount,
 		OutputWordsCount:          s.OutputWordsCount,
@@ -206,6 +208,9 @@ type Options struct {
 	SkipDedupe                bool
 	ProbeAllIPS               bool
 	Resolvers                 goflags.NormalizedStringSlice
+	Favicon                   bool
+	OutputFilterFavicon       goflags.NormalizedStringSlice
+	OutputMatchFavicon        goflags.NormalizedStringSlice
 	LeaveDefaultPorts         bool
 	OutputLinesCount          bool
 	OutputMatchLinesCount     string
@@ -248,7 +253,6 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.OutputCName, "cname", false, "Display Host cname"),
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "Display if CDN in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "Display probe status"),
-		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
 	)
 
 	createGroup(flagSet, "matchers", "Matchers",
@@ -256,8 +260,10 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchContentLength, "match-length", "ml", "", "Match response with given content length (-ml 100,102)"),
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "Match response with given string"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "Match response with specific regex"),
+		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
 		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "Match Response body line count"),
 		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-word-count", "mwc", "", "Match Response body word count"),
+		flagSet.NormalizedStringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", []string{}, "Match response with specific favicon"),
 	)
 
 	createGroup(flagSet, "filters", "Filters",
@@ -267,6 +273,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "Filter response with specific regex"),
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "Filter Response body line count"),
 		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-word-count", "fwc", "", "Filter Response body word count"),
+		flagSet.NormalizedStringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", []string{}, "Filter response with specific favicon"),
 	)
 
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
@@ -275,6 +282,7 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "Misc", "Miscellaneous",
+		flagSet.BoolVar(&options.Favicon, "favicon", false, "Probes for favicon (\"favicon.ico\" as path) and display phythonic hash"),
 		flagSet.BoolVar(&options.TLSGrab, "tls-grab", false, "Perform TLS(SSL) data grabbing"),
 		flagSet.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains"),
 		flagSet.BoolVar(&options.CSPProbe, "csp-probe", false, "Send HTTP probes on the extracted CSP domains"),
@@ -437,6 +445,11 @@ func (options *Options) validateOptions() {
 	if options.StoreResponseDir != "" && !options.StoreResponse {
 		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
 		options.StoreResponse = true
+	}
+
+	if options.Favicon {
+		gologger.Debug().Msgf("Setting single path to \"favicon.ico\" and ignoring multiple paths settings\n")
+		options.RequestURIs = "/favicon.ico"
 	}
 }
 

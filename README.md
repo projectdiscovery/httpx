@@ -110,6 +110,7 @@ MATCHERS:
    -er, -extract-regex string  Display response content with matched regex
    -mlc, -match-line-count string  Match Response body line count
    -mwc, -match-word-count string  Match Response body word count
+   -mfc, -match-favicon string[]   Match response with specific favicon
 
 FILTERS:
    -fc, -filter-code string    Filter response with given status code (-fc 403,401)
@@ -118,12 +119,14 @@ FILTERS:
    -fe, -filter-regex string   Filter response with specific regex
    -flc, -filter-line-count string  Filter Response body line count
    -fwc, -filter-word-count string  Filter Response body word count
+   -ffc, -filter-favicon string[]   Filter response with specific favicon
 
 RATE-LIMIT:
    -t, -threads int      Number of threads (default 50)
    -rl, -rate-limit int  Maximum requests to send per second (default 150)
 
 MISCELLANEOUS:
+   -favicon             Probes for favicon ("favicon.ico" as path) and display phythonic hash
    -tls-grab            Perform TLS(SSL) data grabbing
    -tls-probe           Send HTTP probes on the extracted TLS domains
    -csp-probe           Send HTTP probes on the extracted CSP domains
@@ -328,8 +331,8 @@ https://support.hackerone.com
 - As default, **httpx** checks for `HTTPS` probe and fall-back to `HTTP` only if `HTTPS` is not reachable.
 - For printing both HTTP/HTTPS results, `no-fallback` flag can be used.
 - Custom scheme for ports can be defined, for example `-ports http:443,http:80,https:8443`
-- `vhost`, `http2`, `pipeline`, `ports`, `csp-probe`, `tls-probe` and `path` are unique flag with different probes.
-- Unique flags should be used for specific use cases instead of running them as default with other flags.
+- `favicon`,`vhost`, `http2`, `pipeline`, `ports`, `csp-probe`, `tls-probe` and `path` are unique flag with different probes.
+- Unique flags should be used for specific use cases instead of running them as default with other probes.
 - When using `json` flag, all the information (default probes) included in the JSON output.
 - Custom resolver supports multiple protocol (**doh|tcp|udp**) in form of `protocol:resolver:port`  (eg **udp:127.0.0.1:53**)
 - Invalid custom resolvers/files are ignored.
