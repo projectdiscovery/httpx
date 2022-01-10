@@ -12,18 +12,19 @@ import (
 )
 
 var httpTestcases = map[string]testutils.TestCase{
-	"Standard HTTP GET Request":                                                 &standardHttpGet{},
-	"Standard HTTPS GET Request":                                                &standardHttpGet{tls: true},
-	"Raw HTTP GET Request":                                                      &standardHttpGet{unsafe: true},
-	"Raw request with non standard rfc path via stdin":                          &standardHttpGet{unsafe: true, stdinPath: "/%invalid"},
-	"Raw request with non standard rfc path via cli flag":                       &standardHttpGet{unsafe: true, path: "/%invalid"},
-	"Regression test for: https://github.com/projectdiscovery/httpx/issues/363": &issue363{}, // infinite redirect
-	"Regression test for: https://github.com/projectdiscovery/httpx/issues/276": &issue276{}, // full path with port in output
-	"Regression test for: https://github.com/projectdiscovery/httpx/issues/277": &issue277{}, // scheme://host:port via stdin
-	"Regression test for: https://github.com/projectdiscovery/httpx/issues/303": &issue303{}, // misconfigured gzip header with uncompressed body
-	"Regression test for: https://github.com/projectdiscovery/httpx/issues/400": &issue400{}, // post operation with body
-	"Regression test for: https://github.com/projectdiscovery/httpx/issues/414": &issue414{}, // stream mode with path
-	"Regression test for: https://github.com/projectdiscovery/httpx/issues/433": &issue433{}, // new line scanning with title flag
+	"Standard HTTP GET Request":                                                           &standardHttpGet{},
+	"Standard HTTPS GET Request":                                                          &standardHttpGet{tls: true},
+	"Raw HTTP GET Request":                                                                &standardHttpGet{unsafe: true},
+	"Raw request with non standard rfc path via stdin":                                    &standardHttpGet{unsafe: true, stdinPath: "/%invalid"},
+	"Raw request with non standard rfc path via cli flag":                                 &standardHttpGet{unsafe: true, path: "/%invalid"},
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/363":           &issue363{}, // infinite redirect
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/276":           &issue276{}, // full path with port in output
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/277":           &issue277{}, // scheme://host:port via stdin
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/303":           &issue303{}, // misconfigured gzip header with uncompressed body
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/400":           &issue400{}, // post operation with body
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/414":           &issue414{}, // stream mode with path
+	"Regression test for: https://github.com/projectdiscovery/httpx/issues/433":           &issue433{}, // new line scanning with title flag
+	"Request URI to existing file - https://github.com/projectdiscovery/httpx/issues/480": &issue480{}, // request uri pointing to existing file
 }
 
 type standardHttpGet struct {
@@ -260,6 +261,28 @@ func (h *issue433) Execute() error {
 		return errIncorrectResultsCount(results)
 	}
 	if strings.Contains(results[0], "\r") {
+		return errIncorrectResultsCount(results)
+	}
+	return nil
+}
+
+type issue480 struct{}
+
+func (h *issue480) Execute() error {
+	var ts *httptest.Server
+	router := httprouter.New()
+	uriPath := "////////////////../../../../../../../../etc/passwd"
+	router.GET(uriPath, httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		htmlResponse := "<html><body>ok from uri</body></html>"
+		fmt.Fprint(w, htmlResponse)
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+	results, err := testutils.RunHttpxAndGetResults(ts.URL, debug, "-path", "////////////////../../../../../../../../etc/passwd")
+	if err != nil {
+		return err
+	}
+	if !strings.Contains(results[0], uriPath) {
 		return errIncorrectResultsCount(results)
 	}
 	return nil

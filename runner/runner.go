@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"sort"
@@ -265,8 +266,10 @@ func New(options *Options) (*Runner, error) {
 }
 
 func (r *Runner) prepareInputPaths() {
+	// most likely, the user would provide the most simplified path to an existing file
+	isAbsoluteOrRelativePath := filepath.Clean(r.options.RequestURIs) == r.options.RequestURIs
 	// Check if the user requested multiple paths
-	if fileutil.FileExists(r.options.RequestURIs) {
+	if isAbsoluteOrRelativePath && fileutil.FileExists(r.options.RequestURIs) {
 		r.options.requestURIs = fileutilz.LoadFile(r.options.RequestURIs)
 	} else if r.options.RequestURIs != "" {
 		r.options.requestURIs = strings.Split(r.options.RequestURIs, ",")
