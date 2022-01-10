@@ -49,13 +49,16 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 | Title           | true          | CNAME             | true          |
 | Status Code     | true          | Raw HTTP          | false         |
 | Content Length  | true          | HTTP2             | false         |
-| Line Count      | true          | Word Count        | true          |
-| TLS Certificate | true          | HTTP 1.1 Pipeline | false         |
+| TLS Certificate | true          | HTTP Pipeline     | false         |
 | CSP Header      | true          | Virtual host      | false         |
+| Line Count      | true          | Word Count        | true          |
 | Location Header | true          | CDN               | false         |
 | Web Server      | true          | Paths             | false         |
 | Web Socket      | true          | Ports             | false         |
-| Response Time   | true          | Request Method    | false         |
+| Response Time   | true          | Request Method    | true          |
+| Favicon Hash    | false         | Probe  Status     | false         |
+| Body Hash       | true          | Header  Hash      | true          |
+| Redirect chain  | false         | URL Scheme        | true          |
 
 
 # Installation Instructions
@@ -189,7 +192,7 @@ OPTIMIZATIONS:
 
 # Running httpX
 
-### Running httpx with stdin  
+### URL Probe
 
 This will run the tool against all the hosts and subdomains in `hosts.txt` and returns URLs running HTTP webserver. 
 
@@ -218,7 +221,7 @@ https://api.hackerone.com
 https://support.hackerone.com
 ```
 
-### Running httpx with file input  
+### File Input
 
 This will run the tool with the `probe` flag against all of the hosts in **hosts.txt** and return URLs with probed status.
 
@@ -247,7 +250,7 @@ http://a.ns.hackerone.com [FAILED]
 http://b.ns.hackerone.com [FAILED]
 ```
 
-### Running httpx with CIDR input   
+### CIDR Input   
 
 ```console
 echo 173.0.84.0/24 | httpx -silent
@@ -273,7 +276,7 @@ https://173.0.84.34
 ```
 
 
-### Running httpx with subfinder
+### Tool Chain
 
 
 ```console
@@ -298,7 +301,65 @@ https://support.hackerone.com [301,302,301,200] [HackerOne] [Cloudflare,Ruby on 
 https://resources.hackerone.com [301,301,404] [Sorry, no Folders found.]
 ```
 
-### Running httpx with docker
+### Favicon Hash
+
+
+```console
+subfinder -d hackerone.com -silent | httpx -favicon
+
+    __    __  __       _  __
+   / /_  / /_/ /_____ | |/ /
+  / __ \/ __/ __/ __ \|   /
+ / / / / /_/ /_/ /_/ /   |
+/_/ /_/\__/\__/ .___/_/|_|
+             /_/              v1.1.5
+
+      projectdiscovery.io
+
+Use with caution. You are responsible for your actions.
+Developers assume no liability and are not responsible for any misuse or damage.
+https://docs.hackerone.com/favicon.ico [595148549]
+https://hackerone.com/favicon.ico [595148549]
+https://mta-sts.managed.hackerone.com/favicon.ico [-1700323260]
+https://mta-sts.forwarding.hackerone.com/favicon.ico [-1700323260]
+https://support.hackerone.com/favicon.ico [-1279294674]
+https://gslink.hackerone.com/favicon.ico [1506877856]
+https://resources.hackerone.com/favicon.ico [-1840324437]
+https://api.hackerone.com/favicon.ico [566218143]
+https://mta-sts.hackerone.com/favicon.ico [-1700323260]
+https://www.hackerone.com/favicon.ico [778073381]
+```
+
+### Path Probe
+
+
+```console
+httpx -l urls.txt -path /v1/api -sc
+
+    __    __  __       _  __
+   / /_  / /_/ /_____ | |/ /
+  / __ \/ __/ __/ __ \|   /
+ / / / / /_/ /_/ /_/ /   |
+/_/ /_/\__/\__/ .___/_/|_|
+             /_/              v1.1.5
+
+      projectdiscovery.io
+
+Use with caution. You are responsible for your actions.
+Developers assume no liability and are not responsible for any misuse or damage.
+https://mta-sts.managed.hackerone.com/v1/api [404]
+https://mta-sts.hackerone.com/v1/api [404]
+https://mta-sts.forwarding.hackerone.com/v1/api [404]
+https://docs.hackerone.com/v1/api [404]
+https://api.hackerone.com/v1/api [401]
+https://hackerone.com/v1/api [302]
+https://support.hackerone.com/v1/api [404]
+https://resources.hackerone.com/v1/api [301]
+https://gslink.hackerone.com/v1/api [404]
+http://www.hackerone.com/v1/api [301]
+```
+
+### Docker Run
 
 ```console
 cat sub_domains.txt | docker run -i projectdiscovery/httpx
