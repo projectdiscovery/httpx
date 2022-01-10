@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"sort"
@@ -265,8 +266,10 @@ func New(options *Options) (*Runner, error) {
 }
 
 func (r *Runner) prepareInputPaths() {
+	// most likely, the user would provide the most simplified path to an existing file
+	isAbsoluteOrRelativePath := filepath.Clean(r.options.RequestURIs) == r.options.RequestURIs
 	// Check if the user requested multiple paths
-	if fileutil.FileExists(r.options.RequestURIs) {
+	if isAbsoluteOrRelativePath && fileutil.FileExists(r.options.RequestURIs) {
 		r.options.requestURIs = fileutilz.LoadFile(r.options.RequestURIs)
 	} else if r.options.RequestURIs != "" {
 		r.options.requestURIs = strings.Split(r.options.RequestURIs, ",")
@@ -917,14 +920,17 @@ retry:
 	}
 	// fix the final output url
 	fullURL := req.URL.String()
-	parsedURL, _ := urlutil.Parse(fullURL)
-	if r.options.Unsafe {
-		parsedURL.RequestURI = reqURI
-		// if the full url doesn't end with the custom path we pick the original input value
-	} else if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
-		parsedURL.RequestURI = scanopts.RequestURI
+	if parsedURL, errParse := urlutil.Parse(fullURL); errParse != nil {
+		return Result{URL: URL.String(), Input: origInput, err: errParse}
+	} else {
+		if r.options.Unsafe {
+			parsedURL.RequestURI = reqURI
+			// if the full url doesn't end with the custom path we pick the original input value
+		} else if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
+			parsedURL.RequestURI = scanopts.RequestURI
+		}
+		fullURL = parsedURL.String()
 	}
-	fullURL = parsedURL.String()
 
 	if r.options.Debug || r.options.DebugRequests {
 		gologger.Info().Msgf("Dumped HTTP request for %s\n\n", fullURL)
