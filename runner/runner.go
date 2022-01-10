@@ -920,14 +920,17 @@ retry:
 	}
 	// fix the final output url
 	fullURL := req.URL.String()
-	parsedURL, _ := urlutil.Parse(fullURL)
-	if r.options.Unsafe {
-		parsedURL.RequestURI = reqURI
-		// if the full url doesn't end with the custom path we pick the original input value
-	} else if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
-		parsedURL.RequestURI = scanopts.RequestURI
+	if parsedURL, errParse := urlutil.Parse(fullURL); errParse != nil {
+		return Result{URL: URL.String(), Input: origInput, err: errParse}
+	} else {
+		if r.options.Unsafe {
+			parsedURL.RequestURI = reqURI
+			// if the full url doesn't end with the custom path we pick the original input value
+		} else if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
+			parsedURL.RequestURI = scanopts.RequestURI
+		}
+		fullURL = parsedURL.String()
 	}
-	fullURL = parsedURL.String()
 
 	if r.options.Debug || r.options.DebugRequests {
 		gologger.Info().Msgf("Dumped HTTP request for %s\n\n", fullURL)
