@@ -8,11 +8,11 @@ const banner = `
   / __ \/ __/ __/ __ \|   /
  / / / / /_/ /_/ /_/ /   |
 /_/ /_/\__/\__/ .___/_/|_|
-             /_/              v1.1.5-dev
+             /_/              v1.1.5
 `
 
 // Version is the current version of httpx
-const Version = `v1.1.5-dev`
+const Version = `v1.1.5`
 
 // showBanner is used to show the banner to the user
 func showBanner() {
