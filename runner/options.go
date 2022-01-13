@@ -199,6 +199,7 @@ type Options struct {
 	MaxResponseBodySizeToRead int
 	OutputExtractRegex        string
 	RateLimit                 int
+	RateLimitMinute           int
 	Probe                     bool
 	Resume                    bool
 	resumeCfg                 *ResumeCfg
@@ -279,6 +280,7 @@ func ParseOptions() *Options {
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
 		flagSet.IntVarP(&options.Threads, "threads", "t", 50, "Number of threads"),
 		flagSet.IntVarP(&options.RateLimit, "rate-limit", "rl", 150, "Maximum requests to send per second"),
+		flagSet.IntVarP(&options.RateLimitMinute, "rate-limit-minute", "rlm", 0, "maximum number of requests to send per minute"),
 	)
 
 	createGroup(flagSet, "Misc", "Miscellaneous",

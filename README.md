@@ -124,8 +124,9 @@ FILTERS:
    -ffc, -filter-favicon string[]   Filter response with specific favicon
 
 RATE-LIMIT:
-   -t, -threads int      Number of threads (default 50)
-   -rl, -rate-limit int  Maximum requests to send per second (default 150)
+   -t, -threads int           Number of threads (default 50)
+   -rl, -rate-limit int       Maximum requests to send per second (default 150)
+   -rlm, -rate-limit-minute   Maximum number of requests to send per minute (default 0)
 
 MISCELLANEOUS:
    -favicon             Probes for favicon ("favicon.ico" as path) and display phythonic hash
