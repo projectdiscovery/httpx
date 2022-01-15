@@ -105,6 +105,8 @@ github.com/projectdiscovery/blackrock v0.0.0-20210415162320-b38689ae3a2e h1:7bwa
 github.com/projectdiscovery/blackrock v0.0.0-20210415162320-b38689ae3a2e/go.mod h1:/IsapnEYiWG+yEDPXp0e8NWj3npzB9Ccy9lXEUJwMZs=
 github.com/projectdiscovery/cdncheck v0.0.2 h1:ZAaezMvVioC/8fC8iilylGT4FBBryzQdXHow+lHnPOE=
 github.com/projectdiscovery/cdncheck v0.0.2/go.mod h1:+vB8400d1Kxq5aDoi/XkVcdvpiqQjSrYJ8bRfUDdymQ=
+github.com/projectdiscovery/cdncheck v0.0.3-0.20220115001641-2550ce07bde6 h1:pUr8UiK2fPhMmk8qk0ijXH5IaJAtHY47+BODmx62SlU=
+github.com/projectdiscovery/cdncheck v0.0.3-0.20220115001641-2550ce07bde6/go.mod h1:+vB8400d1Kxq5aDoi/XkVcdvpiqQjSrYJ8bRfUDdymQ=
 github.com/projectdiscovery/clistats v0.0.8 h1:tjmWb15mqsPf/yrQXVHLe2ThZX/5+mgKSfZBKWWLh20=
 github.com/projectdiscovery/clistats v0.0.8/go.mod h1:lV6jUHAv2bYWqrQstqW8iVIydKJhWlVaLl3Xo9ioVGg=
 github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345 h1:jT6f/cdOpLkp9GAfRrxk57BUjYfIrR8E+AjMv5H5U4U=
