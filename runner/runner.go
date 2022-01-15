@@ -54,10 +54,6 @@ import (
 	"go.uber.org/ratelimit"
 )
 
-const (
-	statsDisplayInterval = 5
-)
-
 // Runner is a client for running the enumeration process.
 type Runner struct {
 	options         *Options
@@ -320,7 +316,7 @@ func (r *Runner) prepareInput() {
 		r.stats.AddCounter("hosts", 0)
 		r.stats.AddStatic("startedAt", time.Now())
 		r.stats.AddCounter("requests", 0)
-		err := r.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
+		err := r.stats.Start(makePrintCallback(), time.Duration(r.options.StatsInterval)*time.Second)
 		if err != nil {
 			gologger.Warning().Msgf("Could not create statistics: %s\n", err)
 		}

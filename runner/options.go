@@ -191,6 +191,7 @@ type Options struct {
 	TLSGrab                   bool
 	protocol                  string
 	ShowStatistics            bool
+	StatsInterval             int
 	RandomAgent               bool
 	StoreChain                bool
 	Deny                      customlist.CustomList
@@ -337,6 +338,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.DebugRequests, "debug-req", false, "Show all sent requests"),
 		flagSet.BoolVar(&options.DebugResponse, "debug-resp", false, "Show all received responses"),
 		flagSet.BoolVar(&options.ShowStatistics, "stats", false, "Display scan statistic"),
+		flagSet.IntVarP(&options.StatsInterval, "stats-interval", "si", 5, "number of seconds to wait between showing a statistics update"),
 	)
 
 	createGroup(flagSet, "Optimizations", "Optimizations",
