@@ -235,6 +235,9 @@ func New(options *Options) (*Runner, error) {
 		if err != nil {
 			return nil, err
 		}
+		if options.StatsInterval == 0 {
+			options.StatsInterval = 5
+		}
 	}
 
 	hmapOptions := hybrid.DefaultDiskOptions
@@ -316,6 +319,7 @@ func (r *Runner) prepareInput() {
 		r.stats.AddCounter("hosts", 0)
 		r.stats.AddStatic("startedAt", time.Now())
 		r.stats.AddCounter("requests", 0)
+
 		err := r.stats.Start(makePrintCallback(), time.Duration(r.options.StatsInterval)*time.Second)
 		if err != nil {
 			gologger.Warning().Msgf("Could not create statistics: %s\n", err)

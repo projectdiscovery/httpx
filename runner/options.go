@@ -338,7 +338,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.DebugRequests, "debug-req", false, "Show all sent requests"),
 		flagSet.BoolVar(&options.DebugResponse, "debug-resp", false, "Show all received responses"),
 		flagSet.BoolVar(&options.ShowStatistics, "stats", false, "Display scan statistic"),
-		flagSet.IntVarP(&options.StatsInterval, "stats-interval", "si", 5, "number of seconds to wait between showing a statistics update"),
+		flagSet.IntVarP(&options.StatsInterval, "stats-interval", "si", 0, "number of seconds to wait between showing a statistics update (default: 5)"),
 	)
 
 	createGroup(flagSet, "Optimizations", "Optimizations",
@@ -353,6 +353,11 @@ func ParseOptions() *Options {
 	)
 
 	_ = flagSet.Parse()
+
+	if options.StatsInterval != 0 {
+		options.ShowStatistics = true
+	}
+
 	// Read the inputs and configure the logging
 	options.configureOutput()
 
