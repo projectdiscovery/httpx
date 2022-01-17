@@ -221,7 +221,7 @@ https://support.hackerone.com
 ```
 
 ##### TIP 
-Using the python intimations module, you can receive a message to your telegram mobile application once the execution is complete.
+Using the python [intimations](https://github.com/AbhijithAJ/intimations) module, you can receive a message to your telegram mobile application once the execution is complete.
 ```
 cat hosts.txt | httpx ; python3 -m intimations telegram --title 'httpx' --message 'Done finding the URLs' 
 ``` 
