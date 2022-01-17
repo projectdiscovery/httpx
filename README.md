@@ -220,6 +220,12 @@ https://api.hackerone.com
 https://support.hackerone.com
 ```
 
+##### TIP 
+Using the python intimations module, you can receive a message to your telegram mobile application once the execution is complete.
+```
+cat hosts.txt | httpx ; python3 -m intimations telegram --title 'httpx' --message 'Done finding the URLs' 
+``` 
+
 ### File Input
 
 This will run the tool with the `probe` flag against all of the hosts in **hosts.txt** and return URLs with probed status.
