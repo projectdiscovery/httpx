@@ -428,21 +428,14 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 }
 
 var (
-	lastPrint         time.Time
 	lastRequestsCount float64
 )
 
 func makePrintCallback() func(stats clistats.StatisticsClient) {
 	builder := &strings.Builder{}
 	return func(stats clistats.StatisticsClient) {
-		var duration time.Duration
-		now := time.Now()
-		if lastPrint.IsZero() {
-			startedAt, _ := stats.GetStatic("startedAt")
-			duration = time.Since(startedAt.(time.Time))
-		} else {
-			duration = time.Since(lastPrint)
-		}
+		startedAt, _ := stats.GetStatic("startedAt")
+		duration := time.Since(startedAt.(time.Time))
 
 		builder.WriteRune('[')
 		builder.WriteString(clistats.FmtDuration(duration))
@@ -479,7 +472,6 @@ func makePrintCallback() func(stats clistats.StatisticsClient) {
 		fmt.Fprintf(os.Stderr, "%s", builder.String())
 		builder.Reset()
 
-		lastPrint = now
 		lastRequestsCount = currentRequests
 	}
 }
