@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/customlist"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
+	"github.com/projectdiscovery/httpx/common/probe"
 	"github.com/projectdiscovery/httpx/common/stringz"
 )
 
@@ -153,10 +155,6 @@ type Options struct {
 	VHost                     bool
 	VHostInput                bool
 	Smuggling                 bool
-	ExtractTitle              bool
-	StatusCode                bool
-	Location                  bool
-	ContentLength             bool
 	FollowRedirects           bool
 	StoreResponse             bool
 	JSONOutput                bool
@@ -165,29 +163,20 @@ type Options struct {
 	Version                   bool
 	Verbose                   bool
 	NoColor                   bool
-	OutputServerHeader        bool
-	OutputWebSocket           bool
 	responseInStdout          bool
 	chainInStdout             bool
 	FollowHostRedirects       bool
 	MaxRedirects              int
-	OutputMethod              bool
 	TLSProbe                  bool
 	CSPProbe                  bool
-	OutputContentType         bool
-	OutputIP                  bool
-	OutputCName               bool
 	Unsafe                    bool
 	Debug                     bool
 	DebugRequests             bool
 	DebugResponse             bool
 	Pipeline                  bool
 	HTTP2Probe                bool
-	OutputCDN                 bool
-	OutputResponseTime        bool
 	NoFallback                bool
 	NoFallbackScheme          bool
-	TechDetect                bool
 	TLSGrab                   bool
 	protocol                  string
 	ShowStatistics            bool
@@ -201,7 +190,8 @@ type Options struct {
 	OutputExtractRegex        string
 	RateLimit                 int
 	RateLimitMinute           int
-	Probe                     bool
+	ProbeList                 probe.Probes
+	ProbeStatus               bool
 	Resume                    bool
 	resumeCfg                 *ResumeCfg
 	ExcludeCDN                bool
@@ -214,12 +204,10 @@ type Options struct {
 	OutputFilterFavicon       goflags.NormalizedStringSlice
 	OutputMatchFavicon        goflags.NormalizedStringSlice
 	LeaveDefaultPorts         bool
-	OutputLinesCount          bool
 	OutputMatchLinesCount     string
 	matchLinesCount           []int
 	OutputFilterLinesCount    string
 	filterLinesCount          []int
-	OutputWordsCount          bool
 	OutputMatchWordsCount     string
 	matchWordsCount           []int
 	OutputFilterWordsCount    string
@@ -239,22 +227,8 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "Probes", "Probes",
-		flagSet.BoolVarP(&options.StatusCode, "status-code", "sc", false, "Display Status Code"),
-		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "Display wappalyzer based technology detection"),
-		flagSet.BoolVarP(&options.ContentLength, "content-length", "cl", false, "Display Content-Length"),
-		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "Display Server header"),
-		flagSet.BoolVarP(&options.OutputContentType, "content-type", "ct", false, "Display Content-Type header"),
-		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, "Display Response body line count"),
-		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "Display Response body word count"),
-		flagSet.BoolVarP(&options.OutputResponseTime, "response-time", "rt", false, "Display the response time"),
-		flagSet.BoolVar(&options.ExtractTitle, "title", false, "Display page title"),
-		flagSet.BoolVar(&options.Location, "location", false, "Display Location header"),
-		flagSet.BoolVar(&options.OutputMethod, "method", false, "Display Request method"),
-		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "Display server using websocket"),
-		flagSet.BoolVar(&options.OutputIP, "ip", false, "Display Host IP"),
-		flagSet.BoolVar(&options.OutputCName, "cname", false, "Display Host cname"),
-		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "Display if CDN in use"),
-		flagSet.BoolVar(&options.Probe, "probe", false, "Display probe status"),
+		flagSet.BoolVarP(&options.ProbeStatus, "probe-status", "ps", false, "Display probe status"),
+		flagSet.Var(&options.ProbeList, "probe", fmt.Sprintf("Possible values: %s", probe.GetSupportedProbes().String())),
 	)
 
 	createGroup(flagSet, "matchers", "Matchers",
