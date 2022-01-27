@@ -89,7 +89,7 @@ func (h *issue276) Execute() error {
 	ts = httptest.NewServer(router)
 	defer ts.Close()
 
-	results, err := testutils.RunHttpxAndGetResults(ts.URL+"/redirect", debug, "-status-code", "-title", "-no-color")
+	results, err := testutils.RunHttpxAndGetResults(ts.URL+"/redirect", debug,  "-probe", "sc,title", "-no-color")
 	if err != nil {
 		return err
 	}
@@ -203,7 +203,7 @@ func (h *issue400) Execute() error {
 	ts = httptest.NewServer(router)
 	defer ts.Close()
 
-	results, err := testutils.RunHttpxAndGetResults(ts.URL+"/receive", debug, "-body 'a=b'", "-x POST", "-status-code")
+	results, err := testutils.RunHttpxAndGetResults(ts.URL+"/receive", debug, "-body 'a=b'", "-x POST", "-probe", "sc")
 	if err != nil {
 		return err
 	}
@@ -253,7 +253,7 @@ func (h *issue433) Execute() error {
 	}))
 	ts = httptest.NewServer(router)
 	defer ts.Close()
-	results, err := testutils.RunHttpxAndGetResults(fmt.Sprint(ts.URL, uriPath), debug, "-title", "-no-color")
+	results, err := testutils.RunHttpxAndGetResults(fmt.Sprint(ts.URL, uriPath), debug, "-probe", "title", "-no-color")
 	if err != nil {
 		return err
 	}
