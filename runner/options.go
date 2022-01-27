@@ -342,7 +342,7 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "Optimizations", "Optimizations",
-		flagSet.BoolVarP(&options.NoFallback, "no-fallback", "nf", false, "Display both probbed protocol (HTTPS and HTTP)"),
+		flagSet.BoolVarP(&options.NoFallback, "no-fallback", "nf", false, "Display both probed protocol (HTTPS and HTTP)"),
 		flagSet.BoolVarP(&options.NoFallbackScheme, "no-fallback-scheme", "nfs", false, "Probe with input protocol scheme"),
 		flagSet.IntVarP(&options.HostMaxErrors, "max-host-error", "maxhr", 30, "Max error count per host before skipping remaining path/s"),
 		flagSet.BoolVarP(&options.ExcludeCDN, "exclude-cdn", "ec", false, "Skip full port scans for CDNs (only checks for 80,443)"),
