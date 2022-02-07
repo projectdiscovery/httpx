@@ -113,6 +113,8 @@ github.com/projectdiscovery/cdncheck v0.0.3-0.20220115001641-2550ce07bde6 h1:pUr
 github.com/projectdiscovery/cdncheck v0.0.3-0.20220115001641-2550ce07bde6/go.mod h1:+vB8400d1Kxq5aDoi/XkVcdvpiqQjSrYJ8bRfUDdymQ=
 github.com/projectdiscovery/cdncheck v0.0.3-0.20220207103122-d90a1140381a h1:U96yKkM0FosBpclr4HHgkeloMKnFexCKPpTt9KEZ1UY=
 github.com/projectdiscovery/cdncheck v0.0.3-0.20220207103122-d90a1140381a/go.mod h1:EevMeCG1ogBoUJYaa0Mv9R1VUboDm/DiynId7DboKy0=
+github.com/projectdiscovery/cdncheck v0.0.3 h1:li2/rUJmhVXSqRFyhJMqi6pdBX6ZxMnwzBfE0Kifj/g=
+github.com/projectdiscovery/cdncheck v0.0.3/go.mod h1:EevMeCG1ogBoUJYaa0Mv9R1VUboDm/DiynId7DboKy0=
 github.com/projectdiscovery/clistats v0.0.8 h1:tjmWb15mqsPf/yrQXVHLe2ThZX/5+mgKSfZBKWWLh20=
 github.com/projectdiscovery/clistats v0.0.8/go.mod h1:lV6jUHAv2bYWqrQstqW8iVIydKJhWlVaLl3Xo9ioVGg=
 github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345 h1:jT6f/cdOpLkp9GAfRrxk57BUjYfIrR8E+AjMv5H5U4U=

@@ -13,7 +13,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.17
 	github.com/miekg/dns v1.1.43 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/projectdiscovery/cdncheck v0.0.3-0.20220207103122-d90a1140381a
+	github.com/projectdiscovery/cdncheck v0.0.3
 	github.com/projectdiscovery/clistats v0.0.8
 	github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345
 	github.com/projectdiscovery/fastdialer v0.0.14-0.20211117222717-6599e7bc586e
