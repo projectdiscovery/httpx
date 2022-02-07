@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/projectdiscovery/stringsutil"
 	"golang.org/x/net/html"
 )
 
@@ -39,16 +40,21 @@ func ExtractTitle(r *Response) (title string) {
 
 	// Non UTF-8
 	if contentTypes, ok := r.Headers["Content-Type"]; ok {
-		contentType := strings.Join(contentTypes, ";")
+		contentType := strings.ToLower(strings.Join(contentTypes, ";"))
 
-		// special cases
-		if strings.Contains(strings.ToLower(contentType), "charset=gb2312") ||
-			strings.Contains(strings.ToLower(contentType), "charset=gbk") {
+		switch {
+		case stringsutil.ContainsAny(contentType, "charset=gb2312", "charset=gbk"):
 			titleUtf8, err := Decodegbk([]byte(title))
 			if err != nil {
 				return
 			}
 
+			return string(titleUtf8)
+		case stringsutil.ContainsAny(contentType, "euc-kr"):
+			titleUtf8, err := DecodeKorean([]byte(title))
+			if err != nil {
+				return
+			}
 			return string(titleUtf8)
 		}
 
@@ -63,12 +69,12 @@ func ExtractTitle(r *Response) (title string) {
 			}
 			mcontentType = strings.ToLower(mcontentType)
 		}
-		if strings.Contains(mcontentType, "gb2312") || strings.Contains(mcontentType, "gbk") {
+		switch {
+		case stringsutil.ContainsAny(mcontentType, "gb2312", "gbk"):
 			titleUtf8, err := Decodegbk([]byte(title))
 			if err != nil {
 				return
 			}
-
 			return string(titleUtf8)
 		}
 	}
