@@ -49,7 +49,7 @@ var probeMappings = map[Probe]string{
 
 func GetSupportedProbes() Probes {
 	result := Probes{}
-	for index := Probe(1); index < limit; index++ {
+	for index := Probe(0); index < limit; index++ {
 		if result.probes == nil {
 			result.probes = make(map[Probe]interface{})
 		}

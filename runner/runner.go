@@ -73,7 +73,7 @@ func New(options *Options) (*Runner, error) {
 		options: options,
 	}
 	var err error
-	if options.ProbeList.IsSet(probe.TechDetect) {
+	if options.TechDetect || options.ProbeList.IsSet(probe.TechDetect) {
 		runner.wappalyzer, err = wappalyzer.New()
 	}
 	if err != nil {
@@ -91,7 +91,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.HTTPProxy = options.HTTPProxy
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.UnsafeURI = options.RequestURI
-	httpxOptions.CdnCheck = options.ProbeList.IsSet(probe.OutputCDN)
+	httpxOptions.CdnCheck = options.OutputCDN || options.ProbeList.IsSet(probe.OutputCDN)
 	httpxOptions.ExcludeCdn = options.ExcludeCDN
 	if options.CustomHeaders.Has("User-Agent:") {
 		httpxOptions.RandomAgent = false
@@ -178,36 +178,36 @@ func New(options *Options) (*Runner, error) {
 	}
 	runner.options.protocol = httpx.HTTPorHTTPS
 	scanopts.VHost = options.VHost
-	scanopts.OutputTitle = options.ProbeList.IsSet(probe.ExtractTitle)
-	scanopts.OutputStatusCode = options.ProbeList.IsSet(probe.StatusCode)
-	scanopts.OutputLocation = options.ProbeList.IsSet(probe.Location)
-	scanopts.OutputContentLength = options.ProbeList.IsSet(probe.ContentLength)
+	scanopts.OutputTitle = options.ExtractTitle || options.ProbeList.IsSet(probe.ExtractTitle)
+	scanopts.OutputStatusCode = options.StatusCode || options.ProbeList.IsSet(probe.StatusCode)
+	scanopts.OutputLocation = options.Location || options.ProbeList.IsSet(probe.Location)
+	scanopts.OutputContentLength = options.ContentLength || options.ProbeList.IsSet(probe.ContentLength)
 	scanopts.StoreResponse = options.StoreResponse
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
-	scanopts.OutputServerHeader = options.ProbeList.IsSet(probe.OutputServerHeader)
+	scanopts.OutputServerHeader = options.OutputServerHeader || options.ProbeList.IsSet(probe.OutputServerHeader)
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
 	scanopts.ChainInStdout = options.chainInStdout
-	scanopts.OutputWebSocket = options.ProbeList.IsSet(probe.OutputWebSocket)
+	scanopts.OutputWebSocket = options.OutputWebSocket || options.ProbeList.IsSet(probe.OutputWebSocket)
 	scanopts.TLSProbe = options.TLSProbe
 	scanopts.CSPProbe = options.CSPProbe
 	if options.RequestURI != "" {
 		scanopts.RequestURI = options.RequestURI
 	}
 	scanopts.VHostInput = options.VHostInput
-	scanopts.OutputContentType = options.ProbeList.IsSet(probe.OutputContentType)
+	scanopts.OutputContentType = options.OutputContentType || options.ProbeList.IsSet(probe.OutputContentType)
 	scanopts.RequestBody = options.RequestBody
 	scanopts.Unsafe = options.Unsafe
 	scanopts.Pipeline = options.Pipeline
 	scanopts.HTTP2Probe = options.HTTP2Probe
-	scanopts.OutputMethod = options.ProbeList.IsSet(probe.OutputMethod)
-	scanopts.OutputIP = options.ProbeList.IsSet(probe.OutputIP)
-	scanopts.OutputCName = options.ProbeList.IsSet(probe.OutputCName)
-	scanopts.OutputCDN = options.ProbeList.IsSet(probe.OutputCDN)
-	scanopts.OutputResponseTime = options.ProbeList.IsSet(probe.OutputResponseTime)
+	scanopts.OutputMethod = options.OutputMethod || options.ProbeList.IsSet(probe.OutputMethod)
+	scanopts.OutputIP = options.OutputIP || options.ProbeList.IsSet(probe.OutputIP)
+	scanopts.OutputCName = options.OutputCName || options.ProbeList.IsSet(probe.OutputCName)
+	scanopts.OutputCDN = options.OutputCDN || options.ProbeList.IsSet(probe.OutputCDN)
+	scanopts.OutputResponseTime = options.OutputResponseTime || options.ProbeList.IsSet(probe.OutputResponseTime)
 	scanopts.NoFallback = options.NoFallback
 	scanopts.NoFallbackScheme = options.NoFallbackScheme
-	scanopts.TechDetect = options.ProbeList.IsSet(probe.TechDetect)
+	scanopts.TechDetect = options.TechDetect || options.ProbeList.IsSet(probe.TechDetect)
 	scanopts.StoreChain = options.StoreChain
 	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
@@ -227,8 +227,8 @@ func New(options *Options) (*Runner, error) {
 	scanopts.ProbeAllIPS = options.ProbeAllIPS
 	scanopts.Favicon = options.Favicon
 	scanopts.LeaveDefaultPorts = options.LeaveDefaultPorts
-	scanopts.OutputLinesCount = options.ProbeList.IsSet(probe.OutputLinesCount)
-	scanopts.OutputWordsCount = options.ProbeList.IsSet(probe.OutputWordsCount)
+	scanopts.OutputLinesCount = options.OutputLinesCount || options.ProbeList.IsSet(probe.OutputLinesCount)
+	scanopts.OutputWordsCount = options.OutputWordsCount || options.ProbeList.IsSet(probe.OutputWordsCount)
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {

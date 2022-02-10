@@ -212,6 +212,23 @@ type Options struct {
 	matchWordsCount           []int
 	OutputFilterWordsCount    string
 	filterWordsCount          []int
+
+	// Deprecated, will be removed in next major version
+	StatusCode         bool
+	TechDetect         bool
+	ContentLength      bool
+	OutputServerHeader bool
+	OutputContentType  bool
+	OutputLinesCount   bool
+	OutputWordsCount   bool
+	OutputResponseTime bool
+	ExtractTitle       bool
+	Location           bool
+	OutputMethod       bool
+	OutputWebSocket    bool
+	OutputIP           bool
+	OutputCName        bool
+	OutputCDN          bool
 }
 
 // ParseOptions parses the command line options for application
@@ -227,6 +244,21 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "Probes", "Probes",
+		flagSet.BoolVarP(&options.StatusCode, "status-code", "sc", false, "Display Status Code (deprecated)"),
+		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "Display wappalyzer based technology detection (deprecated)"),
+		flagSet.BoolVarP(&options.ContentLength, "content-length", "cl", false, "Display Content-Length (deprecated)"),
+		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "Display Server header (deprecated)"),
+		flagSet.BoolVarP(&options.OutputContentType, "content-type", "ct", false, "Display Content-Type header (deprecated)"),
+		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, "Display Response body line count (deprecated)"),
+		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "Display Response body word count (deprecated)"),
+		flagSet.BoolVarP(&options.OutputResponseTime, "response-time", "rt", false, "Display the response time (deprecated)"),
+		flagSet.BoolVar(&options.ExtractTitle, "title", false, "Display page title (deprecated)"),
+		flagSet.BoolVar(&options.Location, "location", false, "Display Location header (deprecated)"),
+		flagSet.BoolVar(&options.OutputMethod, "method", false, "Display Request method (deprecated)"),
+		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "Display server using websocket (deprecated)"),
+		flagSet.BoolVar(&options.OutputIP, "ip", false, "Display Host IP (deprecated)"),
+		flagSet.BoolVar(&options.OutputCName, "cname", false, "Display Host cname (deprecated)"),
+		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "Display if CDN in use (deprecated)"),
 		flagSet.BoolVarP(&options.ProbeStatus, "probe-status", "ps", false, "Display probe status"),
 		flagSet.Var(&options.ProbeList, "probe", fmt.Sprintf("Possible values: %s", probe.GetSupportedProbes().String())),
 	)
