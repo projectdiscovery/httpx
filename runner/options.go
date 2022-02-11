@@ -71,6 +71,7 @@ type scanOptions struct {
 	LeaveDefaultPorts         bool
 	OutputLinesCount          bool
 	OutputWordsCount          bool
+	Hashes                    string
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -114,6 +115,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		LeaveDefaultPorts:         s.LeaveDefaultPorts,
 		OutputLinesCount:          s.OutputLinesCount,
 		OutputWordsCount:          s.OutputWordsCount,
+		Hashes:                    s.Hashes,
 	}
 }
 
@@ -224,6 +226,7 @@ type Options struct {
 	matchWordsCount           []int
 	OutputFilterWordsCount    string
 	filterWordsCount          []int
+	Hashes                    string
 }
 
 // ParseOptions parses the command line options for application
@@ -295,6 +298,7 @@ func ParseOptions() *Options {
 		flagSet.VarP(&options.CustomPorts, "ports", "p", "Port to scan (nmap syntax: eg 1,2-10,11)"),
 		flagSet.StringVar(&options.RequestURIs, "path", "", "File or comma separated paths to request"),
 		flagSet.StringVar(&options.RequestURIs, "paths", "", "File or comma separated paths to request (deprecated)"),
+		flagSet.StringVar(&options.Hashes, "hash", "", "Probes for body multi hashes"),
 	)
 
 	createGroup(flagSet, "output", "Output",
