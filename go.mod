@@ -45,6 +45,7 @@ require (
 )
 
 require github.com/spaolacci/murmur3 v1.1.0
+
 require github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 
 require (
