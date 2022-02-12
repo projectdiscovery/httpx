@@ -1231,8 +1231,6 @@ retry:
 				hash = hashes.Sha512(resp.Data)
 			case "simhash":
 				hash = hashes.Simhash(resp.Data)
-			default:
-				gologger.Error().Msgf("Unsupported hash type: %s\n", hashType)
 			}
 			if hash != "" {
 				hashesMap[hashType] = hash

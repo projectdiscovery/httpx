@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"github.com/projectdiscovery/httpx/common/slice"
 	"math"
 	"os"
 	"regexp"
@@ -463,6 +464,14 @@ func (options *Options) validateOptions() {
 	if options.Favicon {
 		gologger.Debug().Msgf("Setting single path to \"favicon.ico\" and ignoring multiple paths settings\n")
 		options.RequestURIs = "/favicon.ico"
+	}
+
+	if options.Hashes != "" {
+		for _, hashType := range strings.Split(options.Hashes, ",") {
+			if !slice.StringSliceContains([]string{"md5", "sha1", "sha256", "sha512", "mmh3", "simhash"}, strings.ToLower(hashType)) {
+				gologger.Error().Msgf("Unsupported hash type: %s\n", hashType)
+			}
+		}
 	}
 }
 
