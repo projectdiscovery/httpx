@@ -30,6 +30,7 @@ import (
 	"github.com/projectdiscovery/clistats"
 	"github.com/projectdiscovery/cryptoutil"
 	"github.com/projectdiscovery/goconfig"
+	"github.com/projectdiscovery/httpx/common/hashes"
 	"github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/stringsutil"
 	"github.com/projectdiscovery/urlutil"
@@ -228,6 +229,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.LeaveDefaultPorts = options.LeaveDefaultPorts
 	scanopts.OutputLinesCount = options.OutputLinesCount
 	scanopts.OutputWordsCount = options.OutputWordsCount
+	scanopts.Hashes = options.Hashes
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
@@ -1211,6 +1213,38 @@ retry:
 		builder.WriteRune(']')
 	}
 
+	var hashesMap = map[string]string{}
+	if scanopts.Hashes != "" {
+		hs := strings.Split(scanopts.Hashes, ",")
+		for _, hashType := range hs {
+			var hash string
+			switch strings.ToLower(hashType) {
+			case "md5":
+				hash = hashes.Md5(resp.Data)
+			case "mmh3":
+				hash = hashes.Mmh3(resp.Data)
+			case "sha1":
+				hash = hashes.Sha1(resp.Data)
+			case "sha256":
+				hash = hashes.Sha256(resp.Data)
+			case "sha512":
+				hash = hashes.Sha512(resp.Data)
+			case "simhash":
+				hash = hashes.Simhash(resp.Data)
+			}
+			if hash != "" {
+				hashesMap[hashType] = hash
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Magenta(hash).String())
+				} else {
+					builder.WriteString(hash)
+				}
+				builder.WriteRune(']')
+			}
+		}
+	}
+
 	if scanopts.OutputLinesCount {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
@@ -1336,6 +1370,7 @@ retry:
 		Technologies:     technologies,
 		FinalURL:         finalURL,
 		FavIconMMH3:      faviconMMH3,
+		Hashes:           hashesMap,
 		Lines:            resp.Lines,
 		Words:            resp.Words,
 	}
@@ -1391,6 +1426,7 @@ type Result struct {
 	FinalURL         string              `json:"final-url,omitempty" csv:"final-url"`
 	Failed           bool                `json:"failed" csv:"failed"`
 	FavIconMMH3      string              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
+	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
 	Lines            int                 `json:"lines" csv:"lines"`
 	Words            int                 `json:"words" csv:"words"`
 }

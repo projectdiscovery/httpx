@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"github.com/projectdiscovery/httpx/common/slice"
 	"math"
 	"os"
 	"regexp"
@@ -71,6 +72,7 @@ type scanOptions struct {
 	LeaveDefaultPorts         bool
 	OutputLinesCount          bool
 	OutputWordsCount          bool
+	Hashes                    string
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -114,6 +116,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		LeaveDefaultPorts:         s.LeaveDefaultPorts,
 		OutputLinesCount:          s.OutputLinesCount,
 		OutputWordsCount:          s.OutputWordsCount,
+		Hashes:                    s.Hashes,
 	}
 }
 
@@ -224,6 +227,7 @@ type Options struct {
 	matchWordsCount           []int
 	OutputFilterWordsCount    string
 	filterWordsCount          []int
+	Hashes                    string
 }
 
 // ParseOptions parses the command line options for application
@@ -295,6 +299,7 @@ func ParseOptions() *Options {
 		flagSet.VarP(&options.CustomPorts, "ports", "p", "Port to scan (nmap syntax: eg 1,2-10,11)"),
 		flagSet.StringVar(&options.RequestURIs, "path", "", "File or comma separated paths to request"),
 		flagSet.StringVar(&options.RequestURIs, "paths", "", "File or comma separated paths to request (deprecated)"),
+		flagSet.StringVar(&options.Hashes, "hash", "", "Probes for body multi hashes"),
 	)
 
 	createGroup(flagSet, "output", "Output",
@@ -459,6 +464,14 @@ func (options *Options) validateOptions() {
 	if options.Favicon {
 		gologger.Debug().Msgf("Setting single path to \"favicon.ico\" and ignoring multiple paths settings\n")
 		options.RequestURIs = "/favicon.ico"
+	}
+
+	if options.Hashes != "" {
+		for _, hashType := range strings.Split(options.Hashes, ",") {
+			if !slice.StringSliceContains([]string{"md5", "sha1", "sha256", "sha512", "mmh3", "simhash"}, strings.ToLower(hashType)) {
+				gologger.Error().Msgf("Unsupported hash type: %s\n", hashType)
+			}
+		}
 	}
 }
 
