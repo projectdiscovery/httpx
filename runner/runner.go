@@ -1202,7 +1202,8 @@ retry:
 	}
 
 	var faviconMMH3 string
-	if scanopts.Favicon {
+	contentType := resp.GetHeaderPart("Content-Type", ";")
+	if scanopts.Favicon || strings.HasPrefix(contentType, "image") {
 		faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(resp.Data))
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
