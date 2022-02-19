@@ -1255,6 +1255,17 @@ retry:
 		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
 			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
 		}
+		
+		// Split raw response with first empty new line
+		respSplitNewLine := regexp.MustCompile(`\n\s*\n`).Split(regexp.MustCompile("\r\n").ReplaceAllString(respRaw, "\n"), 2)
+		respRaw = ""
+
+		// Set headers
+		for _ , respHeader := range strings.Split(respSplitNewLine[0],"\n"){
+			respRaw = respRaw + "< " + respHeader + "\n"
+		}
+		respRaw = respRaw + "\n" + respSplitNewLine[1] // new line for seperate header and body
+
 		writeErr := ioutil.WriteFile(responsePath, []byte(respRaw), 0644)
 		if writeErr != nil {
 			gologger.Warning().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
