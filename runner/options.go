@@ -2,6 +2,7 @@ package runner
 
 import (
 	"fmt"
+	"github.com/projectdiscovery/httpx/common/slice"
 	"math"
 	"os"
 	"regexp"
@@ -73,6 +74,7 @@ type scanOptions struct {
 	LeaveDefaultPorts         bool
 	OutputLinesCount          bool
 	OutputWordsCount          bool
+	Hashes                    string
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -116,6 +118,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		LeaveDefaultPorts:         s.LeaveDefaultPorts,
 		OutputLinesCount:          s.OutputLinesCount,
 		OutputWordsCount:          s.OutputWordsCount,
+		Hashes:                    s.Hashes,
 	}
 }
 
@@ -212,6 +215,7 @@ type Options struct {
 	matchWordsCount           []int
 	OutputFilterWordsCount    string
 	filterWordsCount          []int
+  Hashes                    string
 
 	// Deprecated, will be removed in next major version
 	StatusCode         bool
@@ -301,6 +305,7 @@ func ParseOptions() *Options {
 		flagSet.VarP(&options.CustomPorts, "ports", "p", "Port to scan (nmap syntax: eg 1,2-10,11)"),
 		flagSet.StringVar(&options.RequestURIs, "path", "", "File or comma separated paths to request"),
 		flagSet.StringVar(&options.RequestURIs, "paths", "", "File or comma separated paths to request (deprecated)"),
+		flagSet.StringVar(&options.Hashes, "hash", "", "Probes for body multi hashes"),
 	)
 
 	createGroup(flagSet, "output", "Output",
@@ -348,7 +353,7 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "Optimizations", "Optimizations",
-		flagSet.BoolVarP(&options.NoFallback, "no-fallback", "nf", false, "Display both probbed protocol (HTTPS and HTTP)"),
+		flagSet.BoolVarP(&options.NoFallback, "no-fallback", "nf", false, "Display both probed protocol (HTTPS and HTTP)"),
 		flagSet.BoolVarP(&options.NoFallbackScheme, "no-fallback-scheme", "nfs", false, "Probe with input protocol scheme"),
 		flagSet.IntVarP(&options.HostMaxErrors, "max-host-error", "maxhr", 30, "Max error count per host before skipping remaining path/s"),
 		flagSet.BoolVarP(&options.ExcludeCDN, "exclude-cdn", "ec", false, "Skip full port scans for CDNs (only checks for 80,443)"),
@@ -465,6 +470,14 @@ func (options *Options) validateOptions() {
 	if options.Favicon {
 		gologger.Debug().Msgf("Setting single path to \"favicon.ico\" and ignoring multiple paths settings\n")
 		options.RequestURIs = "/favicon.ico"
+	}
+
+	if options.Hashes != "" {
+		for _, hashType := range strings.Split(options.Hashes, ",") {
+			if !slice.StringSliceContains([]string{"md5", "sha1", "sha256", "sha512", "mmh3", "simhash"}, strings.ToLower(hashType)) {
+				gologger.Error().Msgf("Unsupported hash type: %s\n", hashType)
+			}
+		}
 	}
 }
 

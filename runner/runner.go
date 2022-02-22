@@ -30,6 +30,7 @@ import (
 	"github.com/projectdiscovery/clistats"
 	"github.com/projectdiscovery/cryptoutil"
 	"github.com/projectdiscovery/goconfig"
+	"github.com/projectdiscovery/httpx/common/hashes"
 	"github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/stringsutil"
 	"github.com/projectdiscovery/urlutil"
@@ -229,6 +230,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.LeaveDefaultPorts = options.LeaveDefaultPorts
 	scanopts.OutputLinesCount = options.OutputLinesCount || options.ProbeList.IsSet(probe.OutputLinesCount)
 	scanopts.OutputWordsCount = options.OutputWordsCount || options.ProbeList.IsSet(probe.OutputWordsCount)
+	scanopts.Hashes = options.Hashes
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
@@ -1147,9 +1149,9 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", cnames[0]))
 	}
 
-	isCDN, err := hp.CdnCheck(ip)
+	isCDN, cdnName, err := hp.CdnCheck(ip)
 	if scanopts.OutputCDN && isCDN && err == nil {
-		builder.WriteString(" [cdn]")
+		builder.WriteString(fmt.Sprintf(" [%s]", cdnName))
 	}
 
 	if scanopts.OutputResponseTime {
@@ -1210,6 +1212,38 @@ retry:
 			builder.WriteString(faviconMMH3)
 		}
 		builder.WriteRune(']')
+	}
+
+	var hashesMap = map[string]string{}
+	if scanopts.Hashes != "" {
+		hs := strings.Split(scanopts.Hashes, ",")
+		for _, hashType := range hs {
+			var hash string
+			switch strings.ToLower(hashType) {
+			case "md5":
+				hash = hashes.Md5(resp.Data)
+			case "mmh3":
+				hash = hashes.Mmh3(resp.Data)
+			case "sha1":
+				hash = hashes.Sha1(resp.Data)
+			case "sha256":
+				hash = hashes.Sha256(resp.Data)
+			case "sha512":
+				hash = hashes.Sha512(resp.Data)
+			case "simhash":
+				hash = hashes.Simhash(resp.Data)
+			}
+			if hash != "" {
+				hashesMap[hashType] = hash
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Magenta(hash).String())
+				} else {
+					builder.WriteString(hash)
+				}
+				builder.WriteRune(']')
+			}
+		}
 	}
 
 	if scanopts.OutputLinesCount {
@@ -1332,10 +1366,12 @@ retry:
 		A:                ips,
 		CNAMEs:           cnames,
 		CDN:              isCDN,
+		CDNName:          cdnName,
 		ResponseTime:     resp.Duration.String(),
 		Technologies:     technologies,
 		FinalURL:         finalURL,
 		FavIconMMH3:      faviconMMH3,
+		Hashes:           hashesMap,
 		Lines:            resp.Lines,
 		Words:            resp.Words,
 	}
@@ -1384,12 +1420,14 @@ type Result struct {
 	Pipeline         bool                `json:"pipeline,omitempty" csv:"pipeline"`
 	HTTP2            bool                `json:"http2,omitempty" csv:"http2"`
 	CDN              bool                `json:"cdn,omitempty" csv:"cdn"`
+	CDNName          string              `json:"cdn-name,omitempty" csv:"cdn-name"`
 	ResponseTime     string              `json:"response-time,omitempty" csv:"response-time"`
 	Technologies     []string            `json:"technologies,omitempty" csv:"technologies"`
 	Chain            []httpx.ChainItem   `json:"chain,omitempty" csv:"chain"`
 	FinalURL         string              `json:"final-url,omitempty" csv:"final-url"`
 	Failed           bool                `json:"failed" csv:"failed"`
 	FavIconMMH3      string              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
+	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
 	Lines            int                 `json:"lines" csv:"lines"`
 	Words            int                 `json:"words" csv:"words"`
 }
@@ -1482,7 +1520,7 @@ func (r *Runner) skipCDNPort(host string, port string) bool {
 	// pick the first ip as target
 	hostIP := dnsData.A[0]
 
-	isCdnIP, err := r.hp.CdnCheck(hostIP)
+	isCdnIP, _, err := r.hp.CdnCheck(hostIP)
 	if err != nil {
 		return false
 	}
