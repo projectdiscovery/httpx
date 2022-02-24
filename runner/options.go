@@ -2,11 +2,12 @@ package runner
 
 import (
 	"fmt"
-	"github.com/projectdiscovery/httpx/common/slice"
 	"math"
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/projectdiscovery/httpx/common/slice"
 
 	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
@@ -74,6 +75,10 @@ type scanOptions struct {
 	LeaveDefaultPorts         bool
 	OutputLinesCount          bool
 	OutputWordsCount          bool
+	Scheme                    bool
+	Port                      bool
+	Path                      bool
+	URL                       bool
 	Hashes                    string
 }
 
@@ -118,6 +123,10 @@ func (s *scanOptions) Clone() *scanOptions {
 		LeaveDefaultPorts:         s.LeaveDefaultPorts,
 		OutputLinesCount:          s.OutputLinesCount,
 		OutputWordsCount:          s.OutputWordsCount,
+		Scheme:                    s.Scheme,
+		Port:                      s.Port,
+		Path:                      s.Path,
+		URL:                       s.URL,
 		Hashes:                    s.Hashes,
 	}
 }
@@ -215,7 +224,7 @@ type Options struct {
 	matchWordsCount           []int
 	OutputFilterWordsCount    string
 	filterWordsCount          []int
-  Hashes                    string
+	Hashes                    string
 
 	// Deprecated, will be removed in next major version
 	StatusCode         bool
@@ -233,6 +242,10 @@ type Options struct {
 	OutputIP           bool
 	OutputCName        bool
 	OutputCDN          bool
+	Scheme             bool
+	Port               bool
+	Path               bool
+	URL                bool
 }
 
 // ParseOptions parses the command line options for application
@@ -264,7 +277,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.OutputCName, "cname", false, "Display Host cname (deprecated)"),
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "Display if CDN in use (deprecated)"),
 		flagSet.BoolVarP(&options.ProbeStatus, "probe-status", "ps", false, "Display probe status"),
-		flagSet.Var(&options.ProbeList, "probe", fmt.Sprintf("Possible values: %s", probe.GetSupportedProbes().String())),
+		flagSet.Var(&options.ProbeList, "probe", fmt.Sprintf("Possible values: \"%s\"", probe.GetSupportedProbes().String())),
 	)
 
 	createGroup(flagSet, "matchers", "Matchers",

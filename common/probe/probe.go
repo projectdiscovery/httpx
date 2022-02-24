@@ -26,6 +26,10 @@ const (
 	OutputIP
 	OutputCName
 	OutputCDN
+	Scheme
+	Port
+	Path
+	URL
 	limit
 )
 
@@ -45,6 +49,10 @@ var probeMappings = map[Probe]string{
 	OutputIP:           "ip",
 	OutputCName:        "cname",
 	OutputCDN:          "cdn",
+	Scheme:             "scheme",
+	Port:               "port",
+	Path:               "path",
+	URL:                "url",
 }
 
 func GetSupportedProbes() Probes {
