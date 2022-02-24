@@ -190,10 +190,10 @@ func New(options *Options) (*Runner, error) {
 	scanopts.ResponseInStdout = options.responseInStdout
 	scanopts.ChainInStdout = options.chainInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket || options.ProbeList.IsSet(probe.OutputWebSocket)
-	scanopts.Scheme = options.Scheme || options.ProbeList.IsSet(probe.Scheme)
-	scanopts.Port = options.Port || options.ProbeList.IsSet(probe.Port)
-	scanopts.Path = options.Path || options.ProbeList.IsSet(probe.Path)
-	scanopts.URL = options.URL || options.ProbeList.IsSet(probe.URL)
+	scanopts.Scheme = options.ProbeList.IsSet(probe.Scheme)
+	scanopts.Port = options.ProbeList.IsSet(probe.Port)
+	scanopts.Path = options.ProbeList.IsSet(probe.Path)
+	scanopts.URL = options.ProbeList.IsSet(probe.URL)
 	scanopts.TLSProbe = options.TLSProbe
 	scanopts.CSPProbe = options.CSPProbe
 	if options.RequestURI != "" {
@@ -933,24 +933,6 @@ retry:
 		fullURL = parsedURL.String()
 	}
 
-	parsed, err := urlutil.Parse(fullURL)
-	if err != nil {
-		return Result{URL: fullURL, Input: origInput, err: errors.Wrap(err, "could not parse url")}
-	}
-
-	finalPort := parsed.Port
-	if finalPort == "" {
-		if parsed.Scheme == "http" {
-			finalPort = "80"
-		} else {
-			finalPort = "443"
-		}
-	}
-	finalPath := parsed.RequestURI
-	if finalPath == "" {
-		finalPath = "/"
-	}
-
 	if r.options.Debug || r.options.DebugRequests {
 		gologger.Info().Msgf("Dumped HTTP request for %s\n\n", fullURL)
 		gologger.Print().Msgf("%s", string(requestDump))
@@ -1014,7 +996,7 @@ retry:
 			return Result{URL: URL.String(), Input: origInput, Timestamp: time.Now(), err: err}
 		}
 	}
-	
+
 	if scanopts.OutputMethod {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
@@ -1023,6 +1005,24 @@ retry:
 			builder.WriteString(method)
 		}
 		builder.WriteRune(']')
+	}
+
+	parsed, err := urlutil.Parse(fullURL)
+	if err != nil {
+		return Result{URL: fullURL, Input: origInput, err: errors.Wrap(err, "could not parse url")}
+	}
+
+	finalPort := parsed.Port
+	if finalPort == "" {
+		if parsed.Scheme == "http" {
+			finalPort = "80"
+		} else {
+			finalPort = "443"
+		}
+	}
+	finalPath := parsed.RequestURI
+	if finalPath == "" {
+		finalPath = "/"
 	}
 
 	if scanopts.Scheme {

@@ -242,10 +242,6 @@ type Options struct {
 	OutputIP           bool
 	OutputCName        bool
 	OutputCDN          bool
-	Scheme             bool
-	Port               bool
-	Path               bool
-	URL                bool
 }
 
 // ParseOptions parses the command line options for application
