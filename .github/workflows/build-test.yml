@@ -29,14 +29,21 @@ jobs:
         run: go test ./...
         working-directory: .
 
-      - name: Integration Tests
+      - name: Integration Tests Linux, macOS
+        if: runner.os == 'Linux' || runner.os == 'macOS'
         env:
           GH_ACTION: true
+        run: bash run.sh
+        working-directory: integration_tests/
+      
+      - name: Integration Tests Windows
+        if: runner.os == 'Windows'
+        env:
+          GH_ACTION: true
+          MSYS_NO_PATHCONV: true
         run: bash run.sh
         working-directory: integration_tests/
         
       - name: Race Condition Tests
         run: go build -race .
         working-directory: cmd/httpx/
-
-      
