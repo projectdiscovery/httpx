@@ -211,9 +211,13 @@ func New(options *Options) (*Runner, error) {
 	scanopts.StoreChain = options.StoreChain
 	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
-	if options.OutputExtractRegex != "" {
-		if scanopts.extractRegex, err = regexp.Compile(options.OutputExtractRegex); err != nil {
-			return nil, err
+	if options.OutputExtractRegexs != nil {
+		for _, regex := range options.OutputExtractRegexs {
+			if compiledRegex, err := regexp.Compile(regex); err != nil {
+				return nil, err
+			} else {
+				scanopts.extractRegexs[regex] = compiledRegex
+			}
 		}
 	}
 
@@ -1179,10 +1183,12 @@ retry:
 	}
 
 	// extract regex
-	if scanopts.extractRegex != nil {
-		matches := scanopts.extractRegex.FindAllString(string(resp.Data), -1)
-		if len(matches) > 0 {
-			builder.WriteString(" [" + strings.Join(matches, ",") + "]")
+	if scanopts.extractRegexs != nil {
+		for _, regex := range scanopts.extractRegexs {
+			matches := regex.FindAllString(string(resp.Data), -1)
+			if len(matches) > 0 {
+				builder.WriteString(" [" + strings.Join(matches, ",") + "]")
+			}
 		}
 	}
 

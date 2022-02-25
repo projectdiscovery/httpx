@@ -64,7 +64,7 @@ type scanOptions struct {
 	MaxResponseBodySizeToSave int
 	MaxResponseBodySizeToRead int
 	OutputExtractRegex        string
-	extractRegex              *regexp.Regexp
+	extractRegexs             map[string]*regexp.Regexp
 	ExcludeCDN                bool
 	HostMaxErrors             int
 	ProbeAllIPS               bool
@@ -201,7 +201,7 @@ type Options struct {
 	Allow                     customlist.CustomList
 	MaxResponseBodySizeToSave int
 	MaxResponseBodySizeToRead int
-	OutputExtractRegex        string
+	OutputExtractRegexs       goflags.StringSlice
 	RateLimit                 int
 	RateLimitMinute           int
 	Probe                     bool
@@ -266,7 +266,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchContentLength, "match-length", "ml", "", "Match response with given content length (-ml 100,102)"),
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "Match response with given string"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "Match response with specific regex"),
-		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
+		flagSet.StringSliceVarP(&options.OutputExtractRegexs, "extract-regex", "er", nil, "Display response content with matched regex"),
 		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "Match Response body line count"),
 		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-word-count", "mwc", "", "Match Response body word count"),
 		flagSet.NormalizedStringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", []string{}, "Match response with specific favicon"),
