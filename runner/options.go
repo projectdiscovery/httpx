@@ -64,7 +64,7 @@ type scanOptions struct {
 	MaxResponseBodySizeToSave int
 	MaxResponseBodySizeToRead int
 	OutputExtractRegex        string
-	extractRegexs             map[string]*regexp.Regexp
+	extractRegexps            map[string]*regexp.Regexp
 	ExcludeCDN                bool
 	HostMaxErrors             int
 	ProbeAllIPS               bool

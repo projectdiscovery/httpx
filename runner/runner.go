@@ -211,12 +211,14 @@ func New(options *Options) (*Runner, error) {
 	scanopts.StoreChain = options.StoreChain
 	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
+
 	if options.OutputExtractRegexs != nil {
+		scanopts.extractRegexps = map[string]*regexp.Regexp{}
 		for _, regex := range options.OutputExtractRegexs {
 			if compiledRegex, err := regexp.Compile(regex); err != nil {
 				return nil, err
 			} else {
-				scanopts.extractRegexs[regex] = compiledRegex
+				scanopts.extractRegexps[regex] = compiledRegex
 			}
 		}
 	}
@@ -1183,11 +1185,13 @@ retry:
 	}
 
 	// extract regex
-	if scanopts.extractRegexs != nil {
-		for _, regex := range scanopts.extractRegexs {
-			matches := regex.FindAllString(string(resp.Data), -1)
+	var extractResult = map[string][]string{}
+	if scanopts.extractRegexps != nil {
+		for regex, compliedRegex := range scanopts.extractRegexps {
+			matches := compliedRegex.FindAllString(string(resp.Data), -1)
 			if len(matches) > 0 {
 				builder.WriteString(" [" + strings.Join(matches, ",") + "]")
+				extractResult[regex] = matches
 			}
 		}
 	}
@@ -1377,6 +1381,7 @@ retry:
 		FinalURL:         finalURL,
 		FavIconMMH3:      faviconMMH3,
 		Hashes:           hashesMap,
+		Extracts:         extractResult,
 		Lines:            resp.Lines,
 		Words:            resp.Words,
 	}
@@ -1433,6 +1438,7 @@ type Result struct {
 	Failed           bool                `json:"failed" csv:"failed"`
 	FavIconMMH3      string              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
 	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
+	Extracts         map[string][]string `json:"extracts,omitempty" csv:"extracts"`
 	Lines            int                 `json:"lines" csv:"lines"`
 	Words            int                 `json:"words" csv:"words"`
 }
