@@ -30,7 +30,7 @@ func stdBase64(braw []byte) []byte {
 func Mmh3(data []byte) string {
 	var h32 = murmur3.New32WithSeed(0)
 	h32.Write(stdBase64(data))
-	return fmt.Sprintf("%d", h32.Sum32())
+	return fmt.Sprintf("%d", int32(h32.Sum32()))
 }
 
 func Md5(data []byte) string {
