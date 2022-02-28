@@ -44,6 +44,9 @@ func New(options *Options) (*HTTPX, error) {
 	fastdialerOpts.Deny = options.Deny
 	fastdialerOpts.Allow = options.Allow
 	fastdialerOpts.WithDialerHistory = true
+	if len(options.Resolvers) > 0 {
+		fastdialerOpts.BaseResolvers = options.Resolvers
+	}
 	dialer, err := fastdialer.NewDialer(fastdialerOpts)
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)

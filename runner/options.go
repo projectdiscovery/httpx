@@ -4,6 +4,7 @@ import (
 	"math"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
@@ -19,9 +20,11 @@ import (
 )
 
 const (
-	maxFileNameLength = 255
-	two               = 2
-	DefaultResumeFile = "resume.cfg"
+	// The maximum file length is 251 (255 - 4 bytes for ".ext" suffix)
+	maxFileNameLength      = 251
+	two                    = 2
+	DefaultResumeFile      = "resume.cfg"
+	DefaultOutputDirectory = "output"
 )
 
 type scanOptions struct {
@@ -64,6 +67,10 @@ type scanOptions struct {
 	ExcludeCDN                bool
 	HostMaxErrors             int
 	ProbeAllIPS               bool
+	Favicon                   bool
+	LeaveDefaultPorts         bool
+	OutputLinesCount          bool
+	OutputWordsCount          bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -103,6 +110,10 @@ func (s *scanOptions) Clone() *scanOptions {
 		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
 		HostMaxErrors:             s.HostMaxErrors,
+		Favicon:                   s.Favicon,
+		LeaveDefaultPorts:         s.LeaveDefaultPorts,
+		OutputLinesCount:          s.OutputLinesCount,
+		OutputWordsCount:          s.OutputWordsCount,
 	}
 }
 
@@ -196,6 +207,21 @@ type Options struct {
 	Stream                    bool
 	SkipDedupe                bool
 	ProbeAllIPS               bool
+	Resolvers                 goflags.NormalizedStringSlice
+	Favicon                   bool
+	OutputFilterFavicon       goflags.NormalizedStringSlice
+	OutputMatchFavicon        goflags.NormalizedStringSlice
+	LeaveDefaultPorts         bool
+	OutputLinesCount          bool
+	OutputMatchLinesCount     string
+	matchLinesCount           []int
+	OutputFilterLinesCount    string
+	filterLinesCount          []int
+	OutputWordsCount          bool
+	OutputMatchWordsCount     string
+	matchWordsCount           []int
+	OutputFilterWordsCount    string
+	filterWordsCount          []int
 }
 
 // ParseOptions parses the command line options for application
@@ -216,6 +242,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.ContentLength, "content-length", "cl", false, "Display Content-Length"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "Display Server header"),
 		flagSet.BoolVarP(&options.OutputContentType, "content-type", "ct", false, "Display Content-Type header"),
+		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, "Display Response body line count"),
+		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "Display Response body word count"),
 		flagSet.BoolVarP(&options.OutputResponseTime, "response-time", "rt", false, "Display the response time"),
 		flagSet.BoolVar(&options.ExtractTitle, "title", false, "Display page title"),
 		flagSet.BoolVar(&options.Location, "location", false, "Display Location header"),
@@ -233,6 +261,9 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "Match response with given string"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "Match response with specific regex"),
 		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "Display response content with matched regex"),
+		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "Match Response body line count"),
+		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-word-count", "mwc", "", "Match Response body word count"),
+		flagSet.NormalizedStringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", []string{}, "Match response with specific favicon"),
 	)
 
 	createGroup(flagSet, "filters", "Filters",
@@ -240,6 +271,9 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "Filter response with given content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "Filter response with specific string"),
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "Filter response with specific regex"),
+		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "Filter Response body line count"),
+		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-word-count", "fwc", "", "Filter Response body word count"),
+		flagSet.NormalizedStringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", []string{}, "Filter response with specific favicon"),
 	)
 
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
@@ -248,6 +282,7 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "Misc", "Miscellaneous",
+		flagSet.BoolVar(&options.Favicon, "favicon", false, "Probes for favicon (\"favicon.ico\" as path) and display phythonic hash"),
 		flagSet.BoolVar(&options.TLSGrab, "tls-grab", false, "Perform TLS(SSL) data grabbing"),
 		flagSet.BoolVar(&options.TLSProbe, "tls-probe", false, "Send HTTP probes on the extracted TLS domains"),
 		flagSet.BoolVar(&options.CSPProbe, "csp-probe", false, "Send HTTP probes on the extracted CSP domains"),
@@ -260,17 +295,18 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "output", "Output",
-		flagSet.StringVarP(&options.Output, "output", "o", "", "File to write output"),
-		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "Store HTTP responses"),
-		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "output", "Custom directory to store HTTP responses"),
-		flagSet.BoolVar(&options.JSONOutput, "json", false, "Output in JSONL(ines) format"),
-		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr", false, "Include HTTP request/response in JSON output (-json only)"),
-		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "Include redirect HTTP Chain in JSON output (-json only)"),
-		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "Include HTTP redirect chain in responses (-sr only)"),
-		flagSet.BoolVar(&options.CSVOutput, "csv", false, "Output in CSV format"),
+		flagSet.StringVarP(&options.Output, "output", "o", "", "file to write output results"),
+		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
+		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
+		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in CSV format"),
+		flagSet.BoolVar(&options.JSONOutput, "json", false, "store output in JSONL(ines) format"),
+		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr", false, "include http request/response in JSON output (-json only)"),
+		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "include redirect http chain in JSON output (-json only)"),
+		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
 	)
 
 	createGroup(flagSet, "configs", "Configurations",
+		flagSet.NormalizedStringSliceVarP(&options.Resolvers, "resolvers", "r", []string{}, "List of custom resolvers (file or comma separated)"),
 		flagSet.Var(&options.Allow, "allow", "Allowed list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.Var(&options.Deny, "deny", "Denied list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.BoolVar(&options.RandomAgent, "random-agent", true, "Enable Random User-Agent to use"),
@@ -287,6 +323,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.Stream, "stream", "s", false, "Stream mode - start elaborating input targets without sorting"),
 		flagSet.BoolVarP(&options.SkipDedupe, "skip-dedupe", "sd", false, "Disable dedupe input items (only used with stream mode)"),
 		flagSet.BoolVarP(&options.ProbeAllIPS, "probe-all-ips", "pa", false, "Probe all the ips associated with same host"),
+		flagSet.BoolVarP(&options.LeaveDefaultPorts, "leave-default-ports", "ldp", false, "Leave default HTTP/HTTPS ports (eg. http://host:80 - https//host:443"),
 	)
 
 	createGroup(flagSet, "debug", "Debug",
@@ -368,6 +405,51 @@ func (options *Options) validateOptions() {
 		if options.matchRegex, err = regexp.Compile(options.OutputMatchRegex); err != nil {
 			gologger.Fatal().Msgf("Invalid value for match regex option: %s\n", err)
 		}
+	}
+	if options.matchLinesCount, err = stringz.StringToSliceInt(options.OutputMatchLinesCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for match lines count option: %s\n", err)
+	}
+	if options.matchWordsCount, err = stringz.StringToSliceInt(options.OutputMatchWordsCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for match words count option: %s\n", err)
+	}
+	if options.filterLinesCount, err = stringz.StringToSliceInt(options.OutputFilterLinesCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for filter lines count option: %s\n", err)
+	}
+	if options.filterWordsCount, err = stringz.StringToSliceInt(options.OutputFilterWordsCount); err != nil {
+		gologger.Fatal().Msgf("Invalid value for filter words count option: %s\n", err)
+	}
+
+	var resolvers []string
+	for _, resolver := range options.Resolvers {
+		if fileutil.FileExists(resolver) {
+			chFile, err := fileutil.ReadFile(resolver)
+			if err != nil {
+				gologger.Fatal().Msgf("Couldn't process resolver file \"%s\": %s\n", resolver, err)
+			}
+			for line := range chFile {
+				resolvers = append(resolvers, line)
+			}
+		} else {
+			resolvers = append(resolvers, resolver)
+		}
+	}
+	options.Resolvers = resolvers
+	if len(options.Resolvers) > 0 {
+		gologger.Debug().Msgf("Using resolvers: %s\n", strings.Join(options.Resolvers, ","))
+	}
+
+	if options.StoreResponse && options.StoreResponseDir == "" {
+		gologger.Debug().Msgf("Store response directory not specified, using \"%s\"\n", DefaultOutputDirectory)
+		options.StoreResponseDir = DefaultOutputDirectory
+	}
+	if options.StoreResponseDir != "" && !options.StoreResponse {
+		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
+		options.StoreResponse = true
+	}
+
+	if options.Favicon {
+		gologger.Debug().Msgf("Setting single path to \"favicon.ico\" and ignoring multiple paths settings\n")
+		options.RequestURIs = "/favicon.ico"
 	}
 }
 

@@ -1,4 +1,4 @@
-FROM golang:1.17.3-alpine AS builder
+FROM golang:1.17.6-alpine AS builder
 RUN apk add --no-cache git
 RUN go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
 

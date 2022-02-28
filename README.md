@@ -7,7 +7,6 @@
 
 <p align="center">
 <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-_red.svg"></a>
-<a href="https://github.com/projectdiscovery/httpx/issues"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat"></a>
 <a href="https://goreportcard.com/badge/github.com/projectdiscovery/httpx"><img src="https://goreportcard.com/badge/github.com/projectdiscovery/httpx"></a>
 <a href="https://github.com/projectdiscovery/httpx/releases"><img src="https://img.shields.io/github/release/projectdiscovery/httpx"></a>
 <a href="https://hub.docker.com/r/projectdiscovery/httpx"><img src="https://img.shields.io/docker/pulls/projectdiscovery/httpx.svg"></a>
@@ -43,18 +42,22 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 
 ### Supported probes:-
 
-| Probes             | Default check   | Probes             | Default check   |
-|--------------------|-----------------|--------------------|-----------------|
-| URL                | true            | IP                 | true            |
-| Title              | true            | CNAME              | true            |
-| Status Code        | true            | Raw HTTP           | false           |
-| Content Length     | true            | HTTP2              | false           |
-| TLS Certificate    | true            | HTTP 1.1 Pipeline  | false           |
-| CSP Header         | true            | Virtual host       | false           |
-| Location Header    | true            | CDN                | false           |
-| Web Server         | true            | Path               | false           |
-| Web Socket         | true            | Ports              | false           |
-| Response Time      | true            | Request method     | false           |
+| Probes          | Default check | Probes            | Default check |
+| --------------- | ------------- | ----------------- | ------------- |
+| URL             | true          | IP                | true          |
+| Title           | true          | CNAME             | true          |
+| Status Code     | true          | Raw HTTP          | false         |
+| Content Length  | true          | HTTP2             | false         |
+| TLS Certificate | true          | HTTP Pipeline     | false         |
+| CSP Header      | true          | Virtual host      | false         |
+| Line Count      | true          | Word Count        | true          |
+| Location Header | true          | CDN               | false         |
+| Web Server      | true          | Paths             | false         |
+| Web Socket      | true          | Ports             | false         |
+| Response Time   | true          | Request Method    | true          |
+| Favicon Hash    | false         | Probe  Status     | false         |
+| Body Hash       | true          | Header  Hash      | true          |
+| Redirect chain  | false         | URL Scheme        | true          |
 
 
 # Installation Instructions
@@ -87,6 +90,8 @@ PROBES:
    -sc, -status-code     Display Status Code
    -td, -tech-detect     Display wappalyzer based technology detection
    -cl, -content-length  Display Content-Length
+   -lc, -line-count      Display Response body line count
+   -wc, -word-count      Display Response body word count
    -server, -web-server  Display Server header
    -ct, -content-type    Display Content-Type header
    -rt, -response-time   Display the response time
@@ -105,18 +110,25 @@ MATCHERS:
    -ms, -match-string string   Match response with given string
    -mr, -match-regex string    Match response with specific regex
    -er, -extract-regex string  Display response content with matched regex
+   -mlc, -match-line-count string  Match Response body line count
+   -mwc, -match-word-count string  Match Response body word count
+   -mfc, -match-favicon string[]   Match response with specific favicon
 
 FILTERS:
    -fc, -filter-code string    Filter response with given status code (-fc 403,401)
    -fl, -filter-length string  Filter response with given content length (-fl 23,33)
    -fs, -filter-string string  Filter response with specific string
    -fe, -filter-regex string   Filter response with specific regex
+   -flc, -filter-line-count string  Filter Response body line count
+   -fwc, -filter-word-count string  Filter Response body word count
+   -ffc, -filter-favicon string[]   Filter response with specific favicon
 
 RATE-LIMIT:
    -t, -threads int      Number of threads (default 50)
    -rl, -rate-limit int  Maximum requests to send per second (default 150)
 
 MISCELLANEOUS:
+   -favicon             Probes for favicon ("favicon.ico" as path) and display phythonic hash
    -tls-grab            Perform TLS(SSL) data grabbing
    -tls-probe           Send HTTP probes on the extracted TLS domains
    -csp-probe           Send HTTP probes on the extracted CSP domains
@@ -128,16 +140,17 @@ MISCELLANEOUS:
    -paths string        File or comma separated paths to request (deprecated)
 
 OUTPUT:
-   -o, -output string                File to write output
-   -sr, -store-response              Store HTTP responses
-   -srd, -store-response-dir string  Custom directory to store HTTP responses (default "output")
-   -json                             Output in JSONL(ines) format
-   -irr, -include-response           Include HTTP request/response in JSON output (-json only)
-   -include-chain                    Include redirect HTTP Chain in JSON output (-json only)
-   -store-chain                      Include HTTP redirect chain in responses (-sr only)
-   -csv                              Output in CSV format
+   -o, -output string                file to write output
+   -sr, -store-response              store http response to output directory
+   -srd, -store-response-dir string  store http response to custom directory (default "output")
+   -csv                              store output in CSV format
+   -json                             store output in JSONL(ines) format
+   -irr, -include-response           include http request/response in JSON output (-json only)
+   -include-chain                    include redirect http chain in JSON output (-json only)
+   -store-chain                      include http redirect chain in responses (-sr only)
 
 CONFIGURATIONS:
+   -r, -resolvers string[]       List of custom resolvers (file or comma separated)
    -allow string[]               Allowed list of IP/CIDR's to process (file or comma separated)
    -deny string[]                Denied list of IP/CIDR's to process (file or comma separated)
    -random-agent                 Enable Random User-Agent to use (default true)
@@ -178,7 +191,7 @@ OPTIMIZATIONS:
 
 # Running httpX
 
-### Running httpx with stdin  
+### URL Probe
 
 This will run the tool against all the hosts and subdomains in `hosts.txt` and returns URLs running HTTP webserver. 
 
@@ -207,7 +220,7 @@ https://api.hackerone.com
 https://support.hackerone.com
 ```
 
-### Running httpx with file input  
+### File Input
 
 This will run the tool with the `probe` flag against all of the hosts in **hosts.txt** and return URLs with probed status.
 
@@ -236,7 +249,7 @@ http://a.ns.hackerone.com [FAILED]
 http://b.ns.hackerone.com [FAILED]
 ```
 
-### Running httpx with CIDR input   
+### CIDR Input   
 
 ```console
 echo 173.0.84.0/24 | httpx -silent
@@ -262,7 +275,7 @@ https://173.0.84.34
 ```
 
 
-### Running httpx with subfinder
+### Tool Chain
 
 
 ```console
@@ -287,7 +300,65 @@ https://support.hackerone.com [301,302,301,200] [HackerOne] [Cloudflare,Ruby on 
 https://resources.hackerone.com [301,301,404] [Sorry, no Folders found.]
 ```
 
-### Running httpx with docker
+### Favicon Hash
+
+
+```console
+subfinder -d hackerone.com -silent | httpx -favicon
+
+    __    __  __       _  __
+   / /_  / /_/ /_____ | |/ /
+  / __ \/ __/ __/ __ \|   /
+ / / / / /_/ /_/ /_/ /   |
+/_/ /_/\__/\__/ .___/_/|_|
+             /_/              v1.1.5
+
+      projectdiscovery.io
+
+Use with caution. You are responsible for your actions.
+Developers assume no liability and are not responsible for any misuse or damage.
+https://docs.hackerone.com/favicon.ico [595148549]
+https://hackerone.com/favicon.ico [595148549]
+https://mta-sts.managed.hackerone.com/favicon.ico [-1700323260]
+https://mta-sts.forwarding.hackerone.com/favicon.ico [-1700323260]
+https://support.hackerone.com/favicon.ico [-1279294674]
+https://gslink.hackerone.com/favicon.ico [1506877856]
+https://resources.hackerone.com/favicon.ico [-1840324437]
+https://api.hackerone.com/favicon.ico [566218143]
+https://mta-sts.hackerone.com/favicon.ico [-1700323260]
+https://www.hackerone.com/favicon.ico [778073381]
+```
+
+### Path Probe
+
+
+```console
+httpx -l urls.txt -path /v1/api -sc
+
+    __    __  __       _  __
+   / /_  / /_/ /_____ | |/ /
+  / __ \/ __/ __/ __ \|   /
+ / / / / /_/ /_/ /_/ /   |
+/_/ /_/\__/\__/ .___/_/|_|
+             /_/              v1.1.5
+
+      projectdiscovery.io
+
+Use with caution. You are responsible for your actions.
+Developers assume no liability and are not responsible for any misuse or damage.
+https://mta-sts.managed.hackerone.com/v1/api [404]
+https://mta-sts.hackerone.com/v1/api [404]
+https://mta-sts.forwarding.hackerone.com/v1/api [404]
+https://docs.hackerone.com/v1/api [404]
+https://api.hackerone.com/v1/api [401]
+https://hackerone.com/v1/api [302]
+https://support.hackerone.com/v1/api [404]
+https://resources.hackerone.com/v1/api [301]
+https://gslink.hackerone.com/v1/api [404]
+http://www.hackerone.com/v1/api [301]
+```
+
+### Docker Run
 
 ```console
 cat sub_domains.txt | docker run -i projectdiscovery/httpx
@@ -320,10 +391,11 @@ https://support.hackerone.com
 - As default, **httpx** checks for `HTTPS` probe and fall-back to `HTTP` only if `HTTPS` is not reachable.
 - For printing both HTTP/HTTPS results, `no-fallback` flag can be used.
 - Custom scheme for ports can be defined, for example `-ports http:443,http:80,https:8443`
-- `vhost`, `http2`, `pipeline`, `ports`, `csp-probe`, `tls-probe` and `path` are unique flag with different probes.
-- Unique flags should be used for specific use cases instead of running them as default with other flags.
+- `favicon`,`vhost`, `http2`, `pipeline`, `ports`, `csp-probe`, `tls-probe` and `path` are unique flag with different probes.
+- Unique flags should be used for specific use cases instead of running them as default with other probes.
 - When using `json` flag, all the information (default probes) included in the JSON output.
-
+- Custom resolver supports multiple protocol (**doh|tcp|udp**) in form of `protocol:resolver:port`  (eg **udp:127.0.0.1:53**)
+- Invalid custom resolvers/files are ignored.
 
 # Acknowledgement
 
