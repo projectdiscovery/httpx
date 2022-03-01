@@ -4,11 +4,13 @@ on:
   pull_request:
   workflow_dispatch:
 
-
 jobs:  
   functional:
     name: Functional Test
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -21,5 +23,5 @@ jobs:
       - name: Functional Tests
         run: |
           chmod +x run.sh
-          bash run.sh
+          bash run.sh ${{ matrix.os }}
         working-directory: cmd/functional-test

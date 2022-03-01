@@ -4,9 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/csv"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -30,6 +28,7 @@ import (
 	"github.com/projectdiscovery/clistats"
 	"github.com/projectdiscovery/cryptoutil"
 	"github.com/projectdiscovery/goconfig"
+	"github.com/projectdiscovery/httpx/common/hashes"
 	"github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/stringsutil"
 	"github.com/projectdiscovery/urlutil"
@@ -52,10 +51,6 @@ import (
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 	"github.com/remeh/sizedwaitgroup"
 	"go.uber.org/ratelimit"
-)
-
-const (
-	statsDisplayInterval = 5
 )
 
 // Runner is a client for running the enumeration process.
@@ -232,12 +227,16 @@ func New(options *Options) (*Runner, error) {
 	scanopts.LeaveDefaultPorts = options.LeaveDefaultPorts
 	scanopts.OutputLinesCount = options.OutputLinesCount
 	scanopts.OutputWordsCount = options.OutputWordsCount
+	scanopts.Hashes = options.Hashes
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
 		runner.stats, err = clistats.New()
 		if err != nil {
 			return nil, err
+		}
+		if options.StatsInterval == 0 {
+			options.StatsInterval = 5
 		}
 	}
 
@@ -249,7 +248,9 @@ func New(options *Options) (*Runner, error) {
 	}
 	runner.hm = hm
 
-	if options.RateLimit > 0 {
+	if options.RateLimitMinute > 0 {
+		runner.ratelimiter = ratelimit.New(options.RateLimitMinute, ratelimit.Per(60*time.Second))
+	} else if options.RateLimit > 0 {
 		runner.ratelimiter = ratelimit.New(options.RateLimit)
 	} else {
 		runner.ratelimiter = ratelimit.NewUnlimited()
@@ -318,7 +319,8 @@ func (r *Runner) prepareInput() {
 		r.stats.AddCounter("hosts", 0)
 		r.stats.AddStatic("startedAt", time.Now())
 		r.stats.AddCounter("requests", 0)
-		err := r.stats.Start(makePrintCallback(), time.Duration(statsDisplayInterval)*time.Second)
+
+		err := r.stats.Start(makePrintCallback(), time.Duration(r.options.StatsInterval)*time.Second)
 		if err != nil {
 			gologger.Warning().Msgf("Could not create statistics: %s\n", err)
 		}
@@ -426,21 +428,14 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 }
 
 var (
-	lastPrint         time.Time
 	lastRequestsCount float64
 )
 
 func makePrintCallback() func(stats clistats.StatisticsClient) {
 	builder := &strings.Builder{}
 	return func(stats clistats.StatisticsClient) {
-		var duration time.Duration
-		now := time.Now()
-		if lastPrint.IsZero() {
-			startedAt, _ := stats.GetStatic("startedAt")
-			duration = time.Since(startedAt.(time.Time))
-		} else {
-			duration = time.Since(lastPrint)
-		}
+		startedAt, _ := stats.GetStatic("startedAt")
+		duration := time.Since(startedAt.(time.Time))
 
 		builder.WriteRune('[')
 		builder.WriteString(clistats.FmtDuration(duration))
@@ -477,7 +472,6 @@ func makePrintCallback() func(stats clistats.StatisticsClient) {
 		fmt.Fprintf(os.Stderr, "%s", builder.String())
 		builder.Reset()
 
-		lastPrint = now
 		lastRequestsCount = currentRequests
 	}
 }
@@ -1152,9 +1146,9 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", cnames[0]))
 	}
 
-	isCDN, err := hp.CdnCheck(ip)
+	isCDN, cdnName, err := hp.CdnCheck(ip)
 	if scanopts.OutputCDN && isCDN && err == nil {
-		builder.WriteString(" [cdn]")
+		builder.WriteString(fmt.Sprintf(" [%s]", cdnName))
 	}
 
 	if scanopts.OutputResponseTime {
@@ -1216,7 +1210,54 @@ retry:
 		}
 		builder.WriteRune(']')
 	}
-
+	// adding default hashing for json output format
+	if r.options.JSONOutput && len(scanopts.Hashes) == 0 {
+		scanopts.Hashes = "md5,mmh3,sha256,simhash"
+	}
+	var hashesMap = map[string]string{}
+	if scanopts.Hashes != "" {
+		hs := strings.Split(scanopts.Hashes, ",")
+		builder.WriteString(" [")
+		for index, hashType := range hs {
+			var (
+				hashHeader, hashBody string
+			)
+			hashType = strings.ToLower(hashType)
+			switch hashType {
+			case "md5":
+				hashBody = hashes.Md5(resp.Data)
+				hashHeader = hashes.Md5([]byte(resp.RawHeaders))
+			case "mmh3":
+				hashBody = hashes.Mmh3(resp.Data)
+				hashHeader = hashes.Mmh3([]byte(resp.RawHeaders))
+			case "sha1":
+				hashBody = hashes.Sha1(resp.Data)
+				hashHeader = hashes.Sha1([]byte(resp.RawHeaders))
+			case "sha256":
+				hashBody = hashes.Sha256(resp.Data)
+				hashHeader = hashes.Sha256([]byte(resp.RawHeaders))
+			case "sha512":
+				hashBody = hashes.Sha512(resp.Data)
+				hashHeader = hashes.Sha512([]byte(resp.RawHeaders))
+			case "simhash":
+				hashBody = hashes.Simhash(resp.Data)
+				hashHeader = hashes.Simhash([]byte(resp.RawHeaders))
+			}
+			if hashBody != "" {
+				hashesMap[fmt.Sprintf("body-%s", hashType)] = hashBody
+				hashesMap[fmt.Sprintf("header-%s", hashType)] = hashHeader
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Magenta(hashBody).String())
+				} else {
+					builder.WriteString(hashBody)
+				}
+				if index != len(hs)-1 {
+					builder.WriteString(",")
+				}
+			}
+		}
+		builder.WriteRune(']')
+	}
 	if scanopts.OutputLinesCount {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
@@ -1286,15 +1327,6 @@ retry:
 	if finalPath == "" {
 		finalPath = "/"
 	}
-
-	hasher := sha256.New()
-	_, _ = hasher.Write(resp.Data)
-	bodySha := hex.EncodeToString(hasher.Sum(nil))
-	hasher.Reset()
-
-	_, _ = hasher.Write([]byte(resp.RawHeaders))
-	headersSha := hex.EncodeToString(hasher.Sum(nil))
-
 	var chainStatusCodes []int
 	if resp.HasChain() {
 		chainStatusCodes = append(chainStatusCodes, resp.GetChainStatusCodes()...)
@@ -1311,8 +1343,6 @@ retry:
 		Scheme:           parsed.Scheme,
 		Port:             finalPort,
 		Path:             finalPath,
-		BodySHA256:       bodySha,
-		HeaderSHA256:     headersSha,
 		raw:              resp.Raw,
 		URL:              fullURL,
 		Input:            origInput,
@@ -1337,10 +1367,12 @@ retry:
 		A:                ips,
 		CNAMEs:           cnames,
 		CDN:              isCDN,
+		CDNName:          cdnName,
 		ResponseTime:     resp.Duration.String(),
 		Technologies:     technologies,
 		FinalURL:         finalURL,
 		FavIconMMH3:      faviconMMH3,
+		Hashes:           hashesMap,
 		Lines:            resp.Lines,
 		Words:            resp.Words,
 	}
@@ -1362,8 +1394,6 @@ type Result struct {
 	Scheme           string    `json:"scheme,omitempty" csv:"scheme"`
 	Port             string    `json:"port,omitempty" csv:"port"`
 	Path             string    `json:"path,omitempty" csv:"path"`
-	BodySHA256       string    `json:"body-sha256,omitempty" csv:"body-sha256"`
-	HeaderSHA256     string    `json:"header-sha256,omitempty" csv:"header-sha256"`
 	A                []string  `json:"a,omitempty" csv:"a"`
 	CNAMEs           []string  `json:"cnames,omitempty" csv:"cnames"`
 	raw              string
@@ -1389,12 +1419,14 @@ type Result struct {
 	Pipeline         bool                `json:"pipeline,omitempty" csv:"pipeline"`
 	HTTP2            bool                `json:"http2,omitempty" csv:"http2"`
 	CDN              bool                `json:"cdn,omitempty" csv:"cdn"`
+	CDNName          string              `json:"cdn-name,omitempty" csv:"cdn-name"`
 	ResponseTime     string              `json:"response-time,omitempty" csv:"response-time"`
 	Technologies     []string            `json:"technologies,omitempty" csv:"technologies"`
 	Chain            []httpx.ChainItem   `json:"chain,omitempty" csv:"chain"`
 	FinalURL         string              `json:"final-url,omitempty" csv:"final-url"`
 	Failed           bool                `json:"failed" csv:"failed"`
 	FavIconMMH3      string              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
+	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
 	Lines            int                 `json:"lines" csv:"lines"`
 	Words            int                 `json:"words" csv:"words"`
 }
@@ -1487,7 +1519,7 @@ func (r *Runner) skipCDNPort(host string, port string) bool {
 	// pick the first ip as target
 	hostIP := dnsData.A[0]
 
-	isCdnIP, err := r.hp.CdnCheck(hostIP)
+	isCdnIP, _, err := r.hp.CdnCheck(hostIP)
 	if err != nil {
 		return false
 	}

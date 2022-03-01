@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/ioutil"
 
+	"golang.org/x/text/encoding/korean"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/encoding/traditionalchinese"
 	"golang.org/x/text/transform"
@@ -42,4 +43,9 @@ func Encodebig5(s []byte) ([]byte, error) {
 		return nil, e
 	}
 	return d, nil
+}
+
+func DecodeKorean(s []byte) ([]byte, error) {
+	koreanDecoder := korean.EUCKR.NewDecoder()
+	return koreanDecoder.Bytes(s)
 }
