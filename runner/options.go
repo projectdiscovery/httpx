@@ -317,7 +317,7 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "configs", "Configurations",
-		flagSet.NormalizedStringSliceVarP(&options.Resolvers, "resolvers", "r", []string{}, "list of custom resolvers (file or comma separated)"),
+		flagSet.NormalizedStringSliceVarP(&options.Resolvers, "resolvers", "r", []string{}, "list of custom resolver (file or comma separated)"),
 		flagSet.Var(&options.Allow, "allow", "allowed list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.BoolVar(&options.RandomAgent, "random-agent", true, "Enable Random User-Agent to use"),

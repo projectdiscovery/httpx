@@ -154,7 +154,7 @@ OUTPUT:
    -store-chain                      include http redirect chain in responses (-sr only)
 
 CONFIGURATIONS:
-   -r, -resolvers string[]       list of custom resolvers (file or comma separated)
+   -r, -resolvers string[]       list of custom resolver (file or comma separated)
    -allow string[]               allowed list of IP/CIDR's to process (file or comma separated)
    -deny string[]                denied list of IP/CIDR's to process (file or comma separated)
    -random-agent                 Enable Random User-Agent to use (default true)
