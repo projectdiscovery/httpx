@@ -139,6 +139,7 @@ MISCELLANEOUS:
    -p, -ports string[]  Port to scan (nmap syntax: eg 1,2-10,11)
    -path string         File or comma separated paths to request
    -paths string        File or comma separated paths to request (deprecated)
+   -hash  string        Display response body hash (supported: md5,mmh3,sha256,sim)
 
 OUTPUT:
    -o, -output string                file to write output
