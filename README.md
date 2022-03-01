@@ -111,9 +111,9 @@ MATCHERS:
    -ml, -match-length string       match response with specified content length (-ml 100,102)
    -mlc, -match-line-count string  match response body with specified line count (-mlc 423,532)
    -mwc, -match-word-count string  match response body with specified word count (-mwc 43,55)
+   -mfc, -match-favicon string[]   match response with specified favicon hash (-mfc 1494302000)
    -ms, -match-string string       match response with specified string (-ms admin)
    -mr, -match-regex string        match response with specified regex (-mr admin)
-   -mfc, -match-favicon string[]   match response with specified favicon hash (-mfc 1494302000)
 
 EXTRACTOR:
    -er, -extract-regex string  display response content for specified regex
@@ -121,11 +121,11 @@ EXTRACTOR:
 FILTERS:
    -fc, -filter-code string         filter response with specified status code (-fc 403,401)
    -fl, -filter-length string       filter response with specified content length (-fl 23,33)
-   -fs, -filter-string string       filter response with specified string (-fs admin)
-   -fe, -filter-regex string        filter response with specified regex (-fe admin)
    -flc, -filter-line-count string  filter response body with specified line count (-flc 423,532)
    -fwc, -filter-word-count string  filter response body with specified word count (-fwc 423,532)
    -ffc, -filter-favicon string[]   filter response with specified favicon hash (-mfc 1494302000)
+   -fs, -filter-string string       filter response with specified string (-fs admin)
+   -fe, -filter-regex string        filter response with specified regex (-fe admin)
 
 RATE-LIMIT:
    -t, -threads int              number of threads to use (default 50)
@@ -134,15 +134,14 @@ RATE-LIMIT:
 
 MISCELLANEOUS:
    -pa, -probe-all-ips  probe all the ips associated with same host
-   -tls-grab            perform TLS(SSL) data grabbing
+   -p, -ports string[]  ports to probe (nmap syntax: eg 1,2-10,11)
+   -path string         path or list of paths to probe (comma-separated, file)
    -tls-probe           send http probes on the extracted TLS domains (dns_name)
    -csp-probe           send http probes on the extracted CSP domains
+   -tls-grab            perform TLS(SSL) data grabbing
    -pipeline            probe and display server supporting HTTP1.1 pipeline
    -http2               probe and display server supporting HTTP2
    -vhost               probe and display server supporting VHOST
-   -p, -ports string[]  ports to probe (nmap syntax: eg 1,2-10,11)
-   -path string         path or list of paths to probe (comma-separated, file)
-   -paths string        path or list of paths to probe (comma-separated, file) (deprecated)
 
 OUTPUT:
    -o, -output string                file to write output results
@@ -171,7 +170,7 @@ CONFIGURATIONS:
    -body string                  post body to include in http request
    -s, -stream                   stream mode - start elaborating input targets without sorting
    -sd, -skip-dedupe             disable dedupe input items (only used with stream mode)
-   -ldp, -leave-default-ports    leave default http/https ports (eg. http://host:80 - https//host:443
+   -ldp, -leave-default-ports    leave default http/https ports in host header (eg. http://host:80 - https//host:443)
 
 DEBUG:
    -debug                    display request/response content in cli
