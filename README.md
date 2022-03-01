@@ -83,111 +83,115 @@ Usage:
 
 Flags:
 INPUT:
-   -l, -list string  Input file containing list of hosts to process
-   -request string   File containing raw request
+   -l, -list string      input file containing list of hosts to process
+   -rr, -request string  file containing raw request
 
 PROBES:
-   -sc, -status-code     Display Status Code
-   -td, -tech-detect     Display wappalyzer based technology detection
-   -cl, -content-length  Display Content-Length
-   -lc, -line-count      Display Response body line count
-   -wc, -word-count      Display Response body word count
-   -server, -web-server  Display Server header
-   -ct, -content-type    Display Content-Type header
-   -rt, -response-time   Display the response time
-   -title                Display page title
-   -location             Display Location header
-   -method               Display Request method
-   -websocket            Display server using websocket
-   -ip                   Display Host IP
-   -cname                Display Host cname
-   -cdn                  Display if CDN in use
-   -probe                Display probe status
+   -sc, -status-code     display response status-code
+   -cl, -content-length  display response content-length
+   -ct, -content-type    display response content-type
+   -location             display response redirect location
+   -favicon              display mmh3 hash for '/favicon.ico' file
+   -hash string          display response body hash (supported: md5,mmh3,simhash,sha1,sha256,sha512)
+   -rt, -response-time   display response time
+   -lc, -line-count      display response body line count
+   -wc, -word-count      display response body word count
+   -title                display page title
+   -server, -web-server  display server name
+   -td, -tech-detect     display technology in use based on wappalyzer dataset
+   -method               display http request method
+   -websocket            display server using websocket
+   -ip                   display host ip
+   -cname                display host cname
+   -cdn                  display cdn in use
+   -probe                display probe status
 
 MATCHERS:
-   -mc, -match-code string     Match response with given status code (-mc 200,302)
-   -ml, -match-length string   Match response with given content length (-ml 100,102)
-   -ms, -match-string string   Match response with given string
-   -mr, -match-regex string    Match response with specific regex
-   -er, -extract-regex string  Display response content with matched regex
-   -mlc, -match-line-count string  Match Response body line count
-   -mwc, -match-word-count string  Match Response body word count
-   -mfc, -match-favicon string[]   Match response with specific favicon
+   -mc, -match-code string         match response with specified status code (-mc 200,302)
+   -ml, -match-length string       match response with specified content length (-ml 100,102)
+   -mlc, -match-line-count string  match response body with specified line count (-mlc 423,532)
+   -mwc, -match-word-count string  match response body with specified word count (-mwc 43,55)
+   -mfc, -match-favicon string[]   match response with specified favicon hash (-mfc 1494302000)
+   -ms, -match-string string       match response with specified string (-ms admin)
+   -mr, -match-regex string        match response with specified regex (-mr admin)
+
+EXTRACTOR:
+   -er, -extract-regex string  display response content for specified regex
 
 FILTERS:
-   -fc, -filter-code string    Filter response with given status code (-fc 403,401)
-   -fl, -filter-length string  Filter response with given content length (-fl 23,33)
-   -fs, -filter-string string  Filter response with specific string
-   -fe, -filter-regex string   Filter response with specific regex
-   -flc, -filter-line-count string  Filter Response body line count
-   -fwc, -filter-word-count string  Filter Response body word count
-   -ffc, -filter-favicon string[]   Filter response with specific favicon
+   -fc, -filter-code string         filter response with specified status code (-fc 403,401)
+   -fl, -filter-length string       filter response with specified content length (-fl 23,33)
+   -flc, -filter-line-count string  filter response body with specified line count (-flc 423,532)
+   -fwc, -filter-word-count string  filter response body with specified word count (-fwc 423,532)
+   -ffc, -filter-favicon string[]   filter response with specified favicon hash (-mfc 1494302000)
+   -fs, -filter-string string       filter response with specified string (-fs admin)
+   -fe, -filter-regex string        filter response with specified regex (-fe admin)
 
 RATE-LIMIT:
-   -t, -threads int           Number of threads (default 50)
-   -rl, -rate-limit int       Maximum requests to send per second (default 150)
-   -rlm, -rate-limit-minute   Maximum number of requests to send per minute (default 0)
+   -t, -threads int              number of threads to use (default 50)
+   -rl, -rate-limit int          maximum requests to send per second (default 150)
+   -rlm, -rate-limit-minute int  maximum number of requests to send per minute
 
 MISCELLANEOUS:
-   -favicon             Probes for favicon ("favicon.ico" as path) and display phythonic hash
-   -tls-grab            Perform TLS(SSL) data grabbing
-   -tls-probe           Send HTTP probes on the extracted TLS domains
-   -csp-probe           Send HTTP probes on the extracted CSP domains
-   -pipeline            HTTP1.1 Pipeline probe
-   -http2               HTTP2 probe
-   -vhost               VHOST Probe
-   -p, -ports string[]  Port to scan (nmap syntax: eg 1,2-10,11)
-   -path string         File or comma separated paths to request
-   -paths string        File or comma separated paths to request (deprecated)
+   -pa, -probe-all-ips  probe all the ips associated with same host
+   -p, -ports string[]  ports to probe (nmap syntax: eg 1,2-10,11)
+   -path string         path or list of paths to probe (comma-separated, file)
+   -tls-probe           send http probes on the extracted TLS domains (dns_name)
+   -csp-probe           send http probes on the extracted CSP domains
+   -tls-grab            perform TLS(SSL) data grabbing
+   -pipeline            probe and display server supporting HTTP1.1 pipeline
+   -http2               probe and display server supporting HTTP2
+   -vhost               probe and display server supporting VHOST
 
 OUTPUT:
-   -o, -output string                file to write output
+   -o, -output string                file to write output results
    -sr, -store-response              store http response to output directory
-   -srd, -store-response-dir string  store http response to custom directory (default "output")
-   -csv                              store output in CSV format
+   -srd, -store-response-dir string  store http response to custom directory
+   -csv                              store output in csv format
    -json                             store output in JSONL(ines) format
    -irr, -include-response           include http request/response in JSON output (-json only)
    -include-chain                    include redirect http chain in JSON output (-json only)
    -store-chain                      include http redirect chain in responses (-sr only)
 
 CONFIGURATIONS:
-   -r, -resolvers string[]       List of custom resolvers (file or comma separated)
-   -allow string[]               Allowed list of IP/CIDR's to process (file or comma separated)
-   -deny string[]                Denied list of IP/CIDR's to process (file or comma separated)
+   -r, -resolvers string[]       list of custom resolver (file or comma separated)
+   -allow string[]               allowed list of IP/CIDR's to process (file or comma separated)
+   -deny string[]                denied list of IP/CIDR's to process (file or comma separated)
    -random-agent                 Enable Random User-Agent to use (default true)
-   -H, -header string[]          Custom Header to send with request
-   -http-proxy, -proxy string    HTTP Proxy, eg http://127.0.0.1:8080
-   -unsafe                       Send raw requests skipping golang normalization
-   -resume                       Resume scan using resume.cfg
-   -fr, -follow-redirects        Follow HTTP redirects
-   -maxr, -max-redirects int     Max number of redirects to follow per host (default 10)
-   -fhr, -follow-host-redirects  Follow redirects on the same host
-   -vhost-input                  Get a list of vhosts as input
-   -x string                     Request methods to use, use 'all' to probe all HTTP methods
-   -body string                  Post body to include in HTTP request
-   -s, -stream                   Stream mode - start elaborating input targets without sorting
-   -sd, -skip-dedupe             Disable dedupe input items (only used with stream mode)
-   -pa, -probe-all-ips           Probe all the ips associated with same host
+   -H, -header string[]          custom http headers to send with request
+   -http-proxy, -proxy string    http proxy to use (eg http://127.0.0.1:8080)
+   -unsafe                       send raw requests skipping golang normalization
+   -resume                       resume scan using resume.cfg
+   -fr, -follow-redirects        follow http redirects
+   -maxr, -max-redirects int     max number of redirects to follow per host (default 10)
+   -fhr, -follow-host-redirects  follow redirects on the same host
+   -vhost-input                  get a list of vhosts as input
+   -x string                     request methods to probe, use 'all' to probe all HTTP methods
+   -body string                  post body to include in http request
+   -s, -stream                   stream mode - start elaborating input targets without sorting
+   -sd, -skip-dedupe             disable dedupe input items (only used with stream mode)
+   -ldp, -leave-default-ports    leave default http/https ports in host header (eg. http://host:80 - https//host:443)
 
 DEBUG:
-   -silent         Silent mode
-   -v, -verbose    Verbose mode
-   -version        Display version
-   -nc, -no-color  Disable color in output
-   -debug          Debug mode
-   -debug-req      Show all sent requests
-   -debug-resp     Show all received responses
-   -stats          Display scan statistic
+   -debug                    display request/response content in cli
+   -debug-req                display request content in cli
+   -debug-resp               display response content in cli
+   -version                  display httpx version
+   -stats                    display scan statistic
+   -silent                   silent mode
+   -v, -verbose              verbose mode
+   -si, -stats-interval int  number of seconds to wait between showing a statistics update (default: 5)
+   -nc, -no-color            disable colors in cli output
 
 OPTIMIZATIONS:
-   -nf, -no-fallback                  Display both probbed protocol (HTTPS and HTTP)
-   -nfs, -no-fallback-scheme          Probe with input protocol scheme
-   -maxhr, -max-host-error int        Max error count per host before skipping remaining path/s (default 30)
-   -ec, -exclude-cdn                  Skip full port scans for CDNs (only checks for 80,443)
-   -retries int                       Number of retries
-   -timeout int                       Timeout in seconds (default 5)
-   -rsts, -response-size-to-save int  Max response size to save in bytes (default 2147483647)
-   -rstr, -response-size-to-read int  Max response size to read in bytes (default 2147483647)
+   -nf, -no-fallback                  display both probed protocol (HTTPS and HTTP)
+   -nfs, -no-fallback-scheme          probe with protocol scheme specified in input 
+   -maxhr, -max-host-error int        max error count per host before skipping remaining path/s (default 30)
+   -ec, -exclude-cdn                  skip full port scans for CDNs (only checks for 80,443)
+   -retries int                       number of retries
+   -timeout int                       timeout in seconds (default 5)
+   -rsts, -response-size-to-save int  max response size to save in bytes (default 2147483647)
+   -rstr, -response-size-to-read int  max response size to read in bytes (default 2147483647)
 ```
 
 # Running httpX

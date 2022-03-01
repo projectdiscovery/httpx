@@ -4,9 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/csv"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -1222,39 +1220,54 @@ retry:
 		}
 		builder.WriteRune(']')
 	}
-
+	// adding default hashing for json output format
+	if r.options.JSONOutput && len(scanopts.Hashes) == 0 {
+		scanopts.Hashes = "md5,mmh3,sha256,simhash"
+	}
 	var hashesMap = map[string]string{}
 	if scanopts.Hashes != "" {
 		hs := strings.Split(scanopts.Hashes, ",")
-		for _, hashType := range hs {
-			var hash string
-			switch strings.ToLower(hashType) {
+		builder.WriteString(" [")
+		for index, hashType := range hs {
+			var (
+				hashHeader, hashBody string
+			)
+			hashType = strings.ToLower(hashType)
+			switch hashType {
 			case "md5":
-				hash = hashes.Md5(resp.Data)
+				hashBody = hashes.Md5(resp.Data)
+				hashHeader = hashes.Md5([]byte(resp.RawHeaders))
 			case "mmh3":
-				hash = hashes.Mmh3(resp.Data)
+				hashBody = hashes.Mmh3(resp.Data)
+				hashHeader = hashes.Mmh3([]byte(resp.RawHeaders))
 			case "sha1":
-				hash = hashes.Sha1(resp.Data)
+				hashBody = hashes.Sha1(resp.Data)
+				hashHeader = hashes.Sha1([]byte(resp.RawHeaders))
 			case "sha256":
-				hash = hashes.Sha256(resp.Data)
+				hashBody = hashes.Sha256(resp.Data)
+				hashHeader = hashes.Sha256([]byte(resp.RawHeaders))
 			case "sha512":
-				hash = hashes.Sha512(resp.Data)
+				hashBody = hashes.Sha512(resp.Data)
+				hashHeader = hashes.Sha512([]byte(resp.RawHeaders))
 			case "simhash":
-				hash = hashes.Simhash(resp.Data)
+				hashBody = hashes.Simhash(resp.Data)
+				hashHeader = hashes.Simhash([]byte(resp.RawHeaders))
 			}
-			if hash != "" {
-				hashesMap[hashType] = hash
-				builder.WriteString(" [")
+			if hashBody != "" {
+				hashesMap[fmt.Sprintf("body-%s", hashType)] = hashBody
+				hashesMap[fmt.Sprintf("header-%s", hashType)] = hashHeader
 				if !scanopts.OutputWithNoColor {
-					builder.WriteString(aurora.Magenta(hash).String())
+					builder.WriteString(aurora.Magenta(hashBody).String())
 				} else {
-					builder.WriteString(hash)
+					builder.WriteString(hashBody)
 				}
-				builder.WriteRune(']')
+				if index != len(hs)-1 {
+					builder.WriteString(",")
+				}
 			}
 		}
+		builder.WriteRune(']')
 	}
-
 	if scanopts.OutputLinesCount {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
@@ -1324,15 +1337,6 @@ retry:
 	if finalPath == "" {
 		finalPath = "/"
 	}
-
-	hasher := sha256.New()
-	_, _ = hasher.Write(resp.Data)
-	bodySha := hex.EncodeToString(hasher.Sum(nil))
-	hasher.Reset()
-
-	_, _ = hasher.Write([]byte(resp.RawHeaders))
-	headersSha := hex.EncodeToString(hasher.Sum(nil))
-
 	var chainStatusCodes []int
 	if resp.HasChain() {
 		chainStatusCodes = append(chainStatusCodes, resp.GetChainStatusCodes()...)
@@ -1349,8 +1353,6 @@ retry:
 		Scheme:           parsed.Scheme,
 		Port:             finalPort,
 		Path:             finalPath,
-		BodySHA256:       bodySha,
-		HeaderSHA256:     headersSha,
 		raw:              resp.Raw,
 		URL:              fullURL,
 		Input:            origInput,
@@ -1403,8 +1405,6 @@ type Result struct {
 	Scheme           string    `json:"scheme,omitempty" csv:"scheme"`
 	Port             string    `json:"port,omitempty" csv:"port"`
 	Path             string    `json:"path,omitempty" csv:"path"`
-	BodySHA256       string    `json:"body-sha256,omitempty" csv:"body-sha256"`
-	HeaderSHA256     string    `json:"header-sha256,omitempty" csv:"header-sha256"`
 	A                []string  `json:"a,omitempty" csv:"a"`
 	CNAMEs           []string  `json:"cnames,omitempty" csv:"cnames"`
 	raw              string
