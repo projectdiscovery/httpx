@@ -303,7 +303,6 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.VHost, "vhost", false, "probe and display server supporting VHOST"),
 		flagSet.VarP(&options.CustomPorts, "ports", "p", "ports to probe (nmap syntax: eg 1,2-10,11)"),
 		flagSet.StringVar(&options.RequestURIs, "path", "", "path or list of paths to probe (comma-separated, file)"),
-		flagSet.StringVar(&options.RequestURIs, "paths", "", "path or list of paths to probe (comma-separated, file) (deprecated)"),
 	)
 
 	createGroup(flagSet, "output", "Output",
