@@ -150,6 +150,7 @@ func New(options *Options) (*Runner, error) {
 		}
 		scanopts.RequestBody = rrBody
 		options.rawRequest = string(rawRequest)
+		options.RequestBody = rrBody
 	}
 
 	// disable automatic host header for rawhttp if manually specified
