@@ -90,7 +90,7 @@ func getTitleWithDom(r *Response) (*html.Node, error) {
 			title = node
 			return
 		}
-		for child := node.FirstChild; child != nil; child = child.NextSibling {
+		for child := node.FirstChild; child != nil && title == nil; child = child.NextSibling {
 			crawler(child)
 		}
 	}
