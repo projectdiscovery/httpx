@@ -33,7 +33,7 @@ require (
 	github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1
 	github.com/projectdiscovery/wappalyzergo v0.0.33
 	github.com/remeh/sizedwaitgroup v1.0.0
-	github.com/rs/xid v1.3.0
+	github.com/rs/xid v1.4.0
 	github.com/smartystreets/assertions v1.0.0 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
