@@ -29,7 +29,7 @@ require (
 	github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e
 	github.com/projectdiscovery/retryablehttp-go v1.0.2
 	github.com/projectdiscovery/sliceutil v0.0.0-20210804143453-61f3e7fd43ea
-	github.com/projectdiscovery/stringsutil v0.0.0-20210830151154-f567170afdd9
+	github.com/projectdiscovery/stringsutil v0.0.0-20220208075244-7c05502ca8e9
 	github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1
 	github.com/projectdiscovery/wappalyzergo v0.0.33
 	github.com/remeh/sizedwaitgroup v1.0.0
@@ -48,7 +48,9 @@ require github.com/spaolacci/murmur3 v1.1.0
 require github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 
 require (
+	github.com/PuerkitoBio/goquery v1.8.0 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
+	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/cnf/structhash v0.0.0-20201127153200-e1b16c1ebc08 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect

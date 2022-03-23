@@ -230,7 +230,7 @@ get_response:
 		resp.TLSData = h.TLSGrab(httpresp)
 	}
 
-	resp.CSPData = h.CSPGrab(httpresp)
+	resp.CSPData = h.CSPGrab(&resp)
 
 	// build the redirect flow by reverse cycling the response<-request chain
 	if !h.Options.Unsafe {
