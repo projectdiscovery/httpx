@@ -1,11 +1,12 @@
 package runner
 
 import (
-	"github.com/projectdiscovery/httpx/common/slice"
 	"math"
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/projectdiscovery/httpx/common/slice"
 
 	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
@@ -228,6 +229,7 @@ type Options struct {
 	OutputFilterWordsCount    string
 	filterWordsCount          []int
 	Hashes                    string
+	Asn                       bool
 }
 
 // ParseOptions parses the command line options for application
@@ -314,6 +316,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr", false, "include http request/response in JSON output (-json only)"),
 		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "include redirect http chain in JSON output (-json only)"),
 		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
+		flagSet.BoolVar(&options.Asn, "asn", false, "displays asn information"),
 	)
 
 	createGroup(flagSet, "configs", "Configurations",

@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ammario/ipisp/v2"
 	"github.com/bluele/gcache"
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
@@ -927,6 +928,25 @@ retry:
 		fullURL = parsedURL.String()
 	}
 
+	var asnResponse AsnResponse
+	if r.options.Asn {
+		addr, err := net.LookupIP(domain)
+		if err != nil {
+			return Result{URL: URL.String(), Input: origInput, err: err}
+		}
+		lookupResult, err := ipisp.LookupIP(context.Background(), addr[0])
+		if err != nil {
+			return Result{URL: URL.String(), Input: origInput, err: err}
+		}
+		lookupResult.ISPName = stringsutil.TrimSuffixAny(strings.ReplaceAll(lookupResult.ISPName, lookupResult.Country, ""), ", ", " ")
+		asnResponse = AsnResponse{
+			AsNumber:  lookupResult.ASN.String(),
+			AsName:    lookupResult.ISPName,
+			AsCountry: lookupResult.Country,
+			AsRange:   []string{lookupResult.Range.String()},
+		}
+	}
+
 	if r.options.Debug || r.options.DebugRequests {
 		gologger.Info().Msgf("Dumped HTTP request for %s\n\n", fullURL)
 		gologger.Print().Msgf("%s", string(requestDump))
@@ -957,7 +977,15 @@ retry:
 
 		builder.WriteRune(']')
 	}
-
+	if r.options.Asn {
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(asnResponse.String()).String())
+		} else {
+			builder.WriteString(asnResponse.String())
+		}
+		builder.WriteRune(']')
+	}
 	if err != nil {
 		errString := ""
 		errString = err.Error()
@@ -1376,6 +1404,7 @@ retry:
 		Hashes:           hashesMap,
 		Lines:            resp.Lines,
 		Words:            resp.Words,
+		ASN:              asnResponse,
 	}
 }
 
@@ -1385,6 +1414,17 @@ func (r *Runner) SaveResumeConfig() error {
 	resumeCfg.Index = r.options.resumeCfg.currentIndex
 	resumeCfg.ResumeFrom = r.options.resumeCfg.current
 	return goconfig.Save(resumeCfg, DefaultResumeFile)
+}
+
+type AsnResponse struct {
+	AsNumber  string   `json:"as-number"`
+	AsName    string   `json:"as-name"`
+	AsCountry string   `json:"as-country"`
+	AsRange   []string `json:"as-range"`
+}
+
+func (o *AsnResponse) String() string {
+	return fmt.Sprintf("%v, %v, %v, %v", o.AsNumber, o.AsName, o.AsCountry, o.AsRange)
 }
 
 // Result of a scan
@@ -1428,6 +1468,7 @@ type Result struct {
 	Failed           bool                `json:"failed" csv:"failed"`
 	FavIconMMH3      string              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
 	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
+	ASN              AsnResponse         `json:"asn,omitempty" csv:"asn"`
 	Lines            int                 `json:"lines" csv:"lines"`
 	Words            int                 `json:"words" csv:"words"`
 }
