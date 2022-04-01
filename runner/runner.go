@@ -928,7 +928,7 @@ retry:
 		fullURL = parsedURL.String()
 	}
 
-	var asnResponse AsnResponse
+	var asnResponse interface{ String() string }
 	if r.options.Asn {
 		addr, err := net.LookupIP(domain)
 		if err != nil {
@@ -943,7 +943,7 @@ retry:
 			AsNumber:  lookupResult.ASN.String(),
 			AsName:    lookupResult.ISPName,
 			AsCountry: lookupResult.Country,
-			AsRange:   []string{lookupResult.Range.String()},
+			AsRange:   lookupResult.Range.String(),
 		}
 	}
 
@@ -1417,13 +1417,13 @@ func (r *Runner) SaveResumeConfig() error {
 }
 
 type AsnResponse struct {
-	AsNumber  string   `json:"as-number"`
-	AsName    string   `json:"as-name"`
-	AsCountry string   `json:"as-country"`
-	AsRange   []string `json:"as-range"`
+	AsNumber  string `json:"as-number" csv:"as-number"`
+	AsName    string `json:"as-name" csv:"as-name"`
+	AsCountry string `json:"as-country" csv:"as-country"`
+	AsRange   string `json:"as-range" csv:"as-range"`
 }
 
-func (o *AsnResponse) String() string {
+func (o AsnResponse) String() string {
 	return fmt.Sprintf("%v, %v, %v, %v", o.AsNumber, o.AsName, o.AsCountry, o.AsRange)
 }
 
@@ -1468,7 +1468,7 @@ type Result struct {
 	Failed           bool                `json:"failed" csv:"failed"`
 	FavIconMMH3      string              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
 	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
-	ASN              AsnResponse         `json:"asn,omitempty" csv:"asn"`
+	ASN              interface{}         `json:"asn,omitempty" csv:"asn"`
 	Lines            int                 `json:"lines" csv:"lines"`
 	Words            int                 `json:"words" csv:"words"`
 }
