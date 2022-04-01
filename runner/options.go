@@ -1,12 +1,11 @@
 package runner
 
 import (
+	"github.com/projectdiscovery/httpx/common/slice"
 	"math"
 	"os"
 	"regexp"
 	"strings"
-
-	"github.com/projectdiscovery/httpx/common/slice"
 
 	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
