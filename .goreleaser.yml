@@ -33,3 +33,30 @@ archives:
 
 checksum:
   algorithm: sha256
+
+snapcrafts:
+  - id: httpx
+    replacements:
+      darwin: macOS
+    name: httpx
+    publish: false
+    summary: httpx is a fast and multi-purpose HTTP toolkit
+    description: |
+      httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using retryablehttp library, it is designed to maintain the result reliability with increased threads.
+    grade: stable
+    confinement: strict
+    license: MIT
+    base: core18
+    apps:
+      httpx:
+        command: httpx
+        plugs:
+          - home
+          - network
+          - removable-media
+          - dot-httpx
+    plugs:
+      dot-httpx:
+        interface: personal-files
+        write:
+          - $HOME/.config/httpx
