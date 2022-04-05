@@ -51,6 +51,7 @@ require (
 )
 
 require (
+	github.com/RumbleDiscovery/jarm-go v0.0.6 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect

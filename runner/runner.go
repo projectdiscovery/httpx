@@ -1213,7 +1213,7 @@ retry:
 	}
 	// adding default hashing for json output format
 	if r.options.JSONOutput && len(scanopts.Hashes) == 0 {
-		scanopts.Hashes = "md5,mmh3,sha256,simhash"
+		scanopts.Hashes = "md5,mmh3,sha256,simhash,jarm"
 	}
 	var hashesMap = map[string]string{}
 	if scanopts.Hashes != "" {
@@ -1243,10 +1243,16 @@ retry:
 			case "simhash":
 				hashBody = hashes.Simhash(resp.Data)
 				hashHeader = hashes.Simhash([]byte(resp.RawHeaders))
+			case "jarm":
+				hashBody = hashes.Jarm(fullURL)
 			}
 			if hashBody != "" {
-				hashesMap[fmt.Sprintf("body-%s", hashType)] = hashBody
-				hashesMap[fmt.Sprintf("header-%s", hashType)] = hashHeader
+				if hashType == "jarm" {
+					hashesMap[hashType] = hashBody
+				} else {
+					hashesMap[fmt.Sprintf("body-%s", hashType)] = hashBody
+					hashesMap[fmt.Sprintf("header-%s", hashType)] = hashHeader
+				}
 				if !scanopts.OutputWithNoColor {
 					builder.WriteString(aurora.Magenta(hashBody).String())
 				} else {
