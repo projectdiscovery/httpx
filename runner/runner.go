@@ -928,25 +928,6 @@ retry:
 		fullURL = parsedURL.String()
 	}
 
-	var asnResponse interface{ String() string }
-	if r.options.Asn {
-		addr, err := net.LookupIP(domain)
-		if err != nil {
-			return Result{URL: URL.String(), Input: origInput, err: err}
-		}
-		lookupResult, err := ipisp.LookupIP(context.Background(), addr[0])
-		if err != nil {
-			return Result{URL: URL.String(), Input: origInput, err: err}
-		}
-		lookupResult.ISPName = stringsutil.TrimSuffixAny(strings.ReplaceAll(lookupResult.ISPName, lookupResult.Country, ""), ", ", " ")
-		asnResponse = AsnResponse{
-			AsNumber:  lookupResult.ASN.String(),
-			AsName:    lookupResult.ISPName,
-			AsCountry: lookupResult.Country,
-			AsRange:   lookupResult.Range.String(),
-		}
-	}
-
 	if r.options.Debug || r.options.DebugRequests {
 		gologger.Info().Msgf("Dumped HTTP request for %s\n\n", fullURL)
 		gologger.Print().Msgf("%s", string(requestDump))
@@ -975,15 +956,6 @@ retry:
 			builder.WriteString(outputStatus)
 		}
 
-		builder.WriteRune(']')
-	}
-	if r.options.Asn {
-		builder.WriteString(" [")
-		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Magenta(asnResponse.String()).String())
-		} else {
-			builder.WriteString(asnResponse.String())
-		}
 		builder.WriteRune(']')
 	}
 	if err != nil {
@@ -1157,6 +1129,27 @@ retry:
 		}
 	}
 	ip := hp.Dialer.GetDialedIP(URL.Host)
+	var asnResponse interface{ String() string }
+	if r.options.Asn {
+		lookupResult, err := ipisp.LookupIP(context.Background(), net.ParseIP(ip))
+		if err != nil {
+			gologger.Error().Msg(err.Error())
+		}
+		lookupResult.ISPName = stringsutil.TrimSuffixAny(strings.ReplaceAll(lookupResult.ISPName, lookupResult.Country, ""), ", ", " ")
+		asnResponse = AsnResponse{
+			AsNumber:  lookupResult.ASN.String(),
+			AsName:    lookupResult.ISPName,
+			AsCountry: lookupResult.Country,
+			AsRange:   lookupResult.Range.String(),
+		}
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(asnResponse.String()).String())
+		} else {
+			builder.WriteString(asnResponse.String())
+		}
+		builder.WriteRune(']')
+	}
 	// hp.Dialer.GetDialedIP would return only the last dialed one
 	if customIP != "" {
 		ip = customIP
