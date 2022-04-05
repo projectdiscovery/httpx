@@ -46,16 +46,16 @@ func fingerprint(t target) string {
 			return ""
 		}
 		data := jarm.BuildProbe(probe)
-		c.SetWriteDeadline(time.Now().Add(time.Second * 5))
+		_ = c.SetWriteDeadline(time.Now().Add(time.Second * 5))
 		_, err := c.Write(data)
 		if err != nil {
 			results = append(results, "")
 			c.Close()
 			continue
 		}
-		c.SetReadDeadline(time.Now().Add(time.Second * 5))
+		_ = c.SetReadDeadline(time.Now().Add(time.Second * 5))
 		buff := make([]byte, 1484)
-		c.Read(buff)
+		_, _ = c.Read(buff)
 		c.Close()
 		ans, err := jarm.ParseServerHello(buff, probe)
 		if err != nil {
