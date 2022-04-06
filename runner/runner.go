@@ -1133,7 +1133,7 @@ retry:
 	if r.options.Asn {
 		lookupResult, err := ipisp.LookupIP(context.Background(), net.ParseIP(ip))
 		if err != nil {
-			gologger.Error().Msg(err.Error())
+			gologger.Warning().Msg(err.Error())
 		}
 		if lookupResult != nil {
 			lookupResult.ISPName = stringsutil.TrimSuffixAny(strings.ReplaceAll(lookupResult.ISPName, lookupResult.Country, ""), ", ", " ")
