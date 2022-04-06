@@ -1135,20 +1135,22 @@ retry:
 		if err != nil {
 			gologger.Error().Msg(err.Error())
 		}
-		lookupResult.ISPName = stringsutil.TrimSuffixAny(strings.ReplaceAll(lookupResult.ISPName, lookupResult.Country, ""), ", ", " ")
-		asnResponse = AsnResponse{
-			AsNumber:  lookupResult.ASN.String(),
-			AsName:    lookupResult.ISPName,
-			AsCountry: lookupResult.Country,
-			AsRange:   lookupResult.Range.String(),
+		if lookupResult != nil {
+			lookupResult.ISPName = stringsutil.TrimSuffixAny(strings.ReplaceAll(lookupResult.ISPName, lookupResult.Country, ""), ", ", " ")
+			asnResponse = AsnResponse{
+				AsNumber:  lookupResult.ASN.String(),
+				AsName:    lookupResult.ISPName,
+				AsCountry: lookupResult.Country,
+				AsRange:   lookupResult.Range.String(),
+			}
+			builder.WriteString(" [")
+			if !scanopts.OutputWithNoColor {
+				builder.WriteString(aurora.Magenta(asnResponse.String()).String())
+			} else {
+				builder.WriteString(asnResponse.String())
+			}
+			builder.WriteRune(']')
 		}
-		builder.WriteString(" [")
-		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Magenta(asnResponse.String()).String())
-		} else {
-			builder.WriteString(asnResponse.String())
-		}
-		builder.WriteRune(']')
 	}
 	// hp.Dialer.GetDialedIP would return only the last dialed one
 	if customIP != "" {
