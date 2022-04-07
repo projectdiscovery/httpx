@@ -248,7 +248,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.OutputContentType, "content-type", "ct", false, "display response content-type"),
 		flagSet.BoolVar(&options.Location, "location", false, "display response redirect location"),
 		flagSet.BoolVar(&options.Favicon, "favicon", false, "display mmh3 hash for '/favicon.ico' file"),
-		flagSet.StringVar(&options.Hashes, "hash", "", "display response body hash (supported: md5,mmh3,simhash,sha1,sha256,sha512,jarm)"),
+		flagSet.StringVar(&options.Hashes, "hash", "", "display response body hash (supported: md5,mmh3,simhash,sha1,sha256,sha512) or tls hash (supported: jarm)"),
 		flagSet.BoolVarP(&options.OutputResponseTime, "response-time", "rt", false, "display response time"),
 		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, "display response body line count"),
 		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "display response body word count"),

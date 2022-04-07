@@ -1213,7 +1213,7 @@ retry:
 	}
 	// adding default hashing for json output format
 	if r.options.JSONOutput && len(scanopts.Hashes) == 0 {
-		scanopts.Hashes = "md5,mmh3,sha256,simhash,jarm"
+		scanopts.Hashes = "md5,mmh3,sha256,simhash"
 	}
 	var hashesMap = map[string]string{}
 	if scanopts.Hashes != "" {

@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"github.com/mfonda/simhash"
 	"github.com/spaolacci/murmur3"
@@ -75,7 +76,10 @@ func Jarm(host string) string {
 	if t.Port == 0 {
 		t.Port = defaultPort
 	}
-	fmt.Println(t, host)
 	hash := fingerprint(t)
+	rexp, _ := regexp.Compile("(?m)0{62}")
+	if rexp.MatchString(hash) {
+		return ""
+	}
 	return hash
 }
