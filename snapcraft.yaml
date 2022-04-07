@@ -3,7 +3,7 @@ summary: httpx is a fast and multi-purpose HTTP toolkit
 description: |
   httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using retryablehttp library, it is designed to maintain the result reliability with increased threads.
 version: 'v1.2.1'
-icon: images/snapcraft_icon.png
+icon: static/httpx-logo.png
 license: MIT
 base: core20
 grade: stable
