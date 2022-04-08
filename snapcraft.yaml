@@ -5,7 +5,7 @@ description: |
 version: 'v1.2.1'
 icon: static/httpx-logo.png
 license: MIT
-base: core20
+base: core18
 grade: stable
 confinement: strict
 architectures:
