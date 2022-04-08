@@ -1291,7 +1291,17 @@ retry:
 		}
 		builder.WriteRune(']')
 	}
-
+	jarmhash := ""
+	if r.options.Jarm {
+		jarmhash = hashes.Jarm(fullURL,r.options.Timeout)
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(jarmhash).String())
+		} else {
+			builder.WriteString(fmt.Sprint(jarmhash))
+		}
+		builder.WriteRune(']')
+	}
 	if scanopts.OutputWordsCount {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
@@ -1397,6 +1407,7 @@ retry:
 		FinalURL:         finalURL,
 		FavIconMMH3:      faviconMMH3,
 		Hashes:           hashesMap,
+		Jarm:             jarmhash,
 		Lines:            resp.Lines,
 		Words:            resp.Words,
 		ASN:              asnResponse,
@@ -1466,6 +1477,7 @@ type Result struct {
 	ASN              interface{}         `json:"asn,omitempty" csv:"asn"`
 	Lines            int                 `json:"lines" csv:"lines"`
 	Words            int                 `json:"words" csv:"words"`
+	Jarm             string              `json:"jarm,omitempty" csv:"jarm"`
 }
 
 // JSON the result

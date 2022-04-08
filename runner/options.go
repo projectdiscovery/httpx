@@ -1,12 +1,11 @@
 package runner
 
 import (
-	"github.com/projectdiscovery/httpx/common/slice"
 	"math"
 	"os"
 	"regexp"
 	"strings"
-
+	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/goflags"
@@ -228,6 +227,7 @@ type Options struct {
 	OutputFilterWordsCount    string
 	filterWordsCount          []int
 	Hashes                    string
+	Jarm                      bool
 	Asn                       bool
 }
 
@@ -250,6 +250,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Location, "location", false, "display response redirect location"),
 		flagSet.BoolVar(&options.Favicon, "favicon", false, "display mmh3 hash for '/favicon.ico' file"),
 		flagSet.StringVar(&options.Hashes, "hash", "", "display response body hash (supported: md5,mmh3,simhash,sha1,sha256,sha512)"),
+		flagSet.BoolVar(&options.Jarm, "jarm", false, "display jarm fingerprint hash"),
 		flagSet.BoolVarP(&options.OutputResponseTime, "response-time", "rt", false, "display response time"),
 		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, "display response body line count"),
 		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "display response body word count"),
