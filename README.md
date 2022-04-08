@@ -58,8 +58,7 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 | Favicon Hash    | false         | Probe  Status     | false         |
 | Body Hash       | true          | Header  Hash      | true          |
 | Redirect chain  | false         | URL Scheme        | true          |
-| JARM Hash       | false         |         |           |
-
+| JARM Hash       | false         | ASN               | false         |
 
 # Installation Instructions
 
@@ -105,6 +104,7 @@ PROBES:
    -websocket            display server using websocket
    -ip                   display host ip
    -cname                display host cname
+   -asn                  display host asn information
    -cdn                  display cdn in use
    -probe                display probe status
 

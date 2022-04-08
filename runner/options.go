@@ -261,6 +261,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
 		flagSet.BoolVar(&options.OutputCName, "cname", false, "display host cname"),
+		flagSet.BoolVar(&options.Asn, "asn", false, "display host asn information"),
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "display cdn in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),
 	)
@@ -316,7 +317,6 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr", false, "include http request/response in JSON output (-json only)"),
 		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "include redirect http chain in JSON output (-json only)"),
 		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
-		flagSet.BoolVar(&options.Asn, "asn", false, "displays asn information"),
 	)
 
 	createGroup(flagSet, "configs", "Configurations",
