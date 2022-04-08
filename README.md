@@ -336,6 +336,33 @@ https://mta-sts.hackerone.com/favicon.ico [-1700323260]
 https://www.hackerone.com/favicon.ico [778073381]
 ```
 
+### [JARM Fingerprint](https://github.com/salesforce/jarm)
+
+
+```console
+subfinder -d hackerone.com -silent | httpx -jarm
+    __    __  __       _  __
+   / /_  / /_/ /_____ | |/ /
+  / __ \/ __/ __/ __ \|   /
+ / / / / /_/ /_/ /_/ /   |
+/_/ /_/\__/\__/ .___/_/|_|
+             /_/              v1.2.1
+
+      projectdiscovery.io
+
+Use with caution. You are responsible for your actions.
+Developers assume no liability and are not responsible for any misuse or damage.
+https://www.hackerone.com [29d3dd00029d29d00042d43d00041d5de67cc9954cc85372523050f20b5007]
+https://mta-sts.hackerone.com [29d29d00029d29d00042d43d00041d2aa5ce6a70de7ba95aef77a77b00a0af]
+https://mta-sts.managed.hackerone.com [29d29d00029d29d00042d43d00041d2aa5ce6a70de7ba95aef77a77b00a0af]
+https://docs.hackerone.com [29d29d00029d29d00042d43d00041d2aa5ce6a70de7ba95aef77a77b00a0af]
+https://support.hackerone.com [29d3dd00029d29d00029d3dd29d29d5a74e95248e58a6162e37847a24849f7]
+https://api.hackerone.com [29d3dd00029d29d00042d43d00041d5de67cc9954cc85372523050f20b5007]
+https://mta-sts.forwarding.hackerone.com [29d29d00029d29d00042d43d00041d2aa5ce6a70de7ba95aef77a77b00a0af]
+https://resources.hackerone.com [2ad2ad0002ad2ad0002ad2ad2ad2ad043bfbd87c13813505a1b60adf4f6ff5]
+```
+
+
 ### Path Probe
 
 
