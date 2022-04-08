@@ -362,6 +362,33 @@ https://mta-sts.forwarding.hackerone.com [29d29d00029d29d00042d43d00041d2aa5ce6a
 https://resources.hackerone.com [2ad2ad0002ad2ad0002ad2ad2ad2ad043bfbd87c13813505a1b60adf4f6ff5]
 ```
 
+### ASN Fingerprint
+
+
+```console
+subfinder -d hackerone.com -silent | httpx -asn
+    __    __  __       _  __
+   / /_  / /_/ /_____ | |/ /
+  / __ \/ __/ __/ __ \|   /
+ / / / / /_/ /_/ /_/ /   |
+/_/ /_/\__/\__/ .___/_/|_|
+             /_/              v1.2.1
+
+      projectdiscovery.io
+
+Use with caution. You are responsible for your actions.
+Developers assume no liability and are not responsible for any misuse or damage.
+https://mta-sts.managed.hackerone.com [AS54113, FASTLY, US, 185.199.108.0/24]
+https://gslink.hackerone.com [AS16509, AMAZON-02, US, 13.33.168.0/22]
+https://www.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.96.0/20]
+https://mta-sts.forwarding.hackerone.com [AS54113, FASTLY, US, 185.199.108.0/24]
+https://resources.hackerone.com [AS16509, AMAZON-02, US, 3.98.0.0/15]
+https://support.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.48.0/20]
+https://mta-sts.hackerone.com [AS54113, FASTLY, US, 185.199.111.0/24]
+https://docs.hackerone.com [AS54113, FASTLY, US, 185.199.109.0/24]
+https://api.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.96.0/20]
+```
+
 
 ### Path Probe
 
