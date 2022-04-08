@@ -3,12 +3,17 @@ package hashes
 import (
 	"fmt"
 	"net"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/RumbleDiscovery/jarm-go"
+	"github.com/projectdiscovery/httpx/common/regexhelper"
 	"golang.org/x/net/proxy"
 )
+
+const defaultPort int = 443
 
 var DefualtBackoff = func(r, m int) time.Duration {
 	return time.Second
@@ -22,10 +27,11 @@ type target struct {
 }
 
 // fingerprint probes a single host/port
-func fingerprint(t target) string {
+func fingerprint(t target, duration int) string {
+	timeout := time.Duration(duration) * time.Second
 	results := []string{}
 	for _, probe := range jarm.GetProbes(t.Host, t.Port) {
-		dialer := proxy.FromEnvironmentUsing(&net.Dialer{Timeout: time.Second * 2})
+		dialer := proxy.FromEnvironmentUsing(&net.Dialer{Timeout: timeout})
 		addr := net.JoinHostPort(t.Host, fmt.Sprintf("%d", t.Port))
 		c := net.Conn(nil)
 		n := 0
@@ -46,14 +52,14 @@ func fingerprint(t target) string {
 			return ""
 		}
 		data := jarm.BuildProbe(probe)
-		_ = c.SetWriteDeadline(time.Now().Add(time.Second * 5))
+		_ = c.SetWriteDeadline(time.Now().Add(timeout))
 		_, err := c.Write(data)
 		if err != nil {
 			results = append(results, "")
 			c.Close()
 			continue
 		}
-		_ = c.SetReadDeadline(time.Now().Add(time.Second * 5))
+		_ = c.SetReadDeadline(time.Now().Add(timeout))
 		buff := make([]byte, 1484)
 		_, _ = c.Read(buff)
 		c.Close()
@@ -66,5 +72,22 @@ func fingerprint(t target) string {
 	}
 	return jarm.RawHashToFuzzyHash(strings.Join(results, ","))
 }
-
-const defaultPort int = 443
+func Jarm(host string, duration int) string {
+	t := target{}
+	if u, err := url.Parse(host); err == nil {
+		if u.Scheme == "http" {
+			return ""
+		}
+		t.Host = u.Hostname()
+		port, _ := strconv.Atoi(u.Port())
+		t.Port = port
+	}
+	if t.Port == 0 {
+		t.Port = defaultPort
+	}
+	hash := fingerprint(t, duration)
+	if regexhelper.JarmHashRegex.MatchString(hash) {
+		return ""
+	}
+	return hash
+}

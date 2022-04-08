@@ -9,9 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"net/url"
-	"regexp"
-	"strconv"
+
 	"github.com/mfonda/simhash"
 	"github.com/spaolacci/murmur3"
 )
@@ -64,22 +62,4 @@ func Sha512(data []byte) string {
 func Simhash(data []byte) string {
 	hash := simhash.Simhash(simhash.NewWordFeatureSet(data))
 	return fmt.Sprintf("%d", hash)
-}
-
-func Jarm(host string) string {
-	t := target{}
-	if u, err := url.Parse(host); err == nil {
-		t.Host = u.Hostname()
-		port, _ := strconv.Atoi(u.Port())
-		t.Port = port
-	}
-	if t.Port == 0 {
-		t.Port = defaultPort
-	}
-	hash := fingerprint(t)
-	rexp, _ := regexp.Compile("(?m)0{62}")
-	if rexp.MatchString(hash) {
-		return ""
-	}
-	return hash
 }

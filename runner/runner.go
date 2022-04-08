@@ -1243,16 +1243,10 @@ retry:
 			case "simhash":
 				hashBody = hashes.Simhash(resp.Data)
 				hashHeader = hashes.Simhash([]byte(resp.RawHeaders))
-			case "jarm":
-				hashBody = hashes.Jarm(fullURL)
 			}
 			if hashBody != "" {
-				if hashType == "jarm" {
-					hashesMap[hashType] = hashBody
-				} else {
-					hashesMap[fmt.Sprintf("body-%s", hashType)] = hashBody
-					hashesMap[fmt.Sprintf("header-%s", hashType)] = hashHeader
-				}
+				hashesMap[fmt.Sprintf("body-%s", hashType)] = hashBody
+				hashesMap[fmt.Sprintf("header-%s", hashType)] = hashHeader
 				if !scanopts.OutputWithNoColor {
 					builder.WriteString(aurora.Magenta(hashBody).String())
 				} else {
@@ -1274,7 +1268,17 @@ retry:
 		}
 		builder.WriteRune(']')
 	}
-
+	jarmhash := ""
+	if r.options.Jarm {
+		jarmhash = hashes.Jarm(fullURL,r.options.Timeout)
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(jarmhash).String())
+		} else {
+			builder.WriteString(fmt.Sprint(jarmhash))
+		}
+		builder.WriteRune(']')
+	}
 	if scanopts.OutputWordsCount {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
@@ -1380,6 +1384,7 @@ retry:
 		FinalURL:         finalURL,
 		FavIconMMH3:      faviconMMH3,
 		Hashes:           hashesMap,
+		Jarm:             jarmhash,
 		Lines:            resp.Lines,
 		Words:            resp.Words,
 	}
@@ -1436,6 +1441,7 @@ type Result struct {
 	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
 	Lines            int                 `json:"lines" csv:"lines"`
 	Words            int                 `json:"words" csv:"words"`
+	Jarm             string              `json:"jarm,omitempty" csv:"jarm"`
 }
 
 // JSON the result
