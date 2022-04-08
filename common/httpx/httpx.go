@@ -55,6 +55,8 @@ func New(options *Options) (*HTTPX, error) {
 
 	httpx.Options = options
 
+	httpx.Options.parseCustomCookies()
+
 	var retryablehttpOptions = retryablehttp.DefaultOptionsSpraying
 	retryablehttpOptions.Timeout = httpx.Options.Timeout
 	retryablehttpOptions.RetryMax = httpx.Options.RetryMax
@@ -67,6 +69,8 @@ func New(options *Options) (*HTTPX, error) {
 	if httpx.Options.FollowRedirects {
 		// Follow redirects up to a maximum number
 		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
+			// add custom cookies if necessary
+			httpx.setCustomCookies(redirectedRequest)
 			if len(previousRequests) >= options.MaxRedirects {
 				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
@@ -78,6 +82,9 @@ func New(options *Options) (*HTTPX, error) {
 	if httpx.Options.FollowHostRedirects {
 		// Only follow redirects on the same host up to a maximum number
 		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
+			// add custom cookies if necessary
+			httpx.setCustomCookies(redirectedRequest)
+
 			// Check if we get a redirect to a different host
 			var newHost = redirectedRequest.URL.Host
 			var oldHost = previousRequests[0].Host
@@ -230,7 +237,7 @@ get_response:
 		resp.TLSData = h.TLSGrab(httpresp)
 	}
 
-	resp.CSPData = h.CSPGrab(httpresp)
+	resp.CSPData = h.CSPGrab(&resp)
 
 	// build the redirect flow by reverse cycling the response<-request chain
 	if !h.Options.Unsafe {
@@ -322,13 +329,25 @@ func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL str
 // SetCustomHeaders on the provided request
 func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]string) {
 	for name, value := range headers {
-		r.Header.Set(name, value)
-		// host header is particular
-		if strings.EqualFold(name, "host") {
+		switch strings.ToLower(name) {
+		case "host":
 			r.Host = value
+		case "cookie":
+			// cookies are set in the default branch, and reset during the follow redirect flow
+			fallthrough
+		default:
+			r.Header.Set(name, value)
 		}
 	}
 	if h.Options.RandomAgent {
 		r.Header.Set("User-Agent", uarand.GetRandom()) //nolint
+	}
+}
+
+func (httpx *HTTPX) setCustomCookies(req *http.Request) {
+	if httpx.Options.hasCustomCookies() {
+		for _, cookie := range httpx.Options.customCookies {
+			req.AddCookie(cookie)
+		}
 	}
 }

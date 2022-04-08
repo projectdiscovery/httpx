@@ -58,7 +58,7 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 | Favicon Hash    | false         | Probe  Status     | false         |
 | Body Hash       | true          | Header  Hash      | true          |
 | Redirect chain  | false         | URL Scheme        | true          |
-
+| JARM Hash       | false         | ASN               | false         |
 
 # Installation Instructions
 
@@ -93,6 +93,7 @@ PROBES:
    -location             display response redirect location
    -favicon              display mmh3 hash for '/favicon.ico' file
    -hash string          display response body hash (supported: md5,mmh3,simhash,sha1,sha256,sha512)
+   -jarm                 display jarm fingerprint hash
    -rt, -response-time   display response time
    -lc, -line-count      display response body line count
    -wc, -word-count      display response body word count
@@ -103,6 +104,7 @@ PROBES:
    -websocket            display server using websocket
    -ip                   display host ip
    -cname                display host cname
+   -asn                  display host asn information
    -cdn                  display cdn in use
    -probe                display probe status
 
@@ -333,6 +335,60 @@ https://api.hackerone.com/favicon.ico [566218143]
 https://mta-sts.hackerone.com/favicon.ico [-1700323260]
 https://www.hackerone.com/favicon.ico [778073381]
 ```
+
+### [JARM Fingerprint](https://github.com/salesforce/jarm)
+
+
+```console
+subfinder -d hackerone.com -silent | httpx -jarm
+    __    __  __       _  __
+   / /_  / /_/ /_____ | |/ /
+  / __ \/ __/ __/ __ \|   /
+ / / / / /_/ /_/ /_/ /   |
+/_/ /_/\__/\__/ .___/_/|_|
+             /_/              v1.2.1
+
+      projectdiscovery.io
+
+Use with caution. You are responsible for your actions.
+Developers assume no liability and are not responsible for any misuse or damage.
+https://www.hackerone.com [29d3dd00029d29d00042d43d00041d5de67cc9954cc85372523050f20b5007]
+https://mta-sts.hackerone.com [29d29d00029d29d00042d43d00041d2aa5ce6a70de7ba95aef77a77b00a0af]
+https://mta-sts.managed.hackerone.com [29d29d00029d29d00042d43d00041d2aa5ce6a70de7ba95aef77a77b00a0af]
+https://docs.hackerone.com [29d29d00029d29d00042d43d00041d2aa5ce6a70de7ba95aef77a77b00a0af]
+https://support.hackerone.com [29d3dd00029d29d00029d3dd29d29d5a74e95248e58a6162e37847a24849f7]
+https://api.hackerone.com [29d3dd00029d29d00042d43d00041d5de67cc9954cc85372523050f20b5007]
+https://mta-sts.forwarding.hackerone.com [29d29d00029d29d00042d43d00041d2aa5ce6a70de7ba95aef77a77b00a0af]
+https://resources.hackerone.com [2ad2ad0002ad2ad0002ad2ad2ad2ad043bfbd87c13813505a1b60adf4f6ff5]
+```
+
+### ASN Fingerprint
+
+
+```console
+subfinder -d hackerone.com -silent | httpx -asn
+    __    __  __       _  __
+   / /_  / /_/ /_____ | |/ /
+  / __ \/ __/ __/ __ \|   /
+ / / / / /_/ /_/ /_/ /   |
+/_/ /_/\__/\__/ .___/_/|_|
+             /_/              v1.2.1
+
+      projectdiscovery.io
+
+Use with caution. You are responsible for your actions.
+Developers assume no liability and are not responsible for any misuse or damage.
+https://mta-sts.managed.hackerone.com [AS54113, FASTLY, US, 185.199.108.0/24]
+https://gslink.hackerone.com [AS16509, AMAZON-02, US, 13.33.168.0/22]
+https://www.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.96.0/20]
+https://mta-sts.forwarding.hackerone.com [AS54113, FASTLY, US, 185.199.108.0/24]
+https://resources.hackerone.com [AS16509, AMAZON-02, US, 3.98.0.0/15]
+https://support.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.48.0/20]
+https://mta-sts.hackerone.com [AS54113, FASTLY, US, 185.199.111.0/24]
+https://docs.hackerone.com [AS54113, FASTLY, US, 185.199.109.0/24]
+https://api.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.96.0/20]
+```
+
 
 ### Path Probe
 
