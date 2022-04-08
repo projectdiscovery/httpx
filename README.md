@@ -58,6 +58,7 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 | Favicon Hash    | false         | Probe  Status     | false         |
 | Body Hash       | true          | Header  Hash      | true          |
 | Redirect chain  | false         | URL Scheme        | true          |
+| JARM Hash       | false         |         |           |
 
 
 # Installation Instructions
@@ -93,6 +94,7 @@ PROBES:
    -location             display response redirect location
    -favicon              display mmh3 hash for '/favicon.ico' file
    -hash string          display response body hash (supported: md5,mmh3,simhash,sha1,sha256,sha512)
+   -jarm                 display jarm fingerprint hash
    -rt, -response-time   display response time
    -lc, -line-count      display response body line count
    -wc, -word-count      display response body word count
