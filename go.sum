@@ -9,6 +9,10 @@ github.com/RumbleDiscovery/rumble-tools v0.0.0-20201105153123-f2adbb3244d2/go.mo
 github.com/akrylysov/pogreb v0.10.0/go.mod h1:pNs6QmpQ1UlTJKDezuRWmaqkgUE2TuU0YTWyqJZ7+lI=
 github.com/akrylysov/pogreb v0.10.1 h1:FqlR8VR7uCbJdfUob916tPM+idpKgeESDXOA1K0DK4w=
 github.com/akrylysov/pogreb v0.10.1/go.mod h1:pNs6QmpQ1UlTJKDezuRWmaqkgUE2TuU0YTWyqJZ7+lI=
+github.com/ammario/ipisp v1.0.0 h1:U4xdVMBFWm0/4sHrQ3hVMC+ygg/Ynm4/vdFdkVAex1o=
+github.com/ammario/ipisp v1.0.0/go.mod h1:HM60VFpmEWyU+FisnTTHCeswaU3RW0dCVHihgIGUEGM=
+github.com/ammario/ipisp/v2 v2.0.0 h1:/aRMp5srZViiBfOUGzl/Esqae4s0MDDzm9buhGcZ0XU=
+github.com/ammario/ipisp/v2 v2.0.0/go.mod h1:bQ6KAL5LnYYEj6olUn+Bzv/im/4Esa5oGkbv9b+uOjo=
 github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 h1:MzBOUgng9orim59UnfUTLRjMpd09C5uEVQ6RPGeCaVI=
 github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129/go.mod h1:rFgpPQZYZ8vdbc+48xibu8ALc3yeyd64IhHS+PU6Yyg=
 github.com/andybalholm/cascadia v1.3.1 h1:nhxRkql1kdYCc8Snf7D5/D3spOX+dBgjA6u8x004T2c=
@@ -114,6 +118,7 @@ github.com/onsi/gomega v1.10.5 h1:7n6FEkpFmfCoo2t+YYqXH0evK+a9ICQz0xcAy9dYcaQ=
 github.com/onsi/gomega v1.10.5/go.mod h1:gza4q3jKQJijlu05nKWRCW/GavJumGt8aNRxWg7mt48=
 github.com/op/go-logging v0.0.0-20160315200505-970db520ece7/go.mod h1:HzydrMdWErDVzsI23lYNej1Htcns9BCg93Dk0bBINWk=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
+github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
@@ -175,8 +180,8 @@ github.com/projectdiscovery/stringsutil v0.0.0-20220208075244-7c05502ca8e9 h1:4f
 github.com/projectdiscovery/stringsutil v0.0.0-20220208075244-7c05502ca8e9/go.mod h1:oTRc18WBv9t6BpaN9XBY+QmG28PUpsyDzRht56Qf49I=
 github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1 h1:9dYmONRtwy+xP8UAGHxEQ0cxO3umc9qiFmnYsoDUps4=
 github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1/go.mod h1:oXLErqOpqEAp/ueQlknysFxHO3CUNoSiDNnkiHG+Jpo=
-github.com/projectdiscovery/wappalyzergo v0.0.34 h1:xYLXTPkU6gcuHHEuxClReMLgbCkAbOjl1accgji3Gtc=
-github.com/projectdiscovery/wappalyzergo v0.0.34/go.mod h1:vS+npIOANv7eKsEtODsyRQt2n1v8VofCwj2gjmq72EM=
+github.com/projectdiscovery/wappalyzergo v0.0.35 h1:UDjCmOygrY0Q25ZH4jz5pEw67wPxO6ilHYJQoxgdfu4=
+github.com/projectdiscovery/wappalyzergo v0.0.35/go.mod h1:vS+npIOANv7eKsEtODsyRQt2n1v8VofCwj2gjmq72EM=
 github.com/remeh/sizedwaitgroup v1.0.0 h1:VNGGFwNo/R5+MJBf6yrsr110p0m4/OX4S3DCy7Kyl5E=
 github.com/remeh/sizedwaitgroup v1.0.0/go.mod h1:3j2R4OIe/SeS6YDhICBy22RWjJC5eNCJ1V+9+NVNYlo=
 github.com/rogpeppe/go-internal v1.6.1/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=
@@ -195,6 +200,7 @@ github.com/spaolacci/murmur3 v1.1.0 h1:7c1g84S4BPRrfL5Xrdp6fOJ206sU9y293DDHaoy0b
 github.com/spaolacci/murmur3 v1.1.0/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
+github.com/stretchr/testify v1.2.1/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
