@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ammario/ipisp/v2"
 	"github.com/bluele/gcache"
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
@@ -150,6 +151,7 @@ func New(options *Options) (*Runner, error) {
 		}
 		scanopts.RequestBody = rrBody
 		options.rawRequest = string(rawRequest)
+		options.RequestBody = rrBody
 	}
 
 	// disable automatic host header for rawhttp if manually specified
@@ -966,7 +968,6 @@ retry:
 
 		builder.WriteRune(']')
 	}
-
 	if err != nil {
 		errString := ""
 		errString = err.Error()
@@ -1138,6 +1139,29 @@ retry:
 		}
 	}
 	ip := hp.Dialer.GetDialedIP(URL.Host)
+	var asnResponse interface{ String() string }
+	if r.options.Asn {
+		lookupResult, err := ipisp.LookupIP(context.Background(), net.ParseIP(ip))
+		if err != nil {
+			gologger.Warning().Msg(err.Error())
+		}
+		if lookupResult != nil {
+			lookupResult.ISPName = stringsutil.TrimSuffixAny(strings.ReplaceAll(lookupResult.ISPName, lookupResult.Country, ""), ", ", " ")
+			asnResponse = AsnResponse{
+				AsNumber:  lookupResult.ASN.String(),
+				AsName:    lookupResult.ISPName,
+				AsCountry: lookupResult.Country,
+				AsRange:   lookupResult.Range.String(),
+			}
+			builder.WriteString(" [")
+			if !scanopts.OutputWithNoColor {
+				builder.WriteString(aurora.Magenta(asnResponse.String()).String())
+			} else {
+				builder.WriteString(asnResponse.String())
+			}
+			builder.WriteRune(']')
+		}
+	}
 	// hp.Dialer.GetDialedIP would return only the last dialed one
 	if customIP != "" {
 		ip = customIP
@@ -1277,7 +1301,17 @@ retry:
 		}
 		builder.WriteRune(']')
 	}
-
+	jarmhash := ""
+	if r.options.Jarm {
+		jarmhash = hashes.Jarm(fullURL,r.options.Timeout)
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(jarmhash).String())
+		} else {
+			builder.WriteString(fmt.Sprint(jarmhash))
+		}
+		builder.WriteRune(']')
+	}
 	if scanopts.OutputWordsCount {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
@@ -1383,8 +1417,10 @@ retry:
 		FinalURL:         finalURL,
 		FavIconMMH3:      faviconMMH3,
 		Hashes:           hashesMap,
+		Jarm:             jarmhash,
 		Lines:            resp.Lines,
 		Words:            resp.Words,
+		ASN:              asnResponse,
 	}
 }
 
@@ -1394,6 +1430,17 @@ func (r *Runner) SaveResumeConfig() error {
 	resumeCfg.Index = r.options.resumeCfg.currentIndex
 	resumeCfg.ResumeFrom = r.options.resumeCfg.current
 	return goconfig.Save(resumeCfg, DefaultResumeFile)
+}
+
+type AsnResponse struct {
+	AsNumber  string `json:"as-number" csv:"as-number"`
+	AsName    string `json:"as-name" csv:"as-name"`
+	AsCountry string `json:"as-country" csv:"as-country"`
+	AsRange   string `json:"as-range" csv:"as-range"`
+}
+
+func (o AsnResponse) String() string {
+	return fmt.Sprintf("%v, %v, %v, %v", o.AsNumber, o.AsName, o.AsCountry, o.AsRange)
 }
 
 // Result of a scan
@@ -1437,8 +1484,10 @@ type Result struct {
 	Failed           bool                `json:"failed" csv:"failed"`
 	FavIconMMH3      string              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
 	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
+	ASN              interface{}         `json:"asn,omitempty" csv:"asn"`
 	Lines            int                 `json:"lines" csv:"lines"`
 	Words            int                 `json:"words" csv:"words"`
+	Jarm             string              `json:"jarm,omitempty" csv:"jarm"`
 }
 
 // JSON the result

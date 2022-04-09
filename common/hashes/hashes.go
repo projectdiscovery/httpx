@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/mfonda/simhash"
 	"github.com/spaolacci/murmur3"
 )
