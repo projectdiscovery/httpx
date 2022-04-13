@@ -116,6 +116,7 @@ MATCHERS:
    -mfc, -match-favicon string[]   match response with specified favicon hash (-mfc 1494302000)
    -ms, -match-string string       match response with specified string (-ms admin)
    -mr, -match-regex string        match response with specified regex (-mr admin)
+   -mcdn, -match-cdn string[]      match host with specified cdn provider (-mcdn azure,google)
 
 EXTRACTOR:
    -er, -extract-regex string  display response content for specified regex
@@ -128,6 +129,7 @@ FILTERS:
    -ffc, -filter-favicon string[]   filter response with specified favicon hash (-mfc 1494302000)
    -fs, -filter-string string       filter response with specified string (-fs admin)
    -fe, -filter-regex string        filter response with specified regex (-fe admin)
+   -fcdn, -filter-cdn string[]      filter host with specified cdn provider (-fcdn oracle,cloudflare)
 
 RATE-LIMIT:
    -t, -threads int              number of threads to use (default 50)
