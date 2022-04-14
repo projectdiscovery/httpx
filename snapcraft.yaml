@@ -21,11 +21,11 @@ apps:
       - removable-media
       - dot-httpx
 
-plugs:
-  dot-httpx:
-    interface: personal-files
-    write:
-      - $HOME/.config/httpx
+#plugs:
+#  dot-httpx:
+#    interface: personal-files
+#    write:
+#      - $HOME/.config/httpx
 
 parts:
   httpx:
