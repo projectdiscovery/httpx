@@ -1,11 +1,13 @@
 package runner
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"regexp"
 	"strings"
 
+	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/goflags"
@@ -27,6 +29,8 @@ const (
 	DefaultResumeFile      = "resume.cfg"
 	DefaultOutputDirectory = "output"
 )
+
+var defaultProviders = strings.Join(cdncheck.GetDefaultProviders(), ", ")
 
 type scanOptions struct {
 	Methods                   []string
@@ -230,6 +234,8 @@ type Options struct {
 	Hashes                    string
 	Jarm                      bool
 	Asn                       bool
+	OutputMatchCdn            goflags.NormalizedStringSlice
+	OutputFilterCdn           goflags.NormalizedStringSlice
 	SniName                   string
 }
 
@@ -277,6 +283,7 @@ func ParseOptions() *Options {
 		flagSet.NormalizedStringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", []string{}, "match response with specified favicon hash (-mfc 1494302000)"),
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "match response with specified string (-ms admin)"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "match response with specified regex (-mr admin)"),
+		flagSet.NormalizedStringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", []string{}, fmt.Sprintf("match host with specified cdn provider (%s)", defaultProviders)),
 	)
 
 	createGroup(flagSet, "extractor", "Extractor",
@@ -291,6 +298,7 @@ func ParseOptions() *Options {
 		flagSet.NormalizedStringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", []string{}, "filter response with specified favicon hash (-mfc 1494302000)"),
 		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "filter response with specified string (-fs admin)"),
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "filter response with specified regex (-fe admin)"),
+		flagSet.NormalizedStringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", []string{}, fmt.Sprintf("filter host with specified cdn provider (%s)", defaultProviders)),
 	)
 
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
@@ -480,6 +488,9 @@ func (options *Options) validateOptions() {
 				gologger.Error().Msgf("Unsupported hash type: %s\n", hashType)
 			}
 		}
+	}
+	if len(options.OutputMatchCdn) > 0 || len(options.OutputFilterCdn) > 0 {
+		options.OutputCDN = true
 	}
 }
 
