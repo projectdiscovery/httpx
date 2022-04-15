@@ -5,7 +5,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"github.com/projectdiscovery/httpx/common/slice"
+
 	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/goflags"
@@ -16,6 +16,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/customlist"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
+	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
 )
 
@@ -229,6 +230,7 @@ type Options struct {
 	Hashes                    string
 	Jarm                      bool
 	Asn                       bool
+	SniName                   string
 }
 
 // ParseOptions parses the command line options for application
@@ -264,6 +266,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Asn, "asn", false, "display host asn information"),
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "display cdn in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),
+		flagSet.StringVar(&options.SniName, "sni-name", "", "Custom SNI Name"),
 	)
 
 	createGroup(flagSet, "matchers", "Matchers",
