@@ -715,7 +715,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 			for _, wantedProtocol := range wantedProtocols {
 				for _, method := range scanopts.Methods {
 					wg.Add()
-					go func(port int, method, protocol string) {
+					go func(port int, target, method, protocol string) {
 						defer wg.Done()
 						h, _ := urlutil.ChangePort(target, fmt.Sprint(port))
 						result := r.analyze(hp, protocol, h, method, t, scanopts)
@@ -735,7 +735,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
 						}
-					}(port, method, wantedProtocol)
+					}(port, target, method, wantedProtocol)
 				}
 			}
 		}
