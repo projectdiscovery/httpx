@@ -597,7 +597,7 @@ func (r *Runner) RunEnumeration() {
 			if len(r.options.OutputFilterCdn) > 0 && stringsutil.EqualFoldAny(resp.CDNName, r.options.OutputFilterCdn...) {
 				continue
 			}
-			
+
 			row := resp.str
 			if r.options.JSONOutput {
 				row = resp.JSON(&r.scanopts)
@@ -1299,7 +1299,7 @@ retry:
 	}
 	jarmhash := ""
 	if r.options.Jarm {
-		jarmhash = hashes.Jarm(fullURL,r.options.Timeout)
+		jarmhash = hashes.Jarm(fullURL, r.options.Timeout)
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Magenta(jarmhash).String())
@@ -1441,49 +1441,49 @@ func (o AsnResponse) String() string {
 
 // Result of a scan
 type Result struct {
-	Timestamp        time.Time `json:"timestamp,omitempty" csv:"timestamp"`
-	Request          string    `json:"request,omitempty" csv:"request"`
-	ResponseHeader   string    `json:"response-header,omitempty" csv:"response-header"`
-	Scheme           string    `json:"scheme,omitempty" csv:"scheme"`
-	Port             string    `json:"port,omitempty" csv:"port"`
-	Path             string    `json:"path,omitempty" csv:"path"`
-	A                []string  `json:"a,omitempty" csv:"a"`
-	CNAMEs           []string  `json:"cnames,omitempty" csv:"cnames"`
+	Timestamp        time.Time   `json:"timestamp,omitempty" csv:"timestamp"`
+	ASN              interface{} `json:"asn,omitempty" csv:"asn"`
+	err              error
+	CSPData          *httpx.CSPData      `json:"csp,omitempty" csv:"csp"`
+	TLSData          *cryptoutil.TLSData `json:"tls-grab,omitempty" csv:"tls-grab"`
+	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
+	CDNName          string              `json:"cdn-name,omitempty" csv:"cdn-name"`
+	Port             string              `json:"port,omitempty" csv:"port"`
 	raw              string
 	URL              string `json:"url,omitempty" csv:"url"`
 	Input            string `json:"input,omitempty" csv:"input"`
 	Location         string `json:"location,omitempty" csv:"location"`
 	Title            string `json:"title,omitempty" csv:"title"`
 	str              string
-	err              error
-	Error            string              `json:"error,omitempty" csv:"error"`
-	WebServer        string              `json:"webserver,omitempty" csv:"webserver"`
-	ResponseBody     string              `json:"response-body,omitempty" csv:"response-body"`
-	ContentType      string              `json:"content-type,omitempty" csv:"content-type"`
-	Method           string              `json:"method,omitempty" csv:"method"`
-	Host             string              `json:"host,omitempty" csv:"host"`
-	ContentLength    int                 `json:"content-length,omitempty" csv:"content-length"`
-	ChainStatusCodes []int               `json:"chain-status-codes,omitempty" csv:"chain-status-codes"`
-	StatusCode       int                 `json:"status-code,omitempty" csv:"status-code"`
-	TLSData          *cryptoutil.TLSData `json:"tls-grab,omitempty" csv:"tls-grab"`
-	CSPData          *httpx.CSPData      `json:"csp,omitempty" csv:"csp"`
-	VHost            bool                `json:"vhost,omitempty" csv:"vhost"`
-	WebSocket        bool                `json:"websocket,omitempty" csv:"websocket"`
-	Pipeline         bool                `json:"pipeline,omitempty" csv:"pipeline"`
-	HTTP2            bool                `json:"http2,omitempty" csv:"http2"`
-	CDN              bool                `json:"cdn,omitempty" csv:"cdn"`
-	CDNName          string              `json:"cdn-name,omitempty" csv:"cdn-name"`
-	ResponseTime     string              `json:"response-time,omitempty" csv:"response-time"`
-	Technologies     []string            `json:"technologies,omitempty" csv:"technologies"`
-	Chain            []httpx.ChainItem   `json:"chain,omitempty" csv:"chain"`
-	FinalURL         string              `json:"final-url,omitempty" csv:"final-url"`
-	Failed           bool                `json:"failed" csv:"failed"`
-	FavIconMMH3      string              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
-	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
-	ASN              interface{}         `json:"asn,omitempty" csv:"asn"`
-	Lines            int                 `json:"lines" csv:"lines"`
-	Words            int                 `json:"words" csv:"words"`
-	Jarm             string              `json:"jarm,omitempty" csv:"jarm"`
+	Scheme           string            `json:"scheme,omitempty" csv:"scheme"`
+	Error            string            `json:"error,omitempty" csv:"error"`
+	WebServer        string            `json:"webserver,omitempty" csv:"webserver"`
+	ResponseBody     string            `json:"response-body,omitempty" csv:"response-body"`
+	ContentType      string            `json:"content-type,omitempty" csv:"content-type"`
+	Method           string            `json:"method,omitempty" csv:"method"`
+	Host             string            `json:"host,omitempty" csv:"host"`
+	Path             string            `json:"path,omitempty" csv:"path"`
+	FavIconMMH3      string            `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
+	FinalURL         string            `json:"final-url,omitempty" csv:"final-url"`
+	ResponseHeader   string            `json:"response-header,omitempty" csv:"response-header"`
+	Request          string            `json:"request,omitempty" csv:"request"`
+	ResponseTime     string            `json:"response-time,omitempty" csv:"response-time"`
+	Jarm             string            `json:"jarm,omitempty" csv:"jarm"`
+	ChainStatusCodes []int             `json:"chain-status-codes,omitempty" csv:"chain-status-codes"`
+	A                []string          `json:"a,omitempty" csv:"a"`
+	CNAMEs           []string          `json:"cnames,omitempty" csv:"cnames"`
+	Technologies     []string          `json:"technologies,omitempty" csv:"technologies"`
+	Chain            []httpx.ChainItem `json:"chain,omitempty" csv:"chain"`
+	Words            int               `json:"words" csv:"words"`
+	Lines            int               `json:"lines" csv:"lines"`
+	StatusCode       int               `json:"status-code,omitempty" csv:"status-code"`
+	ContentLength    int               `json:"content-length,omitempty" csv:"content-length"`
+	Failed           bool              `json:"failed" csv:"failed"`
+	VHost            bool              `json:"vhost,omitempty" csv:"vhost"`
+	WebSocket        bool              `json:"websocket,omitempty" csv:"websocket"`
+	CDN              bool              `json:"cdn,omitempty" csv:"cdn"`
+	HTTP2            bool              `json:"http2,omitempty" csv:"http2"`
+	Pipeline         bool              `json:"pipeline,omitempty" csv:"pipeline"`
 }
 
 // JSON the result
