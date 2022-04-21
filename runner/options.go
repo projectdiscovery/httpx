@@ -272,7 +272,6 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Asn, "asn", false, "display host asn information"),
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "display cdn in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),
-		flagSet.StringVar(&options.SniName, "sni-name", "", "Custom SNI Name"),
 	)
 
 	createGroup(flagSet, "matchers", "Matchers",
@@ -334,6 +333,7 @@ func ParseOptions() *Options {
 		flagSet.NormalizedStringSliceVarP(&options.Resolvers, "resolvers", "r", []string{}, "list of custom resolver (file or comma separated)"),
 		flagSet.Var(&options.Allow, "allow", "allowed list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
+		flagSet.StringVarP(&options.SniName, "sni-name", "sni", "", "Custom TLS SNI name"),
 		flagSet.BoolVar(&options.RandomAgent, "random-agent", true, "Enable Random User-Agent to use"),
 		flagSet.VarP(&options.CustomHeaders, "header", "H", "custom http headers to send with request"),
 		flagSet.StringVarP(&options.HTTPProxy, "proxy", "http-proxy", "", "http proxy to use (eg http://127.0.0.1:8080)"),
