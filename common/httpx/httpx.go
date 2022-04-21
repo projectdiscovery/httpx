@@ -47,6 +47,7 @@ func New(options *Options) (*HTTPX, error) {
 	if len(options.Resolvers) > 0 {
 		fastdialerOpts.BaseResolvers = options.Resolvers
 	}
+	fastdialerOpts.SNIName = options.SniName
 	dialer, err := fastdialer.NewDialer(fastdialerOpts)
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)

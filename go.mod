@@ -16,7 +16,7 @@ require (
 	github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1
 	github.com/projectdiscovery/clistats v0.0.8
 	github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345
-	github.com/projectdiscovery/fastdialer v0.0.15
+	github.com/projectdiscovery/fastdialer v0.0.16-0.20220415153642-29a3e094f5d3
 	github.com/projectdiscovery/fdmax v0.0.3
 	github.com/projectdiscovery/fileutil v0.0.0-20210926202739-6050d0acf73c
 	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c

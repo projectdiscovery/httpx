@@ -125,6 +125,7 @@ func New(options *Options) (*Runner, error) {
 		value = strings.TrimSpace(tokens[1])
 		httpxOptions.CustomHeaders[key] = value
 	}
+	httpxOptions.SniName = options.SniName
 
 	runner.hp, err = httpx.New(&httpxOptions)
 	if err != nil {
