@@ -237,6 +237,8 @@ type Options struct {
 	OutputMatchCdn            goflags.NormalizedStringSlice
 	OutputFilterCdn           goflags.NormalizedStringSlice
 	SniName                   string
+	OutputMatchResponseTime   string
+	OutputFilterResponseTime  string
 }
 
 // ParseOptions parses the command line options for application
@@ -283,6 +285,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "match response with specified string (-ms admin)"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "match response with specified regex (-mr admin)"),
 		flagSet.NormalizedStringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", []string{}, fmt.Sprintf("match host with specified cdn provider (%s)", defaultProviders)),
+		flagSet.StringVarP(&options.OutputMatchResponseTime, "match-response-time", "mrt", "", "match response with specified response time"),
 	)
 
 	createGroup(flagSet, "extractor", "Extractor",
@@ -298,6 +301,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "filter response with specified string (-fs admin)"),
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "filter response with specified regex (-fe admin)"),
 		flagSet.NormalizedStringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", []string{}, fmt.Sprintf("filter host with specified cdn provider (%s)", defaultProviders)),
+		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time"),
 	)
 
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
@@ -508,6 +512,9 @@ func (options *Options) configureOutput() {
 	}
 	if options.Silent {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelSilent)
+	}
+	if len(options.OutputMatchResponseTime) > 0 || len(options.OutputFilterResponseTime) > 0 {
+		options.OutputResponseTime = true
 	}
 }
 
