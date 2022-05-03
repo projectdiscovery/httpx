@@ -16,6 +16,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
+	"github.com/projectdiscovery/gologger"
 	pdhttputil "github.com/projectdiscovery/httputil"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
@@ -142,7 +143,7 @@ func New(options *Options) (*HTTPX, error) {
 	if options.CdnCheck || options.ExcludeCdn {
 		httpx.cdn, err = cdncheck.NewWithCache()
 		if err != nil {
-			return nil, fmt.Errorf("could not create cdn check: %s", err)
+			gologger.Error().Msgf("could not create cdn check: %v", err)
 		}
 	}
 
