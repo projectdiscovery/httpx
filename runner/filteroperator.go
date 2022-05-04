@@ -30,8 +30,8 @@ func (f FilterOperator) Parse(flagValue string) (string, float64, error) {
 	for _, op := range compareOperators {
 		if strings.Contains(flagValue, op) {
 			spl := strings.SplitAfter(flagValue, op)
-			operator = spl[0]
-			value, err = strconv.ParseFloat(spl[1], 64)
+			operator = strings.Trim(spl[0], " ")
+			value, err = strconv.ParseFloat(strings.Trim(spl[1], " "), 64)
 			if err != nil {
 				return operator, value, fmt.Errorf("invalid value provided for %s", f.flag)
 			}
