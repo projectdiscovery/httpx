@@ -117,7 +117,7 @@ MATCHERS:
    -ms, -match-string string           match response with specified string (-ms admin)
    -mr, -match-regex string            match response with specified regex (-mr admin)
    -mcdn, -match-cdn string[]          match host with specified cdn provider (-mcdn azure,google)
-   -mrt, -match-response-time string   match response with specified response time(-mrt ">=3")
+   -mrt, -match-response-time string   match response with specified response time in seconds (-mrt '> 1')
 
 EXTRACTOR:
    -er, -extract-regex string  display response content for specified regex
@@ -131,7 +131,7 @@ FILTERS:
    -fs, -filter-string string          filter response with specified string (-fs admin)
    -fe, -filter-regex string           filter response with specified regex (-fe admin)
    -fcdn, -filter-cdn string[]         filter host with specified cdn provider (-fcdn oracle,cloudflare)
-   -frt, -filter-response-time string  filter response with specified response time(-frt "<=4")
+   -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
 
 RATE-LIMIT:
    -t, -threads int              number of threads to use (default 50)
