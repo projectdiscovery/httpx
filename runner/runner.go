@@ -598,7 +598,71 @@ func (r *Runner) RunEnumeration() {
 			if len(r.options.OutputFilterCdn) > 0 && stringsutil.EqualFoldAny(resp.CDNName, r.options.OutputFilterCdn...) {
 				continue
 			}
-
+	
+			if r.options.OutputMatchResponseTime != "" {
+				filterOps := FilterOperator{flag: "-mrt, -match-response-time"}
+				operator, value, err := filterOps.Parse(r.options.OutputMatchResponseTime)
+				if err != nil {
+					gologger.Fatal().Msg(err.Error())
+				}
+				respTimeTaken, _ := time.ParseDuration(resp.ResponseTime)
+				switch operator {
+				// take negation of >= and >
+				case greaterThanEq, greaterThan:
+					if respTimeTaken.Seconds() < value {
+						continue
+					}
+				// take negation of <= and <
+				case lessThanEq, lessThan:
+					if respTimeTaken.Seconds() > value {
+						continue
+					}
+				// take negation of =
+				case equal:
+					if respTimeTaken.Seconds() != value {
+						continue
+					}
+				// take negation of !=
+				case notEq:
+					if respTimeTaken.Seconds() == value {
+						continue
+					}
+				}
+			}
+			if r.options.OutputFilterResponseTime != "" {
+				filterOps := FilterOperator{flag: "-frt, -filter-response-time"}
+				operator, value, err := filterOps.Parse(r.options.OutputFilterResponseTime)
+				if err != nil {
+					gologger.Fatal().Msg(err.Error())
+				}
+				respTimeTaken, _ := time.ParseDuration(resp.ResponseTime)
+				switch operator {
+				case greaterThanEq:
+					if respTimeTaken.Seconds() >= value {
+						continue
+					}
+				case lessThanEq:
+					if respTimeTaken.Seconds() <= value {
+						continue
+					}
+				case equal:
+					if respTimeTaken.Seconds() == value {
+						continue
+					}
+				case lessThan:
+					if respTimeTaken.Seconds() < value {
+						continue
+					}
+				case greaterThan:
+					if respTimeTaken.Seconds() > value {
+						continue
+					}
+				case notEq:
+					if respTimeTaken.Seconds() != value {
+						continue
+					}
+				}
+			}
 			row := resp.str
 			if r.options.JSONOutput {
 				row = resp.JSON(&r.scanopts)

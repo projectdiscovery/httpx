@@ -109,27 +109,29 @@ PROBES:
    -probe                display probe status
 
 MATCHERS:
-   -mc, -match-code string         match response with specified status code (-mc 200,302)
-   -ml, -match-length string       match response with specified content length (-ml 100,102)
-   -mlc, -match-line-count string  match response body with specified line count (-mlc 423,532)
-   -mwc, -match-word-count string  match response body with specified word count (-mwc 43,55)
-   -mfc, -match-favicon string[]   match response with specified favicon hash (-mfc 1494302000)
-   -ms, -match-string string       match response with specified string (-ms admin)
-   -mr, -match-regex string        match response with specified regex (-mr admin)
-   -mcdn, -match-cdn string[]      match host with specified cdn provider (-mcdn azure,google)
+   -mc, -match-code string             match response with specified status code (-mc 200,302)
+   -ml, -match-length string           match response with specified content length (-ml 100,102)
+   -mlc, -match-line-count string      match response body with specified line count (-mlc 423,532)
+   -mwc, -match-word-count string      match response body with specified word count (-mwc 43,55)
+   -mfc, -match-favicon string[]       match response with specified favicon hash (-mfc 1494302000)
+   -ms, -match-string string           match response with specified string (-ms admin)
+   -mr, -match-regex string            match response with specified regex (-mr admin)
+   -mcdn, -match-cdn string[]          match host with specified cdn provider (-mcdn azure,google)
+   -mrt, -match-response-time string   match response with specified response time in seconds (-mrt '> 1')
 
 EXTRACTOR:
    -er, -extract-regex string  display response content for specified regex
 
 FILTERS:
-   -fc, -filter-code string         filter response with specified status code (-fc 403,401)
-   -fl, -filter-length string       filter response with specified content length (-fl 23,33)
-   -flc, -filter-line-count string  filter response body with specified line count (-flc 423,532)
-   -fwc, -filter-word-count string  filter response body with specified word count (-fwc 423,532)
-   -ffc, -filter-favicon string[]   filter response with specified favicon hash (-mfc 1494302000)
-   -fs, -filter-string string       filter response with specified string (-fs admin)
-   -fe, -filter-regex string        filter response with specified regex (-fe admin)
-   -fcdn, -filter-cdn string[]      filter host with specified cdn provider (-fcdn oracle,cloudflare)
+   -fc, -filter-code string            filter response with specified status code (-fc 403,401)
+   -fl, -filter-length string          filter response with specified content length (-fl 23,33)
+   -flc, -filter-line-count string     filter response body with specified line count (-flc 423,532)
+   -fwc, -filter-word-count string     filter response body with specified word count (-fwc 423,532)
+   -ffc, -filter-favicon string[]      filter response with specified favicon hash (-mfc 1494302000)
+   -fs, -filter-string string          filter response with specified string (-fs admin)
+   -fe, -filter-regex string           filter response with specified regex (-fe admin)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (-fcdn oracle,cloudflare)
+   -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
 
 RATE-LIMIT:
    -t, -threads int              number of threads to use (default 50)
