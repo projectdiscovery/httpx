@@ -597,8 +597,7 @@ func (r *Runner) RunEnumeration() {
 			}
 			if len(r.options.OutputFilterCdn) > 0 && stringsutil.EqualFoldAny(resp.CDNName, r.options.OutputFilterCdn...) {
 				continue
-			}
-	
+			}			
 			if r.options.OutputMatchResponseTime != "" {
 				filterOps := FilterOperator{flag: "-mrt, -match-response-time"}
 				operator, value, err := filterOps.Parse(r.options.OutputMatchResponseTime)
@@ -609,22 +608,22 @@ func (r *Runner) RunEnumeration() {
 				switch operator {
 				// take negation of >= and >
 				case greaterThanEq, greaterThan:
-					if respTimeTaken.Seconds() < value {
+					if respTimeTaken < value {
 						continue
 					}
 				// take negation of <= and <
 				case lessThanEq, lessThan:
-					if respTimeTaken.Seconds() > value {
+					if respTimeTaken > value {
 						continue
 					}
 				// take negation of =
 				case equal:
-					if respTimeTaken.Seconds() != value {
+					if respTimeTaken != value {
 						continue
 					}
 				// take negation of !=
 				case notEq:
-					if respTimeTaken.Seconds() == value {
+					if respTimeTaken == value {
 						continue
 					}
 				}
@@ -638,27 +637,27 @@ func (r *Runner) RunEnumeration() {
 				respTimeTaken, _ := time.ParseDuration(resp.ResponseTime)
 				switch operator {
 				case greaterThanEq:
-					if respTimeTaken.Seconds() >= value {
+					if respTimeTaken >= value {
 						continue
 					}
 				case lessThanEq:
-					if respTimeTaken.Seconds() <= value {
+					if respTimeTaken <= value {
 						continue
 					}
 				case equal:
-					if respTimeTaken.Seconds() == value {
+					if respTimeTaken == value {
 						continue
 					}
 				case lessThan:
-					if respTimeTaken.Seconds() < value {
+					if respTimeTaken < value {
 						continue
 					}
 				case greaterThan:
-					if respTimeTaken.Seconds() > value {
+					if respTimeTaken > value {
 						continue
 					}
 				case notEq:
-					if respTimeTaken.Seconds() != value {
+					if respTimeTaken != value {
 						continue
 					}
 				}
