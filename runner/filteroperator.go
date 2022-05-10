@@ -2,8 +2,8 @@ package runner
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -21,18 +21,21 @@ type FilterOperator struct {
 }
 
 // Parse the given value into operator and value pair
-func (f FilterOperator) Parse(flagValue string) (string, float64, error) {
+func (f FilterOperator) Parse(flagValue string) (string, time.Duration, error) {
 	var (
 		operator string
-		value    float64
+		value    time.Duration
 		err      error
 	)
 	for _, op := range compareOperators {
 		if strings.Contains(flagValue, op) {
-			spl := strings.SplitAfter(flagValue, op)
-			operator = strings.Trim(spl[0], " ")
-			value, err = strconv.ParseFloat(strings.Trim(spl[1], " "), 64)
-			if err != nil {
+			splittedFlagValue := strings.SplitAfter(flagValue, op)
+			operator = strings.Trim(splittedFlagValue[0], " ")
+			timeVal := strings.Trim(splittedFlagValue[1], " ")
+			value, err = time.ParseDuration(timeVal)
+			if err != nil && strings.Contains(err.Error(), "missing unit") {
+				value, _ = time.ParseDuration(fmt.Sprintf("%ss", timeVal))
+			} else if err != nil {
 				return operator, value, fmt.Errorf("invalid value provided for %s", f.flag)
 			}
 			break

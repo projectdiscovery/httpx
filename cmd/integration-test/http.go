@@ -25,11 +25,16 @@ var httpTestcases = map[string]testutils.TestCase{
 	"Regression test for: https://github.com/projectdiscovery/httpx/issues/414":           &issue414{}, // stream mode with path
 	"Regression test for: https://github.com/projectdiscovery/httpx/issues/433":           &issue433{}, // new line scanning with title flag
 	"Request URI to existing file - https://github.com/projectdiscovery/httpx/issues/480": &issue480{}, // request uri pointing to existing file
+	"Standard HTTP GET Request with match response time":                                  &standardHttpGet{mrt: true, inputValue: "\"<10s\""},
+	"Standard HTTP GET Request with filter response time":                                 &standardHttpGet{frt: true, inputValue: "\">3ms\""},
 }
 
 type standardHttpGet struct {
 	tls            bool
 	unsafe         bool
+	mrt            bool
+	frt            bool
+	inputValue     string
 	stdinPath      string
 	path           string
 	expectedOutput string
@@ -55,7 +60,12 @@ func (h *standardHttpGet) Execute() error {
 	if h.path != "" {
 		extra = append(extra, "-path", "\""+h.path+"\"")
 	}
-
+	if h.mrt {
+		extra = append(extra, "-mrt", h.inputValue)
+	}
+	if h.frt {
+		extra = append(extra, "-frt", h.inputValue)
+	}
 	URL := ts.URL
 	if h.stdinPath != "" {
 		URL += h.stdinPath
