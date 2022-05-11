@@ -113,6 +113,9 @@ func New(options *Options) (*HTTPX, error) {
 		},
 		DisableKeepAlives: true,
 	}
+	if httpx.Options.SniName != "" {
+		transport.TLSClientConfig.ServerName = httpx.Options.SniName
+	}
 
 	if httpx.Options.HTTPProxy != "" {
 		proxyURL, parseErr := url.Parse(httpx.Options.HTTPProxy)
@@ -128,14 +131,18 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
-	httpx.client2 = &http.Client{
-		Transport: &http2.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-			AllowHTTP: true,
+	transport2 := &http2.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
 		},
-		Timeout: httpx.Options.Timeout,
+		AllowHTTP: true,
+	}
+	if httpx.Options.SniName != "" {
+		transport2.TLSClientConfig.ServerName = httpx.Options.SniName
+	}
+	httpx.client2 = &http.Client{
+		Transport: transport2,
+		Timeout:   httpx.Options.Timeout,
 	}
 
 	httpx.htmlPolicy = bluemonday.NewPolicy()
