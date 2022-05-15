@@ -137,6 +137,10 @@ github.com/projectdiscovery/fastdialer v0.0.16-0.20220512171112-e6cca11bc933 h1:
 github.com/projectdiscovery/fastdialer v0.0.16-0.20220512171112-e6cca11bc933/go.mod h1:k4iAKJMOJJWpqgYA3tDXtNFRkL40H0DXQ0cmyTg5J5k=
 github.com/projectdiscovery/fastdialer v0.0.16-0.20220512180107-5f9302406cdf h1:Vx4wbfI9FShdCUU3XsfyNAZwfm8AAvDFxtop8EZEhRw=
 github.com/projectdiscovery/fastdialer v0.0.16-0.20220512180107-5f9302406cdf/go.mod h1:k4iAKJMOJJWpqgYA3tDXtNFRkL40H0DXQ0cmyTg5J5k=
+github.com/projectdiscovery/fastdialer v0.0.16-0.20220515110130-dde30ef8efb2 h1:8fsALX3kp7c0ymxS+w+nT20UCuWia7+JVueQ7Alygho=
+github.com/projectdiscovery/fastdialer v0.0.16-0.20220515110130-dde30ef8efb2/go.mod h1:k4iAKJMOJJWpqgYA3tDXtNFRkL40H0DXQ0cmyTg5J5k=
+github.com/projectdiscovery/fastdialer v0.0.16-0.20220515190512-d9a09aab8663 h1:uxOMKHOajVaiz/pMUzc3nvWhICa/euZN+SoVzpqcPiE=
+github.com/projectdiscovery/fastdialer v0.0.16-0.20220515190512-d9a09aab8663/go.mod h1:k4iAKJMOJJWpqgYA3tDXtNFRkL40H0DXQ0cmyTg5J5k=
 github.com/projectdiscovery/fdmax v0.0.3 h1:FM6lv9expZ/rEEBI9tkRh6tx3DV0gtpwzdc0h7bGPqg=
 github.com/projectdiscovery/fdmax v0.0.3/go.mod h1:NWRcaR7JTO7fC27H4jCl9n7Z+KIredwpgw1fV+4KrKI=
 github.com/projectdiscovery/fileutil v0.0.0-20210926202739-6050d0acf73c/go.mod h1:U+QCpQnX8o2N2w0VUGyAzjM3yBAe4BKedVElxiImsx0=
