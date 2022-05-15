@@ -6,4 +6,4 @@ cmd/functional-test/httpx_dev
 cmd/functional-test/functional-test
 cmd/functional-test/httpx
 cmd/functional-test/*.cfg
-
+.vscode/
