@@ -1230,7 +1230,7 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
-	ips, cnames, err := getDNSData(hp, domain)
+	ips, cnames, err := getDNSData(hp, URL.Host)
 	if err != nil {
 		ips = append(ips, ip)
 	}
