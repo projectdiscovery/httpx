@@ -597,7 +597,7 @@ func (r *Runner) RunEnumeration() {
 			}
 			if len(r.options.OutputFilterCdn) > 0 && stringsutil.EqualFoldAny(resp.CDNName, r.options.OutputFilterCdn...) {
 				continue
-			}			
+			}
 			if r.options.OutputMatchResponseTime != "" {
 				filterOps := FilterOperator{flag: "-mrt, -match-response-time"}
 				operator, value, err := filterOps.Parse(r.options.OutputMatchResponseTime)
@@ -845,7 +845,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan string {
 				results <- target
 			}
 			for _, ip := range ips {
-				results <- strings.Join([]string{ip, target}, ",")
+				results <- fmt.Sprintf("%s,%s", ip, target)
 			}
 		} else {
 			results <- target
@@ -1198,7 +1198,15 @@ retry:
 			r.stats.IncrementCounter("requests", 1)
 		}
 	}
-	ip := hp.Dialer.GetDialedIP(URL.Host)
+
+	var ip string
+	if customIP != "" {
+		ip = customIP
+	} else {
+		// hp.Dialer.GetDialedIP would return only the last dialed one
+		ip = hp.Dialer.GetDialedIP(URL.Host)
+	}
+
 	var asnResponse interface{ String() string }
 	if r.options.Asn {
 		lookupResult, err := ipisp.LookupIP(context.Background(), net.ParseIP(ip))
@@ -1222,10 +1230,7 @@ retry:
 			builder.WriteRune(']')
 		}
 	}
-	// hp.Dialer.GetDialedIP would return only the last dialed one
-	if customIP != "" {
-		ip = customIP
-	}
+
 	if scanopts.OutputIP || scanopts.ProbeAllIPS {
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
