@@ -1199,6 +1199,7 @@ retry:
 		for regex, compliedRegex := range scanopts.extractRegexps {
 			matches := compliedRegex.FindAllString(string(resp.Data), -1)
 			if len(matches) > 0 {
+				matches = slice.DedupeString(matches)
 				builder.WriteString(" [" + strings.Join(matches, ",") + "]")
 				extractResult[regex] = matches
 			}

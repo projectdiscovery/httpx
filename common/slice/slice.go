@@ -38,3 +38,14 @@ func ToSlice(m map[string]struct{}) (s []string) {
 
 	return
 }
+
+func DedupeString(v []string) (r []string) {
+	seen := make(map[string]struct{})
+	for _, vv := range v {
+		if _, ok := seen[vv]; !ok {
+			seen[vv] = struct{}{}
+			r = append(r, vv)
+		}
+	}
+	return
+}
