@@ -7,6 +7,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"github.com/projectdiscovery/httpx/common/customextract"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -209,14 +210,24 @@ func New(options *Options) (*Runner, error) {
 	scanopts.StoreChain = options.StoreChain
 	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
+	scanopts.extractRegexps = make(map[string]*regexp.Regexp)
 
 	if options.OutputExtractRegexs != nil {
-		scanopts.extractRegexps = map[string]*regexp.Regexp{}
 		for _, regex := range options.OutputExtractRegexs {
 			if compiledRegex, err := regexp.Compile(regex); err != nil {
 				return nil, err
 			} else {
 				scanopts.extractRegexps[regex] = compiledRegex
+			}
+		}
+	}
+
+	if options.OutputExtractPresets != nil {
+		for _, regexName := range options.OutputExtractPresets {
+			if regex, ok := customextract.ExtractPresets[regexName]; ok {
+				scanopts.extractRegexps[regexName] = regex
+			} else {
+				gologger.Warning().Msg("Could not found preset: " + regexName)
 			}
 		}
 	}

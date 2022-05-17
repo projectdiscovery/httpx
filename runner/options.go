@@ -202,6 +202,7 @@ type Options struct {
 	MaxResponseBodySizeToSave int
 	MaxResponseBodySizeToRead int
 	OutputExtractRegexs       goflags.StringSlice
+	OutputExtractPresets      goflags.StringSlice
 	RateLimit                 int
 	RateLimitMinute           int
 	Probe                     bool
@@ -275,6 +276,7 @@ func ParseOptions() *Options {
 
 	createGroup(flagSet, "extractor", "Extractor",
 		flagSet.StringSliceVarP(&options.OutputExtractRegexs, "extract-regex", "er", nil, "Display response content with matched regex"),
+		flagSet.StringSliceVarP(&options.OutputExtractPresets, "extract-preset", "ep", nil, "Display response content with matched preset regex"),
 	)
 
 	createGroup(flagSet, "filters", "Filters",
