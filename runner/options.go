@@ -1,12 +1,13 @@
 package runner
 
 import (
-	"github.com/projectdiscovery/httpx/common/slice"
+	"fmt"
 	"math"
 	"os"
 	"regexp"
 	"strings"
 
+	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/goflags"
@@ -17,6 +18,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/customlist"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
+	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
 )
 
@@ -27,6 +29,8 @@ const (
 	DefaultResumeFile      = "resume.cfg"
 	DefaultOutputDirectory = "output"
 )
+
+var defaultProviders = strings.Join(cdncheck.GetDefaultProviders(), ", ")
 
 type scanOptions struct {
 	Methods                   []string
@@ -229,6 +233,13 @@ type Options struct {
 	OutputFilterWordsCount    string
 	filterWordsCount          []int
 	Hashes                    string
+	Jarm                      bool
+	Asn                       bool
+	OutputMatchCdn            goflags.NormalizedStringSlice
+	OutputFilterCdn           goflags.NormalizedStringSlice
+	SniName                   string
+	OutputMatchResponseTime   string
+	OutputFilterResponseTime  string
 }
 
 // ParseOptions parses the command line options for application
@@ -250,6 +261,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Location, "location", false, "display response redirect location"),
 		flagSet.BoolVar(&options.Favicon, "favicon", false, "display mmh3 hash for '/favicon.ico' file"),
 		flagSet.StringVar(&options.Hashes, "hash", "", "display response body hash (supported: md5,mmh3,simhash,sha1,sha256,sha512)"),
+		flagSet.BoolVar(&options.Jarm, "jarm", false, "display jarm fingerprint hash"),
 		flagSet.BoolVarP(&options.OutputResponseTime, "response-time", "rt", false, "display response time"),
 		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, "display response body line count"),
 		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "display response body word count"),
@@ -260,6 +272,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
 		flagSet.BoolVar(&options.OutputCName, "cname", false, "display host cname"),
+		flagSet.BoolVar(&options.Asn, "asn", false, "display host asn information"),
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "display cdn in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),
 	)
@@ -272,6 +285,8 @@ func ParseOptions() *Options {
 		flagSet.NormalizedStringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", []string{}, "match response with specified favicon hash (-mfc 1494302000)"),
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "match response with specified string (-ms admin)"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "match response with specified regex (-mr admin)"),
+		flagSet.NormalizedStringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", []string{}, fmt.Sprintf("match host with specified cdn provider (%s)", defaultProviders)),
+		flagSet.StringVarP(&options.OutputMatchResponseTime, "match-response-time", "mrt", "", "match response with specified response time in seconds (-mrt '< 1')"),
 	)
 
 	createGroup(flagSet, "extractor", "Extractor",
@@ -287,6 +302,8 @@ func ParseOptions() *Options {
 		flagSet.NormalizedStringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", []string{}, "filter response with specified favicon hash (-mfc 1494302000)"),
 		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "filter response with specified string (-fs admin)"),
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "filter response with specified regex (-fe admin)"),
+		flagSet.NormalizedStringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", []string{}, fmt.Sprintf("filter host with specified cdn provider (%s)", defaultProviders)),
+		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
 	)
 
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
@@ -322,6 +339,7 @@ func ParseOptions() *Options {
 		flagSet.NormalizedStringSliceVarP(&options.Resolvers, "resolvers", "r", []string{}, "list of custom resolver (file or comma separated)"),
 		flagSet.Var(&options.Allow, "allow", "allowed list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
+		flagSet.StringVarP(&options.SniName, "sni-name", "sni", "", "Custom TLS SNI name"),
 		flagSet.BoolVar(&options.RandomAgent, "random-agent", true, "Enable Random User-Agent to use"),
 		flagSet.VarP(&options.CustomHeaders, "header", "H", "custom http headers to send with request"),
 		flagSet.StringVarP(&options.HTTPProxy, "proxy", "http-proxy", "", "http proxy to use (eg http://127.0.0.1:8080)"),
@@ -477,6 +495,9 @@ func (options *Options) validateOptions() {
 			}
 		}
 	}
+	if len(options.OutputMatchCdn) > 0 || len(options.OutputFilterCdn) > 0 {
+		options.OutputCDN = true
+	}
 }
 
 // configureOutput configures the output on the screen
@@ -493,6 +514,9 @@ func (options *Options) configureOutput() {
 	}
 	if options.Silent {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelSilent)
+	}
+	if len(options.OutputMatchResponseTime) > 0 || len(options.OutputFilterResponseTime) > 0 {
+		options.OutputResponseTime = true
 	}
 }
 

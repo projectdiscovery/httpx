@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ammario/ipisp/v2"
 	"github.com/bluele/gcache"
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
@@ -125,6 +126,7 @@ func New(options *Options) (*Runner, error) {
 		value = strings.TrimSpace(tokens[1])
 		httpxOptions.CustomHeaders[key] = value
 	}
+	httpxOptions.SniName = options.SniName
 
 	runner.hp, err = httpx.New(&httpxOptions)
 	if err != nil {
@@ -151,6 +153,7 @@ func New(options *Options) (*Runner, error) {
 		}
 		scanopts.RequestBody = rrBody
 		options.rawRequest = string(rawRequest)
+		options.RequestBody = rrBody
 	}
 
 	// disable automatic host header for rawhttp if manually specified
@@ -606,7 +609,76 @@ func (r *Runner) RunEnumeration() {
 			if len(r.options.matchWordsCount) > 0 && !slice.IntSliceContains(r.options.matchWordsCount, resp.Words) {
 				continue
 			}
-
+			if len(r.options.OutputMatchCdn) > 0 && !stringsutil.EqualFoldAny(resp.CDNName, r.options.OutputMatchCdn...) {
+				continue
+			}
+			if len(r.options.OutputFilterCdn) > 0 && stringsutil.EqualFoldAny(resp.CDNName, r.options.OutputFilterCdn...) {
+				continue
+			}			
+			if r.options.OutputMatchResponseTime != "" {
+				filterOps := FilterOperator{flag: "-mrt, -match-response-time"}
+				operator, value, err := filterOps.Parse(r.options.OutputMatchResponseTime)
+				if err != nil {
+					gologger.Fatal().Msg(err.Error())
+				}
+				respTimeTaken, _ := time.ParseDuration(resp.ResponseTime)
+				switch operator {
+				// take negation of >= and >
+				case greaterThanEq, greaterThan:
+					if respTimeTaken < value {
+						continue
+					}
+				// take negation of <= and <
+				case lessThanEq, lessThan:
+					if respTimeTaken > value {
+						continue
+					}
+				// take negation of =
+				case equal:
+					if respTimeTaken != value {
+						continue
+					}
+				// take negation of !=
+				case notEq:
+					if respTimeTaken == value {
+						continue
+					}
+				}
+			}
+			if r.options.OutputFilterResponseTime != "" {
+				filterOps := FilterOperator{flag: "-frt, -filter-response-time"}
+				operator, value, err := filterOps.Parse(r.options.OutputFilterResponseTime)
+				if err != nil {
+					gologger.Fatal().Msg(err.Error())
+				}
+				respTimeTaken, _ := time.ParseDuration(resp.ResponseTime)
+				switch operator {
+				case greaterThanEq:
+					if respTimeTaken >= value {
+						continue
+					}
+				case lessThanEq:
+					if respTimeTaken <= value {
+						continue
+					}
+				case equal:
+					if respTimeTaken == value {
+						continue
+					}
+				case lessThan:
+					if respTimeTaken < value {
+						continue
+					}
+				case greaterThan:
+					if respTimeTaken > value {
+						continue
+					}
+				case notEq:
+					if respTimeTaken != value {
+						continue
+					}
+				}
+			}
 			row := resp.str
 			if r.options.JSONOutput {
 				row = resp.JSON(&r.scanopts)
@@ -724,7 +796,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 			for _, wantedProtocol := range wantedProtocols {
 				for _, method := range scanopts.Methods {
 					wg.Add()
-					go func(port int, method, protocol string) {
+					go func(port int, target, method, protocol string) {
 						defer wg.Done()
 						h, _ := urlutil.ChangePort(target, fmt.Sprint(port))
 						result := r.analyze(hp, protocol, h, method, t, scanopts)
@@ -744,7 +816,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
 						}
-					}(port, method, wantedProtocol)
+					}(port, target, method, wantedProtocol)
 				}
 			}
 		}
@@ -973,7 +1045,6 @@ retry:
 
 		builder.WriteRune(']')
 	}
-
 	if err != nil {
 		errString := ""
 		errString = err.Error()
@@ -1145,6 +1216,29 @@ retry:
 		}
 	}
 	ip := hp.Dialer.GetDialedIP(URL.Host)
+	var asnResponse interface{ String() string }
+	if r.options.Asn {
+		lookupResult, err := ipisp.LookupIP(context.Background(), net.ParseIP(ip))
+		if err != nil {
+			gologger.Warning().Msg(err.Error())
+		}
+		if lookupResult != nil {
+			lookupResult.ISPName = stringsutil.TrimSuffixAny(strings.ReplaceAll(lookupResult.ISPName, lookupResult.Country, ""), ", ", " ")
+			asnResponse = AsnResponse{
+				AsNumber:  lookupResult.ASN.String(),
+				AsName:    lookupResult.ISPName,
+				AsCountry: lookupResult.Country,
+				AsRange:   lookupResult.Range.String(),
+			}
+			builder.WriteString(" [")
+			if !scanopts.OutputWithNoColor {
+				builder.WriteString(aurora.Magenta(asnResponse.String()).String())
+			} else {
+				builder.WriteString(asnResponse.String())
+			}
+			builder.WriteRune(']')
+		}
+	}
 	// hp.Dialer.GetDialedIP would return only the last dialed one
 	if customIP != "" {
 		ip = customIP
@@ -1289,7 +1383,17 @@ retry:
 		}
 		builder.WriteRune(']')
 	}
-
+	jarmhash := ""
+	if r.options.Jarm {
+		jarmhash = hashes.Jarm(fullURL, r.options.Timeout)
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(jarmhash).String())
+		} else {
+			builder.WriteString(fmt.Sprint(jarmhash))
+		}
+		builder.WriteRune(']')
+	}
 	if scanopts.OutputWordsCount {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
@@ -1396,8 +1500,10 @@ retry:
 		FavIconMMH3:      faviconMMH3,
 		Hashes:           hashesMap,
 		Extracts:         extractResult,
+		Jarm:             jarmhash,
 		Lines:            resp.Lines,
 		Words:            resp.Words,
+		ASN:              asnResponse,
 	}
 }
 
@@ -1409,50 +1515,63 @@ func (r *Runner) SaveResumeConfig() error {
 	return goconfig.Save(resumeCfg, DefaultResumeFile)
 }
 
+type AsnResponse struct {
+	AsNumber  string `json:"as-number" csv:"as-number"`
+	AsName    string `json:"as-name" csv:"as-name"`
+	AsCountry string `json:"as-country" csv:"as-country"`
+	AsRange   string `json:"as-range" csv:"as-range"`
+}
+
+func (o AsnResponse) String() string {
+	return fmt.Sprintf("%v, %v, %v, %v", o.AsNumber, o.AsName, o.AsCountry, o.AsRange)
+}
+
 // Result of a scan
 type Result struct {
-	Timestamp        time.Time `json:"timestamp,omitempty" csv:"timestamp"`
-	Request          string    `json:"request,omitempty" csv:"request"`
-	ResponseHeader   string    `json:"response-header,omitempty" csv:"response-header"`
-	Scheme           string    `json:"scheme,omitempty" csv:"scheme"`
-	Port             string    `json:"port,omitempty" csv:"port"`
-	Path             string    `json:"path,omitempty" csv:"path"`
-	A                []string  `json:"a,omitempty" csv:"a"`
-	CNAMEs           []string  `json:"cnames,omitempty" csv:"cnames"`
+	Timestamp        time.Time   `json:"timestamp,omitempty" csv:"timestamp"`
+	ASN              interface{} `json:"asn,omitempty" csv:"asn"`
+	err              error
+	CSPData          *httpx.CSPData      `json:"csp,omitempty" csv:"csp"`
+	TLSData          *cryptoutil.TLSData `json:"tls-grab,omitempty" csv:"tls-grab"`
+	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
+	CDNName          string              `json:"cdn-name,omitempty" csv:"cdn-name"`
+	Port             string              `json:"port,omitempty" csv:"port"`
 	raw              string
 	URL              string `json:"url,omitempty" csv:"url"`
 	Input            string `json:"input,omitempty" csv:"input"`
 	Location         string `json:"location,omitempty" csv:"location"`
 	Title            string `json:"title,omitempty" csv:"title"`
 	str              string
-	err              error
-	Error            string              `json:"error,omitempty" csv:"error"`
-	WebServer        string              `json:"webserver,omitempty" csv:"webserver"`
-	ResponseBody     string              `json:"response-body,omitempty" csv:"response-body"`
-	ContentType      string              `json:"content-type,omitempty" csv:"content-type"`
-	Method           string              `json:"method,omitempty" csv:"method"`
-	Host             string              `json:"host,omitempty" csv:"host"`
-	ContentLength    int                 `json:"content-length,omitempty" csv:"content-length"`
-	ChainStatusCodes []int               `json:"chain-status-codes,omitempty" csv:"chain-status-codes"`
-	StatusCode       int                 `json:"status-code,omitempty" csv:"status-code"`
-	TLSData          *cryptoutil.TLSData `json:"tls-grab,omitempty" csv:"tls-grab"`
-	CSPData          *httpx.CSPData      `json:"csp,omitempty" csv:"csp"`
-	VHost            bool                `json:"vhost,omitempty" csv:"vhost"`
-	WebSocket        bool                `json:"websocket,omitempty" csv:"websocket"`
-	Pipeline         bool                `json:"pipeline,omitempty" csv:"pipeline"`
-	HTTP2            bool                `json:"http2,omitempty" csv:"http2"`
-	CDN              bool                `json:"cdn,omitempty" csv:"cdn"`
-	CDNName          string              `json:"cdn-name,omitempty" csv:"cdn-name"`
-	ResponseTime     string              `json:"response-time,omitempty" csv:"response-time"`
-	Technologies     []string            `json:"technologies,omitempty" csv:"technologies"`
-	Chain            []httpx.ChainItem   `json:"chain,omitempty" csv:"chain"`
-	FinalURL         string              `json:"final-url,omitempty" csv:"final-url"`
-	Failed           bool                `json:"failed" csv:"failed"`
-	FavIconMMH3      string              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
-	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
-	Extracts         map[string][]string `json:"extracts,omitempty" csv:"extracts"`
-	Lines            int                 `json:"lines" csv:"lines"`
-	Words            int                 `json:"words" csv:"words"`
+	Scheme           string            `json:"scheme,omitempty" csv:"scheme"`
+	Error            string            `json:"error,omitempty" csv:"error"`
+	WebServer        string            `json:"webserver,omitempty" csv:"webserver"`
+	ResponseBody     string            `json:"response-body,omitempty" csv:"response-body"`
+	ContentType      string            `json:"content-type,omitempty" csv:"content-type"`
+	Method           string            `json:"method,omitempty" csv:"method"`
+	Host             string            `json:"host,omitempty" csv:"host"`
+	Path             string            `json:"path,omitempty" csv:"path"`
+	FavIconMMH3      string            `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
+	FinalURL         string            `json:"final-url,omitempty" csv:"final-url"`
+	ResponseHeader   string            `json:"response-header,omitempty" csv:"response-header"`
+	Request          string            `json:"request,omitempty" csv:"request"`
+	ResponseTime     string            `json:"response-time,omitempty" csv:"response-time"`
+	Jarm             string            `json:"jarm,omitempty" csv:"jarm"`
+	ChainStatusCodes []int             `json:"chain-status-codes,omitempty" csv:"chain-status-codes"`
+	A                []string          `json:"a,omitempty" csv:"a"`
+	CNAMEs           []string          `json:"cnames,omitempty" csv:"cnames"`
+	Technologies     []string          `json:"technologies,omitempty" csv:"technologies"`
+  Extracts         map[string][]string `json:"extracts,omitempty" csv:"extracts"`
+	Chain            []httpx.ChainItem `json:"chain,omitempty" csv:"chain"`
+	Words            int               `json:"words" csv:"words"`
+	Lines            int               `json:"lines" csv:"lines"`
+	StatusCode       int               `json:"status-code,omitempty" csv:"status-code"`
+	ContentLength    int               `json:"content-length,omitempty" csv:"content-length"`
+	Failed           bool              `json:"failed" csv:"failed"`
+	VHost            bool              `json:"vhost,omitempty" csv:"vhost"`
+	WebSocket        bool              `json:"websocket,omitempty" csv:"websocket"`
+	CDN              bool              `json:"cdn,omitempty" csv:"cdn"`
+	HTTP2            bool              `json:"http2,omitempty" csv:"http2"`
+	Pipeline         bool              `json:"pipeline,omitempty" csv:"pipeline"`
 }
 
 // JSON the result
