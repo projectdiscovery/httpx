@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/akrylysov/pogreb v0.10.1 // indirect
 	github.com/bluele/gcache v0.0.2
-	github.com/corpix/uarand v0.1.1
+	github.com/corpix/uarand v0.2.0
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/julienschmidt/httprouter v1.3.0
