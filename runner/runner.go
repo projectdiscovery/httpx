@@ -597,7 +597,7 @@ func (r *Runner) RunEnumeration() {
 			}
 			if len(r.options.OutputFilterCdn) > 0 && stringsutil.EqualFoldAny(resp.CDNName, r.options.OutputFilterCdn...) {
 				continue
-			}			
+			}
 			if r.options.OutputMatchResponseTime != "" {
 				filterOps := FilterOperator{flag: "-mrt, -match-response-time"}
 				operator, value, err := filterOps.Parse(r.options.OutputMatchResponseTime)
@@ -738,7 +738,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 			for _, method := range scanopts.Methods {
 				for _, prot := range protocols {
 					wg.Add()
-					go func(target, method, protocol string) {
+					go func(target httpx.Target, method, protocol string) {
 						defer wg.Done()
 						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
@@ -779,10 +779,10 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 			for _, wantedProtocol := range wantedProtocols {
 				for _, method := range scanopts.Methods {
 					wg.Add()
-					go func(port int, target, method, protocol string) {
+					go func(port int, target httpx.Target, method, protocol string) {
 						defer wg.Done()
-						h, _ := urlutil.ChangePort(target, fmt.Sprint(port))
-						result := r.analyze(hp, protocol, h, method, t, scanopts)
+						target.Host, _ = urlutil.ChangePort(target.Host, fmt.Sprint(port))
+						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
@@ -810,8 +810,8 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 }
 
 // returns all the targets within a cidr range or the single target
-func (r *Runner) targets(hp *httpx.HTTPX, target string) chan string {
-	results := make(chan string)
+func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
+	results := make(chan httpx.Target)
 	go func() {
 		defer close(results)
 
@@ -819,7 +819,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan string {
 		// *
 		// spaces
 		if strings.ContainsAny(target, "*") || strings.HasPrefix(target, ".") {
-			// trim * and/or . (prefix) from the target to return the domain instead of wildard
+			// trim * and/or . (prefix) from the target to return the domain instead of wilcard
 			target = strings.TrimPrefix(strings.Trim(target, "*"), ".")
 			if !r.testAndSet(target) {
 				return
@@ -833,54 +833,42 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan string {
 				return
 			}
 			for _, ip := range cidrIps {
-				results <- ip
+				results <- httpx.Target{Host: ip}
 			}
 		} else if r.options.ProbeAllIPS {
 			URL, err := urlutil.Parse(target)
 			if err != nil {
-				results <- target
+				results <- httpx.Target{Host: target}
 			}
 			ips, _, err := getDNSData(hp, URL.Host)
 			if err != nil || len(ips) == 0 {
-				results <- target
+				results <- httpx.Target{Host: target}
 			}
 			for _, ip := range ips {
-				results <- strings.Join([]string{ip, target}, ",")
+				results <- httpx.Target{Host: target, CustomIP: ip}
 			}
+		} else if idxComma := strings.Index(target, ","); idxComma > 0 {
+			results <- httpx.Target{Host: target[idxComma+1:], CustomHost: target[:idxComma]}
 		} else {
-			results <- target
+			results <- httpx.Target{Host: target}
 		}
 	}()
 	return results
 }
 
-func (r *Runner) analyze(hp *httpx.HTTPX, protocol, domain, method, origInput string, scanopts *scanOptions) Result {
+func (r *Runner) analyze(hp *httpx.HTTPX, protocol string, target httpx.Target, method, origInput string, scanopts *scanOptions) Result {
 	origProtocol := protocol
 	if protocol == httpx.HTTPorHTTPS || protocol == httpx.HTTPandHTTPS {
 		protocol = httpx.HTTPS
 	}
 	retried := false
 retry:
-	var customHost, customIP string
-	if scanopts.ProbeAllIPS {
-		parts := strings.SplitN(domain, ",", 2)
-		if len(parts) == 2 {
-			customIP = parts[0]
-			domain = parts[1]
-		}
+	if scanopts.VHostInput && target.CustomHost == "" {
+		return Result{Input: origInput}
 	}
-	if scanopts.VHostInput {
-		parts := strings.Split(domain, ",")
-		//nolint:gomnd // not a magic number
-		if len(parts) != 2 {
-			return Result{Input: origInput}
-		}
-		domain = parts[0]
-		customHost = parts[1]
-	}
-	URL, err := urlutil.Parse(domain)
+	URL, err := urlutil.Parse(target.Host)
 	if err != nil {
-		return Result{URL: domain, Input: origInput, err: err}
+		return Result{URL: target.Host, Input: origInput, err: err}
 	}
 
 	// check if we have to skip the host:port as a result of a previous failure
@@ -888,19 +876,19 @@ retry:
 	if r.options.HostMaxErrors >= 0 && r.HostErrorsCache.Has(hostPort) {
 		numberOfErrors, err := r.HostErrorsCache.GetIFPresent(hostPort)
 		if err == nil && numberOfErrors.(int) >= r.options.HostMaxErrors {
-			return Result{URL: domain, err: errors.New("skipping as previously unresponsive")}
+			return Result{URL: target.Host, err: errors.New("skipping as previously unresponsive")}
 		}
 	}
 
 	// check if the combination host:port should be skipped if belonging to a cdn
 	if r.skipCDNPort(URL.Host, URL.Port) {
 		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port)
-		return Result{URL: domain, Input: origInput, err: errors.New("cdn target only allows ports 80 and 443")}
+		return Result{URL: target.Host, Input: origInput, err: errors.New("cdn target only allows ports 80 and 443")}
 	}
 
 	URL.Scheme = protocol
 
-	if !strings.Contains(domain, URL.Port) {
+	if !strings.Contains(target.Host, URL.Port) {
 		URL.Port = ""
 	}
 
@@ -915,9 +903,14 @@ retry:
 		URL.RequestURI += scanopts.RequestURI
 	}
 	var req *retryablehttp.Request
-	if customIP != "" {
-		customHost = URL.Host
-		ctx := context.WithValue(context.Background(), "ip", customIP) //nolint
+	if target.CustomIP != "" {
+		var requestIP string
+		if iputil.IsIPv6(target.CustomIP) {
+			requestIP = fmt.Sprintf("[%s]", target.CustomIP)
+		} else {
+			requestIP = target.CustomIP
+		}
+		ctx := context.WithValue(context.Background(), "ip", requestIP) //nolint
 		req, err = hp.NewRequestWithContext(ctx, method, URL.String())
 	} else {
 		req, err = hp.NewRequest(method, URL.String())
@@ -926,8 +919,8 @@ retry:
 		return Result{URL: URL.String(), Input: origInput, err: err}
 	}
 
-	if customHost != "" {
-		req.Host = customHost
+	if target.CustomHost != "" {
+		req.Host = target.CustomHost
 	}
 
 	if !scanopts.LeaveDefaultPorts {
@@ -1198,7 +1191,15 @@ retry:
 			r.stats.IncrementCounter("requests", 1)
 		}
 	}
-	ip := hp.Dialer.GetDialedIP(URL.Host)
+
+	var ip string
+	if target.CustomIP != "" {
+		ip = target.CustomIP
+	} else {
+		// hp.Dialer.GetDialedIP would return only the last dialed one
+		ip = hp.Dialer.GetDialedIP(URL.Host)
+	}
+
 	var asnResponse interface{ String() string }
 	if r.options.Asn {
 		lookupResult, err := ipisp.LookupIP(context.Background(), net.ParseIP(ip))
@@ -1222,10 +1223,7 @@ retry:
 			builder.WriteRune(']')
 		}
 	}
-	// hp.Dialer.GetDialedIP would return only the last dialed one
-	if customIP != "" {
-		ip = customIP
-	}
+
 	if scanopts.OutputIP || scanopts.ProbeAllIPS {
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
