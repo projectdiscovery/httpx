@@ -110,6 +110,7 @@ func New(options *Options) (*HTTPX, error) {
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
 		},
 		DisableKeepAlives: true,
 	}
@@ -134,6 +135,7 @@ func New(options *Options) (*HTTPX, error) {
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
 		},
 		AllowHTTP: true,
 	}
