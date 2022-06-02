@@ -180,6 +180,8 @@ github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1 h1:9dYmON
 github.com/projectdiscovery/urlutil v0.0.0-20210805190935-3d83726391c1/go.mod h1:oXLErqOpqEAp/ueQlknysFxHO3CUNoSiDNnkiHG+Jpo=
 github.com/projectdiscovery/urlutil v0.0.0-20220531201902-e60c767ce5f0 h1:C6vC93KgA0Ao5Vgt4ubervmgn9gzgo7y/o7i8IkHPU4=
 github.com/projectdiscovery/urlutil v0.0.0-20220531201902-e60c767ce5f0/go.mod h1:+4eLbe7wuSIiUiwO0Kq5sWB1SYJAxTWAaPP5bh2VV3o=
+github.com/projectdiscovery/urlutil v0.0.0-20220602042015-e5c7572cfacb h1:2jGqf6mss6zYW6nZWBsLiyKlkbfcN/Jx40FqsbpQ2WM=
+github.com/projectdiscovery/urlutil v0.0.0-20220602042015-e5c7572cfacb/go.mod h1:+4eLbe7wuSIiUiwO0Kq5sWB1SYJAxTWAaPP5bh2VV3o=
 github.com/projectdiscovery/wappalyzergo v0.0.44 h1:L1CpNYHZF5RP/uNR83L3EkZGW13cP0WkVEgDk3vN1Sk=
 github.com/projectdiscovery/wappalyzergo v0.0.44/go.mod h1:vS+npIOANv7eKsEtODsyRQt2n1v8VofCwj2gjmq72EM=
 github.com/remeh/sizedwaitgroup v1.0.0 h1:VNGGFwNo/R5+MJBf6yrsr110p0m4/OX4S3DCy7Kyl5E=
