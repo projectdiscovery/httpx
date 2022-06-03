@@ -27,10 +27,10 @@ require (
 	github.com/projectdiscovery/iputil v0.0.0-20210804143329-3a30fcde43f3
 	github.com/projectdiscovery/mapcidr v0.0.9
 	github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e
-	github.com/projectdiscovery/retryablehttp-go v1.0.2
+	github.com/projectdiscovery/retryablehttp-go v1.0.3-0.20220506110515-811d938bd26d
 	github.com/projectdiscovery/sliceutil v0.0.0-20210804143453-61f3e7fd43ea
 	github.com/projectdiscovery/stringsutil v0.0.0-20220208075244-7c05502ca8e9
-	github.com/projectdiscovery/urlutil v0.0.0-20220602042015-e5c7572cfacb
+	github.com/projectdiscovery/urlutil v0.0.0-20220603144104-f4c60e5107b2
 	github.com/projectdiscovery/wappalyzergo v0.0.44
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.4.0
@@ -53,6 +53,7 @@ require (
 )
 
 require (
+	github.com/Mzack9999/go-http-digest-auth-client v0.6.1-0.20220414142836-eb8883508809 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
