@@ -31,7 +31,7 @@ require (
 	github.com/projectdiscovery/sliceutil v0.0.0-20210804143453-61f3e7fd43ea
 	github.com/projectdiscovery/stringsutil v0.0.0-20220208075244-7c05502ca8e9
 	github.com/projectdiscovery/urlutil v0.0.0-20220603144104-f4c60e5107b2
-	github.com/projectdiscovery/wappalyzergo v0.0.44
+	github.com/projectdiscovery/wappalyzergo v0.0.45
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.4.0
 	github.com/smartystreets/assertions v1.0.0 // indirect
