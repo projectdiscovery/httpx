@@ -109,25 +109,29 @@ PROBES:
    -probe                display probe status
 
 MATCHERS:
-   -mc, -match-code string         match response with specified status code (-mc 200,302)
-   -ml, -match-length string       match response with specified content length (-ml 100,102)
-   -mlc, -match-line-count string  match response body with specified line count (-mlc 423,532)
-   -mwc, -match-word-count string  match response body with specified word count (-mwc 43,55)
-   -mfc, -match-favicon string[]   match response with specified favicon hash (-mfc 1494302000)
-   -ms, -match-string string       match response with specified string (-ms admin)
-   -mr, -match-regex string        match response with specified regex (-mr admin)
+   -mc, -match-code string            match response with specified status code (-mc 200,302)
+   -ml, -match-length string          match response with specified content length (-ml 100,102)
+   -mlc, -match-line-count string     match response body with specified line count (-mlc 423,532)
+   -mwc, -match-word-count string     match response body with specified word count (-mwc 43,55)
+   -mfc, -match-favicon string[]      match response with specified favicon hash (-mfc 1494302000)
+   -ms, -match-string string          match response with specified string (-ms admin)
+   -mr, -match-regex string           match response with specified regex (-mr admin)
+   -mcdn, -match-cdn string[]         match host with specified cdn provider (google, azure, cloudflare, cloudfront, fastly, incapsula, oracle, akamai, sucuri, leaseweb)
+   -mrt, -match-response-time string  match response with specified response time in seconds (-mrt '< 1')
 
 EXTRACTOR:
    -er, -extract-regex string  display response content for specified regex
 
 FILTERS:
-   -fc, -filter-code string         filter response with specified status code (-fc 403,401)
-   -fl, -filter-length string       filter response with specified content length (-fl 23,33)
-   -flc, -filter-line-count string  filter response body with specified line count (-flc 423,532)
-   -fwc, -filter-word-count string  filter response body with specified word count (-fwc 423,532)
-   -ffc, -filter-favicon string[]   filter response with specified favicon hash (-mfc 1494302000)
-   -fs, -filter-string string       filter response with specified string (-fs admin)
-   -fe, -filter-regex string        filter response with specified regex (-fe admin)
+   -fc, -filter-code string            filter response with specified status code (-fc 403,401)
+   -fl, -filter-length string          filter response with specified content length (-fl 23,33)
+   -flc, -filter-line-count string     filter response body with specified line count (-flc 423,532)
+   -fwc, -filter-word-count string     filter response body with specified word count (-fwc 423,532)
+   -ffc, -filter-favicon string[]      filter response with specified favicon hash (-mfc 1494302000)
+   -fs, -filter-string string          filter response with specified string (-fs admin)
+   -fe, -filter-regex string           filter response with specified regex (-fe admin)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (google, azure, cloudflare, cloudfront, fastly, incapsula, oracle, akamai, sucuri, leaseweb)
+   -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
 
 RATE-LIMIT:
    -t, -threads int              number of threads to use (default 50)
@@ -159,6 +163,7 @@ CONFIGURATIONS:
    -r, -resolvers string[]       list of custom resolver (file or comma separated)
    -allow string[]               allowed list of IP/CIDR's to process (file or comma separated)
    -deny string[]                denied list of IP/CIDR's to process (file or comma separated)
+   -sni, -sni-name string        Custom TLS SNI name
    -random-agent                 Enable Random User-Agent to use (default true)
    -H, -header string[]          custom http headers to send with request
    -http-proxy, -proxy string    http proxy to use (eg http://127.0.0.1:8080)
@@ -172,7 +177,7 @@ CONFIGURATIONS:
    -body string                  post body to include in http request
    -s, -stream                   stream mode - start elaborating input targets without sorting
    -sd, -skip-dedupe             disable dedupe input items (only used with stream mode)
-   -ldp, -leave-default-ports    leave default http/https ports in host header (eg. http://host:80 - https//host:443)
+   -ldp, -leave-default-ports    leave default http/https ports in host header (eg. http://host:80 - https//host:443
 
 DEBUG:
    -debug                    display request/response content in cli
