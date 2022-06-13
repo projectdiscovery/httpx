@@ -68,7 +68,7 @@ type scanOptions struct {
 	MaxResponseBodySizeToSave int
 	MaxResponseBodySizeToRead int
 	OutputExtractRegex        string
-	extractRegex              *regexp.Regexp
+	extractRegexps            map[string]*regexp.Regexp
 	ExcludeCDN                bool
 	HostMaxErrors             int
 	ProbeAllIPS               bool
@@ -205,7 +205,8 @@ type Options struct {
 	Allow                     customlist.CustomList
 	MaxResponseBodySizeToSave int
 	MaxResponseBodySizeToRead int
-	OutputExtractRegex        string
+	OutputExtractRegexs       goflags.StringSlice
+	OutputExtractPresets      goflags.StringSlice
 	RateLimit                 int
 	RateLimitMinute           int
 	Probe                     bool
@@ -289,7 +290,8 @@ func ParseOptions() *Options {
 	)
 
 	createGroup(flagSet, "extractor", "Extractor",
-		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "display response content for specified regex"),
+		flagSet.StringSliceVarP(&options.OutputExtractRegexs, "extract-regex", "er", nil, "Display response content with matched regex"),
+		flagSet.StringSliceVarP(&options.OutputExtractPresets, "extract-preset", "ep", nil, "Display response content with matched preset regex"),
 	)
 
 	createGroup(flagSet, "filters", "Filters",
