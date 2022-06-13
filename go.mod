@@ -24,7 +24,7 @@ require (
 	github.com/projectdiscovery/gologger v1.1.4
 	github.com/projectdiscovery/hmap v0.0.2-0.20210917080408-0fd7bd286bfa
 	github.com/projectdiscovery/httputil v0.0.0-20210816170244-86fd46bc09f5
-	github.com/projectdiscovery/iputil v0.0.0-20210804143329-3a30fcde43f3
+	github.com/projectdiscovery/iputil v0.0.0-20220613112553-9b6873b2c619
 	github.com/projectdiscovery/mapcidr v1.0.0
 	github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e
 	github.com/projectdiscovery/retryablehttp-go v1.0.3-0.20220506110515-811d938bd26d
@@ -65,7 +65,7 @@ require (
 	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/projectdiscovery/blackrock v0.0.0-20210415162320-b38689ae3a2e // indirect
+	github.com/projectdiscovery/blackrock v0.0.0-20210903102120-5a9d2412d21d // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.1 // indirect
 	github.com/projectdiscovery/reflectutil v0.0.0-20210804085554-4d90952bf92f // indirect
 	github.com/projectdiscovery/retryabledns v1.0.13 // indirect
