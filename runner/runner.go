@@ -1268,11 +1268,17 @@ retry:
 		}
 	}
 
+	var regexMap []string
 	// extract regex
 	if scanopts.extractRegex != nil {
 		matches := scanopts.extractRegex.FindAllString(string(resp.Data), -1)
+		fmt.Println(matches)
 		if len(matches) > 0 {
 			builder.WriteString(" [" + strings.Join(matches, ",") + "]")
+			for _, m := range matches {
+				fmt.Println(m[1])
+				regexMap = append(regexMap, string(m))
+			}
 		}
 	}
 
@@ -1479,6 +1485,7 @@ retry:
 		Lines:            resp.Lines,
 		Words:            resp.Words,
 		ASN:              asnResponse,
+		Regex:            regexMap,
 	}
 }
 
@@ -1509,6 +1516,7 @@ type Result struct {
 	CSPData          *httpx.CSPData      `json:"csp,omitempty" csv:"csp"`
 	TLSData          *cryptoutil.TLSData `json:"tls-grab,omitempty" csv:"tls-grab"`
 	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
+	Regex            []string            `json:"regex" csv:"regex"`
 	CDNName          string              `json:"cdn-name,omitempty" csv:"cdn-name"`
 	Port             string              `json:"port,omitempty" csv:"port"`
 	raw              string
