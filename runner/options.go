@@ -240,6 +240,7 @@ type Options struct {
 	SniName                   string
 	OutputMatchResponseTime   string
 	OutputFilterResponseTime  string
+	HealthCheck               bool
 }
 
 // ParseOptions parses the command line options for application
@@ -249,12 +250,12 @@ func ParseOptions() *Options {
 	flagSet := goflags.NewFlagSet()
 	flagSet.SetDescription(`httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using retryablehttp library.`)
 
-	createGroup(flagSet, "input", "Input",
+	flagSet.CreateGroup("input", "Input",
 		flagSet.StringVarP(&options.InputFile, "list", "l", "", "input file containing list of hosts to process"),
 		flagSet.StringVarP(&options.InputRawRequest, "request", "rr", "", "file containing raw request"),
 	)
 
-	createGroup(flagSet, "Probes", "Probes",
+	flagSet.CreateGroup("Probes", "Probes",
 		flagSet.BoolVarP(&options.StatusCode, "status-code", "sc", false, "display response status-code"),
 		flagSet.BoolVarP(&options.ContentLength, "content-length", "cl", false, "display response content-length"),
 		flagSet.BoolVarP(&options.OutputContentType, "content-type", "ct", false, "display response content-type"),
@@ -277,7 +278,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),
 	)
 
-	createGroup(flagSet, "matchers", "Matchers",
+	flagSet.CreateGroup("matchers", "Matchers",
 		flagSet.StringVarP(&options.OutputMatchStatusCode, "match-code", "mc", "", "match response with specified status code (-mc 200,302)"),
 		flagSet.StringVarP(&options.OutputMatchContentLength, "match-length", "ml", "", "match response with specified content length (-ml 100,102)"),
 		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "match response body with specified line count (-mlc 423,532)"),
@@ -289,12 +290,12 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchResponseTime, "match-response-time", "mrt", "", "match response with specified response time in seconds (-mrt '< 1')"),
 	)
 
-	createGroup(flagSet, "extractor", "Extractor",
+	flagSet.CreateGroup("extractor", "Extractor",
 		flagSet.StringSliceVarP(&options.OutputExtractRegexs, "extract-regex", "er", nil, "Display response content with matched regex"),
 		flagSet.StringSliceVarP(&options.OutputExtractPresets, "extract-preset", "ep", nil, "Display response content with matched preset regex"),
 	)
 
-	createGroup(flagSet, "filters", "Filters",
+	flagSet.CreateGroup("filters", "Filters",
 		flagSet.StringVarP(&options.OutputFilterStatusCode, "filter-code", "fc", "", "filter response with specified status code (-fc 403,401)"),
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "filter response with specified content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "filter response body with specified line count (-flc 423,532)"),
@@ -306,13 +307,13 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
 	)
 
-	createGroup(flagSet, "rate-limit", "Rate-Limit",
+	flagSet.CreateGroup("rate-limit", "Rate-Limit",
 		flagSet.IntVarP(&options.Threads, "threads", "t", 50, "number of threads to use"),
 		flagSet.IntVarP(&options.RateLimit, "rate-limit", "rl", 150, "maximum requests to send per second"),
 		flagSet.IntVarP(&options.RateLimitMinute, "rate-limit-minute", "rlm", 0, "maximum number of requests to send per minute"),
 	)
 
-	createGroup(flagSet, "Misc", "Miscellaneous",
+	flagSet.CreateGroup("Misc", "Miscellaneous",
 		flagSet.BoolVarP(&options.ProbeAllIPS, "probe-all-ips", "pa", false, "probe all the ips associated with same host"),
 		flagSet.VarP(&options.CustomPorts, "ports", "p", "ports to probe (nmap syntax: eg 1,2-10,11)"),
 		flagSet.StringVar(&options.RequestURIs, "path", "", "path or list of paths to probe (comma-separated, file)"),
@@ -324,7 +325,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.VHost, "vhost", false, "probe and display server supporting VHOST"),
 	)
 
-	createGroup(flagSet, "output", "Output",
+	flagSet.CreateGroup("output", "Output",
 		flagSet.StringVarP(&options.Output, "output", "o", "", "file to write output results"),
 		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
 		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
@@ -335,7 +336,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
 	)
 
-	createGroup(flagSet, "configs", "Configurations",
+	flagSet.CreateGroup("configs", "Configurations",
 		flagSet.NormalizedStringSliceVarP(&options.Resolvers, "resolvers", "r", []string{}, "list of custom resolver (file or comma separated)"),
 		flagSet.Var(&options.Allow, "allow", "allowed list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
@@ -356,7 +357,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.LeaveDefaultPorts, "leave-default-ports", "ldp", false, "leave default http/https ports in host header (eg. http://host:80 - https//host:443"),
 	)
 
-	createGroup(flagSet, "debug", "Debug",
+	flagSet.CreateGroup("debug", "Debug",
+		flagSet.BoolVarP(&options.HealthCheck, "hc", "health-check", false, "run diagnostic check up"),
 		flagSet.BoolVar(&options.Debug, "debug", false, "display request/response content in cli"),
 		flagSet.BoolVar(&options.DebugRequests, "debug-req", false, "display request content in cli"),
 		flagSet.BoolVar(&options.DebugResponse, "debug-resp", false, "display response content in cli"),
@@ -368,7 +370,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.NoColor, "no-color", "nc", false, "disable colors in cli output"),
 	)
 
-	createGroup(flagSet, "Optimizations", "Optimizations",
+	flagSet.CreateGroup("Optimizations", "Optimizations",
 		flagSet.BoolVarP(&options.NoFallback, "no-fallback", "nf", false, "display both probed protocol (HTTPS and HTTP)"),
 		flagSet.BoolVarP(&options.NoFallbackScheme, "no-fallback-scheme", "nfs", false, "probe with protocol scheme specified in input "),
 		flagSet.IntVarP(&options.HostMaxErrors, "max-host-error", "maxhr", 30, "max error count per host before skipping remaining path/s"),
@@ -380,6 +382,11 @@ func ParseOptions() *Options {
 	)
 
 	_ = flagSet.Parse()
+
+	if options.HealthCheck {
+		gologger.Print().Msgf("%s\n", DoHealthCheck(options))
+		os.Exit(0)
+	}
 
 	if options.StatsInterval != 0 {
 		options.ShowStatistics = true
@@ -537,11 +544,4 @@ func (options *Options) ShouldLoadResume() bool {
 // ShouldSaveResume file
 func (options *Options) ShouldSaveResume() bool {
 	return true
-}
-
-func createGroup(flagSet *goflags.FlagSet, groupName, description string, flags ...*goflags.FlagData) {
-	flagSet.SetGroup(groupName, description)
-	for _, currentFlag := range flags {
-		currentFlag.Group(groupName)
-	}
 }
