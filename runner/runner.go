@@ -31,6 +31,7 @@ import (
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/httpx/common/hashes"
 	"github.com/projectdiscovery/retryablehttp-go"
+	"github.com/projectdiscovery/sliceutil"
 	"github.com/projectdiscovery/stringsutil"
 	"github.com/projectdiscovery/urlutil"
 
@@ -1268,17 +1269,13 @@ retry:
 		}
 	}
 
-	var regexMap []string
+	var extractRegex []string
 	// extract regex
 	if scanopts.extractRegex != nil {
-		matches := scanopts.extractRegex.FindAllString(string(resp.Data), -1)
-		fmt.Println(matches)
-		if len(matches) > 0 {
-			builder.WriteString(" [" + strings.Join(matches, ",") + "]")
-			for _, m := range matches {
-				fmt.Println(m[1])
-				regexMap = append(regexMap, string(m))
-			}
+		extractRegex = scanopts.extractRegex.FindAllString(string(resp.Data), -1)
+		extractRegex = sliceutil.Dedupe(extractRegex)
+		if len(extractRegex) > 0 {
+			builder.WriteString(" [" + strings.Join(extractRegex, ",") + "]")
 		}
 	}
 
@@ -1485,7 +1482,7 @@ retry:
 		Lines:            resp.Lines,
 		Words:            resp.Words,
 		ASN:              asnResponse,
-		Regex:            regexMap,
+		ExtractRegex:     extractRegex,
 	}
 }
 
@@ -1516,7 +1513,7 @@ type Result struct {
 	CSPData          *httpx.CSPData      `json:"csp,omitempty" csv:"csp"`
 	TLSData          *cryptoutil.TLSData `json:"tls-grab,omitempty" csv:"tls-grab"`
 	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
-	Regex            []string            `json:"regex" csv:"regex"`
+	ExtractRegex     []string            `json:"extract-regex,omitempty" csv:"regex"`
 	CDNName          string              `json:"cdn-name,omitempty" csv:"cdn-name"`
 	Port             string              `json:"port,omitempty" csv:"port"`
 	raw              string
