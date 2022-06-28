@@ -451,6 +451,45 @@ https://docs.hackerone.com
 https://support.hackerone.com
 ```
 
+### Using httpx as a library
+`httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to close at the end of the program) and the `RunEnumeration` method should be called. Here follows a minimal example of how to do it:
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/projectdiscovery/httpx/runner"
+)
+
+func main() {
+	inputFile := "test.txt"
+	err := os.WriteFile(inputFile, []byte("scanme.sh"), 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(inputFile)
+
+	options := runner.Options{
+		Methods:   "GET",
+		InputFile: inputFile,
+	}
+	if err := options.ValidateOptions(); err != nil {
+		log.Fatal(err)
+	}
+
+	httpxRunner, err := runner.New(&options)
+	if err != nil {
+		log.Fatal()
+	}
+	defer httpxRunner.Close()
+
+	httpxRunner.RunEnumeration()
+}
+```
+
 
 # 📋 Notes
 

@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
@@ -407,59 +409,61 @@ func ParseOptions() *Options {
 		os.Exit(0)
 	}
 
-	options.validateOptions()
+	if err := options.ValidateOptions(); err != nil {
+		gologger.Fatal().Msgf("%s\n", err)
+	}
 
 	return options
 }
 
-func (options *Options) validateOptions() {
+func (options *Options) ValidateOptions() error {
 	if options.InputFile != "" && !fileutilz.FileNameIsGlob(options.InputFile) && !fileutil.FileExists(options.InputFile) {
-		gologger.Fatal().Msgf("File %s does not exist.\n", options.InputFile)
+		return fmt.Errorf("File %s does not exist.", options.InputFile)
 	}
 
 	if options.InputRawRequest != "" && !fileutil.FileExists(options.InputRawRequest) {
-		gologger.Fatal().Msgf("File %s does not exist.\n", options.InputRawRequest)
+		return fmt.Errorf("File %s does not exist.", options.InputRawRequest)
 	}
 
 	multiOutput := options.CSVOutput && options.JSONOutput
 	if multiOutput {
-		gologger.Fatal().Msg("Results can only be displayed in one format: 'JSON' or 'CSV'\n")
+		return fmt.Errorf("Results can only be displayed in one format: 'JSON' or 'CSV'")
 	}
 
 	var err error
 	if options.matchStatusCode, err = stringz.StringToSliceInt(options.OutputMatchStatusCode); err != nil {
-		gologger.Fatal().Msgf("Invalid value for match status code option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for match status code option")
 	}
 	if options.matchContentLength, err = stringz.StringToSliceInt(options.OutputMatchContentLength); err != nil {
-		gologger.Fatal().Msgf("Invalid value for match content length option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for match content length option")
 	}
 	if options.filterStatusCode, err = stringz.StringToSliceInt(options.OutputFilterStatusCode); err != nil {
-		gologger.Fatal().Msgf("Invalid value for filter status code option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for filter status code option")
 	}
 	if options.filterContentLength, err = stringz.StringToSliceInt(options.OutputFilterContentLength); err != nil {
-		gologger.Fatal().Msgf("Invalid value for filter content length option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for filter content length option")
 	}
 	if options.OutputFilterRegex != "" {
 		if options.filterRegex, err = regexp.Compile(options.OutputFilterRegex); err != nil {
-			gologger.Fatal().Msgf("Invalid value for regex filter option: %s\n", err)
+			return errors.Wrap(err, "Invalid value for regex filter option")
 		}
 	}
 	if options.OutputMatchRegex != "" {
 		if options.matchRegex, err = regexp.Compile(options.OutputMatchRegex); err != nil {
-			gologger.Fatal().Msgf("Invalid value for match regex option: %s\n", err)
+			return errors.Wrap(err, "Invalid value for match regex option")
 		}
 	}
 	if options.matchLinesCount, err = stringz.StringToSliceInt(options.OutputMatchLinesCount); err != nil {
-		gologger.Fatal().Msgf("Invalid value for match lines count option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for match lines count option")
 	}
 	if options.matchWordsCount, err = stringz.StringToSliceInt(options.OutputMatchWordsCount); err != nil {
-		gologger.Fatal().Msgf("Invalid value for match words count option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for match words count option")
 	}
 	if options.filterLinesCount, err = stringz.StringToSliceInt(options.OutputFilterLinesCount); err != nil {
-		gologger.Fatal().Msgf("Invalid value for filter lines count option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for filter lines count option")
 	}
 	if options.filterWordsCount, err = stringz.StringToSliceInt(options.OutputFilterWordsCount); err != nil {
-		gologger.Fatal().Msgf("Invalid value for filter words count option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for filter words count option")
 	}
 
 	var resolvers []string
@@ -467,7 +471,7 @@ func (options *Options) validateOptions() {
 		if fileutil.FileExists(resolver) {
 			chFile, err := fileutil.ReadFile(resolver)
 			if err != nil {
-				gologger.Fatal().Msgf("Couldn't process resolver file \"%s\": %s\n", resolver, err)
+				return errors.Wrapf(err, "Couldn't process resolver file \"%s\"", resolver)
 			}
 			for line := range chFile {
 				resolvers = append(resolvers, line)
@@ -476,6 +480,7 @@ func (options *Options) validateOptions() {
 			resolvers = append(resolvers, resolver)
 		}
 	}
+
 	options.Resolvers = resolvers
 	if len(options.Resolvers) > 0 {
 		gologger.Debug().Msgf("Using resolvers: %s\n", strings.Join(options.Resolvers, ","))
@@ -505,6 +510,8 @@ func (options *Options) validateOptions() {
 	if len(options.OutputMatchCdn) > 0 || len(options.OutputFilterCdn) > 0 {
 		options.OutputCDN = true
 	}
+
+	return nil
 }
 
 // configureOutput configures the output on the screen
