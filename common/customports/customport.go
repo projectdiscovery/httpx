@@ -28,6 +28,39 @@ func (c *CustomPorts) String() string {
 	return "Custom Ports"
 }
 
+// ValidateCustomPorts to validate the custom port range
+func ValidateCustomPorts(value string) {
+	potentialRange := strings.Split(value, "-")
+	if len(potentialRange) < portRangeParts {
+		if _, err := strconv.Atoi(value); err != nil {
+			gologger.Warning().Msgf("Could not cast port to integer from your value: %s. Resulting error: %s. Skipping it.\n",
+				value, err.Error())
+			return
+		}
+	} else {
+		part1 := potentialRange[0]
+		part2 := potentialRange[1]
+		lowP, err := strconv.Atoi(part1)
+		if err != nil {
+			gologger.Warning().Msgf("Could not cast first port of your range(%s) to integer from your value: %s. Resulting error: %s. Skipping it.\n",
+				value, part1, err.Error())
+			return
+		}
+		highP, err := strconv.Atoi(part2)
+		if err != nil {
+			gologger.Warning().Msgf("Could not cast last port of your port range(%s) to integer from "+
+				"your value: %s. Resulting error %s. Skipping it\n",
+				value, part2, err.Error())
+			return
+		}
+		if lowP > highP {
+			gologger.Warning().Msgf("First value of port range should be lower than the last port "+
+				"from your range: [%d, %d]. Skipping it.\n",
+				lowP, highP)
+		}
+	}
+}
+
 // Set a port range
 func (c *CustomPorts) Set(value string) error {
 	// ports can be like nmap -p [https|http:]start-end,[https|http:]port1,[https|http:]port2,[https|http:]port3
