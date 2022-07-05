@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/RumbleDiscovery/jarm-go"
-	"github.com/projectdiscovery/httpx/common/regexhelper"
 	"golang.org/x/net/proxy"
 )
 
@@ -20,8 +19,8 @@ var DefualtBackoff = func(r, m int) time.Duration {
 }
 
 type target struct {
-	Host string
-	Port int
+	Host    string
+	Port    int
 	Retries int
 	Backoff func(r, m int) time.Duration
 }
@@ -85,9 +84,5 @@ func Jarm(host string, duration int) string {
 	if t.Port == 0 {
 		t.Port = defaultPort
 	}
-	hash := fingerprint(t, duration)
-	if regexhelper.JarmHashRegex.MatchString(hash) {
-		return ""
-	}
-	return hash
+	return fingerprint(t, duration)
 }
