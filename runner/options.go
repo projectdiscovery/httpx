@@ -516,7 +516,9 @@ func (options *Options) ValidateOptions() error {
 		for _, value := range options.CustomPorts {
 			potentialPorts := sliceutil.Dedupe(strings.Split(value, ","))
 			for _, port := range potentialPorts {
-				customport.ValidateCustomPorts(port)
+				if err := customport.ValidateCustomPorts(port); err != nil {
+					return err
+				}
 			}
 		}
 	}
