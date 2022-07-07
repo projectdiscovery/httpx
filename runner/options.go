@@ -22,6 +22,7 @@ import (
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
+	"github.com/projectdiscovery/sliceutil"
 )
 
 const (
@@ -510,7 +511,17 @@ func (options *Options) ValidateOptions() error {
 	if len(options.OutputMatchCdn) > 0 || len(options.OutputFilterCdn) > 0 {
 		options.OutputCDN = true
 	}
-
+	// Validate the custom port range
+	if len(options.CustomPorts) > 0 {
+		for _, value := range options.CustomPorts {
+			potentialPorts := sliceutil.Dedupe(strings.Split(value, ","))
+			for _, port := range potentialPorts {
+				if err := customport.ValidateCustomPorts(port); err != nil {
+					return err
+				}
+			}
+		}
+	}
 	return nil
 }
 

@@ -562,6 +562,10 @@ func (r *Runner) RunEnumeration() {
 
 		for resp := range output {
 			if resp.err != nil {
+				// Change the error message if any port value passed explicitly
+				if url, err := url.Parse(resp.URL); err == nil && url.Port() != "" {
+					resp.err = errors.New(strings.ReplaceAll(resp.err.Error(), "address", "port"))
+				}
 				gologger.Debug().Msgf("Failed '%s': %s\n", resp.URL, resp.err)
 			}
 			if resp.str == "" {
