@@ -40,6 +40,7 @@ type Options struct {
 	UnsafeURI                 string
 	Resolvers                 []string
 	customCookies             []*http.Cookie
+	SniName                   string
 }
 
 // DefaultOptions contains the default options

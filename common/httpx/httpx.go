@@ -16,6 +16,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
+	"github.com/projectdiscovery/gologger"
 	pdhttputil "github.com/projectdiscovery/httputil"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
@@ -47,6 +48,7 @@ func New(options *Options) (*HTTPX, error) {
 	if len(options.Resolvers) > 0 {
 		fastdialerOpts.BaseResolvers = options.Resolvers
 	}
+	fastdialerOpts.SNIName = options.SniName
 	dialer, err := fastdialer.NewDialer(fastdialerOpts)
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)
@@ -108,8 +110,12 @@ func New(options *Options) (*HTTPX, error) {
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
 		},
 		DisableKeepAlives: true,
+	}
+	if httpx.Options.SniName != "" {
+		transport.TLSClientConfig.ServerName = httpx.Options.SniName
 	}
 
 	if httpx.Options.HTTPProxy != "" {
@@ -126,14 +132,19 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
-	httpx.client2 = &http.Client{
-		Transport: &http2.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-			AllowHTTP: true,
+	transport2 := &http2.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
 		},
-		Timeout: httpx.Options.Timeout,
+		AllowHTTP: true,
+	}
+	if httpx.Options.SniName != "" {
+		transport2.TLSClientConfig.ServerName = httpx.Options.SniName
+	}
+	httpx.client2 = &http.Client{
+		Transport: transport2,
+		Timeout:   httpx.Options.Timeout,
 	}
 
 	httpx.htmlPolicy = bluemonday.NewPolicy()
@@ -141,7 +152,7 @@ func New(options *Options) (*HTTPX, error) {
 	if options.CdnCheck || options.ExcludeCdn {
 		httpx.cdn, err = cdncheck.NewWithCache()
 		if err != nil {
-			return nil, fmt.Errorf("could not create cdn check: %s", err)
+			gologger.Error().Msgf("could not create cdn check: %v", err)
 		}
 	}
 
