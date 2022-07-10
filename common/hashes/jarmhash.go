@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RumbleDiscovery/jarm-go"
+	"github.com/hdm/jarm-go"
 	"golang.org/x/net/proxy"
 )
 

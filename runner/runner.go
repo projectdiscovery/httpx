@@ -1291,6 +1291,7 @@ retry:
 		}
 	}
 
+	var extractRegex []string
 	// extract regex
 	var extractResult = map[string][]string{}
 	if scanopts.extractRegexps != nil {
@@ -1508,6 +1509,7 @@ retry:
 		Lines:            resp.Lines,
 		Words:            resp.Words,
 		ASN:              asnResponse,
+		ExtractRegex:     extractRegex,
 	}
 }
 
@@ -1538,6 +1540,7 @@ type Result struct {
 	CSPData          *httpx.CSPData      `json:"csp,omitempty" csv:"csp"`
 	TLSData          *cryptoutil.TLSData `json:"tls-grab,omitempty" csv:"tls-grab"`
 	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
+	ExtractRegex     []string            `json:"extract-regex,omitempty" csv:"regex"`
 	CDNName          string              `json:"cdn-name,omitempty" csv:"cdn-name"`
 	Port             string              `json:"port,omitempty" csv:"port"`
 	raw              string
