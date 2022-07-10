@@ -22,7 +22,8 @@ func main() {
 	failed := aurora.Red("[✘]").String()
 
 	tests := map[string]map[string]testutils.TestCase{
-		"http": httpTestcases,
+		"http":    httpTestcases,
+		"library": libraryTestcases,
 	}
 	for proto, tests := range tests {
 		if protocol == "" || protocol == proto {
