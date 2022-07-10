@@ -2,8 +2,6 @@ github.com/Mzack9999/go-http-digest-auth-client v0.6.1-0.20220414142836-eb888350
 github.com/Mzack9999/go-http-digest-auth-client v0.6.1-0.20220414142836-eb8883508809/go.mod h1:upgc3Zs45jBDnBT4tVRgRcgm26ABpaP7MoTSdgysca4=
 github.com/PuerkitoBio/goquery v1.8.0 h1:PJTF7AmFCFKk1N6V6jmKfrNH9tV5pNE6lZMkG0gta/U=
 github.com/PuerkitoBio/goquery v1.8.0/go.mod h1:ypIiRMtY7COPGk+I/YbZLbxsxn9g5ejnI2HSMtkjZvI=
-github.com/RumbleDiscovery/jarm-go v0.0.6 h1:n3JEmOhPyfhmu1aeDEK/10Y2F+GMUYrtGFZmp4Yj0s4=
-github.com/RumbleDiscovery/jarm-go v0.0.6/go.mod h1:dXV7z5vBXQI0cNaHXwzGtq2PJ2LgM3XgcFiX32FU3bg=
 github.com/RumbleDiscovery/rumble-tools v0.0.0-20201105153123-f2adbb3244d2/go.mod h1:jD2+mU+E2SZUuAOHZvZj4xP4frlOo+N/YrXDvASFhkE=
 github.com/akrylysov/pogreb v0.10.0/go.mod h1:pNs6QmpQ1UlTJKDezuRWmaqkgUE2TuU0YTWyqJZ7+lI=
 github.com/akrylysov/pogreb v0.10.1 h1:FqlR8VR7uCbJdfUob916tPM+idpKgeESDXOA1K0DK4w=
@@ -59,6 +57,8 @@ github.com/gorilla/css v1.0.0 h1:BQqNyPTi50JCFMTw/b67hByjMVXZRwGha6wxVGkeihY=
 github.com/gorilla/css v1.0.0/go.mod h1:Dn721qIggHpt4+EFCcTLTU/vk5ySda2ReITrtgBl60c=
 github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf h1:umfGUaWdFP2s6457fz1+xXYIWDxdGc7HdkLS9aJ1skk=
 github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf/go.mod h1:V99KdStnMHZsvVOwIvhfcUzYgYkRZeQWUtumtL+SKxA=
+github.com/hdm/jarm-go v0.0.7 h1:Eq0geenHrBSYuKrdVhrBdMMzOmA+CAMLzN2WrF3eL6A=
+github.com/hdm/jarm-go v0.0.7/go.mod h1:kinGoS0+Sdn1Rr54OtanET5E5n7AlD6T6CrJAKDjJSQ=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/json-iterator/go v1.1.10/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/json-iterator/go v1.1.11/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=

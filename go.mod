@@ -47,8 +47,8 @@ require github.com/spaolacci/murmur3 v1.1.0
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
-	github.com/hdm/jarm-go v0.0.6
 	github.com/ammario/ipisp/v2 v2.0.0
+	github.com/hdm/jarm-go v0.0.7
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 )
 
