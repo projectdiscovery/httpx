@@ -1291,7 +1291,6 @@ retry:
 		}
 	}
 
-	var extractRegex []string
 	// extract regex
 	var extractResult = map[string][]string{}
 	if scanopts.extractRegexps != nil {
@@ -1509,7 +1508,6 @@ retry:
 		Lines:            resp.Lines,
 		Words:            resp.Words,
 		ASN:              asnResponse,
-		ExtractRegex:     extractRegex,
 	}
 }
 
