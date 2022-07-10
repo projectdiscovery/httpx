@@ -1,6 +1,7 @@
 package customport
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -26,6 +27,36 @@ type CustomPorts []string
 // String returns just a label
 func (c *CustomPorts) String() string {
 	return "Custom Ports"
+}
+
+// ValidateCustomPorts to validate the custom port range
+func ValidateCustomPorts(value string) error {
+	potentialRange := strings.Split(value, "-")
+	if len(potentialRange) < portRangeParts {
+		if _, err := strconv.Atoi(value); err != nil {
+			return fmt.Errorf("Could not cast port to integer from your value: %s. Resulting error: %s.\n", value, err.Error())
+		}
+	} else {
+		part1 := potentialRange[0]
+		part2 := potentialRange[1]
+		lowP, err := strconv.Atoi(part1)
+		if err != nil {
+			return fmt.Errorf("Could not cast first port of your range(%s) to integer from your value: %s. Resulting error: %s.\n",
+				value, part1, err.Error())
+		}
+		highP, err := strconv.Atoi(part2)
+		if err != nil {
+			return fmt.Errorf("Could not cast last port of your port range(%s) to integer from "+
+				"your value: %s. Resulting error %s.\n",
+				value, part2, err.Error())
+		}
+		if lowP > highP {
+			return fmt.Errorf("First value of port range should be lower than the last port "+
+				"from your range: [%d, %d].\n",
+				lowP, highP)
+		}
+	}
+	return nil
 }
 
 // Set a port range
