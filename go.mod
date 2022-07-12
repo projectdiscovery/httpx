@@ -20,15 +20,15 @@ require (
 	github.com/projectdiscovery/fdmax v0.0.3
 	github.com/projectdiscovery/fileutil v0.0.0-20220609150212-453ac591c36c
 	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c
-	github.com/projectdiscovery/goflags v0.0.8-0.20220610073650-5d31a8c159e3
+	github.com/projectdiscovery/goflags v0.0.8
 	github.com/projectdiscovery/gologger v1.1.4
 	github.com/projectdiscovery/hmap v0.0.2-0.20210917080408-0fd7bd286bfa
 	github.com/projectdiscovery/httputil v0.0.0-20210816170244-86fd46bc09f5
 	github.com/projectdiscovery/iputil v0.0.0-20220613112553-9b6873b2c619
-	github.com/projectdiscovery/mapcidr v1.0.0
+	github.com/projectdiscovery/mapcidr v1.0.1
 	github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e
 	github.com/projectdiscovery/retryablehttp-go v1.0.3-0.20220506110515-811d938bd26d
-	github.com/projectdiscovery/sliceutil v0.0.0-20210804143453-61f3e7fd43ea
+	github.com/projectdiscovery/sliceutil v0.0.0-20220617151003-15892688e1d6
 	github.com/projectdiscovery/stringsutil v0.0.0-20220612082425-0037ce9f89f3
 	github.com/projectdiscovery/urlutil v0.0.0-20220603144104-f4c60e5107b2
 	github.com/projectdiscovery/wappalyzergo v0.0.50
@@ -38,7 +38,7 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/ratelimit v0.2.0
-	golang.org/x/net v0.0.0-20220607020251-c690dde0001d
+	golang.org/x/net v0.0.0-20220617184016-355a448f1bc9
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/text v0.3.7
 )
@@ -80,6 +80,5 @@ require (
 	golang.org/x/tools v0.1.6-0.20210726203631-07bc1bf47fb2 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
