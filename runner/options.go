@@ -120,6 +120,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
 		HostMaxErrors:             s.HostMaxErrors,
 		Favicon:                   s.Favicon,
+		extractRegexps:            s.extractRegexps,
 		LeaveDefaultPorts:         s.LeaveDefaultPorts,
 		OutputLinesCount:          s.OutputLinesCount,
 		OutputWordsCount:          s.OutputWordsCount,

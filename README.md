@@ -116,11 +116,12 @@ MATCHERS:
    -mfc, -match-favicon string[]      match response with specified favicon hash (-mfc 1494302000)
    -ms, -match-string string          match response with specified string (-ms admin)
    -mr, -match-regex string           match response with specified regex (-mr admin)
-   -mcdn, -match-cdn string[]         match host with specified cdn provider (google, azure, cloudflare, cloudfront, fastly, incapsula, oracle, akamai, sucuri, leaseweb)
+   -mcdn, -match-cdn string[]         match host with specified cdn provider (azure, cloudflare, cloudfront, fastly, incapsula, oracle, google, akamai, sucuri, leaseweb)
    -mrt, -match-response-time string  match response with specified response time in seconds (-mrt '< 1')
 
 EXTRACTOR:
-   -er, -extract-regex string  display response content for specified regex
+   -er, -extract-regex string[]   Display response content with matched regex
+   -ep, -extract-preset string[]  Display response content with matched preset regex
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
@@ -130,7 +131,7 @@ FILTERS:
    -ffc, -filter-favicon string[]      filter response with specified favicon hash (-mfc 1494302000)
    -fs, -filter-string string          filter response with specified string (-fs admin)
    -fe, -filter-regex string           filter response with specified regex (-fe admin)
-   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (google, azure, cloudflare, cloudfront, fastly, incapsula, oracle, akamai, sucuri, leaseweb)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (azure, cloudflare, cloudfront, fastly, incapsula, oracle, google, akamai, sucuri, leaseweb)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
 
 RATE-LIMIT:
@@ -180,6 +181,7 @@ CONFIGURATIONS:
    -ldp, -leave-default-ports    leave default http/https ports in host header (eg. http://host:80 - https//host:443
 
 DEBUG:
+   -health-check, -hc        run diagnostic check up
    -debug                    display request/response content in cli
    -debug-req                display request content in cli
    -debug-resp               display response content in cli
@@ -395,7 +397,7 @@ https://api.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.96.0/20]
 ```
 
 
-### Path Probe
+### File/Path Bruteforce
 
 
 ```console
@@ -491,7 +493,7 @@ func main() {
 ```
 
 
-# 📋 Notes
+# Notes
 
 - As default, **httpx** checks for `HTTPS` probe and fall-back to `HTTP` only if `HTTPS` is not reachable.
 - For printing both HTTP/HTTPS results, `no-fallback` flag can be used.
