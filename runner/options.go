@@ -221,10 +221,10 @@ type Options struct {
 	Stream                    bool
 	SkipDedupe                bool
 	ProbeAllIPS               bool
-	Resolvers                 goflags.NormalizedStringSlice
+	Resolvers                 goflags.StringSlice
 	Favicon                   bool
-	OutputFilterFavicon       goflags.NormalizedStringSlice
-	OutputMatchFavicon        goflags.NormalizedStringSlice
+	OutputFilterFavicon       goflags.StringSlice
+	OutputMatchFavicon        goflags.StringSlice
 	LeaveDefaultPorts         bool
 	OutputLinesCount          bool
 	OutputMatchLinesCount     string
@@ -239,8 +239,8 @@ type Options struct {
 	Hashes                    string
 	Jarm                      bool
 	Asn                       bool
-	OutputMatchCdn            goflags.NormalizedStringSlice
-	OutputFilterCdn           goflags.NormalizedStringSlice
+	OutputMatchCdn            goflags.StringSlice
+	OutputFilterCdn           goflags.StringSlice
 	SniName                   string
 	OutputMatchResponseTime   string
 	OutputFilterResponseTime  string
@@ -287,16 +287,16 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchContentLength, "match-length", "ml", "", "match response with specified content length (-ml 100,102)"),
 		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "match response body with specified line count (-mlc 423,532)"),
 		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-word-count", "mwc", "", "match response body with specified word count (-mwc 43,55)"),
-		flagSet.NormalizedStringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", []string{}, "match response with specified favicon hash (-mfc 1494302000)"),
+		flagSet.StringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", nil, "match response with specified favicon hash (-mfc 1494302000)", goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "match response with specified string (-ms admin)"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "match response with specified regex (-mr admin)"),
-		flagSet.NormalizedStringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", []string{}, fmt.Sprintf("match host with specified cdn provider (%s)", defaultProviders)),
+		flagSet.StringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", nil, fmt.Sprintf("match host with specified cdn provider (%s)", defaultProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputMatchResponseTime, "match-response-time", "mrt", "", "match response with specified response time in seconds (-mrt '< 1')"),
 	)
 
 	flagSet.CreateGroup("extractor", "Extractor",
-		flagSet.StringSliceVarP(&options.OutputExtractRegexs, "extract-regex", "er", nil, "Display response content with matched regex"),
-		flagSet.StringSliceVarP(&options.OutputExtractPresets, "extract-preset", "ep", nil, "Display response content with matched preset regex"),
+		flagSet.StringSliceVarP(&options.OutputExtractRegexs, "extract-regex", "er", nil, "Display response content with matched regex", goflags.StringSliceOptions),
+		flagSet.StringSliceVarP(&options.OutputExtractPresets, "extract-preset", "ep", nil, "Display response content with matched preset regex", goflags.StringSliceOptions),
 	)
 
 	flagSet.CreateGroup("filters", "Filters",
@@ -304,10 +304,10 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "filter response with specified content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "filter response body with specified line count (-flc 423,532)"),
 		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-word-count", "fwc", "", "filter response body with specified word count (-fwc 423,532)"),
-		flagSet.NormalizedStringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", []string{}, "filter response with specified favicon hash (-mfc 1494302000)"),
+		flagSet.StringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", nil, "filter response with specified favicon hash (-mfc 1494302000)", goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "filter response with specified string (-fs admin)"),
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "filter response with specified regex (-fe admin)"),
-		flagSet.NormalizedStringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", []string{}, fmt.Sprintf("filter host with specified cdn provider (%s)", defaultProviders)),
+		flagSet.StringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", nil, fmt.Sprintf("filter host with specified cdn provider (%s)", defaultProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
 	)
 
@@ -341,7 +341,7 @@ func ParseOptions() *Options {
 	)
 
 	flagSet.CreateGroup("configs", "Configurations",
-		flagSet.NormalizedStringSliceVarP(&options.Resolvers, "resolvers", "r", []string{}, "list of custom resolver (file or comma separated)"),
+		flagSet.StringSliceVarP(&options.Resolvers, "resolvers", "r", nil, "list of custom resolver (file or comma separated)", goflags.NormalizedStringSliceOptions),
 		flagSet.Var(&options.Allow, "allow", "allowed list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.StringVarP(&options.SniName, "sni-name", "sni", "", "Custom TLS SNI name"),
