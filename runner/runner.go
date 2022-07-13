@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/projectdiscovery/httpx/common/customextract"
-	"github.com/projectdiscovery/sliceutil"
 
 	"github.com/ammario/ipisp/v2"
 	"github.com/bluele/gcache"
@@ -34,6 +33,7 @@ import (
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/httpx/common/hashes"
 	"github.com/projectdiscovery/retryablehttp-go"
+	"github.com/projectdiscovery/sliceutil"
 	"github.com/projectdiscovery/stringsutil"
 	"github.com/projectdiscovery/urlutil"
 
