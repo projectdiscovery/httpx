@@ -213,6 +213,11 @@ get_response:
 		return nil, closeErr
 	}
 
+	respbody, err = DecodeData(respbody, httpresp.Header)
+	if err != nil && !shouldIgnoreBodyErrors {
+		return nil, closeErr
+	}
+
 	respbodystr := string(respbody)
 
 	// check if we need to strip html
