@@ -749,6 +749,14 @@ func (r *Runner) RunEnumeration() {
 	wgoutput.Wait()
 }
 
+func (r *Runner) GetScanOpts() scanOptions {
+	return r.scanopts
+}
+
+func (r *Runner) Process(t string, wg *sizedwaitgroup.SizedWaitGroup, protocol string, scanopts *scanOptions, output chan Result) {
+	r.process(t, wg, r.hp, protocol, scanopts, output)
+}
+
 func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
 	protocols := []string{protocol}
 	if scanopts.NoFallback || protocol == httpx.HTTPandHTTPS {
