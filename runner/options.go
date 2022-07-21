@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
@@ -20,6 +22,7 @@ import (
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
+	"github.com/projectdiscovery/sliceutil"
 )
 
 const (
@@ -68,7 +71,7 @@ type scanOptions struct {
 	MaxResponseBodySizeToSave int
 	MaxResponseBodySizeToRead int
 	OutputExtractRegex        string
-	extractRegex              *regexp.Regexp
+	extractRegexps            map[string]*regexp.Regexp
 	ExcludeCDN                bool
 	HostMaxErrors             int
 	ProbeAllIPS               bool
@@ -117,6 +120,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		MaxResponseBodySizeToRead: s.MaxResponseBodySizeToRead,
 		HostMaxErrors:             s.HostMaxErrors,
 		Favicon:                   s.Favicon,
+		extractRegexps:            s.extractRegexps,
 		LeaveDefaultPorts:         s.LeaveDefaultPorts,
 		OutputLinesCount:          s.OutputLinesCount,
 		OutputWordsCount:          s.OutputWordsCount,
@@ -205,7 +209,8 @@ type Options struct {
 	Allow                     customlist.CustomList
 	MaxResponseBodySizeToSave int
 	MaxResponseBodySizeToRead int
-	OutputExtractRegex        string
+	OutputExtractRegexs       goflags.StringSlice
+	OutputExtractPresets      goflags.StringSlice
 	RateLimit                 int
 	RateLimitMinute           int
 	Probe                     bool
@@ -216,10 +221,10 @@ type Options struct {
 	Stream                    bool
 	SkipDedupe                bool
 	ProbeAllIPS               bool
-	Resolvers                 goflags.NormalizedStringSlice
+	Resolvers                 goflags.StringSlice
 	Favicon                   bool
-	OutputFilterFavicon       goflags.NormalizedStringSlice
-	OutputMatchFavicon        goflags.NormalizedStringSlice
+	OutputFilterFavicon       goflags.StringSlice
+	OutputMatchFavicon        goflags.StringSlice
 	LeaveDefaultPorts         bool
 	OutputLinesCount          bool
 	OutputMatchLinesCount     string
@@ -234,11 +239,12 @@ type Options struct {
 	Hashes                    string
 	Jarm                      bool
 	Asn                       bool
-	OutputMatchCdn            goflags.NormalizedStringSlice
-	OutputFilterCdn           goflags.NormalizedStringSlice
+	OutputMatchCdn            goflags.StringSlice
+	OutputFilterCdn           goflags.StringSlice
 	SniName                   string
 	OutputMatchResponseTime   string
 	OutputFilterResponseTime  string
+	HealthCheck               bool
 }
 
 // ParseOptions parses the command line options for application
@@ -248,12 +254,12 @@ func ParseOptions() *Options {
 	flagSet := goflags.NewFlagSet()
 	flagSet.SetDescription(`httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using retryablehttp library.`)
 
-	createGroup(flagSet, "input", "Input",
+	flagSet.CreateGroup("input", "Input",
 		flagSet.StringVarP(&options.InputFile, "list", "l", "", "input file containing list of hosts to process"),
 		flagSet.StringVarP(&options.InputRawRequest, "request", "rr", "", "file containing raw request"),
 	)
 
-	createGroup(flagSet, "Probes", "Probes",
+	flagSet.CreateGroup("Probes", "Probes",
 		flagSet.BoolVarP(&options.StatusCode, "status-code", "sc", false, "display response status-code"),
 		flagSet.BoolVarP(&options.ContentLength, "content-length", "cl", false, "display response content-length"),
 		flagSet.BoolVarP(&options.OutputContentType, "content-type", "ct", false, "display response content-type"),
@@ -276,41 +282,42 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),
 	)
 
-	createGroup(flagSet, "matchers", "Matchers",
+	flagSet.CreateGroup("matchers", "Matchers",
 		flagSet.StringVarP(&options.OutputMatchStatusCode, "match-code", "mc", "", "match response with specified status code (-mc 200,302)"),
 		flagSet.StringVarP(&options.OutputMatchContentLength, "match-length", "ml", "", "match response with specified content length (-ml 100,102)"),
 		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "match response body with specified line count (-mlc 423,532)"),
 		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-word-count", "mwc", "", "match response body with specified word count (-mwc 43,55)"),
-		flagSet.NormalizedStringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", []string{}, "match response with specified favicon hash (-mfc 1494302000)"),
+		flagSet.StringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", nil, "match response with specified favicon hash (-mfc 1494302000)", goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "match response with specified string (-ms admin)"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "match response with specified regex (-mr admin)"),
-		flagSet.NormalizedStringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", []string{}, fmt.Sprintf("match host with specified cdn provider (%s)", defaultProviders)),
+		flagSet.StringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", nil, fmt.Sprintf("match host with specified cdn provider (%s)", defaultProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputMatchResponseTime, "match-response-time", "mrt", "", "match response with specified response time in seconds (-mrt '< 1')"),
 	)
 
-	createGroup(flagSet, "extractor", "Extractor",
-		flagSet.StringVarP(&options.OutputExtractRegex, "extract-regex", "er", "", "display response content for specified regex"),
+	flagSet.CreateGroup("extractor", "Extractor",
+		flagSet.StringSliceVarP(&options.OutputExtractRegexs, "extract-regex", "er", nil, "Display response content with matched regex", goflags.StringSliceOptions),
+		flagSet.StringSliceVarP(&options.OutputExtractPresets, "extract-preset", "ep", nil, "Display response content with matched preset regex", goflags.StringSliceOptions),
 	)
 
-	createGroup(flagSet, "filters", "Filters",
+	flagSet.CreateGroup("filters", "Filters",
 		flagSet.StringVarP(&options.OutputFilterStatusCode, "filter-code", "fc", "", "filter response with specified status code (-fc 403,401)"),
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "filter response with specified content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "filter response body with specified line count (-flc 423,532)"),
 		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-word-count", "fwc", "", "filter response body with specified word count (-fwc 423,532)"),
-		flagSet.NormalizedStringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", []string{}, "filter response with specified favicon hash (-mfc 1494302000)"),
+		flagSet.StringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", nil, "filter response with specified favicon hash (-mfc 1494302000)", goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "filter response with specified string (-fs admin)"),
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "filter response with specified regex (-fe admin)"),
-		flagSet.NormalizedStringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", []string{}, fmt.Sprintf("filter host with specified cdn provider (%s)", defaultProviders)),
+		flagSet.StringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", nil, fmt.Sprintf("filter host with specified cdn provider (%s)", defaultProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
 	)
 
-	createGroup(flagSet, "rate-limit", "Rate-Limit",
+	flagSet.CreateGroup("rate-limit", "Rate-Limit",
 		flagSet.IntVarP(&options.Threads, "threads", "t", 50, "number of threads to use"),
 		flagSet.IntVarP(&options.RateLimit, "rate-limit", "rl", 150, "maximum requests to send per second"),
 		flagSet.IntVarP(&options.RateLimitMinute, "rate-limit-minute", "rlm", 0, "maximum number of requests to send per minute"),
 	)
 
-	createGroup(flagSet, "Misc", "Miscellaneous",
+	flagSet.CreateGroup("Misc", "Miscellaneous",
 		flagSet.BoolVarP(&options.ProbeAllIPS, "probe-all-ips", "pa", false, "probe all the ips associated with same host"),
 		flagSet.VarP(&options.CustomPorts, "ports", "p", "ports to probe (nmap syntax: eg 1,2-10,11)"),
 		flagSet.StringVar(&options.RequestURIs, "path", "", "path or list of paths to probe (comma-separated, file)"),
@@ -322,7 +329,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.VHost, "vhost", false, "probe and display server supporting VHOST"),
 	)
 
-	createGroup(flagSet, "output", "Output",
+	flagSet.CreateGroup("output", "Output",
 		flagSet.StringVarP(&options.Output, "output", "o", "", "file to write output results"),
 		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
 		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
@@ -333,8 +340,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
 	)
 
-	createGroup(flagSet, "configs", "Configurations",
-		flagSet.NormalizedStringSliceVarP(&options.Resolvers, "resolvers", "r", []string{}, "list of custom resolver (file or comma separated)"),
+	flagSet.CreateGroup("configs", "Configurations",
+		flagSet.StringSliceVarP(&options.Resolvers, "resolvers", "r", nil, "list of custom resolver (file or comma separated)", goflags.NormalizedStringSliceOptions),
 		flagSet.Var(&options.Allow, "allow", "allowed list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.StringVarP(&options.SniName, "sni-name", "sni", "", "Custom TLS SNI name"),
@@ -354,7 +361,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.LeaveDefaultPorts, "leave-default-ports", "ldp", false, "leave default http/https ports in host header (eg. http://host:80 - https//host:443"),
 	)
 
-	createGroup(flagSet, "debug", "Debug",
+	flagSet.CreateGroup("debug", "Debug",
+		flagSet.BoolVarP(&options.HealthCheck, "hc", "health-check", false, "run diagnostic check up"),
 		flagSet.BoolVar(&options.Debug, "debug", false, "display request/response content in cli"),
 		flagSet.BoolVar(&options.DebugRequests, "debug-req", false, "display request content in cli"),
 		flagSet.BoolVar(&options.DebugResponse, "debug-resp", false, "display response content in cli"),
@@ -366,7 +374,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.NoColor, "no-color", "nc", false, "disable colors in cli output"),
 	)
 
-	createGroup(flagSet, "Optimizations", "Optimizations",
+	flagSet.CreateGroup("Optimizations", "Optimizations",
 		flagSet.BoolVarP(&options.NoFallback, "no-fallback", "nf", false, "display both probed protocol (HTTPS and HTTP)"),
 		flagSet.BoolVarP(&options.NoFallbackScheme, "no-fallback-scheme", "nfs", false, "probe with protocol scheme specified in input "),
 		flagSet.IntVarP(&options.HostMaxErrors, "max-host-error", "maxhr", 30, "max error count per host before skipping remaining path/s"),
@@ -378,6 +386,11 @@ func ParseOptions() *Options {
 	)
 
 	_ = flagSet.Parse()
+
+	if options.HealthCheck {
+		gologger.Print().Msgf("%s\n", DoHealthCheck(options))
+		os.Exit(0)
+	}
 
 	if options.StatsInterval != 0 {
 		options.ShowStatistics = true
@@ -398,59 +411,61 @@ func ParseOptions() *Options {
 		os.Exit(0)
 	}
 
-	options.validateOptions()
+	if err := options.ValidateOptions(); err != nil {
+		gologger.Fatal().Msgf("%s\n", err)
+	}
 
 	return options
 }
 
-func (options *Options) validateOptions() {
+func (options *Options) ValidateOptions() error {
 	if options.InputFile != "" && !fileutilz.FileNameIsGlob(options.InputFile) && !fileutil.FileExists(options.InputFile) {
-		gologger.Fatal().Msgf("File %s does not exist.\n", options.InputFile)
+		return fmt.Errorf("File %s does not exist.", options.InputFile)
 	}
 
 	if options.InputRawRequest != "" && !fileutil.FileExists(options.InputRawRequest) {
-		gologger.Fatal().Msgf("File %s does not exist.\n", options.InputRawRequest)
+		return fmt.Errorf("File %s does not exist.", options.InputRawRequest)
 	}
 
 	multiOutput := options.CSVOutput && options.JSONOutput
 	if multiOutput {
-		gologger.Fatal().Msg("Results can only be displayed in one format: 'JSON' or 'CSV'\n")
+		return fmt.Errorf("Results can only be displayed in one format: 'JSON' or 'CSV'")
 	}
 
 	var err error
 	if options.matchStatusCode, err = stringz.StringToSliceInt(options.OutputMatchStatusCode); err != nil {
-		gologger.Fatal().Msgf("Invalid value for match status code option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for match status code option")
 	}
 	if options.matchContentLength, err = stringz.StringToSliceInt(options.OutputMatchContentLength); err != nil {
-		gologger.Fatal().Msgf("Invalid value for match content length option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for match content length option")
 	}
 	if options.filterStatusCode, err = stringz.StringToSliceInt(options.OutputFilterStatusCode); err != nil {
-		gologger.Fatal().Msgf("Invalid value for filter status code option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for filter status code option")
 	}
 	if options.filterContentLength, err = stringz.StringToSliceInt(options.OutputFilterContentLength); err != nil {
-		gologger.Fatal().Msgf("Invalid value for filter content length option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for filter content length option")
 	}
 	if options.OutputFilterRegex != "" {
 		if options.filterRegex, err = regexp.Compile(options.OutputFilterRegex); err != nil {
-			gologger.Fatal().Msgf("Invalid value for regex filter option: %s\n", err)
+			return errors.Wrap(err, "Invalid value for regex filter option")
 		}
 	}
 	if options.OutputMatchRegex != "" {
 		if options.matchRegex, err = regexp.Compile(options.OutputMatchRegex); err != nil {
-			gologger.Fatal().Msgf("Invalid value for match regex option: %s\n", err)
+			return errors.Wrap(err, "Invalid value for match regex option")
 		}
 	}
 	if options.matchLinesCount, err = stringz.StringToSliceInt(options.OutputMatchLinesCount); err != nil {
-		gologger.Fatal().Msgf("Invalid value for match lines count option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for match lines count option")
 	}
 	if options.matchWordsCount, err = stringz.StringToSliceInt(options.OutputMatchWordsCount); err != nil {
-		gologger.Fatal().Msgf("Invalid value for match words count option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for match words count option")
 	}
 	if options.filterLinesCount, err = stringz.StringToSliceInt(options.OutputFilterLinesCount); err != nil {
-		gologger.Fatal().Msgf("Invalid value for filter lines count option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for filter lines count option")
 	}
 	if options.filterWordsCount, err = stringz.StringToSliceInt(options.OutputFilterWordsCount); err != nil {
-		gologger.Fatal().Msgf("Invalid value for filter words count option: %s\n", err)
+		return errors.Wrap(err, "Invalid value for filter words count option")
 	}
 
 	var resolvers []string
@@ -458,7 +473,7 @@ func (options *Options) validateOptions() {
 		if fileutil.FileExists(resolver) {
 			chFile, err := fileutil.ReadFile(resolver)
 			if err != nil {
-				gologger.Fatal().Msgf("Couldn't process resolver file \"%s\": %s\n", resolver, err)
+				return errors.Wrapf(err, "Couldn't process resolver file \"%s\"", resolver)
 			}
 			for line := range chFile {
 				resolvers = append(resolvers, line)
@@ -467,6 +482,7 @@ func (options *Options) validateOptions() {
 			resolvers = append(resolvers, resolver)
 		}
 	}
+
 	options.Resolvers = resolvers
 	if len(options.Resolvers) > 0 {
 		gologger.Debug().Msgf("Using resolvers: %s\n", strings.Join(options.Resolvers, ","))
@@ -496,6 +512,18 @@ func (options *Options) validateOptions() {
 	if len(options.OutputMatchCdn) > 0 || len(options.OutputFilterCdn) > 0 {
 		options.OutputCDN = true
 	}
+	// Validate the custom port range
+	if len(options.CustomPorts) > 0 {
+		for _, value := range options.CustomPorts {
+			potentialPorts := sliceutil.Dedupe(strings.Split(value, ","))
+			for _, port := range potentialPorts {
+				if err := customport.ValidateCustomPorts(port); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // configureOutput configures the output on the screen
@@ -535,11 +563,4 @@ func (options *Options) ShouldLoadResume() bool {
 // ShouldSaveResume file
 func (options *Options) ShouldSaveResume() bool {
 	return true
-}
-
-func createGroup(flagSet *goflags.FlagSet, groupName, description string, flags ...*goflags.FlagData) {
-	flagSet.SetGroup(groupName, description)
-	for _, currentFlag := range flags {
-		currentFlag.Group(groupName)
-	}
 }

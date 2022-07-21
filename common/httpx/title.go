@@ -35,51 +35,9 @@ func ExtractTitle(r *Response) (title string) {
 
 	// remove unwanted chars
 	title = strings.TrimSpace(strings.Trim(title, cutset))
-	title = strings.ReplaceAll(title, "\n", "")
-	title = strings.ReplaceAll(title, "\r", "")
+	title = stringsutil.ReplaceAny(title, "\n", "\r")
 
-	// Non UTF-8
-	if contentTypes, ok := r.Headers["Content-Type"]; ok {
-		contentType := strings.ToLower(strings.Join(contentTypes, ";"))
-
-		switch {
-		case stringsutil.ContainsAny(contentType, "charset=gb2312", "charset=gbk"):
-			titleUtf8, err := Decodegbk([]byte(title))
-			if err != nil {
-				return
-			}
-
-			return string(titleUtf8)
-		case stringsutil.ContainsAny(contentType, "euc-kr"):
-			titleUtf8, err := DecodeKorean([]byte(title))
-			if err != nil {
-				return
-			}
-			return string(titleUtf8)
-		}
-
-		// Content-Type from head tag
-		var match = reContentType.FindSubmatch(r.Data)
-		var mcontentType = ""
-		if len(match) != 0 {
-			for i, v := range match {
-				if string(v) != "" && i != 0 {
-					mcontentType = string(v)
-				}
-			}
-			mcontentType = strings.ToLower(mcontentType)
-		}
-		switch {
-		case stringsutil.ContainsAny(mcontentType, "gb2312", "gbk"):
-			titleUtf8, err := Decodegbk([]byte(title))
-			if err != nil {
-				return
-			}
-			return string(titleUtf8)
-		}
-	}
-
-	return //nolint
+	return title
 }
 
 func getTitleWithDom(r *Response) (*html.Node, error) {
