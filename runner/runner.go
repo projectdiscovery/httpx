@@ -22,7 +22,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
+	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 
 	"github.com/ammario/ipisp/v2"
 	"github.com/bluele/gcache"
@@ -62,6 +64,7 @@ type Runner struct {
 	options         *Options
 	hp              *httpx.HTTPX
 	wappalyzer      *wappalyzer.Wappalyze
+	fastdialer      *fastdialer.Dialer
 	scanopts        scanOptions
 	hm              *hybrid.HybridMap
 	stats           clistats.StatisticsClient
@@ -81,6 +84,19 @@ func New(options *Options) (*Runner, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
 	}
+
+	dialerOpts := fastdialer.DefaultOptions
+	dialerOpts.WithDialerHistory = true
+	dialerOpts.MaxRetries = 3
+	dialerOpts.DialerTimeout = time.Duration(options.Timeout) * time.Second
+	if len(options.Resolvers) > 0 {
+		dialerOpts.BaseResolvers = options.Resolvers
+	}
+	fastDialer, err := fastdialer.NewDialer(dialerOpts)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create dialer")
+	}
+	runner.fastdialer = fastDialer
 
 	httpxOptions := httpx.DefaultOptions
 	// Enables automatically tlsgrab if tlsprobe is requested
@@ -1398,7 +1414,7 @@ retry:
 	}
 	jarmhash := ""
 	if r.options.Jarm {
-		jarmhash = hashes.Jarm(fullURL, r.options.Timeout)
+		jarmhash = jarm.Jarm(r.fastdialer, fullURL, r.options.Timeout)
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Magenta(jarmhash).String())
