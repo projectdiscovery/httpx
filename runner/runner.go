@@ -1444,7 +1444,7 @@ retry:
 			domainFile = domainFile[:maxFileNameLength]
 		}
 
-		domainFile = strings.ReplaceAll(domainFile, "/", "_") + ".txt"
+		domainFile = strings.ReplaceAll(domainFile, "/", "[slash]") + ".txt"
 		// store response
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 		respRaw := resp.Raw

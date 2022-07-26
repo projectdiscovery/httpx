@@ -50,6 +50,7 @@ require (
 	github.com/ammario/ipisp/v2 v2.0.0
 	github.com/hdm/jarm-go v0.0.7
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
+	go.uber.org/multierr v1.8.0
 )
 
 require (
@@ -75,7 +76,6 @@ require (
 	github.com/yl2chen/cidranger v1.0.2 // indirect
 	github.com/zmap/rc2 v0.0.0-20131011165748-24b9757f5521 // indirect
 	github.com/zmap/zcrypto v0.0.0-20211005224000-2d0ffdec8a9b // indirect
-	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20220210151621-f4118a5b28e2 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/tools v0.1.6-0.20210726203631-07bc1bf47fb2 // indirect
