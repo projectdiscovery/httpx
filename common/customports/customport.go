@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"regexp"
 
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/sliceutil"
@@ -31,6 +32,10 @@ func (c *CustomPorts) String() string {
 
 // ValidateCustomPorts to validate the custom port range
 func ValidateCustomPorts(value string) error {
+
+	var re = regexp.MustCompile(`https?:`)
+	value = re.ReplaceAllString(value, `$1`)
+
 	potentialRange := strings.Split(value, "-")
 	if len(potentialRange) < portRangeParts {
 		if _, err := strconv.Atoi(value); err != nil {
