@@ -14,3 +14,4 @@ scanme.sh {{binary}} -silent -unsafe
 scanme.sh {{binary}} -silent -x all
 scanme.sh {{binary}} -silent -body 'a=b'
 scanme.sh {{binary}} -silent -exclude-cdn
+scanme.sh {{binary}} -silent -ports https:443
