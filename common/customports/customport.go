@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/projectdiscovery/gologger"
+	"github.com/pkg/errors"
 	"github.com/projectdiscovery/sliceutil"
 
 	"github.com/projectdiscovery/httpx/common/httpx"
@@ -27,36 +27,6 @@ type CustomPorts []string
 // String returns just a label
 func (c *CustomPorts) String() string {
 	return "Custom Ports"
-}
-
-// ValidateCustomPorts to validate the custom port range
-func ValidateCustomPorts(value string) error {
-	potentialRange := strings.Split(value, "-")
-	if len(potentialRange) < portRangeParts {
-		if _, err := strconv.Atoi(value); err != nil {
-			return fmt.Errorf("Could not cast port to integer from your value: %s. Resulting error: %s.\n", value, err.Error())
-		}
-	} else {
-		part1 := potentialRange[0]
-		part2 := potentialRange[1]
-		lowP, err := strconv.Atoi(part1)
-		if err != nil {
-			return fmt.Errorf("Could not cast first port of your range(%s) to integer from your value: %s. Resulting error: %s.\n",
-				value, part1, err.Error())
-		}
-		highP, err := strconv.Atoi(part2)
-		if err != nil {
-			return fmt.Errorf("Could not cast last port of your port range(%s) to integer from "+
-				"your value: %s. Resulting error %s.\n",
-				value, part2, err.Error())
-		}
-		if lowP > highP {
-			return fmt.Errorf("First value of port range should be lower than the last port "+
-				"from your range: [%d, %d].\n",
-				lowP, highP)
-		}
-	}
-	return nil
 }
 
 // Set a port range
@@ -83,39 +53,38 @@ func (c *CustomPorts) Set(value string) error {
 		potentialRange := strings.Split(potentialPort, "-")
 		// it's a single port?
 		if len(potentialRange) < portRangeParts {
-			if p, err := strconv.Atoi(potentialPort); err == nil {
-				if existingProtocol, ok := Ports[p]; ok {
-					if existingProtocol == httpx.HTTP && protocol == httpx.HTTPS || existingProtocol == httpx.HTTPS && protocol == httpx.HTTP {
-						protocol = httpx.HTTPandHTTPS
-					}
-				}
-				Ports[p] = protocol
-			} else {
-				gologger.Warning().Msgf("Could not cast port to integer from your value: %s. Resulting error: %s. Skipping it.\n",
-					potentialPort, err.Error())
+			p, err := strconv.Atoi(potentialPort)
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("Could not cast port to integer from your value: %s\n", potentialPort))
 			}
+			if err := checkPortValue(p); err != nil {
+				return err
+			}
+			if existingProtocol, ok := Ports[p]; ok {
+				if existingProtocol == httpx.HTTP && protocol == httpx.HTTPS || existingProtocol == httpx.HTTPS && protocol == httpx.HTTP {
+					protocol = httpx.HTTPandHTTPS
+				}
+			}
+			Ports[p] = protocol
 		} else {
 			// expand range
-			var lowP, highP int
 			lowP, err := strconv.Atoi(potentialRange[0])
 			if err != nil {
-				gologger.Warning().Msgf("Could not cast first port of your range(%s) to integer from your value: %s. Resulting error: %s. Skipping it.\n",
-					potentialPort, potentialRange[0], err.Error())
-				continue
+				return errors.Wrap(err, fmt.Sprintf("Could not cast first port of your range(%s) to integer from your value: %s", potentialPort, potentialRange[0]))
 			}
-			highP, err = strconv.Atoi(potentialRange[1])
+			if err := checkPortValue(lowP); err != nil {
+				return errors.Wrap(err, fmt.Sprintf("first port of your range(%d)", lowP))
+			}
+			highP, err := strconv.Atoi(potentialRange[1])
 			if err != nil {
-				gologger.Warning().Msgf("Could not cast last port of your port range(%s) to integer from "+
-					"your value: %s. Resulting error %s. Skipping it\n",
-					potentialPort, potentialRange[1], err.Error())
-				continue
+				return errors.Wrap(err, fmt.Sprintf("Could not cast last port of your port range(%s) to integer from your value: %s", potentialPort, potentialRange[1]))
+			}
+			if err := checkPortValue(highP); err != nil {
+				return errors.Wrap(err, fmt.Sprintf("last port of your range(%d)", lowP))
 			}
 
 			if lowP > highP {
-				gologger.Warning().Msgf("First value of port range should be lower than the last port "+
-					"from your range: [%d, %d]. Skipping it.\n",
-					lowP, highP)
-				continue
+				return fmt.Errorf("First value of port range should be lower than the last port from your range: [%d, %d]", lowP, highP)
 			}
 
 			for i := lowP; i <= highP; i++ {
@@ -130,5 +99,12 @@ func (c *CustomPorts) Set(value string) error {
 	}
 
 	*c = append(*c, value)
+	return nil
+}
+
+func checkPortValue(port int) error {
+	if port > 65535 {
+		return errors.New("port value is bigger than 65535")
+	}
 	return nil
 }
