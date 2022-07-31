@@ -20,7 +20,7 @@ require (
 	github.com/projectdiscovery/fdmax v0.0.3
 	github.com/projectdiscovery/fileutil v0.0.0-20220609150212-453ac591c36c
 	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c
-	github.com/projectdiscovery/goflags v0.0.8
+	github.com/projectdiscovery/goflags v0.0.9
 	github.com/projectdiscovery/gologger v1.1.4
 	github.com/projectdiscovery/hmap v0.0.2-0.20210917080408-0fd7bd286bfa
 	github.com/projectdiscovery/httputil v0.0.0-20210816170244-86fd46bc09f5
@@ -31,7 +31,7 @@ require (
 	github.com/projectdiscovery/sliceutil v0.0.0-20220617151003-15892688e1d6
 	github.com/projectdiscovery/stringsutil v0.0.0-20220612082425-0037ce9f89f3
 	github.com/projectdiscovery/urlutil v0.0.0-20220603144104-f4c60e5107b2
-	github.com/projectdiscovery/wappalyzergo v0.0.50
+	github.com/projectdiscovery/wappalyzergo v0.0.52
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.4.0
 	github.com/smartystreets/assertions v1.0.0 // indirect
@@ -50,6 +50,7 @@ require (
 	github.com/ammario/ipisp/v2 v2.0.0
 	github.com/hdm/jarm-go v0.0.7
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
+	go.uber.org/multierr v1.8.0
 )
 
 require (

@@ -22,7 +22,6 @@ import (
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
-	"github.com/projectdiscovery/sliceutil"
 )
 
 const (
@@ -319,7 +318,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("Misc", "Miscellaneous",
 		flagSet.BoolVarP(&options.ProbeAllIPS, "probe-all-ips", "pa", false, "probe all the ips associated with same host"),
-		flagSet.VarP(&options.CustomPorts, "ports", "p", "ports to probe (nmap syntax: eg 1,2-10,11)"),
+		flagSet.VarP(&options.CustomPorts, "ports", "p", "ports to probe (nmap syntax: eg http:1,2-10,11,https:80)"),
 		flagSet.StringVar(&options.RequestURIs, "path", "", "path or list of paths to probe (comma-separated, file)"),
 		flagSet.BoolVar(&options.TLSProbe, "tls-probe", false, "send http probes on the extracted TLS domains (dns_name)"),
 		flagSet.BoolVar(&options.CSPProbe, "csp-probe", false, "send http probes on the extracted CSP domains"),
@@ -512,17 +511,7 @@ func (options *Options) ValidateOptions() error {
 	if len(options.OutputMatchCdn) > 0 || len(options.OutputFilterCdn) > 0 {
 		options.OutputCDN = true
 	}
-	// Validate the custom port range
-	if len(options.CustomPorts) > 0 {
-		for _, value := range options.CustomPorts {
-			potentialPorts := sliceutil.Dedupe(strings.Split(value, ","))
-			for _, port := range potentialPorts {
-				if err := customport.ValidateCustomPorts(port); err != nil {
-					return err
-				}
-			}
-		}
-	}
+
 	return nil
 }
 

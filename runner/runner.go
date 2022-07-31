@@ -22,7 +22,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
+	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 
 	"github.com/ammario/ipisp/v2"
 	"github.com/bluele/gcache"
@@ -62,6 +64,7 @@ type Runner struct {
 	options         *Options
 	hp              *httpx.HTTPX
 	wappalyzer      *wappalyzer.Wappalyze
+	fastdialer      *fastdialer.Dialer
 	scanopts        scanOptions
 	hm              *hybrid.HybridMap
 	stats           clistats.StatisticsClient
@@ -81,6 +84,19 @@ func New(options *Options) (*Runner, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
 	}
+
+	dialerOpts := fastdialer.DefaultOptions
+	dialerOpts.WithDialerHistory = true
+	dialerOpts.MaxRetries = 3
+	dialerOpts.DialerTimeout = time.Duration(options.Timeout) * time.Second
+	if len(options.Resolvers) > 0 {
+		dialerOpts.BaseResolvers = options.Resolvers
+	}
+	fastDialer, err := fastdialer.NewDialer(dialerOpts)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create dialer")
+	}
+	runner.fastdialer = fastDialer
 
 	httpxOptions := httpx.DefaultOptions
 	// Enables automatically tlsgrab if tlsprobe is requested
@@ -749,6 +765,14 @@ func (r *Runner) RunEnumeration() {
 	wgoutput.Wait()
 }
 
+func (r *Runner) GetScanOpts() scanOptions {
+	return r.scanopts
+}
+
+func (r *Runner) Process(t string, wg *sizedwaitgroup.SizedWaitGroup, protocol string, scanopts *scanOptions, output chan Result) {
+	r.process(t, wg, r.hp, protocol, scanopts, output)
+}
+
 func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *scanOptions, output chan Result) {
 	protocols := []string{protocol}
 	if scanopts.NoFallback || protocol == httpx.HTTPandHTTPS {
@@ -1390,7 +1414,7 @@ retry:
 	}
 	jarmhash := ""
 	if r.options.Jarm {
-		jarmhash = hashes.Jarm(fullURL, r.options.Timeout)
+		jarmhash = jarm.Jarm(r.fastdialer, fullURL, r.options.Timeout)
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Magenta(jarmhash).String())
@@ -1420,7 +1444,7 @@ retry:
 			domainFile = domainFile[:maxFileNameLength]
 		}
 
-		domainFile = strings.ReplaceAll(domainFile, "/", "_") + ".txt"
+		domainFile = strings.ReplaceAll(domainFile, "/", "[slash]") + ".txt"
 		// store response
 		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
 		respRaw := resp.Raw
