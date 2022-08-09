@@ -995,16 +995,6 @@ retry:
 	if scanopts.Unsafe {
 		req.Header.Add("Connection", "close")
 	}
-	var faviconResp *httpx.Response
-	if scanopts.Favicon {
-		var favErr error
-		favURL := fmt.Sprintf("%s://%s/favicon.ico", protocol, URL.Host)
-		favreq, _ := hp.NewRequest(method, favURL)
-		faviconResp, favErr = hp.Do(favreq, httpx.UnsafeOptions{})
-		if favErr != nil {
-			return Result{URL: URL.String(), Input: origInput, err: favErr}
-		}
-	}
 	resp, err := hp.Do(req, httpx.UnsafeOptions{URIPath: reqURI})
 	if r.options.ShowStatistics {
 		r.stats.IncrementCounter("requests", 1)
@@ -1353,17 +1343,22 @@ retry:
 		}
 		builder.WriteRune(']')
 	}
-
 	var faviconMMH3 string
 	if scanopts.Favicon {
-		faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(faviconResp.Data))
-		builder.WriteString(" [")
-		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Magenta(faviconMMH3).String())
+		favURL := fmt.Sprintf("%s://%s/favicon.ico", protocol, URL.Host)
+		favreq, _ := hp.NewRequest(method, favURL)
+		if faviconResp, favErr := hp.Do(favreq, httpx.UnsafeOptions{}); favErr == nil {
+			faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(faviconResp.Data))
+			builder.WriteString(" [")
+			if !scanopts.OutputWithNoColor {
+				builder.WriteString(aurora.Magenta(faviconMMH3).String())
+			} else {
+				builder.WriteString(faviconMMH3)
+			}
+			builder.WriteRune(']')
 		} else {
-			builder.WriteString(faviconMMH3)
+			gologger.Warning().Msgf("Could not fetch favicon: %s", favErr.Error())
 		}
-		builder.WriteRune(']')
 	}
 	// adding default hashing for json output format
 	if r.options.JSONOutput && len(scanopts.Hashes) == 0 {
