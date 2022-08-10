@@ -1345,9 +1345,8 @@ retry:
 	}
 	var faviconMMH3 string
 	if scanopts.Favicon {
-		favURL := fmt.Sprintf("%s://%s/favicon.ico", protocol, URL.Host)
-		favreq, _ := hp.NewRequest(method, favURL)
-		if faviconResp, favErr := hp.Do(favreq, httpx.UnsafeOptions{}); favErr == nil {
+		req.URL.Path = "/favicon.ico"
+		if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
 			faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(faviconResp.Data))
 			builder.WriteString(" [")
 			if !scanopts.OutputWithNoColor {
