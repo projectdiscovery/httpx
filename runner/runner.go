@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/exp/maps"
+
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
@@ -30,6 +32,7 @@ import (
 	"github.com/bluele/gcache"
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
+
 	"github.com/projectdiscovery/clistats"
 	"github.com/projectdiscovery/cryptoutil"
 	"github.com/projectdiscovery/goconfig"
@@ -38,6 +41,9 @@ import (
 	"github.com/projectdiscovery/sliceutil"
 	"github.com/projectdiscovery/stringsutil"
 	"github.com/projectdiscovery/urlutil"
+
+	"github.com/remeh/sizedwaitgroup"
+	"go.uber.org/ratelimit"
 
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
@@ -55,8 +61,6 @@ import (
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/projectdiscovery/rawhttp"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
-	"github.com/remeh/sizedwaitgroup"
-	"go.uber.org/ratelimit"
 )
 
 // Runner is a client for running the enumeration process.
@@ -248,7 +252,8 @@ func New(options *Options) (*Runner, error) {
 			if regex, ok := customextract.ExtractPresets[regexName]; ok {
 				scanopts.extractRegexps[regexName] = regex
 			} else {
-				gologger.Warning().Msgf("Could not find preset: %s\n", regexName)
+				availablePresets := strings.Join(maps.Keys(customextract.ExtractPresets), ",")
+				gologger.Warning().Msgf("Could not find preset: '%s'. Available presets are: %s\n", regexName, availablePresets)
 			}
 		}
 	}
