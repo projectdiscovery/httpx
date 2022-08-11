@@ -1343,17 +1343,21 @@ retry:
 		}
 		builder.WriteRune(']')
 	}
-
 	var faviconMMH3 string
 	if scanopts.Favicon {
-		faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(resp.Data))
-		builder.WriteString(" [")
-		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Magenta(faviconMMH3).String())
+		req.URL.Path = "/favicon.ico"
+		if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
+			faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(faviconResp.Data))
+			builder.WriteString(" [")
+			if !scanopts.OutputWithNoColor {
+				builder.WriteString(aurora.Magenta(faviconMMH3).String())
+			} else {
+				builder.WriteString(faviconMMH3)
+			}
+			builder.WriteRune(']')
 		} else {
-			builder.WriteString(faviconMMH3)
+			gologger.Warning().Msgf("Could not fetch favicon: %s", favErr.Error())
 		}
-		builder.WriteRune(']')
 	}
 	// adding default hashing for json output format
 	if r.options.JSONOutput && len(scanopts.Hashes) == 0 {
