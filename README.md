@@ -24,7 +24,7 @@
 </p>
 
 
-httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library, it is designed to maintain the result reliability with increased threads.
+httpx is a fast and multi-purpose HTTP toolkit that allows running multiple probes using the [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library. It is designed to maintain result reliability with an increased number of threads.
 
 # Features
 
@@ -42,23 +42,23 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 
 ### Supported probes:-
 
-| Probes          | Default check | Probes            | Default check |
-| --------------- | ------------- | ----------------- | ------------- |
-| URL             | true          | IP                | true          |
-| Title           | true          | CNAME             | true          |
-| Status Code     | true          | Raw HTTP          | false         |
-| Content Length  | true          | HTTP2             | false         |
-| TLS Certificate | true          | HTTP Pipeline     | false         |
-| CSP Header      | true          | Virtual host      | false         |
-| Line Count      | true          | Word Count        | true          |
-| Location Header | true          | CDN               | false         |
-| Web Server      | true          | Paths             | false         |
-| Web Socket      | true          | Ports             | false         |
-| Response Time   | true          | Request Method    | true          |
-| Favicon Hash    | false         | Probe  Status     | false         |
-| Body Hash       | true          | Header  Hash      | true          |
-| Redirect chain  | false         | URL Scheme        | true          |
-| JARM Hash       | false         | ASN               | false         |
+| Probes          | Default check | Probes         | Default check |
+|-----------------|---------------|----------------|---------------|
+| URL             | true          | IP             | true          |
+| Title           | true          | CNAME          | true          |
+| Status Code     | true          | Raw HTTP       | false         |
+| Content Length  | true          | HTTP2          | false         |
+| TLS Certificate | true          | HTTP Pipeline  | false         |
+| CSP Header      | true          | Virtual host   | false         |
+| Line Count      | true          | Word Count     | true          |
+| Location Header | true          | CDN            | false         |
+| Web Server      | true          | Paths          | false         |
+| Web Socket      | true          | Ports          | false         |
+| Response Time   | true          | Request Method | true          |
+| Favicon Hash    | false         | Probe  Status  | false         |
+| Body Hash       | true          | Header  Hash   | true          |
+| Redirect chain  | false         | URL Scheme     | true          |
+| JARM Hash       | false         | ASN            | false         |
 
 # Installation Instructions
 
