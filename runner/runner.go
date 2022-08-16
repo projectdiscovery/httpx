@@ -7,7 +7,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -159,7 +159,7 @@ func New(options *Options) (*Runner, error) {
 
 	if options.InputRawRequest != "" {
 		var rawRequest []byte
-		rawRequest, err = ioutil.ReadFile(options.InputRawRequest)
+		rawRequest, err = os.ReadFile(options.InputRawRequest)
 		if err != nil {
 			gologger.Fatal().Msgf("Could not read raw request from path '%s': %s\n", options.InputRawRequest, err)
 		}
@@ -988,7 +988,7 @@ retry:
 	// We set content-length even if zero to allow net/http to follow 307/308 redirects (it fails on unknown size)
 	if scanopts.RequestBody != "" {
 		req.ContentLength = int64(len(scanopts.RequestBody))
-		req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
+		req.Body = io.NopCloser(strings.NewReader(scanopts.RequestBody))
 	} else {
 		req.ContentLength = 0
 		req.Body = nil
@@ -1015,7 +1015,7 @@ retry:
 		// Create a copy on the fly of the request body
 		if scanopts.RequestBody != "" {
 			req.ContentLength = int64(len(scanopts.RequestBody))
-			req.Body = ioutil.NopCloser(strings.NewReader(scanopts.RequestBody))
+			req.Body = io.NopCloser(strings.NewReader(scanopts.RequestBody))
 		}
 		var errDump error
 		requestDump, errDump = httputil.DumpRequestOut(req.Request, true)
@@ -1460,14 +1460,14 @@ retry:
 		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
 			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
 		}
-		writeErr := ioutil.WriteFile(responsePath, []byte(respRaw), 0644)
+		writeErr := os.WriteFile(responsePath, []byte(respRaw), 0644)
 		if writeErr != nil {
 			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
 		}
 		if scanopts.StoreChain && resp.HasChain() {
 			domainFile = strings.ReplaceAll(domainFile, ".txt", ".chain.txt")
 			responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
-			writeErr := ioutil.WriteFile(responsePath, []byte(resp.GetChain()), 0644)
+			writeErr := os.WriteFile(responsePath, []byte(resp.GetChain()), 0644)
 			if writeErr != nil {
 				gologger.Warning().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
 			}
