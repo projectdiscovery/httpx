@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/projectdiscovery/gologger"
@@ -68,7 +67,7 @@ func (h *HTTPX) SupportHTTP2(protocol, method, targetURL string) bool {
 }
 
 func freeHTTPResources(response *http.Response) error {
-	_, err := io.Copy(ioutil.Discard, response.Body)
+	_, err := io.Copy(io.Discard, response.Body)
 	if err != nil {
 		return fmt.Errorf("could not discard response body: %s", err)
 	}

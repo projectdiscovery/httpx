@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -207,7 +207,7 @@ func (h *issue400) Execute() error {
 	router := httprouter.New()
 	router.POST("/receive", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Add("Content-Type", "application/json")
-		data, _ := ioutil.ReadAll(r.Body)
+		data, _ := io.ReadAll(r.Body)
 		fmt.Fprintf(w, "data received %s", data)
 	}))
 	ts = httptest.NewServer(router)
@@ -231,7 +231,7 @@ func (h *issue414) Execute() error {
 	router := httprouter.New()
 	router.POST(uripath, httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Add("Content-Type", "application/json")
-		data, _ := ioutil.ReadAll(r.Body)
+		data, _ := io.ReadAll(r.Body)
 		fmt.Fprintf(w, "data received %s", data)
 	}))
 	ts = httptest.NewServer(router)

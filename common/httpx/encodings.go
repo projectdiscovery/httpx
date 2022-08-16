@@ -2,7 +2,7 @@ package httpx
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -19,7 +19,7 @@ import (
 func Decodegbk(s []byte) ([]byte, error) {
 	I := bytes.NewReader(s)
 	O := transform.NewReader(I, simplifiedchinese.GBK.NewDecoder())
-	d, e := ioutil.ReadAll(O)
+	d, e := io.ReadAll(O)
 	if e != nil {
 		return nil, e
 	}
@@ -30,7 +30,7 @@ func Decodegbk(s []byte) ([]byte, error) {
 func Decodebig5(s []byte) ([]byte, error) {
 	I := bytes.NewReader(s)
 	O := transform.NewReader(I, traditionalchinese.Big5.NewDecoder())
-	d, e := ioutil.ReadAll(O)
+	d, e := io.ReadAll(O)
 	if e != nil {
 		return nil, e
 	}
@@ -41,7 +41,7 @@ func Decodebig5(s []byte) ([]byte, error) {
 func Encodebig5(s []byte) ([]byte, error) {
 	I := bytes.NewReader(s)
 	O := transform.NewReader(I, traditionalchinese.Big5.NewEncoder())
-	d, e := ioutil.ReadAll(O)
+	d, e := io.ReadAll(O)
 	if e != nil {
 		return nil, e
 	}

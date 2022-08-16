@@ -3,7 +3,7 @@ package fileutil
 import (
 	"bufio"
 	"errors"
-	"io/ioutil"
+
 	"net"
 	"os"
 	"path/filepath"
@@ -72,7 +72,7 @@ func LoadCidrsFromSliceOrFileWithMaxRecursion(option string, splitchar string, m
 		} else if _, _, err := net.ParseCIDR(item); err == nil {
 			networkList = append(networkList, item)
 		} else if fileutil.FileExists(item) {
-			if filedata, err := ioutil.ReadFile(item); err == nil && len(filedata) > 0 {
+			if filedata, err := os.ReadFile(item); err == nil && len(filedata) > 0 {
 				networkList = append(networkList, LoadCidrsFromSliceOrFileWithMaxRecursion(string(filedata), "\n", maxRecursion-1)...)
 			}
 		}
