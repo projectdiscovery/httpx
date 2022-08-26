@@ -231,6 +231,7 @@ type Options struct {
 	OutputMatchLinesCount     string
 	matchLinesCount           []int
 	OutputFilterLinesCount    string
+	Memprofile                string
 	filterLinesCount          []int
 	OutputWordsCount          bool
 	OutputMatchWordsCount     string
@@ -369,6 +370,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.DebugResponse, "debug-resp", false, "display response content in cli"),
 		flagSet.BoolVar(&options.Version, "version", false, "display httpx version"),
 		flagSet.BoolVar(&options.ShowStatistics, "stats", false, "display scan statistic"),
+		flagSet.StringVar(&options.Memprofile, "profile-mem", "", "optional httpx memory profile dump file"),
 		flagSet.BoolVar(&options.Silent, "silent", false, "silent mode"),
 		flagSet.BoolVarP(&options.Verbose, "verbose", "v", false, "verbose mode"),
 		flagSet.IntVarP(&options.StatsInterval, "stats-interval", "si", 0, "number of seconds to wait between showing a statistics update (default: 5)"),
