@@ -1398,8 +1398,8 @@ retry:
 				hashHeader = hashes.Simhash([]byte(resp.RawHeaders))
 			}
 			if hashBody != "" {
-				hashesMap[fmt.Sprintf("body-%s", hashType)] = hashBody
-				hashesMap[fmt.Sprintf("header-%s", hashType)] = hashHeader
+				hashesMap[fmt.Sprintf("body_%s", hashType)] = hashBody
+				hashesMap[fmt.Sprintf("header_%s", hashType)] = hashHeader
 				if !scanopts.OutputWithNoColor {
 					builder.WriteString(aurora.Magenta(hashBody).String())
 				} else {
@@ -1571,10 +1571,10 @@ type Result struct {
 	ASN              interface{} `json:"asn,omitempty" csv:"asn"`
 	err              error
 	CSPData          *httpx.CSPData      `json:"csp,omitempty" csv:"csp"`
-	TLSData          *cryptoutil.TLSData `json:"tls-grab,omitempty" csv:"tls-grab"`
-	Hashes           map[string]string   `json:"hashes,omitempty" csv:"hashes"`
-	ExtractRegex     []string            `json:"extract-regex,omitempty" csv:"regex"`
-	CDNName          string              `json:"cdn-name,omitempty" csv:"cdn-name"`
+	TLSData          *cryptoutil.TLSData `json:"tls,omitempty" csv:"tls"`
+	Hashes           map[string]string   `json:"hash,omitempty" csv:"hash"`
+	ExtractRegex     []string            `json:"extract_regex,omitempty" csv:"extract_regex"`
+	CDNName          string              `json:"cdn_name,omitempty" csv:"cdn_name"`
 	Port             string              `json:"port,omitempty" csv:"port"`
 	raw              string
 	URL              string `json:"url,omitempty" csv:"url"`
@@ -1585,27 +1585,27 @@ type Result struct {
 	Scheme           string              `json:"scheme,omitempty" csv:"scheme"`
 	Error            string              `json:"error,omitempty" csv:"error"`
 	WebServer        string              `json:"webserver,omitempty" csv:"webserver"`
-	ResponseBody     string              `json:"response-body,omitempty" csv:"response-body"`
-	ContentType      string              `json:"content-type,omitempty" csv:"content-type"`
+	ResponseBody     string              `json:"body,omitempty" csv:"body"`
+	ContentType      string              `json:"content_type,omitempty" csv:"content_type"`
 	Method           string              `json:"method,omitempty" csv:"method"`
 	Host             string              `json:"host,omitempty" csv:"host"`
 	Path             string              `json:"path,omitempty" csv:"path"`
-	FavIconMMH3      string              `json:"favicon-mmh3,omitempty" csv:"favicon-mmh3"`
-	FinalURL         string              `json:"final-url,omitempty" csv:"final-url"`
-	ResponseHeader   string              `json:"response-header,omitempty" csv:"response-header"`
+	FavIconMMH3      string              `json:"favicon,omitempty" csv:"favicon"`
+	FinalURL         string              `json:"final_url,omitempty" csv:"final_url"`
+	ResponseHeader   string              `json:"header,omitempty" csv:"header"`
 	Request          string              `json:"request,omitempty" csv:"request"`
-	ResponseTime     string              `json:"response-time,omitempty" csv:"response-time"`
+	ResponseTime     string              `json:"time,omitempty" csv:"time"`
 	Jarm             string              `json:"jarm,omitempty" csv:"jarm"`
-	ChainStatusCodes []int               `json:"chain-status-codes,omitempty" csv:"chain-status-codes"`
+	ChainStatusCodes []int               `json:"chain_status_codes,omitempty" csv:"chain_status_codes"`
 	A                []string            `json:"a,omitempty" csv:"a"`
-	CNAMEs           []string            `json:"cnames,omitempty" csv:"cnames"`
-	Technologies     []string            `json:"technologies,omitempty" csv:"technologies"`
+	CNAMEs           []string            `json:"cname,omitempty" csv:"cname"`
+	Technologies     []string            `json:"tech,omitempty" csv:"tech"`
 	Extracts         map[string][]string `json:"extracts,omitempty" csv:"extracts"`
 	Chain            []httpx.ChainItem   `json:"chain,omitempty" csv:"chain"`
 	Words            int                 `json:"words" csv:"words"`
 	Lines            int                 `json:"lines" csv:"lines"`
-	StatusCode       int                 `json:"status-code,omitempty" csv:"status-code"`
-	ContentLength    int                 `json:"content-length,omitempty" csv:"content-length"`
+	StatusCode       int                 `json:"status_code,omitempty" csv:"status_code"`
+	ContentLength    int                 `json:"content_length,omitempty" csv:"content_length"`
 	Failed           bool                `json:"failed" csv:"failed"`
 	VHost            bool                `json:"vhost,omitempty" csv:"vhost"`
 	WebSocket        bool                `json:"websocket,omitempty" csv:"websocket"`
