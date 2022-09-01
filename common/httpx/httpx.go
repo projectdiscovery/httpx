@@ -113,6 +113,12 @@ func New(options *Options) (*HTTPX, error) {
 		},
 		DisableKeepAlives: true,
 	}
+	// go clients have issues with java based proxies in case of Tls 1.3 and when the 'Connection: close'
+	// header is present, since the latter is added automatically by the go standard library we opt to lower
+	// max tls version to 1.2 when a proxy is used and most likely matches burp suite
+	if stringsutil.HasSuffixAny(httpx.Options.HTTPProxy, "127.0.0.1:8080", "localhost:8080") {
+		transport.TLSClientConfig.MaxVersion = tls.VersionTLS12
+	}
 	if httpx.Options.SniName != "" {
 		transport.TLSClientConfig.ServerName = httpx.Options.SniName
 	}
@@ -165,7 +171,7 @@ func (h *HTTPX) Do(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (*Re
 	var gzipRetry bool
 get_response:
 	httpresp, err := h.getResponse(req, unsafeOptions)
-	if err != nil {
+	if httpresp == nil && err != nil {
 		return nil, err
 	}
 
@@ -196,7 +202,6 @@ get_response:
 	}
 	resp.Raw = string(rawResp)
 	resp.RawHeaders = string(headers)
-
 	var respbody []byte
 	// websockets don't have a readable body
 	if httpresp.StatusCode != http.StatusSwitchingProtocols {
@@ -274,11 +279,10 @@ type UnsafeOptions struct {
 }
 
 // getResponse returns response from safe / unsafe request
-func (h *HTTPX) getResponse(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (*http.Response, error) {
+func (h *HTTPX) getResponse(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (resp *http.Response, err error) {
 	if h.Options.Unsafe {
 		return h.doUnsafeWithOptions(req, unsafeOptions)
 	}
-
 	return h.client.Do(req)
 }
 
