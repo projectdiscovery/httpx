@@ -10,7 +10,7 @@ require (
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/microcosm-cc/bluemonday v1.0.19
+	github.com/microcosm-cc/bluemonday v1.0.20
 	github.com/miekg/dns v1.1.48 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1
@@ -38,8 +38,8 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/ratelimit v0.2.0
-	golang.org/x/net v0.0.0-20220617184016-355a448f1bc9
-	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
+	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b
+	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
 	golang.org/x/text v0.3.7
 )
 
