@@ -435,6 +435,11 @@ func (options *Options) ValidateOptions() error {
 		return fmt.Errorf("Results can only be displayed in one format: 'JSON' or 'CSV'")
 	}
 
+	multiMode := options.Silent && (options.Debug || options.DebugRequests || options.DebugResponse || options.Verbose)
+	if multiMode {
+		return fmt.Errorf("Silent mode cannot be used with debug, debug-req, debug-resp or verbose")
+	}
+	
 	var err error
 	if options.matchStatusCode, err = stringz.StringToSliceInt(options.OutputMatchStatusCode); err != nil {
 		return errors.Wrap(err, "Invalid value for match status code option")
