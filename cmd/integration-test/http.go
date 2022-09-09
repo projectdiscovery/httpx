@@ -27,6 +27,7 @@ var httpTestcases = map[string]testutils.TestCase{
 	"Request URI to existing file - https://github.com/projectdiscovery/httpx/issues/480": &issue480{}, // request uri pointing to existing file
 	"Standard HTTP GET Request with match response time":                                  &standardHttpGet{mrt: true, inputValue: "\"<10s\""},
 	"Standard HTTP GET Request with filter response time":                                 &standardHttpGet{frt: true, inputValue: "\">3ms\""},
+	"Custom Header": 																	   &customHeader{expectedOutput: "User-Agent: test"},
 }
 
 type standardHttpGet struct {
@@ -294,6 +295,31 @@ func (h *issue480) Execute() error {
 	}
 	if !strings.Contains(results[0], uriPath) {
 		return errIncorrectResultsCount(results)
+	}
+	return nil
+}
+
+type customHeader struct {
+	expectedOutput string
+}
+
+func (h *customHeader) Execute() error {
+	var ts *httptest.Server
+	router := httprouter.New()
+	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		w.Header().Add("Content-Type", "application/json")
+		fmt.Fprint(w, `{"status": "ok"}`)
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+
+	results, err := testutils.RunHttpxAndGetCombinedResults(ts.URL, true, "-H", "'user-agent: test'","-debug-req")
+	if err != nil {
+		return err
+	}
+	
+	if !strings.Contains(results, h.expectedOutput) {
+		return errIncorrectResult(h.expectedOutput, results)
 	}
 	return nil
 }
