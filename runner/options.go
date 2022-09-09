@@ -435,18 +435,20 @@ func (options *Options) ValidateOptions() error {
 		return fmt.Errorf("Results can only be displayed in one format: 'JSON' or 'CSV'")
 	}
 
-	incompatibleFlagsList := flagsIncompatibleWithSilent(options)
-	if len(incompatibleFlagsList) > 0 {
-		last := incompatibleFlagsList[len(incompatibleFlagsList)-1]
-		first := incompatibleFlagsList[:len(incompatibleFlagsList)-1]
-		msg := ""
-		if len(incompatibleFlagsList) > 1 {
-			msg += fmt.Sprintf("%s and %s flags are", strings.Join(first, ", "), last)
-		} else {
-			msg += fmt.Sprintf("%s flag is", last)
+	if options.Silent {
+		incompatibleFlagsList := flagsIncompatibleWithSilent(options)
+		if len(incompatibleFlagsList) > 0 {
+			last := incompatibleFlagsList[len(incompatibleFlagsList)-1]
+			first := incompatibleFlagsList[:len(incompatibleFlagsList)-1]
+			msg := ""
+			if len(incompatibleFlagsList) > 1 {
+				msg += fmt.Sprintf("%s and %s flags are", strings.Join(first, ", "), last)
+			} else {
+				msg += fmt.Sprintf("%s flag is", last)
+			}
+			msg += " incompatible with silent flag"
+			return fmt.Errorf(msg)
 		}
-		msg += " incompatible with silent flag"
-		return fmt.Errorf(msg)
 	}
 	
 	var err error
