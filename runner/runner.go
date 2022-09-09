@@ -316,8 +316,19 @@ func (r *Runner) prepareInputPaths() {
 }
 
 func (r *Runner) prepareInput() {
-	// check if file has been provided
 	var numHosts int
+	// check if a string input has been provided
+	if r.options.InputTargetHost != "" {
+		targets := strings.Split(r.options.InputTargetHost, ",")
+		for _, target := range targets {
+			expandedTarget := r.countTargetFromRawTarget(target)
+			if expandedTarget > 0 {
+				numHosts += expandedTarget
+				r.hm.Set(target, nil)
+			}
+		}
+	}
+	// check if file has been provided
 	if fileutil.FileExists(r.options.InputFile) {
 		finput, err := os.Open(r.options.InputFile)
 		if err != nil {
@@ -441,28 +452,31 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	for scanner.Scan() {
 		target := strings.TrimSpace(scanner.Text())
 		// Used just to get the exact number of targets
-		if target == "" {
-			continue
+		expandedTarget := r.countTargetFromRawTarget(target)
+		if expandedTarget > 0 {
+			numTargets += expandedTarget
+			r.hm.Set(target, nil) //nolint
 		}
-		if _, ok := r.hm.Get(target); ok {
-			continue
-		}
-
-		// if the target is ip or host it counts as 1
-		expandedTarget := 1
-		// input can be a cidr
-		if iputil.IsCIDR(target) {
-			// so we need to count the ips
-			if ipsCount, err := mapcidr.AddressCount(target); err == nil && ipsCount > 0 {
-				expandedTarget = int(ipsCount)
-			}
-		}
-
-		numTargets += expandedTarget
-		r.hm.Set(target, nil) //nolint
 	}
 	err = finput.Close()
 	return numTargets, err
+}
+
+func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int) {
+	if rawTarget == "" {
+		return 0
+	}
+	if _, ok := r.hm.Get(rawTarget); ok {
+		return 0
+	}
+
+	expandedTarget := 1
+	if iputil.IsCIDR(rawTarget) {
+		if ipsCount, err := mapcidr.AddressCount(rawTarget); err == nil && ipsCount > 0 {
+			expandedTarget = int(ipsCount)
+		}
+	}
+	return expandedTarget
 }
 
 var (
