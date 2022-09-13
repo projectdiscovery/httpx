@@ -435,6 +435,22 @@ func (options *Options) ValidateOptions() error {
 		return fmt.Errorf("Results can only be displayed in one format: 'JSON' or 'CSV'")
 	}
 
+	if options.Silent {
+		incompatibleFlagsList := flagsIncompatibleWithSilent(options)
+		if len(incompatibleFlagsList) > 0 {
+			last := incompatibleFlagsList[len(incompatibleFlagsList)-1]
+			first := incompatibleFlagsList[:len(incompatibleFlagsList)-1]
+			msg := ""
+			if len(incompatibleFlagsList) > 1 {
+				msg += fmt.Sprintf("%s and %s flags are", strings.Join(first, ", "), last)
+			} else {
+				msg += fmt.Sprintf("%s flag is", last)
+			}
+			msg += " incompatible with silent flag"
+			return fmt.Errorf(msg)
+		}
+	}
+	
 	var err error
 	if options.matchStatusCode, err = stringz.StringToSliceInt(options.OutputMatchStatusCode); err != nil {
 		return errors.Wrap(err, "Invalid value for match status code option")
@@ -551,4 +567,19 @@ func (options *Options) ShouldLoadResume() bool {
 // ShouldSaveResume file
 func (options *Options) ShouldSaveResume() bool {
 	return true
+}
+
+func flagsIncompatibleWithSilent(options *Options) []string {
+	var incompatibleFlagsList []string
+	for k, v := range map[string]bool{
+		"debug":          options.Debug,
+		"debug-request":  options.DebugRequests,
+		"debug-response": options.DebugResponse,
+		"verbose":        options.Verbose,
+	} {
+		if v {
+			incompatibleFlagsList = append(incompatibleFlagsList, k)
+		}
+	}
+	return incompatibleFlagsList
 }
