@@ -1,19 +1,51 @@
 package httpx
 
 import (
+	"crypto/tls"
 	"crypto/x509"
+	"net"
 	"net/http"
 
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 )
 
+// versionToTLSVersionString converts tls version to version string
+var versionToTLSVersionString = map[uint16]string{
+	tls.VersionTLS10: "tls10",
+	tls.VersionTLS11: "tls11",
+	tls.VersionTLS12: "tls12",
+	tls.VersionTLS13: "tls13",
+}
+
 // TLSGrab fills the TLSData
-func (h *HTTPX) TLSGrab(r *http.Response) *clients.CertificateResponse {
+func (h *HTTPX) TLSGrab(r *http.Response) *clients.Response {
 	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 {
 		return nil
 	}
+	host := r.Request.URL.Host
+	hostname, port, _ := net.SplitHostPort(host)
+	if hostname == "" {
+		hostname = host
+	}
+	if port == "" {
+		port = "443"
+	}
+
+	tlsVersion := versionToTLSVersionString[r.TLS.Version]
+	tlsCipher := tls.CipherSuiteName(r.TLS.CipherSuite)
+
 	leafCertificate := r.TLS.PeerCertificates[0]
-	return convertCertificateToResponse(r.Request.URL.Hostname(), leafCertificate)
+	response := &clients.Response{
+		Host:                hostname,
+		ProbeStatus:         true,
+		Port:                port,
+		Version:             tlsVersion,
+		Cipher:              tlsCipher,
+		TLSConnection:       "ctls",
+		CertificateResponse: convertCertificateToResponse(hostname, leafCertificate),
+		ServerName:          r.TLS.ServerName,
+	}
+	return response
 }
 
 func convertCertificateToResponse(hostname string, cert *x509.Certificate) *clients.CertificateResponse {

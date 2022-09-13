@@ -1567,12 +1567,12 @@ type Result struct {
 	Timestamp        time.Time   `json:"timestamp,omitempty" csv:"timestamp"`
 	ASN              interface{} `json:"asn,omitempty" csv:"asn"`
 	err              error
-	CSPData          *httpx.CSPData               `json:"csp,omitempty" csv:"csp"`
-	TLSData          *clients.CertificateResponse `json:"tls,omitempty" csv:"tls"`
-	Hashes           map[string]string            `json:"hash,omitempty" csv:"hash"`
-	ExtractRegex     []string                     `json:"extract_regex,omitempty" csv:"extract_regex"`
-	CDNName          string                       `json:"cdn_name,omitempty" csv:"cdn_name"`
-	Port             string                       `json:"port,omitempty" csv:"port"`
+	CSPData          *httpx.CSPData    `json:"csp,omitempty" csv:"csp"`
+	TLSData          *clients.Response `json:"tls,omitempty" csv:"tls"`
+	Hashes           map[string]string `json:"hash,omitempty" csv:"hash"`
+	ExtractRegex     []string          `json:"extract_regex,omitempty" csv:"extract_regex"`
+	CDNName          string            `json:"cdn_name,omitempty" csv:"cdn_name"`
+	Port             string            `json:"port,omitempty" csv:"port"`
 	raw              string
 	URL              string `json:"url,omitempty" csv:"url"`
 	Input            string `json:"input,omitempty" csv:"input"`

@@ -18,7 +18,7 @@ type Response struct {
 	RawHeaders    string
 	Words         int
 	Lines         int
-	TLSData       *clients.CertificateResponse
+	TLSData       *clients.Response
 	CSPData       *CSPData
 	HTTP2         bool
 	Pipeline      bool
