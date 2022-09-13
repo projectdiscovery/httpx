@@ -18,9 +18,9 @@ require (
 	github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345
 	github.com/projectdiscovery/fastdialer v0.0.16-0.20220515190512-d9a09aab8663
 	github.com/projectdiscovery/fdmax v0.0.3
-	github.com/projectdiscovery/fileutil v0.0.0-20220609150212-453ac591c36c
+	github.com/projectdiscovery/fileutil v0.0.0-20220705195237-01becc2a8963
 	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c
-	github.com/projectdiscovery/goflags v0.0.9
+	github.com/projectdiscovery/goflags v0.1.0
 	github.com/projectdiscovery/gologger v1.1.4
 	github.com/projectdiscovery/hmap v0.0.2-0.20210917080408-0fd7bd286bfa
 	github.com/projectdiscovery/httputil v0.0.0-20210816170244-86fd46bc09f5
@@ -29,7 +29,7 @@ require (
 	github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e
 	github.com/projectdiscovery/retryablehttp-go v1.0.3-0.20220506110515-811d938bd26d
 	github.com/projectdiscovery/sliceutil v0.0.0-20220617151003-15892688e1d6
-	github.com/projectdiscovery/stringsutil v0.0.0-20220612082425-0037ce9f89f3
+	github.com/projectdiscovery/stringsutil v0.0.1
 	github.com/projectdiscovery/urlutil v0.0.0-20220603144104-f4c60e5107b2
 	github.com/projectdiscovery/wappalyzergo v0.0.59
 	github.com/remeh/sizedwaitgroup v1.0.0
@@ -38,7 +38,7 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/ratelimit v0.2.0
-	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b
+	golang.org/x/net v0.0.0-20220909164309-bea034e7d591
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
 	golang.org/x/text v0.3.7
 )
