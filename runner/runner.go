@@ -27,6 +27,7 @@ import (
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
+	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 
 	"github.com/ammario/ipisp/v2"
 	"github.com/bluele/gcache"
@@ -34,7 +35,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/projectdiscovery/clistats"
-	"github.com/projectdiscovery/cryptoutil"
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/httpx/common/hashes"
 	"github.com/projectdiscovery/retryablehttp-go"
@@ -796,17 +796,14 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
-							for _, tt := range result.TLSData.DNSNames {
+							for _, tt := range result.TLSData.SubjectAN {
 								if !r.testAndSet(tt) {
 									continue
 								}
 								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
-							for _, tt := range result.TLSData.CommonName {
-								if !r.testAndSet(tt) {
-									continue
-								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
+							if r.testAndSet(result.TLSData.SubjectCN) {
+								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
 							}
 						}
 						if scanopts.CSPProbe && result.CSPData != nil {
@@ -838,17 +835,14 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
-							for _, tt := range result.TLSData.DNSNames {
+							for _, tt := range result.TLSData.SubjectAN {
 								if !r.testAndSet(tt) {
 									continue
 								}
 								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
-							for _, tt := range result.TLSData.CommonName {
-								if !r.testAndSet(tt) {
-									continue
-								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
+							if r.testAndSet(result.TLSData.SubjectCN) {
+								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
 							}
 						}
 					}(port, target, method, wantedProtocol)
@@ -1195,11 +1189,13 @@ retry:
 
 	var serverResponseRaw string
 	var request string
-	var responseHeader string
+	var rawResponseHeader string
+	var responseHeader map[string]string
 	if scanopts.ResponseInStdout {
 		serverResponseRaw = string(resp.Data)
 		request = string(requestDump)
-		responseHeader = resp.RawHeaders
+		responseHeader = normalizeHeaders(resp.Headers)
+		rawResponseHeader = resp.RawHeaders
 	}
 
 	// check for virtual host
@@ -1504,6 +1500,7 @@ retry:
 		Timestamp:        time.Now(),
 		Request:          request,
 		ResponseHeader:   responseHeader,
+		RawHeader:        rawResponseHeader,
 		Scheme:           parsed.Scheme,
 		Port:             finalPort,
 		Path:             finalPath,
@@ -1570,12 +1567,12 @@ type Result struct {
 	Timestamp        time.Time   `json:"timestamp,omitempty" csv:"timestamp"`
 	ASN              interface{} `json:"asn,omitempty" csv:"asn"`
 	err              error
-	CSPData          *httpx.CSPData      `json:"csp,omitempty" csv:"csp"`
-	TLSData          *cryptoutil.TLSData `json:"tls,omitempty" csv:"tls"`
-	Hashes           map[string]string   `json:"hash,omitempty" csv:"hash"`
-	ExtractRegex     []string            `json:"extract_regex,omitempty" csv:"extract_regex"`
-	CDNName          string              `json:"cdn_name,omitempty" csv:"cdn_name"`
-	Port             string              `json:"port,omitempty" csv:"port"`
+	CSPData          *httpx.CSPData               `json:"csp,omitempty" csv:"csp"`
+	TLSData          *clients.CertificateResponse `json:"tls,omitempty" csv:"tls"`
+	Hashes           map[string]string            `json:"hash,omitempty" csv:"hash"`
+	ExtractRegex     []string                     `json:"extract_regex,omitempty" csv:"extract_regex"`
+	CDNName          string                       `json:"cdn_name,omitempty" csv:"cdn_name"`
+	Port             string                       `json:"port,omitempty" csv:"port"`
 	raw              string
 	URL              string `json:"url,omitempty" csv:"url"`
 	Input            string `json:"input,omitempty" csv:"input"`
@@ -1592,7 +1589,8 @@ type Result struct {
 	Path             string              `json:"path,omitempty" csv:"path"`
 	FavIconMMH3      string              `json:"favicon,omitempty" csv:"favicon"`
 	FinalURL         string              `json:"final_url,omitempty" csv:"final_url"`
-	ResponseHeader   string              `json:"header,omitempty" csv:"header"`
+	ResponseHeader   map[string]string   `json:"header,omitempty" csv:"header"`
+	RawHeader        string              `json:"raw_header,omitempty" csv:"raw_header"`
 	Request          string              `json:"request,omitempty" csv:"request"`
 	ResponseTime     string              `json:"time,omitempty" csv:"time"`
 	Jarm             string              `json:"jarm,omitempty" csv:"jarm"`
@@ -1725,4 +1723,12 @@ func getDNSData(hp *httpx.HTTPX, hostname string) (ips, cnames []string, err err
 	ips = append(ips, dnsData.AAAA...)
 	cnames = dnsData.CNAME
 	return
+}
+
+func normalizeHeaders(headers map[string][]string) map[string]string {
+	normalized := make(map[string]string, len(headers))
+	for k, v := range headers {
+		normalized[strings.ReplaceAll(strings.ToLower(k), "-", "_")] = strings.Join(v, ", ")
+	}
+	return normalized
 }
