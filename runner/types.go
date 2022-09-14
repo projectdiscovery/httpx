@@ -8,8 +8,8 @@ import (
 	"github.com/projectdiscovery/httpx/common/httpx"
 )
 
-// List of all dsl commands
-var dslCommands = []string{"timestamp", "csp", "domains", "hash", "body_md5", "body_mmh3", "body_sha256", "body_simhash", "header_md5", "header_mmh3", "header_sha256", "header_simhash", "port", "url", "input", "location",  "scheme", "webserver", "content-type", "method", "host", "path", "a", "words", "lines", "status_code", "content_length", "failed", "time", "body", "header", "request"}
+// List of all dsl variables
+var dslVariables = []string{"timestamp", "csp", "domains", "hash", "body_md5", "body_mmh3", "body_sha256", "body_simhash", "header_md5", "header_mmh3", "header_sha256", "header_simhash", "port", "url", "input", "location",  "scheme", "webserver", "content-type", "method", "host", "path", "a", "words", "lines", "status_code", "content_length", "failed", "time", "body", "header", "request"}
 
 type AsnResponse struct {
 	AsNumber  string `json:"as-number" csv:"as-number"`

@@ -247,7 +247,7 @@ type Options struct {
 	OutputMatchResponseTime   string
 	OutputFilterResponseTime  string
 	HealthCheck               bool
-	ListDSL                   bool
+	ListDSLVariable           bool
 }
 
 // ParseOptions parses the command line options for application
@@ -330,7 +330,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Pipeline, "pipeline", false, "probe and display server supporting HTTP1.1 pipeline"),
 		flagSet.BoolVar(&options.HTTP2Probe, "http2", false, "probe and display server supporting HTTP2"),
 		flagSet.BoolVar(&options.VHost, "vhost", false, "probe and display server supporting VHOST"),
-		flagSet.BoolVar(&options.ListDSL, "list-dsl", false, "list json output field keys name that support dsl matcher/filter"),
+		flagSet.BoolVarP(&options.ListDSLVariable, "list-dsl-variables", "ldv", false, "list json output field keys name that support dsl matcher/filter"),
 	)
 
 	flagSet.CreateGroup("output", "Output",
@@ -408,8 +408,8 @@ func ParseOptions() *Options {
 	if err != nil {
 		gologger.Fatal().Msgf("%s\n", err)
 	}
-	if options.ListDSL {
-		for _, dsl := range dslCommands {
+	if options.ListDSLVariable {
+		for _, dsl := range dslVariables {
 			gologger.Print().Msg(dsl)
 		}
 		os.Exit(0)
@@ -457,7 +457,7 @@ func (options *Options) ValidateOptions() error {
 			return fmt.Errorf(msg)
 		}
 	}
-	
+
 	var err error
 	if options.matchStatusCode, err = stringz.StringToSliceInt(options.OutputMatchStatusCode); err != nil {
 		return errors.Wrap(err, "Invalid value for match status code option")
