@@ -160,6 +160,8 @@ github.com/projectdiscovery/mapcidr v1.0.2/go.mod h1:9OuUDjA+FilmXToex0xMfQb0os6
 github.com/projectdiscovery/networkpolicy v0.0.1/go.mod h1:asvdg5wMy3LPVMGALatebKeOYH5n5fV5RCTv6DbxpIs=
 github.com/projectdiscovery/networkpolicy v0.0.2-0.20220525172507-b844eafc878d h1:QXaK3yzoEWI8n+hLAqEgTJEWhkp1WZM8ThbKwrlXFks=
 github.com/projectdiscovery/networkpolicy v0.0.2-0.20220525172507-b844eafc878d/go.mod h1:asvdg5wMy3LPVMGALatebKeOYH5n5fV5RCTv6DbxpIs=
+github.com/projectdiscovery/networkpolicy v0.0.2-0.20220525172507-b844eafc878d h1:QXaK3yzoEWI8n+hLAqEgTJEWhkp1WZM8ThbKwrlXFks=
+github.com/projectdiscovery/networkpolicy v0.0.2-0.20220525172507-b844eafc878d/go.mod h1:asvdg5wMy3LPVMGALatebKeOYH5n5fV5RCTv6DbxpIs=
 github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e h1:hcpGb5/gSn+kNUmzgodV1+sHDmFybuGhsuhrTqFebQY=
 github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e/go.mod h1:PQERZAhAv7yxI/hR6hdDPgK1WTU56l204BweXrBec+0=
 github.com/projectdiscovery/reflectutil v0.0.0-20210804085554-4d90952bf92f h1:HR3R/nhELwLXufUlO1ZkKVqrZl4lN1cWFBdN8RcMuLo=
@@ -274,7 +276,6 @@ golang.org/x/net v0.0.0-20210226172049-e18ecbb05110/go.mod h1:m0MpNAwzfU5UDzcl9v
 golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4/go.mod h1:p54w0d4576C0XHj96bSt6lcn1PtDYWL6XObtHCRCNQM=
 golang.org/x/net v0.0.0-20210414194228-064579744ee0/go.mod h1:9tjilg8BloeKEkVJvy7fQ90B1CfIiPueXVOjqfkSzI8=
 golang.org/x/net v0.0.0-20210521195947-fe42d452be8f/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
-golang.org/x/net v0.0.0-20210614182718-04defd469f4e/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/net v0.0.0-20210726213435-c6fcb2dbf985/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/net v0.0.0-20210916014120-12bc252f5db8/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/net v0.0.0-20220617184016-355a448f1bc9/go.mod h1:XRhObCWvk6IyKnWLug+ECip1KBveYUHfp+8e9klMJ9c=
