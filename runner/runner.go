@@ -1195,11 +1195,13 @@ retry:
 
 	var serverResponseRaw string
 	var request string
-	var responseHeader string
+	var rawResponseHeader string
+	var responseHeader map[string]string
 	if scanopts.ResponseInStdout {
 		serverResponseRaw = string(resp.Data)
 		request = string(requestDump)
-		responseHeader = resp.RawHeaders
+		responseHeader = normalizeHeaders(resp.Headers)
+		rawResponseHeader = resp.RawHeaders
 	}
 
 	// check for virtual host
@@ -1504,6 +1506,7 @@ retry:
 		Timestamp:        time.Now(),
 		Request:          request,
 		ResponseHeader:   responseHeader,
+		RawHeader:        rawResponseHeader,
 		Scheme:           parsed.Scheme,
 		Port:             finalPort,
 		Path:             finalPath,
@@ -1592,7 +1595,8 @@ type Result struct {
 	Path             string              `json:"path,omitempty" csv:"path"`
 	FavIconMMH3      string              `json:"favicon,omitempty" csv:"favicon"`
 	FinalURL         string              `json:"final_url,omitempty" csv:"final_url"`
-	ResponseHeader   string              `json:"header,omitempty" csv:"header"`
+	ResponseHeader   map[string]string   `json:"header,omitempty" csv:"header"`
+	RawHeader        string              `json:"raw_header,omitempty" csv:"raw_header"`
 	Request          string              `json:"request,omitempty" csv:"request"`
 	ResponseTime     string              `json:"time,omitempty" csv:"time"`
 	Jarm             string              `json:"jarm,omitempty" csv:"jarm"`
@@ -1725,4 +1729,12 @@ func getDNSData(hp *httpx.HTTPX, hostname string) (ips, cnames []string, err err
 	ips = append(ips, dnsData.AAAA...)
 	cnames = dnsData.CNAME
 	return
+}
+
+func normalizeHeaders(headers map[string][]string) map[string]string {
+	normalized := make(map[string]string, len(headers))
+	for k, v := range headers {
+		normalized[strings.ReplaceAll(strings.ToLower(k), "-", "_")] = strings.Join(v, ", ")
+	}
+	return normalized
 }
