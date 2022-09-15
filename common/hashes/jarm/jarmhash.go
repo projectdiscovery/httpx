@@ -13,10 +13,7 @@ import (
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 )
 
-const (
-	poolCount   = 3
-	defaultPort = 443
-)
+const defaultPort int = 443
 
 type target struct {
 	Host string
@@ -24,15 +21,11 @@ type target struct {
 }
 
 // fingerprint probes a single host/port
-func fingerprint(dialer *fastdialer.Dialer, t target, duration int) string {
+func fingerprint(dialer *fastdialer.Dialer, t target, timeout time.Duration) string {
 	results := []string{}
 	addr := net.JoinHostPort(t.Host, fmt.Sprintf("%d", t.Port))
-	timeout := time.Duration(duration) * time.Second
-
-	ctx, cancel := context.WithTimeout(context.Background(), (time.Duration(duration*poolCount) * time.Second))
-	defer cancel()
-
-	pool, err := newOneTimePool(ctx, addr, poolCount)
+	// using connection pool as we need multiple probes
+	pool, err := newOneTimePool(context.Background(), addr, 3)
 	if err != nil {
 		return ""
 	}
@@ -42,18 +35,19 @@ func fingerprint(dialer *fastdialer.Dialer, t target, duration int) string {
 	go pool.Run()      //nolint
 
 	for _, probe := range jarm.GetProbes(t.Host, t.Port) {
-		conn, err := pool.Acquire(ctx)
+		conn, err := pool.Acquire(context.Background())
 		if err != nil {
-			return ""
+			continue
 		}
 		if conn == nil {
-			return ""
+			continue
 		}
 		_ = conn.SetWriteDeadline(time.Now().Add(timeout))
 		_, err = conn.Write(jarm.BuildProbe(probe))
 		if err != nil {
+			results = append(results, "")
 			_ = conn.Close()
-			return ""
+			continue
 		}
 		_ = conn.SetReadDeadline(time.Now().Add(timeout))
 		buff := make([]byte, 1484)
@@ -61,7 +55,8 @@ func fingerprint(dialer *fastdialer.Dialer, t target, duration int) string {
 		_ = conn.Close()
 		ans, err := jarm.ParseServerHello(buff, probe)
 		if err != nil {
-			return ""
+			results = append(results, "")
+			continue
 		}
 		results = append(results, ans)
 	}
@@ -81,5 +76,6 @@ func Jarm(dialer *fastdialer.Dialer, host string, duration int) string {
 	if t.Port == 0 {
 		t.Port = defaultPort
 	}
-	return fingerprint(dialer, t, duration)
+	timeout := time.Duration(duration) * time.Second
+	return fingerprint(dialer, t, timeout)
 }

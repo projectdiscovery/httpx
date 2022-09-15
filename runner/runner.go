@@ -27,7 +27,6 @@ import (
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
-	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 
 	"github.com/ammario/ipisp/v2"
 	"github.com/bluele/gcache"
@@ -35,6 +34,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/projectdiscovery/clistats"
+	"github.com/projectdiscovery/cryptoutil"
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/httpx/common/hashes"
 	"github.com/projectdiscovery/retryablehttp-go"
@@ -796,14 +796,17 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
-							for _, tt := range result.TLSData.SubjectAN {
+							for _, tt := range result.TLSData.DNSNames {
 								if !r.testAndSet(tt) {
 									continue
 								}
 								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
-							if r.testAndSet(result.TLSData.SubjectCN) {
-								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
+							for _, tt := range result.TLSData.CommonName {
+								if !r.testAndSet(tt) {
+									continue
+								}
+								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
 						}
 						if scanopts.CSPProbe && result.CSPData != nil {
@@ -835,14 +838,17 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
-							for _, tt := range result.TLSData.SubjectAN {
+							for _, tt := range result.TLSData.DNSNames {
 								if !r.testAndSet(tt) {
 									continue
 								}
 								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
-							if r.testAndSet(result.TLSData.SubjectCN) {
-								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
+							for _, tt := range result.TLSData.CommonName {
+								if !r.testAndSet(tt) {
+									continue
+								}
+								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
 						}
 					}(port, target, method, wantedProtocol)
@@ -1567,12 +1573,12 @@ type Result struct {
 	Timestamp        time.Time   `json:"timestamp,omitempty" csv:"timestamp"`
 	ASN              interface{} `json:"asn,omitempty" csv:"asn"`
 	err              error
-	CSPData          *httpx.CSPData    `json:"csp,omitempty" csv:"csp"`
-	TLSData          *clients.Response `json:"tls,omitempty" csv:"tls"`
-	Hashes           map[string]string `json:"hash,omitempty" csv:"hash"`
-	ExtractRegex     []string          `json:"extract_regex,omitempty" csv:"extract_regex"`
-	CDNName          string            `json:"cdn_name,omitempty" csv:"cdn_name"`
-	Port             string            `json:"port,omitempty" csv:"port"`
+	CSPData          *httpx.CSPData      `json:"csp,omitempty" csv:"csp"`
+	TLSData          *cryptoutil.TLSData `json:"tls,omitempty" csv:"tls"`
+	Hashes           map[string]string   `json:"hash,omitempty" csv:"hash"`
+	ExtractRegex     []string            `json:"extract_regex,omitempty" csv:"extract_regex"`
+	CDNName          string              `json:"cdn_name,omitempty" csv:"cdn_name"`
+	Port             string              `json:"port,omitempty" csv:"port"`
 	raw              string
 	URL              string `json:"url,omitempty" csv:"url"`
 	Input            string `json:"input,omitempty" csv:"input"`

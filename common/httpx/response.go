@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/projectdiscovery/cryptoutil"
 	"github.com/projectdiscovery/httputil"
-	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 )
 
 // Response contains the response to a server
@@ -18,7 +18,7 @@ type Response struct {
 	RawHeaders    string
 	Words         int
 	Lines         int
-	TLSData       *clients.Response
+	TLSData       *cryptoutil.TLSData
 	CSPData       *CSPData
 	HTTP2         bool
 	Pipeline      bool
