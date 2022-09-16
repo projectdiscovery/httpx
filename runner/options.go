@@ -409,7 +409,7 @@ func ParseOptions() *Options {
 		gologger.Fatal().Msgf("%s\n", err)
 	}
 	if options.ListDSLVariable {
-		for _, dsl := range dslVariables {
+		for _, dsl := range dslVariables() {
 			gologger.Print().Msg(dsl)
 		}
 		os.Exit(0)
