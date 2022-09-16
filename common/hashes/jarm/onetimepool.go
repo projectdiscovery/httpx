@@ -3,8 +3,10 @@ package jarm
 import (
 	"context"
 	"net"
+	"sync"
 
 	"github.com/projectdiscovery/fastdialer/fastdialer"
+	"go.uber.org/multierr"
 )
 
 // oneTimePool is a pool designed to create continous bare connections that are for one time only usage
@@ -74,4 +76,41 @@ func (p *oneTimePool) Run() error {
 func (p *oneTimePool) Close() error {
 	p.cancel()
 	return p.InFlightConns.Close()
+}
+
+type inFlightConns struct {
+	sync.Mutex
+	inflightConns map[net.Conn]struct{}
+}
+
+func newInFlightConns() (*inFlightConns, error) {
+	return &inFlightConns{inflightConns: make(map[net.Conn]struct{})}, nil
+}
+
+func (i *inFlightConns) Add(conn net.Conn) {
+	i.Lock()
+	defer i.Unlock()
+
+	i.inflightConns[conn] = struct{}{}
+}
+
+func (i *inFlightConns) Remove(conn net.Conn) {
+	i.Lock()
+	defer i.Unlock()
+
+	delete(i.inflightConns, conn)
+}
+
+func (i *inFlightConns) Close() error {
+	i.Lock()
+	defer i.Unlock()
+
+	var errs []error
+	for conn := range i.inflightConns {
+		if err := conn.Close(); err != nil {
+			errs = append(errs, err)
+		}
+		delete(i.inflightConns, conn)
+	}
+	return multierr.Combine(errs...)
 }
