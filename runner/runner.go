@@ -27,7 +27,6 @@ import (
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
-	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 
 	"github.com/ammario/ipisp/v2"
 	"github.com/bluele/gcache"

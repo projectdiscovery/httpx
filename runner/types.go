@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/projectdiscovery/cryptoutil"
 	"github.com/projectdiscovery/httpx/common/httpx"
+	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 )
 
 type AsnResponse struct {
@@ -26,12 +26,12 @@ type Result struct {
 	Timestamp        time.Time   `json:"timestamp,omitempty" csv:"timestamp" dsl:"timestamp"`
 	ASN              interface{} `json:"asn,omitempty" csv:"asn"`
 	err              error
-	CSPData          *httpx.CSPData      `json:"csp,omitempty" csv:"csp" dsl:"csp"`
-	TLSData          *cryptoutil.TLSData `json:"tls,omitempty" csv:"tls"`
-	Hashes           map[string]string   `json:"hash,omitempty" csv:"hash" dsl:"hash,body_md5,body_mmh3,body_sha256,body_simhash,header_md5,header_mmh3,header_sha256,header_simhash"`
-	ExtractRegex     []string            `json:"extract_regex,omitempty" csv:"extract_regex"`
-	CDNName          string              `json:"cdn_name,omitempty" csv:"cdn_name"`
-	Port             string              `json:"port,omitempty" csv:"port" dsl:"port"`
+	CSPData          *httpx.CSPData    `json:"csp,omitempty" csv:"csp" dsl:"csp"`
+	TLSData          *clients.Response `json:"tls,omitempty" csv:"tls"`
+	Hashes           map[string]string `json:"hash,omitempty" csv:"hash" dsl:"hash,header_md5,header_mmh3,header_sha256,header_simhash,body_md5,body_mmh3,body_sha256,body_simhash"`
+	ExtractRegex     []string          `json:"extract_regex,omitempty" csv:"extract_regex"`
+	CDNName          string            `json:"cdn_name,omitempty" csv:"cdn_name"`
+	Port             string            `json:"port,omitempty" csv:"port" dsl:"port"`
 	raw              string
 	URL              string `json:"url,omitempty" csv:"url" dsl:"url"`
 	Input            string `json:"input,omitempty" csv:"input" dsl:"input"`
@@ -48,7 +48,8 @@ type Result struct {
 	Path             string              `json:"path,omitempty" csv:"path" dsl:"path"`
 	FavIconMMH3      string              `json:"favicon,omitempty" csv:"favicon"`
 	FinalURL         string              `json:"final_url,omitempty" csv:"final_url"`
-	ResponseHeader   string              `json:"header,omitempty" csv:"header" dsl:"header"`
+	ResponseHeader   map[string]string   `json:"header,omitempty" csv:"header" dsl:"header"`
+	RawHeader        string              `json:"raw_header,omitempty" csv:"raw_header"`
 	Request          string              `json:"request,omitempty" csv:"request" dsl:"request"`
 	ResponseTime     string              `json:"time,omitempty" csv:"time" dsl:"time"`
 	Jarm             string              `json:"jarm,omitempty" csv:"jarm"`
