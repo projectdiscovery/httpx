@@ -27,6 +27,7 @@ import (
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
+	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 
 	"github.com/ammario/ipisp/v2"
 	"github.com/bluele/gcache"
@@ -795,17 +796,14 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
-							for _, tt := range result.TLSData.DNSNames {
+							for _, tt := range result.TLSData.SubjectAN {
 								if !r.testAndSet(tt) {
 									continue
 								}
 								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
-							for _, tt := range result.TLSData.CommonName {
-								if !r.testAndSet(tt) {
-									continue
-								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
+							if r.testAndSet(result.TLSData.SubjectCN) {
+								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
 							}
 						}
 						if scanopts.CSPProbe && result.CSPData != nil {
@@ -837,17 +835,14 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
 							scanopts.TLSProbe = false
-							for _, tt := range result.TLSData.DNSNames {
+							for _, tt := range result.TLSData.SubjectAN {
 								if !r.testAndSet(tt) {
 									continue
 								}
 								r.process(tt, wg, hp, protocol, scanopts, output)
 							}
-							for _, tt := range result.TLSData.CommonName {
-								if !r.testAndSet(tt) {
-									continue
-								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
+							if r.testAndSet(result.TLSData.SubjectCN) {
+								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
 							}
 						}
 					}(port, target, method, wantedProtocol)
@@ -1194,11 +1189,13 @@ retry:
 
 	var serverResponseRaw string
 	var request string
-	var responseHeader string
+	var rawResponseHeader string
+	var responseHeader map[string]string
 	if scanopts.ResponseInStdout {
 		serverResponseRaw = string(resp.Data)
 		request = string(requestDump)
-		responseHeader = resp.RawHeaders
+		responseHeader = normalizeHeaders(resp.Headers)
+		rawResponseHeader = resp.RawHeaders
 	}
 
 	// check for virtual host
@@ -1503,6 +1500,7 @@ retry:
 		Timestamp:        time.Now(),
 		Request:          request,
 		ResponseHeader:   responseHeader,
+		RawHeader:        rawResponseHeader,
 		Scheme:           parsed.Scheme,
 		Port:             finalPort,
 		Path:             finalPath,
@@ -1664,4 +1662,12 @@ func getDNSData(hp *httpx.HTTPX, hostname string) (ips, cnames []string, err err
 	ips = append(ips, dnsData.AAAA...)
 	cnames = dnsData.CNAME
 	return
+}
+
+func normalizeHeaders(headers map[string][]string) map[string]string {
+	normalized := make(map[string]string, len(headers))
+	for k, v := range headers {
+		normalized[strings.ReplaceAll(strings.ToLower(k), "-", "_")] = strings.Join(v, ", ")
+	}
+	return normalized
 }
