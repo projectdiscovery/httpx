@@ -19,7 +19,7 @@ var CSPHeaders = []string{
 
 // CSPData contains the Content-Security-Policy domain list
 type CSPData struct {
-	Domains []string `json:"domains,omitempty"`
+	Domains []string `json:"domains,omitempty" dsl:"domains"`
 }
 
 // CSPGrab fills the CSPData
