@@ -317,14 +317,13 @@ func (r *Runner) prepareInputPaths() {
 
 func (r *Runner) prepareInput() {
 	var numHosts int
-	// check if a string input has been provided
-	if r.options.InputTargetHost != "" {
-		targets := strings.Split(r.options.InputTargetHost, ",")
-		for _, target := range targets {
+	// check if input target host(s) have been provided
+	if len(r.options.InputTargetHost) > 0 {
+		for _, target := range r.options.InputTargetHost {
 			expandedTarget := r.countTargetFromRawTarget(target)
 			if expandedTarget > 0 {
 				numHosts += expandedTarget
-				r.hm.Set(target, nil)
+				r.hm.Set(target, nil) //nolint
 			}
 		}
 	}

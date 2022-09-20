@@ -140,7 +140,7 @@ type Options struct {
 	HTTPProxy                 string
 	SocksProxy                string
 	InputFile                 string
-	InputTargetHost           string
+	InputTargetHost           goflags.StringSlice
 	Methods                   string
 	RequestURI                string
 	RequestURIs               string
@@ -257,7 +257,7 @@ func ParseOptions() *Options {
 	flagSet.CreateGroup("input", "Input",
 		flagSet.StringVarP(&options.InputFile, "list", "l", "", "input file containing list of hosts to process"),
 		flagSet.StringVarP(&options.InputRawRequest, "request", "rr", "", "file containing raw request"),
-		flagSet.StringVarP(&options.InputTargetHost, "target", "u", "", "input target host to probe"),
+		flagSet.StringSliceVarP(&options.InputTargetHost, "target", "u", nil, "input target host(s) to probe", goflags.CommaSeparatedStringSliceOptions),
 	)
 
 	flagSet.CreateGroup("Probes", "Probes",
