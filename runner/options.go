@@ -249,6 +249,8 @@ type Options struct {
 	OutputFilterResponseTime  string
 	HealthCheck               bool
 	ListDSLVariable           bool
+	OutputFilterCondition     string
+	OutputMatchCondition      string
 }
 
 // ParseOptions parses the command line options for application
@@ -297,6 +299,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "match response with specified regex (-mr admin)"),
 		flagSet.StringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", nil, fmt.Sprintf("match host with specified cdn provider (%s)", defaultProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputMatchResponseTime, "match-response-time", "mrt", "", "match response with specified response time in seconds (-mrt '< 1')"),
+		flagSet.StringVarP(&options.OutputMatchCondition, "match-condition", "mdc", "", "match response with dsl expression condition"),
 	)
 
 	flagSet.CreateGroup("extractor", "Extractor",
@@ -314,6 +317,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "filter response with specified regex (-fe admin)"),
 		flagSet.StringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", nil, fmt.Sprintf("filter host with specified cdn provider (%s)", defaultProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
+		flagSet.StringVarP(&options.OutputFilterCondition, "filter-condition", "fdc", "", "filter response with dsl expression condition"),
 	)
 
 	flagSet.CreateGroup("rate-limit", "Rate-Limit",
