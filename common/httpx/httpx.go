@@ -113,12 +113,7 @@ func New(options *Options) (*HTTPX, error) {
 		},
 		DisableKeepAlives: true,
 	}
-	// go clients have issues with java based proxies in case of Tls 1.3 and when the 'Connection: close'
-	// header is present, since the latter is added automatically by the go standard library we opt to lower
-	// max tls version to 1.2 when a proxy is used and most likely matches burp suite
-	if stringsutil.HasSuffixAny(httpx.Options.HTTPProxy, "127.0.0.1:8080", "localhost:8080") {
-		transport.TLSClientConfig.MaxVersion = tls.VersionTLS12
-	}
+
 	if httpx.Options.SniName != "" {
 		transport.TLSClientConfig.ServerName = httpx.Options.SniName
 	}
@@ -189,6 +184,11 @@ get_response:
 	// httputil.DumpResponse does not handle websockets
 	headers, rawResp, err := pdhttputil.DumpResponseHeadersAndRaw(httpresp)
 	if err != nil {
+		if stringsutil.ContainsAny(err.Error(), "tls: user canceled") {
+			shouldIgnoreErrors = true
+			shouldIgnoreBodyErrors = true
+		}
+
 		// Edge case - some servers respond with gzip encoding header but uncompressed body, in this case the standard library configures the reader as gzip, triggering an error when read.
 		// The bytes slice is not accessible because of abstraction, therefore we need to perform the request again tampering the Accept-Encoding header
 		if !gzipRetry && strings.Contains(err.Error(), "gzip: invalid header") {
