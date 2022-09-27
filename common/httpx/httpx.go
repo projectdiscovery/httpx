@@ -172,7 +172,7 @@ get_response:
 
 	var shouldIgnoreErrors, shouldIgnoreBodyErrors bool
 	switch {
-	case h.Options.Unsafe && req.Method == http.MethodHead && !stringsutil.ContainsAny("i/o timeout"):
+	case h.Options.Unsafe && req.Method == http.MethodHead && !stringsutil.ContainsAny(err.Error(), "i/o timeout"):
 		shouldIgnoreErrors = true
 		shouldIgnoreBodyErrors = true
 	}
