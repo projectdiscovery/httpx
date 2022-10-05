@@ -267,8 +267,8 @@ github.com/projectdiscovery/clistats v0.0.8 h1:tjmWb15mqsPf/yrQXVHLe2ThZX/5+mgKS
 github.com/projectdiscovery/clistats v0.0.8/go.mod h1:lV6jUHAv2bYWqrQstqW8iVIydKJhWlVaLl3Xo9ioVGg=
 github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345 h1:jT6f/cdOpLkp9GAfRrxk57BUjYfIrR8E+AjMv5H5U4U=
 github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345/go.mod h1:clhQmPnt35ziJW1AhJRKyu8aygXCSoyWj6dtmZBRjjc=
-github.com/projectdiscovery/fastdialer v0.0.16 h1:0FcWVAtm6ftVALQpckdlKTeZcJi277HduvGXsBDO02Q=
-github.com/projectdiscovery/fastdialer v0.0.16/go.mod h1:poZbCGYGRfRcKxU8/1rWH8EVOJ4AZn1a8+CyINHzffQ=
+github.com/projectdiscovery/fastdialer v0.0.17 h1:wT7LinZAcyEzkfhJLhWNQrA9m79+hTd6CJ7aWTJfXjk=
+github.com/projectdiscovery/fastdialer v0.0.17/go.mod h1:poZbCGYGRfRcKxU8/1rWH8EVOJ4AZn1a8+CyINHzffQ=
 github.com/projectdiscovery/fdmax v0.0.3 h1:FM6lv9expZ/rEEBI9tkRh6tx3DV0gtpwzdc0h7bGPqg=
 github.com/projectdiscovery/fdmax v0.0.3/go.mod h1:NWRcaR7JTO7fC27H4jCl9n7Z+KIredwpgw1fV+4KrKI=
 github.com/projectdiscovery/fileutil v0.0.0-20210928100737-cab279c5d4b5/go.mod h1:U+QCpQnX8o2N2w0VUGyAzjM3yBAe4BKedVElxiImsx0=
