@@ -1,10 +1,10 @@
 package testutils
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
-	"fmt"
 )
 
 // RunNucleiAndGetResults returns a list of results for a template
@@ -76,7 +76,7 @@ func RunHttpxBinaryAndGetResults(target string, httpxBinary string, debug bool, 
 			parts = append(parts, i)
 		}
 	}
-	return parts,nil
+	return parts, nil
 }
 
 // TestCase is a single integration test case

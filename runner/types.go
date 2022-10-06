@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 )
@@ -92,4 +93,20 @@ func dslVariables() []string {
 		}
 	}
 	return dslVarList
+}
+
+func decodeResponse(resp Result, respObj interface{}) error {
+	config := &mapstructure.DecoderConfig{
+		TagName: "dsl",
+		Result:  &respObj,
+	}
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return fmt.Errorf("error creating decoder: %v", err)
+	}
+	err = decoder.Decode(resp)
+	if err != nil {
+		return fmt.Errorf("error decoding: %v", err)
+	}
+	return nil
 }
