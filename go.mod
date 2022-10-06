@@ -16,9 +16,9 @@ require (
 	github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1
 	github.com/projectdiscovery/clistats v0.0.8
 	github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345 // indirect
-	github.com/projectdiscovery/fastdialer v0.0.16
+	github.com/projectdiscovery/fastdialer v0.0.17
 	github.com/projectdiscovery/fdmax v0.0.3
-	github.com/projectdiscovery/fileutil v0.0.0-20220705195237-01becc2a8963
+	github.com/projectdiscovery/fileutil v0.0.1
 	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c
 	github.com/projectdiscovery/goflags v0.1.0
 	github.com/projectdiscovery/gologger v1.1.4
@@ -31,14 +31,14 @@ require (
 	github.com/projectdiscovery/sliceutil v0.0.0-20220625085859-c3a4ecb669f4
 	github.com/projectdiscovery/stringsutil v0.0.1
 	github.com/projectdiscovery/urlutil v0.0.0-20220603144104-f4c60e5107b2
-	github.com/projectdiscovery/wappalyzergo v0.0.60
+	github.com/projectdiscovery/wappalyzergo v0.0.62
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.4.0
 	github.com/smartystreets/assertions v1.0.0 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/ratelimit v0.2.0
-	golang.org/x/net v0.0.0-20220909164309-bea034e7d591
+	golang.org/x/net v0.0.0-20220927171203-f486391704dc
 	golang.org/x/sys v0.0.0-20220731174439-a90be440212d // indirect
 	golang.org/x/text v0.3.7
 )
@@ -52,7 +52,7 @@ require (
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/projectdiscovery/dsl v0.0.3
-	github.com/projectdiscovery/tlsx v0.0.7
+	github.com/projectdiscovery/tlsx v0.0.8
 	go.uber.org/multierr v1.8.0
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
 )
@@ -78,7 +78,7 @@ require (
 	github.com/dgraph-io/ristretto v0.0.3 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/gogo/protobuf v1.3.1 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

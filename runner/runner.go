@@ -1363,7 +1363,7 @@ retry:
 	var extractResult = map[string][]string{}
 	if scanopts.extractRegexps != nil {
 		for regex, compiledRegex := range scanopts.extractRegexps {
-			matches := compiledRegex.FindAllString(string(resp.Data), -1)
+			matches := compiledRegex.FindAllString(string(resp.Raw), -1)
 			if len(matches) > 0 {
 				matches = sliceutil.Dedupe(matches)
 				builder.WriteString(" [" + strings.Join(matches, ",") + "]")
