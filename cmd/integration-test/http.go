@@ -28,6 +28,8 @@ var httpTestcases = map[string]testutils.TestCase{
 	"Standard HTTP GET Request with match response time":                                  &standardHttpGet{mrt: true, inputValue: "\"<10s\""},
 	"Standard HTTP GET Request with filter response time":                                 &standardHttpGet{frt: true, inputValue: "\">3ms\""},
 	"Multiple Custom Header":                                                              &customHeader{inputData: []string{"-debug-req", "-H", "'user-agent: test'", "-H", "'foo: bar'"}, expectedOutput: []string{"User-Agent: test", "Foo: bar"}},
+	"Output Match Condition":                                                              &outputMatchCondition{inputData: []string{"-silent", "-mdc", "\"status_code == 200\""}},
+	"Output Filter Condition":                                                             &outputFilterCondition{inputData: []string{"-silent", "-fdc", "\"status_code == 400\""}},
 }
 
 type standardHttpGet struct {
@@ -322,6 +324,56 @@ func (h *customHeader) Execute() error {
 		if !strings.Contains(results, expected) {
 			return errIncorrectResult(expected, results)
 		}
+	}
+	return nil
+}
+
+type outputMatchCondition struct {
+	inputData []string
+}
+
+func (h *outputMatchCondition) Execute() error {
+	var ts *httptest.Server
+	router := httprouter.New()
+	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(200)
+		fmt.Fprint(w, `{"status": "ok"}`)
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+	results, err := testutils.RunHttpxAndGetResults(ts.URL, false, h.inputData...)
+	if err != nil {
+		return err
+	}
+	if len(results) != 1 {
+		return errIncorrectResultsCount(results)
+	}
+	return nil
+}
+
+type outputFilterCondition struct {
+	inputData []string
+}
+
+func (h *outputFilterCondition) Execute() error {
+	var ts *httptest.Server
+	router := httprouter.New()
+	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(200)
+		fmt.Fprint(w, `{"status": "ok"}`)
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+
+	results, err := testutils.RunHttpxAndGetResults(ts.URL, false, h.inputData...)
+	if err != nil {
+		return err
+	}
+
+	if len(results) != 1 {
+		return errIncorrectResultsCount(results)
 	}
 	return nil
 }

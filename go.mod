@@ -50,6 +50,8 @@ require (
 	github.com/ammario/ipisp/v2 v2.0.0
 	github.com/hdm/jarm-go v0.0.7
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
+	github.com/mitchellh/mapstructure v1.1.2
+	github.com/projectdiscovery/dsl v0.0.3
 	github.com/projectdiscovery/tlsx v0.0.8
 	go.uber.org/multierr v1.8.0
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
@@ -58,6 +60,7 @@ require (
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/DataDog/zstd v1.4.5 // indirect
+	github.com/Knetic/govaluate v3.0.0+incompatible // indirect
 	github.com/Mzack9999/go-http-digest-auth-client v0.6.1-0.20220414142836-eb8883508809 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect

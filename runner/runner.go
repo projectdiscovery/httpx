@@ -24,6 +24,7 @@ import (
 
 	"golang.org/x/exp/maps"
 
+	dsl "github.com/projectdiscovery/dsl"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
@@ -606,6 +607,35 @@ func (r *Runner) RunEnumeration() {
 			}
 
 			// apply matchers and filters
+			if r.options.OutputFilterCondition != "" || r.options.OutputMatchCondition != "" {
+				respObj := make(map[string]interface{})
+				if err := decodeResponse(resp, respObj); err != nil {
+					gologger.Warning().Msgf("Could not decode response: %s\n", err)
+				} else {
+					if r.options.OutputMatchCondition != "" {
+						res, err := dsl.EvalExpr(r.options.OutputMatchCondition, respObj)
+						if err != nil {
+							gologger.Error().Msgf("Could not evaluate match condition: %s\n", err)
+
+						} else {
+							if res == false {
+								continue
+							}
+						}
+					}
+					if r.options.OutputFilterCondition != "" {
+						res, err := dsl.EvalExpr(r.options.OutputFilterCondition, respObj)
+						if err != nil {
+							gologger.Error().Msgf("Could not evaluate filter condition: %s\n", err)
+						} else {
+							if res == true {
+								continue
+							}
+						}
+					}
+				}
+			}
+
 			if len(r.options.filterStatusCode) > 0 && slice.IntSliceContains(r.options.filterStatusCode, resp.StatusCode) {
 				continue
 			}

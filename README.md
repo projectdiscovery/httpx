@@ -109,6 +109,7 @@ PROBES:
    -probe                display probe status
 
 MATCHERS:
+   -mdc -match-condition string       match response with dsl expression condition
    -mc, -match-code string            match response with specified status code (-mc 200,302)
    -ml, -match-length string          match response with specified content length (-ml 100,102)
    -mlc, -match-line-count string     match response body with specified line count (-mlc 423,532)
@@ -124,6 +125,7 @@ EXTRACTOR:
    -ep, -extract-preset string[]  Display response content with matched preset regex
 
 FILTERS:
+   -fdc -filter-condition string       filter response with dsl expression condition
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
    -fl, -filter-length string          filter response with specified content length (-fl 23,33)
    -flc, -filter-line-count string     filter response body with specified line count (-flc 423,532)
