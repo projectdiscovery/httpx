@@ -43,7 +43,7 @@ import (
 	"github.com/projectdiscovery/urlutil"
 
 	"github.com/remeh/sizedwaitgroup"
-	"go.uber.org/ratelimit"
+	"github.com/projectdiscovery/ratelimit"
 
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
