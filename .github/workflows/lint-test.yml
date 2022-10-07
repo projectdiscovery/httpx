@@ -21,3 +21,5 @@ jobs:
           version: latest
           args: --timeout 5m
           working-directory: .
+          env: 
+          GOPRIVATE: "github.com/projectdiscovery"

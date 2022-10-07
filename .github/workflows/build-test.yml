@@ -24,6 +24,8 @@ jobs:
       - name: Build
         run: go build .
         working-directory: cmd/httpx/
+        env: 
+          GOPRIVATE: "github.com/projectdiscovery"
 
       - name: Test
         run: go test ./...
