@@ -37,7 +37,6 @@ require (
 	github.com/smartystreets/assertions v1.0.0 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/ratelimit v0.2.0
 	golang.org/x/net v0.0.0-20220927171203-f486391704dc
 	golang.org/x/sys v0.0.0-20220731174439-a90be440212d // indirect
 	golang.org/x/text v0.3.7
@@ -52,6 +51,7 @@ require (
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/dsl v0.0.3
+	github.com/projectdiscovery/ratelimit v0.0.0-20221004232058-7b82379157fa
 	github.com/projectdiscovery/tlsx v0.0.8
 	go.uber.org/multierr v1.8.0
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
@@ -62,7 +62,6 @@ require (
 	github.com/DataDog/zstd v1.4.5 // indirect
 	github.com/Knetic/govaluate v3.0.0+incompatible // indirect
 	github.com/Mzack9999/go-http-digest-auth-client v0.6.1-0.20220414142836-eb8883508809 // indirect
-	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
