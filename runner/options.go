@@ -399,7 +399,7 @@ func ParseOptions() *Options {
 	_ = flagSet.Parse()
 
 	if options.HealthCheck {
-		gologger.Print().Msgf("%s\n", DoHealthCheck(options))
+		gologger.Print().Msgf("%s\n", DoHealthCheck(options, flagSet))
 		os.Exit(0)
 	}
 
