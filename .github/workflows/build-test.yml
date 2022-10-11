@@ -24,7 +24,7 @@ jobs:
       - name: Build
         run: go build .
         working-directory: cmd/httpx/
-        
+
       - name: Test
         run: go test ./...
         working-directory: .
