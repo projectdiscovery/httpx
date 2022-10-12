@@ -19,7 +19,7 @@
   <a href="#installation-instructions">Installation</a> •
   <a href="#usage">Usage</a> •
   <a href="#running-httpx">Running httpx</a> •
-  <a href="#-notes">Notes</a> •
+  <a href="#notes">Notes</a> •
   <a href="https://discord.gg/projectdiscovery">Join Discord</a>
 </p>
 
