@@ -12,14 +12,14 @@ import (
 )
 
 type AsnResponse struct {
-	AsNumber  string `json:"as-number" csv:"as-number"`
-	AsName    string `json:"as-name" csv:"as-name"`
-	AsCountry string `json:"as-country" csv:"as-country"`
-	AsRange   string `json:"as-range" csv:"as-range"`
+	AsNumber  string   `json:"as-number" csv:"as-number"`
+	AsName    string   `json:"as-name" csv:"as-name"`
+	AsCountry string   `json:"as-country" csv:"as-country"`
+	AsRange   []string `json:"as-range" csv:"as-range"`
 }
 
 func (o AsnResponse) String() string {
-	return fmt.Sprintf("%v, %v, %v, %v", o.AsNumber, o.AsName, o.AsCountry, o.AsRange)
+	return fmt.Sprintf("%v, %v, %v", o.AsNumber, o.AsName, o.AsCountry)
 }
 
 // Result of a scan

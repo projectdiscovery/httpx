@@ -24,12 +24,12 @@ import (
 
 	"golang.org/x/exp/maps"
 
+	asnmap "github.com/projectdiscovery/asnmap/libs"
 	dsl "github.com/projectdiscovery/dsl"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 
-	"github.com/ammario/ipisp/v2"
 	"github.com/bluele/gcache"
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
@@ -42,8 +42,8 @@ import (
 	"github.com/projectdiscovery/stringsutil"
 	"github.com/projectdiscovery/urlutil"
 
-	"github.com/remeh/sizedwaitgroup"
 	"github.com/projectdiscovery/ratelimit"
+	"github.com/remeh/sizedwaitgroup"
 
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
@@ -1292,17 +1292,17 @@ retry:
 
 	var asnResponse interface{ String() string }
 	if r.options.Asn {
-		lookupResult, err := ipisp.LookupIP(context.Background(), net.ParseIP(ip))
-		if err != nil {
-			gologger.Warning().Msg(err.Error())
-		}
-		if lookupResult != nil {
-			lookupResult.ISPName = stringsutil.TrimSuffixAny(strings.ReplaceAll(lookupResult.ISPName, lookupResult.Country, ""), ", ", " ")
+		results := asnmap.NewClient().GetData(asnmap.IP(ip))
+		if len(results) > 0 {
+			var cidrs []string
+			for _, cidr := range asnmap.GetCIDR(results) {
+				cidrs = append(cidrs, cidr.String())
+			}
 			asnResponse = AsnResponse{
-				AsNumber:  lookupResult.ASN.String(),
-				AsName:    lookupResult.ISPName,
-				AsCountry: lookupResult.Country,
-				AsRange:   lookupResult.Range.String(),
+				AsNumber:  fmt.Sprintf("AS%v", results[0].ASN),
+				AsName:    results[0].Org,
+				AsCountry: results[0].Country,
+				AsRange:   cidrs,
 			}
 			builder.WriteString(" [")
 			if !scanopts.OutputWithNoColor {
