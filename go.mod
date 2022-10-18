@@ -25,7 +25,7 @@ require (
 	github.com/projectdiscovery/hmap v0.0.2
 	github.com/projectdiscovery/httputil v0.0.0-20210816170244-86fd46bc09f5
 	github.com/projectdiscovery/iputil v0.0.0-20220712175312-b9406f31cdd8
-	github.com/projectdiscovery/mapcidr v1.0.2
+	github.com/projectdiscovery/mapcidr v1.0.3
 	github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e
 	github.com/projectdiscovery/retryablehttp-go v1.0.3-0.20220506110515-811d938bd26d
 	github.com/projectdiscovery/sliceutil v0.0.0-20220625085859-c3a4ecb669f4
@@ -54,7 +54,7 @@ require (
 	github.com/projectdiscovery/ratelimit v0.0.0-20221004232058-7b82379157fa
 	github.com/projectdiscovery/tlsx v0.0.8
 	go.uber.org/multierr v1.8.0
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
+	golang.org/x/exp v0.0.0-20220907003533-145caa8ea1d0
 )
 
 require (
