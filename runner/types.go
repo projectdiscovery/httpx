@@ -24,8 +24,8 @@ func (o AsnResponse) String() string {
 
 // Result of a scan
 type Result struct {
-	Timestamp        time.Time   `json:"timestamp,omitempty" csv:"timestamp"`
-	ASN              interface{} `json:"asn,omitempty" csv:"asn"`
+	Timestamp        time.Time    `json:"timestamp,omitempty" csv:"timestamp"`
+	ASN              *AsnResponse `json:"asn,omitempty" csv:"asn"`
 	err              error
 	CSPData          *httpx.CSPData    `json:"csp,omitempty" csv:"csp"`
 	TLSData          *clients.Response `json:"tls,omitempty" csv:"tls"`
@@ -100,10 +100,9 @@ func dslVariables() []string {
 				}
 			}
 		}
-		if field.Name == "Hashes" {
-			dslVarList = append(dslVarList, "header_md5", "header_mmh3", "header_sha256", "header_simhash", "body_md5", "body_mmh3", "body_sha256", "body_simhash")
-		}
 	}
+	dslVarList = append(dslVarList, "header_md5", "header_mmh3", "header_sha256", "header_simhash", "body_md5", "body_mmh3", "body_sha256", "body_simhash")
+
 	return dslVarList
 }
 

@@ -42,8 +42,8 @@ import (
 	"github.com/projectdiscovery/stringsutil"
 	"github.com/projectdiscovery/urlutil"
 
-	"github.com/remeh/sizedwaitgroup"
 	"github.com/projectdiscovery/ratelimit"
+	"github.com/remeh/sizedwaitgroup"
 
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
@@ -1290,7 +1290,7 @@ retry:
 		ip = hp.Dialer.GetDialedIP(URL.Host)
 	}
 
-	var asnResponse interface{ String() string }
+	var asnResponse *AsnResponse
 	if r.options.Asn {
 		lookupResult, err := ipisp.LookupIP(context.Background(), net.ParseIP(ip))
 		if err != nil {
@@ -1298,7 +1298,7 @@ retry:
 		}
 		if lookupResult != nil {
 			lookupResult.ISPName = stringsutil.TrimSuffixAny(strings.ReplaceAll(lookupResult.ISPName, lookupResult.Country, ""), ", ", " ")
-			asnResponse = AsnResponse{
+			asnResponse = &AsnResponse{
 				AsNumber:  lookupResult.ASN.String(),
 				AsName:    lookupResult.ISPName,
 				AsCountry: lookupResult.Country,
