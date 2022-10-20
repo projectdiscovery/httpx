@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/bxcodec/faker/v4"
+	"github.com/bxcodec/faker/v4/pkg/options"
 	"github.com/mitchellh/mapstructure"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/mapsutil"
@@ -75,7 +76,8 @@ type Result struct {
 // function to get dsl variables from result struct
 func dslVariables() ([]string, error) {
 	fakeResult := Result{}
-	if err := faker.FakeData(&fakeResult); err != nil {
+	fieldsToIgnore := []string{"Hashes", "ResponseHeader"}
+	if err := faker.FakeData(&fakeResult, options.WithFieldsToIgnore(fieldsToIgnore...)); err != nil {
 		return nil, err
 	}
 	m, err := ResultToMap(fakeResult)
