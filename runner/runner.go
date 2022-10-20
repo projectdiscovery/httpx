@@ -1325,7 +1325,7 @@ retry:
 			for _, cidr := range asnmap.GetCIDR(results) {
 				cidrs = append(cidrs, cidr.String())
 			}
-			asnResponse = AsnResponse{
+			asnResponse = &AsnResponse{
 				AsNumber:  fmt.Sprintf("AS%v", results[0].ASN),
 				AsName:    results[0].Org,
 				AsCountry: results[0].Country,

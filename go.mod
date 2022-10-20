@@ -46,7 +46,6 @@ require github.com/spaolacci/murmur3 v1.1.0
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
-	github.com/ammario/ipisp/v2 v2.0.0
 	github.com/bxcodec/faker/v4 v4.0.0-beta.3
 	github.com/hdm/jarm-go v0.0.7
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
@@ -55,9 +54,8 @@ require (
 	github.com/projectdiscovery/dsl v0.0.3
 	github.com/projectdiscovery/mapsutil v0.0.2-0.20221020054123-d68d6f24a655
 	github.com/projectdiscovery/ratelimit v0.0.0-20221004232058-7b82379157fa
-	github.com/projectdiscovery/tlsx v0.0.8
-	github.com/stretchr/testify v1.8.0
 	github.com/projectdiscovery/tlsx v0.0.9
+	github.com/stretchr/testify v1.8.0
 	go.uber.org/multierr v1.8.0
 	golang.org/x/exp v0.0.0-20220907003533-145caa8ea1d0
 )
