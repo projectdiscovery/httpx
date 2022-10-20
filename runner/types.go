@@ -13,10 +13,10 @@ import (
 )
 
 type AsnResponse struct {
-	AsNumber  string   `json:"as_number" csv:"as-number"`
-	AsName    string   `json:"as_name" csv:"as-name"`
-	AsCountry string   `json:"as_country" csv:"as-country"`
-	AsRange   []string `json:"as_range" csv:"as-range"`
+	AsNumber  string   `json:"as_number" csv:"as_number"`
+	AsName    string   `json:"as_name" csv:"as_name"`
+	AsCountry string   `json:"as_country" csv:"as_country"`
+	AsRange   []string `json:"as_range" csv:"as_range"`
 }
 
 func (o AsnResponse) String() string {
