@@ -10,7 +10,7 @@ require (
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/microcosm-cc/bluemonday v1.0.20
+	github.com/microcosm-cc/bluemonday v1.0.21
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1
@@ -37,8 +37,8 @@ require (
 	github.com/smartystreets/assertions v1.0.0 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	golang.org/x/net v0.0.0-20220927171203-f486391704dc
-	golang.org/x/sys v0.0.0-20220731174439-a90be440212d // indirect
+	golang.org/x/net v0.1.0
+	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/text v0.4.0
 )
 
@@ -47,12 +47,14 @@ require github.com/spaolacci/murmur3 v1.1.0
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/ammario/ipisp/v2 v2.0.0
+	github.com/bxcodec/faker/v4 v4.0.0-beta.3
 	github.com/hdm/jarm-go v0.0.7
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/dsl v0.0.3
+	github.com/projectdiscovery/mapsutil v0.0.2-0.20221020054123-d68d6f24a655
 	github.com/projectdiscovery/ratelimit v0.0.0-20221004232058-7b82379157fa
-	github.com/projectdiscovery/tlsx v0.0.8
+	github.com/projectdiscovery/tlsx v0.0.9
 	go.uber.org/multierr v1.8.0
 	golang.org/x/exp v0.0.0-20220907003533-145caa8ea1d0
 )
@@ -97,8 +99,9 @@ require (
 	github.com/weppos/publicsuffix-go v0.15.1-0.20220329081811-9a40b608a236 // indirect
 	github.com/yl2chen/cidranger v1.0.2 // indirect
 	github.com/zmap/rc2 v0.0.0-20131011165748-24b9757f5521 // indirect
+	github.com/zmap/zcertificate v0.0.0-20180516150559-0e3d58b1bac4 // indirect
 	github.com/zmap/zcrypto v0.0.0-20220605182715-4dfcec6e9a8c // indirect
-	golang.org/x/crypto v0.0.0-20220210151621-f4118a5b28e2 // indirect
+	golang.org/x/crypto v0.0.0-20220824171710-5757bc0c5503 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
