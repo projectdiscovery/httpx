@@ -477,7 +477,7 @@ func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int) {
 		return 0
 	}
 
-	expandedTarget := 1
+	expandedTarget := 0
 	switch {
 	case iputil.IsCIDR(rawTarget):
 		if ipsCount, err := mapcidr.AddressCount(rawTarget); err == nil && ipsCount > 0 {
@@ -487,11 +487,11 @@ func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int) {
 		asn := asn.New()
 		cidrs, _ := asn.GetCIDRsForASNNum(rawTarget)
 		for _, cidr := range cidrs {
-			expandedTarget = int(mapcidr.AddressCountIpnet(cidr))
+			expandedTarget += int(mapcidr.AddressCountIpnet(cidr))
 		}
+	default:
+		expandedTarget = 1
 	}
-
-	// TODO: add asn logic [check how this function is called, eg. if cidr and asn passed then]
 	return expandedTarget
 }
 
@@ -914,22 +914,18 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 	results := make(chan httpx.Target)
 	go func() {
 		defer close(results)
-
-		// TODO : Use switch case
-
-		// A valid target does not contain:
-		// *
-		// spaces
-		if strings.ContainsAny(target, "*") || strings.HasPrefix(target, ".") {
-			fmt.Println("Inside target * or has prefix .")
+		switch {
+		case strings.ContainsAny(target, "*") || strings.HasPrefix(target, "."):
+			// A valid target does not contain:
+			// *
+			// spaces
 			// trim * and/or . (prefix) from the target to return the domain instead of wilcard
 			target = strings.TrimPrefix(strings.Trim(target, "*"), ".")
 			if !r.testAndSet(target) {
 				return
 			}
-		}
-		if asn.IsASN(target) {
-			fmt.Println("inside asn")
+			results <- httpx.Target{Host: target}
+		case asn.IsASN(target):
 			cidrIps, err := r.asnClinet.GetIPAddressesAsStream(target)
 			if err != nil {
 				return
@@ -937,11 +933,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 			for ip := range cidrIps {
 				results <- httpx.Target{Host: ip}
 			}
-			return
-		}
-		// test if the target is a cidr
-		if iputil.IsCIDR(target) {
-			fmt.Println("Inside cidr")
+		case iputil.IsCIDR(target):
 			cidrIps, err := mapcidr.IPAddressesAsStream(target)
 			if err != nil {
 				return
@@ -949,8 +941,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 			for ip := range cidrIps {
 				results <- httpx.Target{Host: ip}
 			}
-		} else if r.options.ProbeAllIPS {
-			fmt.Println("inside all Ips")
+		case r.options.ProbeAllIPS:
 			URL, err := urlutil.Parse(target)
 			if err != nil {
 				results <- httpx.Target{Host: target}
@@ -962,11 +953,10 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 			for _, ip := range ips {
 				results <- httpx.Target{Host: target, CustomIP: ip}
 			}
-		} else if idxComma := strings.Index(target, ","); idxComma > 0 {
-			fmt.Println("inside contains ,")
+		case strings.Index(target, ",") > 0:
+			idxComma := strings.Index(target, ",")
 			results <- httpx.Target{Host: target[idxComma+1:], CustomHost: target[:idxComma]}
-		} else {
-			fmt.Println("inside default")
+		default:
 			results <- httpx.Target{Host: target}
 		}
 	}()
@@ -1629,9 +1619,6 @@ func (r Result) JSON(scanopts *scanOptions) string { //nolint
 	}
 
 	if js, err := json.Marshal(r); err == nil {
-		fmt.Println("Inside Marshal", string(js))
-		fmt.Println()
-		fmt.Println()
 		return string(js)
 	}
 
