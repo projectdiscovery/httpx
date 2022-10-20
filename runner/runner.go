@@ -30,6 +30,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/mapcidr/asn"
+	"github.com/projectdiscovery/mapsutil"
 
 	"github.com/bluele/gcache"
 	"github.com/logrusorgru/aurora"
@@ -620,29 +621,36 @@ func (r *Runner) RunEnumeration() {
 
 			// apply matchers and filters
 			if r.options.OutputFilterCondition != "" || r.options.OutputMatchCondition != "" {
-				respObj := make(map[string]interface{})
-				if err := decodeResponse(resp, respObj); err != nil {
+				rawMap, err := ResultToMap(resp)
+				if err != nil {
 					gologger.Warning().Msgf("Could not decode response: %s\n", err)
-				} else {
-					if r.options.OutputMatchCondition != "" {
-						res, err := dsl.EvalExpr(r.options.OutputMatchCondition, respObj)
-						if err != nil {
-							gologger.Error().Msgf("Could not evaluate match condition: %s\n", err)
+					continue
+				}
 
-						} else {
-							if res == false {
-								continue
-							}
+				flatMap := make(map[string]any)
+				mapsutil.Walk(rawMap, func(k string, v any) {
+					flatMap[k] = v
+				})
+
+				if r.options.OutputMatchCondition != "" {
+					res, err := dsl.EvalExpr(r.options.OutputMatchCondition, flatMap)
+					if err != nil {
+						gologger.Error().Msgf("Could not evaluate match condition: %s\n", err)
+						continue
+					} else {
+						if res == false {
+							continue
 						}
 					}
-					if r.options.OutputFilterCondition != "" {
-						res, err := dsl.EvalExpr(r.options.OutputFilterCondition, respObj)
-						if err != nil {
-							gologger.Error().Msgf("Could not evaluate filter condition: %s\n", err)
-						} else {
-							if res == true {
-								continue
-							}
+				}
+				if r.options.OutputFilterCondition != "" {
+					res, err := dsl.EvalExpr(r.options.OutputFilterCondition, flatMap)
+					if err != nil {
+						gologger.Error().Msgf("Could not evaluate filter condition: %s\n", err)
+						continue
+					} else {
+						if res == true {
+							continue
 						}
 					}
 				}
@@ -1251,7 +1259,7 @@ retry:
 	var serverResponseRaw string
 	var request string
 	var rawResponseHeader string
-	var responseHeader map[string]string
+	var responseHeader map[string]interface{}
 	if scanopts.ResponseInStdout {
 		serverResponseRaw = string(resp.Data)
 		request = string(requestDump)
@@ -1309,7 +1317,7 @@ retry:
 		ip = hp.Dialer.GetDialedIP(URL.Host)
 	}
 
-	var asnResponse interface{ String() string }
+	var asnResponse *AsnResponse
 	if r.options.Asn {
 		results := asnmap.NewClient().GetData(asnmap.IP(ip))
 		if len(results) > 0 {
@@ -1425,7 +1433,7 @@ retry:
 	if r.options.JSONOutput && len(scanopts.Hashes) == 0 {
 		scanopts.Hashes = "md5,mmh3,sha256,simhash"
 	}
-	var hashesMap = map[string]string{}
+	hashesMap := make(map[string]interface{})
 	if scanopts.Hashes != "" {
 		hs := strings.Split(scanopts.Hashes, ",")
 		builder.WriteString(" [")
@@ -1725,8 +1733,8 @@ func getDNSData(hp *httpx.HTTPX, hostname string) (ips, cnames []string, err err
 	return
 }
 
-func normalizeHeaders(headers map[string][]string) map[string]string {
-	normalized := make(map[string]string, len(headers))
+func normalizeHeaders(headers map[string][]string) map[string]interface{} {
+	normalized := make(map[string]interface{}, len(headers))
 	for k, v := range headers {
 		normalized[strings.ReplaceAll(strings.ToLower(k), "-", "_")] = strings.Join(v, ", ")
 	}

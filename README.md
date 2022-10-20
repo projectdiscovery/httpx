@@ -495,7 +495,7 @@ func main() {
 
 	httpxRunner, err := runner.New(&options)
 	if err != nil {
-		log.Fatal()
+		log.Fatal(err)
 	}
 	defer httpxRunner.Close()
 
