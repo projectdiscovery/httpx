@@ -24,13 +24,14 @@ import (
 
 	"golang.org/x/exp/maps"
 
+	asnmap "github.com/projectdiscovery/asnmap/libs"
 	dsl "github.com/projectdiscovery/dsl"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
+	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/mapsutil"
 
-	"github.com/ammario/ipisp/v2"
 	"github.com/bluele/gcache"
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
@@ -75,12 +76,14 @@ type Runner struct {
 	stats           clistats.StatisticsClient
 	ratelimiter     ratelimit.Limiter
 	HostErrorsCache gcache.Cache
+	asnClinet       asn.ASNClient
 }
 
 // New creates a new client for running enumeration process.
 func New(options *Options) (*Runner, error) {
 	runner := &Runner{
-		options: options,
+		options:   options,
+		asnClinet: asn.New(),
 	}
 	var err error
 	if options.TechDetect {
@@ -475,11 +478,20 @@ func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int) {
 		return 0
 	}
 
-	expandedTarget := 1
-	if iputil.IsCIDR(rawTarget) {
+	expandedTarget := 0
+	switch {
+	case iputil.IsCIDR(rawTarget):
 		if ipsCount, err := mapcidr.AddressCount(rawTarget); err == nil && ipsCount > 0 {
 			expandedTarget = int(ipsCount)
 		}
+	case asn.IsASN(rawTarget):
+		asn := asn.New()
+		cidrs, _ := asn.GetCIDRsForASNNum(rawTarget)
+		for _, cidr := range cidrs {
+			expandedTarget += int(mapcidr.AddressCountIpnet(cidr))
+		}
+	default:
+		expandedTarget = 1
 	}
 	return expandedTarget
 }
@@ -910,28 +922,34 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 	results := make(chan httpx.Target)
 	go func() {
 		defer close(results)
-
-		// A valid target does not contain:
-		// *
-		// spaces
-		if strings.ContainsAny(target, "*") || strings.HasPrefix(target, ".") {
+		switch {
+		case strings.ContainsAny(target, "*") || strings.HasPrefix(target, "."):
+			// A valid target does not contain:
+			// *
+			// spaces
 			// trim * and/or . (prefix) from the target to return the domain instead of wilcard
 			target = strings.TrimPrefix(strings.Trim(target, "*"), ".")
 			if !r.testAndSet(target) {
 				return
 			}
-		}
-
-		// test if the target is a cidr
-		if iputil.IsCIDR(target) {
-			cidrIps, err := mapcidr.IPAddresses(target)
+			results <- httpx.Target{Host: target}
+		case asn.IsASN(target):
+			cidrIps, err := r.asnClinet.GetIPAddressesAsStream(target)
 			if err != nil {
 				return
 			}
-			for _, ip := range cidrIps {
+			for ip := range cidrIps {
 				results <- httpx.Target{Host: ip}
 			}
-		} else if r.options.ProbeAllIPS {
+		case iputil.IsCIDR(target):
+			cidrIps, err := mapcidr.IPAddressesAsStream(target)
+			if err != nil {
+				return
+			}
+			for ip := range cidrIps {
+				results <- httpx.Target{Host: ip}
+			}
+		case r.options.ProbeAllIPS:
 			URL, err := urlutil.Parse(target)
 			if err != nil {
 				results <- httpx.Target{Host: target}
@@ -943,9 +961,10 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 			for _, ip := range ips {
 				results <- httpx.Target{Host: target, CustomIP: ip}
 			}
-		} else if idxComma := strings.Index(target, ","); idxComma > 0 {
+		case strings.Index(target, ",") > 0:
+			idxComma := strings.Index(target, ",")
 			results <- httpx.Target{Host: target[idxComma+1:], CustomHost: target[:idxComma]}
-		} else {
+		default:
 			results <- httpx.Target{Host: target}
 		}
 	}()
@@ -1300,17 +1319,17 @@ retry:
 
 	var asnResponse *AsnResponse
 	if r.options.Asn {
-		lookupResult, err := ipisp.LookupIP(context.Background(), net.ParseIP(ip))
-		if err != nil {
-			gologger.Warning().Msg(err.Error())
-		}
-		if lookupResult != nil {
-			lookupResult.ISPName = stringsutil.TrimSuffixAny(strings.ReplaceAll(lookupResult.ISPName, lookupResult.Country, ""), ", ", " ")
+		results := asnmap.NewClient().GetData(asnmap.IP(ip))
+		if len(results) > 0 {
+			var cidrs []string
+			for _, cidr := range asnmap.GetCIDR(results) {
+				cidrs = append(cidrs, cidr.String())
+			}
 			asnResponse = &AsnResponse{
-				AsNumber:  lookupResult.ASN.String(),
-				AsName:    lookupResult.ISPName,
-				AsCountry: lookupResult.Country,
-				AsRange:   lookupResult.Range.String(),
+				AsNumber:  fmt.Sprintf("AS%v", results[0].ASN),
+				AsName:    results[0].Org,
+				AsCountry: results[0].Country,
+				AsRange:   cidrs,
 			}
 			builder.WriteString(" [")
 			if !scanopts.OutputWithNoColor {

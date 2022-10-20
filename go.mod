@@ -46,15 +46,16 @@ require github.com/spaolacci/murmur3 v1.1.0
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
-	github.com/ammario/ipisp/v2 v2.0.0
 	github.com/bxcodec/faker/v4 v4.0.0-beta.3
 	github.com/hdm/jarm-go v0.0.7
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/projectdiscovery/asnmap v0.0.1
 	github.com/projectdiscovery/dsl v0.0.3
 	github.com/projectdiscovery/mapsutil v0.0.2-0.20221020054123-d68d6f24a655
 	github.com/projectdiscovery/ratelimit v0.0.0-20221004232058-7b82379157fa
 	github.com/projectdiscovery/tlsx v0.0.9
+	github.com/stretchr/testify v1.8.0
 	go.uber.org/multierr v1.8.0
 	golang.org/x/exp v0.0.0-20220907003533-145caa8ea1d0
 )
@@ -75,6 +76,7 @@ require (
 	github.com/cockroachdb/pebble v0.0.0-20210728210723-48179f1d4dae // indirect
 	github.com/cockroachdb/redact v1.0.8 // indirect
 	github.com/cockroachdb/sentry-go v0.6.1-cockroachdb.2 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/ristretto v0.0.3 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
@@ -88,6 +90,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/projectdiscovery/blackrock v0.0.0-20220628111055-35616c71b2dc // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.2-0.20220525172507-b844eafc878d // indirect
 	github.com/projectdiscovery/reflectutil v0.0.0-20210804085554-4d90952bf92f // indirect

@@ -26,8 +26,6 @@ github.com/ajg/form v1.5.1/go.mod h1:uL1WgH+h2mgNtvBq0339dVnzXdBETtL2LeUXaIv25UY
 github.com/akrylysov/pogreb v0.10.0/go.mod h1:pNs6QmpQ1UlTJKDezuRWmaqkgUE2TuU0YTWyqJZ7+lI=
 github.com/akrylysov/pogreb v0.10.1 h1:FqlR8VR7uCbJdfUob916tPM+idpKgeESDXOA1K0DK4w=
 github.com/akrylysov/pogreb v0.10.1/go.mod h1:pNs6QmpQ1UlTJKDezuRWmaqkgUE2TuU0YTWyqJZ7+lI=
-github.com/ammario/ipisp/v2 v2.0.0 h1:/aRMp5srZViiBfOUGzl/Esqae4s0MDDzm9buhGcZ0XU=
-github.com/ammario/ipisp/v2 v2.0.0/go.mod h1:bQ6KAL5LnYYEj6olUn+Bzv/im/4Esa5oGkbv9b+uOjo=
 github.com/andybalholm/cascadia v1.3.1 h1:nhxRkql1kdYCc8Snf7D5/D3spOX+dBgjA6u8x004T2c=
 github.com/andybalholm/cascadia v1.3.1/go.mod h1:R4bJ1UQfqADjvDa4P6HZHLh/3OxWWEqc0Sk8XGwHqvA=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
@@ -265,6 +263,8 @@ github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/projectdiscovery/asnmap v0.0.1 h1:n4YCz1ljUaDA3dOUCkjI/bUOtiS7ge1KJ39qpURCd/o=
+github.com/projectdiscovery/asnmap v0.0.1/go.mod h1:CjCVDhQPVtmlE247L6YFeIVX9c4m8pOX8V8BmB0JkX8=
 github.com/projectdiscovery/blackrock v0.0.0-20210415162320-b38689ae3a2e/go.mod h1:/IsapnEYiWG+yEDPXp0e8NWj3npzB9Ccy9lXEUJwMZs=
 github.com/projectdiscovery/blackrock v0.0.0-20220628111055-35616c71b2dc h1:jqZK68yPOnNNRmwuXqytl+T9EbwneEUCvMDRjLe0J04=
 github.com/projectdiscovery/blackrock v0.0.0-20220628111055-35616c71b2dc/go.mod h1:5tNGQP9kOfW+X5+40pZP8aqPYLHs45nJkFaSHLxdeH8=

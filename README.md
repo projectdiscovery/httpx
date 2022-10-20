@@ -289,7 +289,16 @@ https://173.0.84.6
 https://173.0.84.16
 https://173.0.84.34
 ```
+### AS Number Input
+```console
+echo AS14421 | httpx -silent
 
+https://216.101.17.248
+https://216.101.17.249
+https://216.101.17.250
+https://216.101.17.251
+https://216.101.17.252
+```
 
 ### Tool Chain
 
@@ -387,15 +396,15 @@ subfinder -d hackerone.com -silent | httpx -asn
 
 Use with caution. You are responsible for your actions.
 Developers assume no liability and are not responsible for any misuse or damage.
-https://mta-sts.managed.hackerone.com [AS54113, FASTLY, US, 185.199.108.0/24]
-https://gslink.hackerone.com [AS16509, AMAZON-02, US, 13.33.168.0/22]
-https://www.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.96.0/20]
-https://mta-sts.forwarding.hackerone.com [AS54113, FASTLY, US, 185.199.108.0/24]
-https://resources.hackerone.com [AS16509, AMAZON-02, US, 3.98.0.0/15]
-https://support.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.48.0/20]
-https://mta-sts.hackerone.com [AS54113, FASTLY, US, 185.199.111.0/24]
-https://docs.hackerone.com [AS54113, FASTLY, US, 185.199.109.0/24]
-https://api.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.96.0/20]
+https://mta-sts.managed.hackerone.com [AS54113, FASTLY, US]
+https://gslink.hackerone.com [AS16509, AMAZON-02, US]
+https://www.hackerone.com [AS13335, CLOUDFLARENET, US]
+https://mta-sts.forwarding.hackerone.com [AS54113, FASTLY, US]
+https://resources.hackerone.com [AS16509, AMAZON-02, US]
+https://support.hackerone.com [AS13335, CLOUDFLARENET, US]
+https://mta-sts.hackerone.com [AS54113, FASTLY, US]
+https://docs.hackerone.com [AS54113, FASTLY, US]
+https://api.hackerone.com [AS13335, CLOUDFLARENET, US]
 ```
 
 
