@@ -592,7 +592,7 @@ func (r *Runner) RunEnumeration() {
 		var f *os.File
 		if r.options.Output != "" {
 			var err error
-			f, err = os.OpenFile(r.options.Output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			f, err = os.OpenFile(r.options.Output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 			if err != nil {
 				gologger.Fatal().Msgf("Could not create output file '%s': %s\n", r.options.Output, err)
 			}
