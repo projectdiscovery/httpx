@@ -1565,7 +1565,7 @@ retry:
 		chainItems = append(chainItems, resp.GetChainAsSlice()...)
 	}
 
-	return Result{
+	result := Result{
 		Timestamp:        time.Now(),
 		Request:          request,
 		ResponseHeader:   responseHeader,
@@ -1610,6 +1610,10 @@ retry:
 		ASN:              asnResponse,
 		ExtractRegex:     extractRegex,
 	}
+	if r.options.OnResult != nil {
+		r.options.OnResult(result)
+	}
+	return result
 }
 
 // SaveResumeConfig to file

@@ -36,6 +36,9 @@ const (
 
 var defaultProviders = strings.Join(cdncheck.GetDefaultProviders(), ", ")
 
+// OnResultCallback (hostResult)
+type OnResultCallback func(Result)
+
 type scanOptions struct {
 	Methods                   []string
 	StoreResponseDirectory    string
@@ -251,6 +254,7 @@ type Options struct {
 	ListDSLVariable           bool
 	OutputFilterCondition     string
 	OutputMatchCondition      string
+	OnResult                  OnResultCallback
 }
 
 // ParseOptions parses the command line options for application
