@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"os/signal"
+	"runtime"
+	"runtime/pprof"
 
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/httpx/runner"
@@ -11,6 +13,24 @@ import (
 func main() {
 	// Parse the command line flags and read config files
 	options := runner.ParseOptions()
+
+	// Profiling related code
+	if options.Memprofile != "" {
+		f, err := os.Create(options.Memprofile)
+		if err != nil {
+			gologger.Fatal().Msgf("profile: could not create memory profile %q: %v", options.Memprofile, err)
+		}
+		old := runtime.MemProfileRate
+		runtime.MemProfileRate = 4096
+		gologger.Print().Msgf("profile: memory profiling enabled (rate %d), %s", runtime.MemProfileRate, options.Memprofile)
+
+		defer func() {
+			_ = pprof.Lookup("heap").WriteTo(f, 0)
+			f.Close()
+			runtime.MemProfileRate = old
+			gologger.Print().Msgf("profile: memory profiling disabled, %s", options.Memprofile)
+		}()
+	}
 
 	httpxRunner, err := runner.New(options)
 	if err != nil {

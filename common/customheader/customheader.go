@@ -1,6 +1,7 @@
 package customheader
 
 import (
+	"strings"
 	"github.com/projectdiscovery/stringsutil"
 )
 
@@ -21,7 +22,7 @@ func (c *CustomHeaders) Set(value string) error {
 // Has checks if the list contains a header name
 func (c *CustomHeaders) Has(header string) bool {
 	for _, customHeader := range *c {
-		if stringsutil.HasPrefixAny(customHeader, header) {
+		if stringsutil.HasPrefixAny(strings.ToLower(customHeader), strings.ToLower(header)) {
 			return true
 		}
 	}

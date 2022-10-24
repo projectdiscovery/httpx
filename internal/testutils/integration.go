@@ -1,10 +1,10 @@
 package testutils
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
-	"fmt"
 )
 
 // RunNucleiAndGetResults returns a list of results for a template
@@ -34,6 +34,25 @@ func RunHttpxAndGetResults(url string, debug bool, extra ...string) ([]string, e
 	}
 	return parts, nil
 }
+
+// RunNucleiAndGetResults returns a list of results for a template
+func RunHttpxAndGetCombinedResults(url string, debug bool, extra ...string) (string, error) {
+	cmd := exec.Command("bash", "-c")
+	cmdLine := `echo "` + url + `" | ./httpx `
+	cmdLine += strings.Join(extra, " ")
+	if debug {
+		cmdLine += " -debug"
+	} else {
+		cmdLine += " -silent"
+	}
+
+	cmd.Args = append(cmd.Args, cmdLine)
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
 func RunHttpxBinaryAndGetResults(target string, httpxBinary string, debug bool, args []string) ([]string, error) {
 	cmd := exec.Command("bash", "-c")
 	cmdLine := fmt.Sprintf(`echo %s | %s `, target, httpxBinary)
@@ -57,7 +76,7 @@ func RunHttpxBinaryAndGetResults(target string, httpxBinary string, debug bool, 
 			parts = append(parts, i)
 		}
 	}
-	return parts,nil
+	return parts, nil
 }
 
 // TestCase is a single integration test case

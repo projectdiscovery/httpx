@@ -19,12 +19,12 @@
   <a href="#installation-instructions">Installation</a> •
   <a href="#usage">Usage</a> •
   <a href="#running-httpx">Running httpx</a> •
-  <a href="#-notes">Notes</a> •
+  <a href="#notes">Notes</a> •
   <a href="https://discord.gg/projectdiscovery">Join Discord</a>
 </p>
 
 
-httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library, it is designed to maintain the result reliability with increased threads.
+httpx is a fast and multi-purpose HTTP toolkit that allows running multiple probes using the [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library. It is designed to maintain result reliability with an increased number of threads.
 
 # Features
 
@@ -42,23 +42,23 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 
 ### Supported probes:-
 
-| Probes          | Default check | Probes            | Default check |
-| --------------- | ------------- | ----------------- | ------------- |
-| URL             | true          | IP                | true          |
-| Title           | true          | CNAME             | true          |
-| Status Code     | true          | Raw HTTP          | false         |
-| Content Length  | true          | HTTP2             | false         |
-| TLS Certificate | true          | HTTP Pipeline     | false         |
-| CSP Header      | true          | Virtual host      | false         |
-| Line Count      | true          | Word Count        | true          |
-| Location Header | true          | CDN               | false         |
-| Web Server      | true          | Paths             | false         |
-| Web Socket      | true          | Ports             | false         |
-| Response Time   | true          | Request Method    | true          |
-| Favicon Hash    | false         | Probe  Status     | false         |
-| Body Hash       | true          | Header  Hash      | true          |
-| Redirect chain  | false         | URL Scheme        | true          |
-| JARM Hash       | false         | ASN               | false         |
+| Probes          | Default check | Probes         | Default check |
+|-----------------|---------------|----------------|---------------|
+| URL             | true          | IP             | true          |
+| Title           | true          | CNAME          | true          |
+| Status Code     | true          | Raw HTTP       | false         |
+| Content Length  | true          | HTTP2          | false         |
+| TLS Certificate | true          | HTTP Pipeline  | false         |
+| CSP Header      | true          | Virtual host   | false         |
+| Line Count      | true          | Word Count     | true          |
+| Location Header | true          | CDN            | false         |
+| Web Server      | true          | Paths          | false         |
+| Web Socket      | true          | Ports          | false         |
+| Response Time   | true          | Request Method | true          |
+| Favicon Hash    | false         | Probe  Status  | false         |
+| Body Hash       | true          | Header  Hash   | true          |
+| Redirect chain  | false         | URL Scheme     | true          |
+| JARM Hash       | false         | ASN            | false         |
 
 # Installation Instructions
 
@@ -109,6 +109,7 @@ PROBES:
    -probe                display probe status
 
 MATCHERS:
+   -mdc -match-condition string       match response with dsl expression condition
    -mc, -match-code string            match response with specified status code (-mc 200,302)
    -ml, -match-length string          match response with specified content length (-ml 100,102)
    -mlc, -match-line-count string     match response body with specified line count (-mlc 423,532)
@@ -124,6 +125,7 @@ EXTRACTOR:
    -ep, -extract-preset string[]  Display response content with matched preset regex
 
 FILTERS:
+   -fdc -filter-condition string       filter response with dsl expression condition
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
    -fl, -filter-length string          filter response with specified content length (-fl 23,33)
    -flc, -filter-line-count string     filter response body with specified line count (-flc 423,532)
@@ -287,7 +289,16 @@ https://173.0.84.6
 https://173.0.84.16
 https://173.0.84.34
 ```
+### AS Number Input
+```console
+echo AS14421 | httpx -silent
 
+https://216.101.17.248
+https://216.101.17.249
+https://216.101.17.250
+https://216.101.17.251
+https://216.101.17.252
+```
 
 ### Tool Chain
 
@@ -385,15 +396,15 @@ subfinder -d hackerone.com -silent | httpx -asn
 
 Use with caution. You are responsible for your actions.
 Developers assume no liability and are not responsible for any misuse or damage.
-https://mta-sts.managed.hackerone.com [AS54113, FASTLY, US, 185.199.108.0/24]
-https://gslink.hackerone.com [AS16509, AMAZON-02, US, 13.33.168.0/22]
-https://www.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.96.0/20]
-https://mta-sts.forwarding.hackerone.com [AS54113, FASTLY, US, 185.199.108.0/24]
-https://resources.hackerone.com [AS16509, AMAZON-02, US, 3.98.0.0/15]
-https://support.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.48.0/20]
-https://mta-sts.hackerone.com [AS54113, FASTLY, US, 185.199.111.0/24]
-https://docs.hackerone.com [AS54113, FASTLY, US, 185.199.109.0/24]
-https://api.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.96.0/20]
+https://mta-sts.managed.hackerone.com [AS54113, FASTLY, US]
+https://gslink.hackerone.com [AS16509, AMAZON-02, US]
+https://www.hackerone.com [AS13335, CLOUDFLARENET, US]
+https://mta-sts.forwarding.hackerone.com [AS54113, FASTLY, US]
+https://resources.hackerone.com [AS16509, AMAZON-02, US]
+https://support.hackerone.com [AS13335, CLOUDFLARENET, US]
+https://mta-sts.hackerone.com [AS54113, FASTLY, US]
+https://docs.hackerone.com [AS54113, FASTLY, US]
+https://api.hackerone.com [AS13335, CLOUDFLARENET, US]
 ```
 
 
@@ -484,7 +495,7 @@ func main() {
 
 	httpxRunner, err := runner.New(&options)
 	if err != nil {
-		log.Fatal()
+		log.Fatal(err)
 	}
 	defer httpxRunner.Close()
 
