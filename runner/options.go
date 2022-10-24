@@ -244,6 +244,7 @@ type Options struct {
 	OutputMatchResponseTime   string
 	OutputFilterResponseTime  string
 	HealthCheck               bool
+	OnResult                  func(result Result)
 }
 
 // ParseOptions parses the command line options for application
