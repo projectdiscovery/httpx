@@ -29,7 +29,7 @@ require (
 	github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e
 	github.com/projectdiscovery/retryablehttp-go v1.0.3-0.20220506110515-811d938bd26d
 	github.com/projectdiscovery/sliceutil v0.0.0-20220625085859-c3a4ecb669f4
-	github.com/projectdiscovery/stringsutil v0.0.1
+	github.com/projectdiscovery/stringsutil v0.0.2
 	github.com/projectdiscovery/urlutil v0.0.0-20220603144104-f4c60e5107b2
 	github.com/projectdiscovery/wappalyzergo v0.0.66
 	github.com/remeh/sizedwaitgroup v1.0.0
