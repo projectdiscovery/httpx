@@ -113,6 +113,7 @@ func New(options *Options) (*HTTPX, error) {
 		},
 		DisableKeepAlives: true,
 	}
+
 	if httpx.Options.SniName != "" {
 		transport.TLSClientConfig.ServerName = httpx.Options.SniName
 	}
@@ -165,13 +166,13 @@ func (h *HTTPX) Do(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (*Re
 	var gzipRetry bool
 get_response:
 	httpresp, err := h.getResponse(req, unsafeOptions)
-	if err != nil {
+	if httpresp == nil && err != nil {
 		return nil, err
 	}
 
 	var shouldIgnoreErrors, shouldIgnoreBodyErrors bool
 	switch {
-	case h.Options.Unsafe && req.Method == http.MethodHead && !stringsutil.ContainsAny("i/o timeout"):
+	case h.Options.Unsafe && req.Method == http.MethodHead && !stringsutil.ContainsAny(err.Error(), "i/o timeout"):
 		shouldIgnoreErrors = true
 		shouldIgnoreBodyErrors = true
 	}
@@ -183,6 +184,11 @@ get_response:
 	// httputil.DumpResponse does not handle websockets
 	headers, rawResp, err := pdhttputil.DumpResponseHeadersAndRaw(httpresp)
 	if err != nil {
+		if stringsutil.ContainsAny(err.Error(), "tls: user canceled") {
+			shouldIgnoreErrors = true
+			shouldIgnoreBodyErrors = true
+		}
+
 		// Edge case - some servers respond with gzip encoding header but uncompressed body, in this case the standard library configures the reader as gzip, triggering an error when read.
 		// The bytes slice is not accessible because of abstraction, therefore we need to perform the request again tampering the Accept-Encoding header
 		if !gzipRetry && strings.Contains(err.Error(), "gzip: invalid header") {
@@ -196,7 +202,6 @@ get_response:
 	}
 	resp.Raw = string(rawResp)
 	resp.RawHeaders = string(headers)
-
 	var respbody []byte
 	// websockets don't have a readable body
 	if httpresp.StatusCode != http.StatusSwitchingProtocols {
@@ -274,11 +279,10 @@ type UnsafeOptions struct {
 }
 
 // getResponse returns response from safe / unsafe request
-func (h *HTTPX) getResponse(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (*http.Response, error) {
+func (h *HTTPX) getResponse(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (resp *http.Response, err error) {
 	if h.Options.Unsafe {
 		return h.doUnsafeWithOptions(req, unsafeOptions)
 	}
-
 	return h.client.Do(req)
 }
 
