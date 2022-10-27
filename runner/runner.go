@@ -13,7 +13,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -1508,6 +1507,7 @@ retry:
 	}
 
 	// store responses or chain in directory
+	var responsePath string
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		domainFile := strings.ReplaceAll(urlutil.TrimScheme(URL.String()), ":", ".")
 
@@ -1520,7 +1520,7 @@ retry:
 
 		domainFile = strings.ReplaceAll(domainFile, "/", "[slash]") + ".txt"
 		// store response
-		responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
+		responsePath = filepath.Join(scanopts.StoreResponseDirectory, domainFile)
 		respRaw := resp.Raw
 		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
 			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
@@ -1531,7 +1531,7 @@ retry:
 		}
 		if scanopts.StoreChain && resp.HasChain() {
 			domainFile = strings.ReplaceAll(domainFile, ".txt", ".chain.txt")
-			responsePath := path.Join(scanopts.StoreResponseDirectory, domainFile)
+			responsePath = filepath.Join(scanopts.StoreResponseDirectory, domainFile)
 			writeErr := os.WriteFile(responsePath, []byte(resp.GetChain()), 0644)
 			if writeErr != nil {
 				gologger.Warning().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
@@ -1566,49 +1566,50 @@ retry:
 	}
 
 	result := Result{
-		Timestamp:        time.Now(),
-		Request:          request,
-		ResponseHeader:   responseHeader,
-		RawHeader:        rawResponseHeader,
-		Scheme:           parsed.Scheme,
-		Port:             finalPort,
-		Path:             finalPath,
-		raw:              resp.Raw,
-		URL:              fullURL,
-		Input:            origInput,
-		ContentLength:    resp.ContentLength,
-		ChainStatusCodes: chainStatusCodes,
-		Chain:            chainItems,
-		StatusCode:       resp.StatusCode,
-		Location:         resp.GetHeaderPart("Location", ";"),
-		ContentType:      resp.GetHeaderPart("Content-Type", ";"),
-		Title:            title,
-		str:              builder.String(),
-		VHost:            isvhost,
-		WebServer:        serverHeader,
-		ResponseBody:     serverResponseRaw,
-		WebSocket:        isWebSocket,
-		TLSData:          resp.TLSData,
-		CSPData:          resp.CSPData,
-		Pipeline:         pipeline,
-		HTTP2:            http2,
-		Method:           method,
-		Host:             ip,
-		A:                ips,
-		CNAMEs:           cnames,
-		CDN:              isCDN,
-		CDNName:          cdnName,
-		ResponseTime:     resp.Duration.String(),
-		Technologies:     technologies,
-		FinalURL:         finalURL,
-		FavIconMMH3:      faviconMMH3,
-		Hashes:           hashesMap,
-		Extracts:         extractResult,
-		Jarm:             jarmhash,
-		Lines:            resp.Lines,
-		Words:            resp.Words,
-		ASN:              asnResponse,
-		ExtractRegex:     extractRegex,
+		Timestamp:          time.Now(),
+		Request:            request,
+		ResponseHeader:     responseHeader,
+		RawHeader:          rawResponseHeader,
+		Scheme:             parsed.Scheme,
+		Port:               finalPort,
+		Path:               finalPath,
+		raw:                resp.Raw,
+		URL:                fullURL,
+		Input:              origInput,
+		ContentLength:      resp.ContentLength,
+		ChainStatusCodes:   chainStatusCodes,
+		Chain:              chainItems,
+		StatusCode:         resp.StatusCode,
+		Location:           resp.GetHeaderPart("Location", ";"),
+		ContentType:        resp.GetHeaderPart("Content-Type", ";"),
+		Title:              title,
+		str:                builder.String(),
+		VHost:              isvhost,
+		WebServer:          serverHeader,
+		ResponseBody:       serverResponseRaw,
+		WebSocket:          isWebSocket,
+		TLSData:            resp.TLSData,
+		CSPData:            resp.CSPData,
+		Pipeline:           pipeline,
+		HTTP2:              http2,
+		Method:             method,
+		Host:               ip,
+		A:                  ips,
+		CNAMEs:             cnames,
+		CDN:                isCDN,
+		CDNName:            cdnName,
+		ResponseTime:       resp.Duration.String(),
+		Technologies:       technologies,
+		FinalURL:           finalURL,
+		FavIconMMH3:        faviconMMH3,
+		Hashes:             hashesMap,
+		Extracts:           extractResult,
+		Jarm:               jarmhash,
+		Lines:              resp.Lines,
+		Words:              resp.Words,
+		ASN:                asnResponse,
+		ExtractRegex:       extractRegex,
+		StoredResponsePath: responsePath,
 	}
 	if r.options.OnResult != nil {
 		r.options.OnResult(result)
