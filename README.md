@@ -85,6 +85,7 @@ Flags:
 INPUT:
    -l, -list string      input file containing list of hosts to process
    -rr, -request string  file containing raw request
+   -u, -target string[]  input target host(s) to probe
 
 PROBES:
    -sc, -status-code     display response status-code
@@ -109,7 +110,6 @@ PROBES:
    -probe                display probe status
 
 MATCHERS:
-   -mdc -match-condition string       match response with dsl expression condition
    -mc, -match-code string            match response with specified status code (-mc 200,302)
    -ml, -match-length string          match response with specified content length (-ml 100,102)
    -mlc, -match-line-count string     match response body with specified line count (-mlc 423,532)
@@ -117,15 +117,15 @@ MATCHERS:
    -mfc, -match-favicon string[]      match response with specified favicon hash (-mfc 1494302000)
    -ms, -match-string string          match response with specified string (-ms admin)
    -mr, -match-regex string           match response with specified regex (-mr admin)
-   -mcdn, -match-cdn string[]         match host with specified cdn provider (azure, cloudflare, cloudfront, fastly, incapsula, oracle, google, akamai, sucuri, leaseweb)
+   -mcdn, -match-cdn string[]         match host with specified cdn provider (fastly, incapsula, oracle, google, azure, cloudflare, cloudfront, sucuri, leaseweb, akamai)
    -mrt, -match-response-time string  match response with specified response time in seconds (-mrt '< 1')
+   -mdc, -match-condition string      match response with dsl expression condition
 
 EXTRACTOR:
-   -er, -extract-regex string[]   Display response content with matched regex
-   -ep, -extract-preset string[]  Display response content with matched preset regex
+   -er, -extract-regex string[]   display response content with matched regex
+   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (url,ipv4,mail)
 
 FILTERS:
-   -fdc -filter-condition string       filter response with dsl expression condition
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
    -fl, -filter-length string          filter response with specified content length (-fl 23,33)
    -flc, -filter-line-count string     filter response body with specified line count (-flc 423,532)
@@ -133,8 +133,9 @@ FILTERS:
    -ffc, -filter-favicon string[]      filter response with specified favicon hash (-mfc 1494302000)
    -fs, -filter-string string          filter response with specified string (-fs admin)
    -fe, -filter-regex string           filter response with specified regex (-fe admin)
-   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (azure, cloudflare, cloudfront, fastly, incapsula, oracle, google, akamai, sucuri, leaseweb)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (fastly, incapsula, oracle, google, azure, cloudflare, cloudfront, sucuri, leaseweb, akamai)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
+   -fdc, -filter-condition string      filter response with dsl expression condition
 
 RATE-LIMIT:
    -t, -threads int              number of threads to use (default 50)
@@ -142,15 +143,16 @@ RATE-LIMIT:
    -rlm, -rate-limit-minute int  maximum number of requests to send per minute
 
 MISCELLANEOUS:
-   -pa, -probe-all-ips  probe all the ips associated with same host
-   -p, -ports string[]  ports to probe (nmap syntax: eg 1,2-10,11)
-   -path string         path or list of paths to probe (comma-separated, file)
-   -tls-probe           send http probes on the extracted TLS domains (dns_name)
-   -csp-probe           send http probes on the extracted CSP domains
-   -tls-grab            perform TLS(SSL) data grabbing
-   -pipeline            probe and display server supporting HTTP1.1 pipeline
-   -http2               probe and display server supporting HTTP2
-   -vhost               probe and display server supporting VHOST
+   -pa, -probe-all-ips        probe all the ips associated with same host
+   -p, -ports string[]        ports to probe (nmap syntax: eg http:1,2-10,11,https:80)
+   -path string               path or list of paths to probe (comma-separated, file)
+   -tls-probe                 send http probes on the extracted TLS domains (dns_name)
+   -csp-probe                 send http probes on the extracted CSP domains
+   -tls-grab                  perform TLS(SSL) data grabbing
+   -pipeline                  probe and display server supporting HTTP1.1 pipeline
+   -http2                     probe and display server supporting HTTP2
+   -vhost                     probe and display server supporting VHOST
+   -ldv, -list-dsl-variables  list json output field keys name that support dsl matcher/filter
 
 OUTPUT:
    -o, -output string                file to write output results
@@ -166,8 +168,8 @@ CONFIGURATIONS:
    -r, -resolvers string[]       list of custom resolver (file or comma separated)
    -allow string[]               allowed list of IP/CIDR's to process (file or comma separated)
    -deny string[]                denied list of IP/CIDR's to process (file or comma separated)
-   -sni, -sni-name string        Custom TLS SNI name
-   -random-agent                 Enable Random User-Agent to use (default true)
+   -sni, -sni-name string        custom TLS SNI name
+   -random-agent                 enable Random User-Agent to use (default true)
    -H, -header string[]          custom http headers to send with request
    -http-proxy, -proxy string    http proxy to use (eg http://127.0.0.1:8080)
    -unsafe                       send raw requests skipping golang normalization
@@ -189,6 +191,7 @@ DEBUG:
    -debug-resp               display response content in cli
    -version                  display httpx version
    -stats                    display scan statistic
+   -profile-mem string       optional httpx memory profile dump file
    -silent                   silent mode
    -v, -verbose              verbose mode
    -si, -stats-interval int  number of seconds to wait between showing a statistics update (default: 5)
