@@ -136,11 +136,6 @@ func TestRunner_countTargetFromRawTarget(t *testing.T) {
 	got = r.countTargetFromRawTarget(input)
 	require.Equal(t, expected, got, "got wrong output")
 
-	input = "AS15133"
-	expected = 153088
-	got = r.countTargetFromRawTarget(input)
-	require.Equal(t, expected, got, "got wrong output")
-
 	input = "173.0.84.0/24"
 	expected = 256
 	got = r.countTargetFromRawTarget(input)
