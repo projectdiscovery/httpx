@@ -53,7 +53,7 @@ require (
 	github.com/projectdiscovery/asnmap v0.0.1
 	github.com/projectdiscovery/dsl v0.0.3
 	github.com/projectdiscovery/mapsutil v0.0.2-0.20221020054123-d68d6f24a655
-	github.com/projectdiscovery/ratelimit v0.0.0-20221004232058-7b82379157fa
+	github.com/projectdiscovery/ratelimit v0.0.1
 	github.com/projectdiscovery/tlsx v0.0.9
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/multierr v1.8.0

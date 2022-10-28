@@ -315,6 +315,8 @@ github.com/projectdiscovery/networkpolicy v0.0.2-0.20220525172507-b844eafc878d h
 github.com/projectdiscovery/networkpolicy v0.0.2-0.20220525172507-b844eafc878d/go.mod h1:asvdg5wMy3LPVMGALatebKeOYH5n5fV5RCTv6DbxpIs=
 github.com/projectdiscovery/ratelimit v0.0.0-20221004232058-7b82379157fa h1:XTRcow+zyZUYxOlLsSp1AdM4Jl+i/OpPbOZPsfU/IAI=
 github.com/projectdiscovery/ratelimit v0.0.0-20221004232058-7b82379157fa/go.mod h1:zenrIElIcKg0Y9h7pMfTlw5vaI/kCl8uxXm+PfgbBSw=
+github.com/projectdiscovery/ratelimit v0.0.1 h1:GnCfbKmkLdDLXT3QS4KS0zCsuDGkoRQE0YDbTqzQmS8=
+github.com/projectdiscovery/ratelimit v0.0.1/go.mod h1:zenrIElIcKg0Y9h7pMfTlw5vaI/kCl8uxXm+PfgbBSw=
 github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e h1:hcpGb5/gSn+kNUmzgodV1+sHDmFybuGhsuhrTqFebQY=
 github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e/go.mod h1:PQERZAhAv7yxI/hR6hdDPgK1WTU56l204BweXrBec+0=
 github.com/projectdiscovery/reflectutil v0.0.0-20210804085554-4d90952bf92f h1:HR3R/nhELwLXufUlO1ZkKVqrZl4lN1cWFBdN8RcMuLo=

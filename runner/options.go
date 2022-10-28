@@ -444,16 +444,16 @@ func ParseOptions() *Options {
 
 func (options *Options) ValidateOptions() error {
 	if options.InputFile != "" && !fileutilz.FileNameIsGlob(options.InputFile) && !fileutil.FileExists(options.InputFile) {
-		return fmt.Errorf("File '%s' does not exist.", options.InputFile)
+		return fmt.Errorf("file '%s' does not exist", options.InputFile)
 	}
 
 	if options.InputRawRequest != "" && !fileutil.FileExists(options.InputRawRequest) {
-		return fmt.Errorf("File '%s' does not exist.", options.InputRawRequest)
+		return fmt.Errorf("file '%s' does not exist", options.InputRawRequest)
 	}
 
 	multiOutput := options.CSVOutput && options.JSONOutput
 	if multiOutput {
-		return fmt.Errorf("Results can only be displayed in one format: 'JSON' or 'CSV'")
+		return fmt.Errorf("results can only be displayed in one format: 'JSON' or 'CSV'")
 	}
 
 	if options.Silent {
