@@ -19,12 +19,12 @@
   <a href="#installation-instructions">Installation</a> •
   <a href="#usage">Usage</a> •
   <a href="#running-httpx">Running httpx</a> •
-  <a href="#-notes">Notes</a> •
+  <a href="#notes">Notes</a> •
   <a href="https://discord.gg/projectdiscovery">Join Discord</a>
 </p>
 
 
-httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers using [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library, it is designed to maintain the result reliability with increased threads.
+httpx is a fast and multi-purpose HTTP toolkit that allows running multiple probes using the [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library. It is designed to maintain result reliability with an increased number of threads.
 
 # Features
 
@@ -42,23 +42,23 @@ httpx is a fast and multi-purpose HTTP toolkit allow to run multiple probers usi
 
 ### Supported probes:-
 
-| Probes          | Default check | Probes            | Default check |
-| --------------- | ------------- | ----------------- | ------------- |
-| URL             | true          | IP                | true          |
-| Title           | true          | CNAME             | true          |
-| Status Code     | true          | Raw HTTP          | false         |
-| Content Length  | true          | HTTP2             | false         |
-| TLS Certificate | true          | HTTP Pipeline     | false         |
-| CSP Header      | true          | Virtual host      | false         |
-| Line Count      | true          | Word Count        | true          |
-| Location Header | true          | CDN               | false         |
-| Web Server      | true          | Paths             | false         |
-| Web Socket      | true          | Ports             | false         |
-| Response Time   | true          | Request Method    | true          |
-| Favicon Hash    | false         | Probe  Status     | false         |
-| Body Hash       | true          | Header  Hash      | true          |
-| Redirect chain  | false         | URL Scheme        | true          |
-| JARM Hash       | false         | ASN               | false         |
+| Probes          | Default check | Probes         | Default check |
+|-----------------|---------------|----------------|---------------|
+| URL             | true          | IP             | true          |
+| Title           | true          | CNAME          | true          |
+| Status Code     | true          | Raw HTTP       | false         |
+| Content Length  | true          | HTTP2          | false         |
+| TLS Certificate | true          | HTTP Pipeline  | false         |
+| CSP Header      | true          | Virtual host   | false         |
+| Line Count      | true          | Word Count     | true          |
+| Location Header | true          | CDN            | false         |
+| Web Server      | true          | Paths          | false         |
+| Web Socket      | true          | Ports          | false         |
+| Response Time   | true          | Request Method | true          |
+| Favicon Hash    | false         | Probe  Status  | false         |
+| Body Hash       | true          | Header  Hash   | true          |
+| Redirect chain  | false         | URL Scheme     | true          |
+| JARM Hash       | false         | ASN            | false         |
 
 # Installation Instructions
 
@@ -85,6 +85,7 @@ Flags:
 INPUT:
    -l, -list string      input file containing list of hosts to process
    -rr, -request string  file containing raw request
+   -u, -target string[]  input target host(s) to probe
 
 PROBES:
    -sc, -status-code     display response status-code
@@ -116,12 +117,13 @@ MATCHERS:
    -mfc, -match-favicon string[]      match response with specified favicon hash (-mfc 1494302000)
    -ms, -match-string string          match response with specified string (-ms admin)
    -mr, -match-regex string           match response with specified regex (-mr admin)
-   -mcdn, -match-cdn string[]         match host with specified cdn provider (azure, cloudflare, cloudfront, fastly, incapsula, oracle, google, akamai, sucuri, leaseweb)
+   -mcdn, -match-cdn string[]         match host with specified cdn provider (fastly, incapsula, oracle, google, azure, cloudflare, cloudfront, sucuri, leaseweb, akamai)
    -mrt, -match-response-time string  match response with specified response time in seconds (-mrt '< 1')
+   -mdc, -match-condition string      match response with dsl expression condition
 
 EXTRACTOR:
-   -er, -extract-regex string[]   Display response content with matched regex
-   -ep, -extract-preset string[]  Display response content with matched preset regex
+   -er, -extract-regex string[]   display response content with matched regex
+   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (url,ipv4,mail)
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
@@ -131,8 +133,9 @@ FILTERS:
    -ffc, -filter-favicon string[]      filter response with specified favicon hash (-mfc 1494302000)
    -fs, -filter-string string          filter response with specified string (-fs admin)
    -fe, -filter-regex string           filter response with specified regex (-fe admin)
-   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (azure, cloudflare, cloudfront, fastly, incapsula, oracle, google, akamai, sucuri, leaseweb)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (fastly, incapsula, oracle, google, azure, cloudflare, cloudfront, sucuri, leaseweb, akamai)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
+   -fdc, -filter-condition string      filter response with dsl expression condition
 
 RATE-LIMIT:
    -t, -threads int              number of threads to use (default 50)
@@ -140,15 +143,16 @@ RATE-LIMIT:
    -rlm, -rate-limit-minute int  maximum number of requests to send per minute
 
 MISCELLANEOUS:
-   -pa, -probe-all-ips  probe all the ips associated with same host
-   -p, -ports string[]  ports to probe (nmap syntax: eg 1,2-10,11)
-   -path string         path or list of paths to probe (comma-separated, file)
-   -tls-probe           send http probes on the extracted TLS domains (dns_name)
-   -csp-probe           send http probes on the extracted CSP domains
-   -tls-grab            perform TLS(SSL) data grabbing
-   -pipeline            probe and display server supporting HTTP1.1 pipeline
-   -http2               probe and display server supporting HTTP2
-   -vhost               probe and display server supporting VHOST
+   -pa, -probe-all-ips        probe all the ips associated with same host
+   -p, -ports string[]        ports to probe (nmap syntax: eg http:1,2-10,11,https:80)
+   -path string               path or list of paths to probe (comma-separated, file)
+   -tls-probe                 send http probes on the extracted TLS domains (dns_name)
+   -csp-probe                 send http probes on the extracted CSP domains
+   -tls-grab                  perform TLS(SSL) data grabbing
+   -pipeline                  probe and display server supporting HTTP1.1 pipeline
+   -http2                     probe and display server supporting HTTP2
+   -vhost                     probe and display server supporting VHOST
+   -ldv, -list-dsl-variables  list json output field keys name that support dsl matcher/filter
 
 OUTPUT:
    -o, -output string                file to write output results
@@ -164,8 +168,8 @@ CONFIGURATIONS:
    -r, -resolvers string[]       list of custom resolver (file or comma separated)
    -allow string[]               allowed list of IP/CIDR's to process (file or comma separated)
    -deny string[]                denied list of IP/CIDR's to process (file or comma separated)
-   -sni, -sni-name string        Custom TLS SNI name
-   -random-agent                 Enable Random User-Agent to use (default true)
+   -sni, -sni-name string        custom TLS SNI name
+   -random-agent                 enable Random User-Agent to use (default true)
    -H, -header string[]          custom http headers to send with request
    -http-proxy, -proxy string    http proxy to use (eg http://127.0.0.1:8080)
    -unsafe                       send raw requests skipping golang normalization
@@ -187,6 +191,7 @@ DEBUG:
    -debug-resp               display response content in cli
    -version                  display httpx version
    -stats                    display scan statistic
+   -profile-mem string       optional httpx memory profile dump file
    -silent                   silent mode
    -v, -verbose              verbose mode
    -si, -stats-interval int  number of seconds to wait between showing a statistics update (default: 5)
@@ -287,7 +292,16 @@ https://173.0.84.6
 https://173.0.84.16
 https://173.0.84.34
 ```
+### AS Number Input
+```console
+echo AS14421 | httpx -silent
 
+https://216.101.17.248
+https://216.101.17.249
+https://216.101.17.250
+https://216.101.17.251
+https://216.101.17.252
+```
 
 ### Tool Chain
 
@@ -385,15 +399,15 @@ subfinder -d hackerone.com -silent | httpx -asn
 
 Use with caution. You are responsible for your actions.
 Developers assume no liability and are not responsible for any misuse or damage.
-https://mta-sts.managed.hackerone.com [AS54113, FASTLY, US, 185.199.108.0/24]
-https://gslink.hackerone.com [AS16509, AMAZON-02, US, 13.33.168.0/22]
-https://www.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.96.0/20]
-https://mta-sts.forwarding.hackerone.com [AS54113, FASTLY, US, 185.199.108.0/24]
-https://resources.hackerone.com [AS16509, AMAZON-02, US, 3.98.0.0/15]
-https://support.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.48.0/20]
-https://mta-sts.hackerone.com [AS54113, FASTLY, US, 185.199.111.0/24]
-https://docs.hackerone.com [AS54113, FASTLY, US, 185.199.109.0/24]
-https://api.hackerone.com [AS13335, CLOUDFLARENET, US, 104.16.96.0/20]
+https://mta-sts.managed.hackerone.com [AS54113, FASTLY, US]
+https://gslink.hackerone.com [AS16509, AMAZON-02, US]
+https://www.hackerone.com [AS13335, CLOUDFLARENET, US]
+https://mta-sts.forwarding.hackerone.com [AS54113, FASTLY, US]
+https://resources.hackerone.com [AS16509, AMAZON-02, US]
+https://support.hackerone.com [AS13335, CLOUDFLARENET, US]
+https://mta-sts.hackerone.com [AS54113, FASTLY, US]
+https://docs.hackerone.com [AS54113, FASTLY, US]
+https://api.hackerone.com [AS13335, CLOUDFLARENET, US]
 ```
 
 
@@ -484,7 +498,7 @@ func main() {
 
 	httpxRunner, err := runner.New(&options)
 	if err != nil {
-		log.Fatal()
+		log.Fatal(err)
 	}
 	defer httpxRunner.Close()
 

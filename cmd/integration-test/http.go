@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -27,6 +27,9 @@ var httpTestcases = map[string]testutils.TestCase{
 	"Request URI to existing file - https://github.com/projectdiscovery/httpx/issues/480": &issue480{}, // request uri pointing to existing file
 	"Standard HTTP GET Request with match response time":                                  &standardHttpGet{mrt: true, inputValue: "\"<10s\""},
 	"Standard HTTP GET Request with filter response time":                                 &standardHttpGet{frt: true, inputValue: "\">3ms\""},
+	"Multiple Custom Header":                                                              &customHeader{inputData: []string{"-debug-req", "-H", "'user-agent: test'", "-H", "'foo: bar'"}, expectedOutput: []string{"User-Agent: test", "Foo: bar"}},
+	"Output Match Condition":                                                              &outputMatchCondition{inputData: []string{"-silent", "-mdc", "\"status_code == 200\""}},
+	"Output Filter Condition":                                                             &outputFilterCondition{inputData: []string{"-silent", "-fdc", "\"status_code == 400\""}},
 }
 
 type standardHttpGet struct {
@@ -207,7 +210,7 @@ func (h *issue400) Execute() error {
 	router := httprouter.New()
 	router.POST("/receive", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Add("Content-Type", "application/json")
-		data, _ := ioutil.ReadAll(r.Body)
+		data, _ := io.ReadAll(r.Body)
 		fmt.Fprintf(w, "data received %s", data)
 	}))
 	ts = httptest.NewServer(router)
@@ -231,7 +234,7 @@ func (h *issue414) Execute() error {
 	router := httprouter.New()
 	router.POST(uripath, httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Add("Content-Type", "application/json")
-		data, _ := ioutil.ReadAll(r.Body)
+		data, _ := io.ReadAll(r.Body)
 		fmt.Fprintf(w, "data received %s", data)
 	}))
 	ts = httptest.NewServer(router)
@@ -293,6 +296,83 @@ func (h *issue480) Execute() error {
 		return err
 	}
 	if !strings.Contains(results[0], uriPath) {
+		return errIncorrectResultsCount(results)
+	}
+	return nil
+}
+
+type customHeader struct {
+	inputData      []string
+	expectedOutput []string
+}
+
+func (h *customHeader) Execute() error {
+	var ts *httptest.Server
+	router := httprouter.New()
+	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		w.Header().Add("Content-Type", "application/json")
+		fmt.Fprint(w, `{"status": "ok"}`)
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+
+	results, err := testutils.RunHttpxAndGetCombinedResults(ts.URL, true, h.inputData...)
+	if err != nil {
+		return err
+	}
+	for _, expected := range h.expectedOutput {
+		if !strings.Contains(results, expected) {
+			return errIncorrectResult(expected, results)
+		}
+	}
+	return nil
+}
+
+type outputMatchCondition struct {
+	inputData []string
+}
+
+func (h *outputMatchCondition) Execute() error {
+	var ts *httptest.Server
+	router := httprouter.New()
+	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(200)
+		fmt.Fprint(w, `{"status": "ok"}`)
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+	results, err := testutils.RunHttpxAndGetResults(ts.URL, false, h.inputData...)
+	if err != nil {
+		return err
+	}
+	if len(results) != 1 {
+		return errIncorrectResultsCount(results)
+	}
+	return nil
+}
+
+type outputFilterCondition struct {
+	inputData []string
+}
+
+func (h *outputFilterCondition) Execute() error {
+	var ts *httptest.Server
+	router := httprouter.New()
+	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(200)
+		fmt.Fprint(w, `{"status": "ok"}`)
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+
+	results, err := testutils.RunHttpxAndGetResults(ts.URL, false, h.inputData...)
+	if err != nil {
+		return err
+	}
+
+	if len(results) != 1 {
 		return errIncorrectResultsCount(results)
 	}
 	return nil
