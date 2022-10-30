@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 
-	"github.com/Mre11i0t/httpx/runner"
+	"github.com/Mre11i0t/httpx-updated-favicon/runner"
 	"github.com/projectdiscovery/gologger"
 )
 
