@@ -3,6 +3,7 @@ package stringz
 import (
 	"bytes"
 	"encoding/base64"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -107,11 +108,18 @@ func GetInvalidURI(rawURL string) (bool, string) {
 }
 
 func FaviconHash(data []byte) int32 {
-	stdBase64 := base64.StdEncoding.EncodeToString(data)
-	stdBase64 = InsertInto(stdBase64, 76, '\n')
-	hasher := murmur3.New32WithSeed(0)
-	hasher.Write([]byte(stdBase64))
-	return int32(hasher.Sum32())
+	// check if contenttype matches image/x-icon
+	contentType := http.DetectContentType(data)
+	// check content type to be any image
+	if strings.HasPrefix(contentType, "image/") {
+		stdBase64 := base64.StdEncoding.EncodeToString(data)
+		stdBase64 = InsertInto(stdBase64, 76, '\n')
+		hasher := murmur3.New32WithSeed(0)
+		hasher.Write([]byte(stdBase64))
+		return int32(hasher.Sum32())
+	} else {
+		return 0
+	}
 }
 
 func InsertInto(s string, interval int, sep rune) string {

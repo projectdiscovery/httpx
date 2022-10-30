@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"runtime/pprof"
 
+	"github.com/Mre11i0t/httpx/runner"
 	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/httpx/runner"
 )
 
 func main() {

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"golang.org/x/exp/maps"
+	"golang.org/x/net/html"
 
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	dsl "github.com/projectdiscovery/dsl"
@@ -1421,13 +1422,59 @@ retry:
 		req.URL.Path = "/favicon.ico"
 		if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
 			faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(faviconResp.Data))
-			builder.WriteString(" [")
-			if !scanopts.OutputWithNoColor {
-				builder.WriteString(aurora.Magenta(faviconMMH3).String())
+			if faviconMMH3 == "0" {
+				req.URL.Path = "/"
+				if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
+					parsed, err := html.Parse(strings.NewReader(string(faviconResp.Data)))
+					var f func(*html.Node)
+					f = func(n *html.Node) {
+						if n.Type == html.ElementNode && n.Data == "link" {
+							for _, a := range n.Attr {
+								if a.Key == "rel" && (a.Val == "icon" || a.Val == "shortcut icon" || a.Val == "mask-icon" || a.Val == "apple-touch-icon") {
+									for _, b := range n.Attr {
+										if b.Key == "href" {
+											if strings.HasPrefix(b.Val, "http") {
+												u, err := url.Parse(b.Val)
+												if err != nil {
+													continue
+												}
+												req.URL.Path = u.Path
+											} else {
+												req.URL.Path = "/" + b.Val
+											}
+											if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
+												faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(faviconResp.Data))
+												builder.WriteString(" [")
+												if !scanopts.OutputWithNoColor {
+													builder.WriteString(aurora.Magenta(faviconMMH3).String())
+												} else {
+													builder.WriteString(faviconMMH3)
+												}
+												builder.WriteRune(']')
+											}
+										}
+									}
+								}
+							}
+						}
+						// recursive call for child nodes and only run on <a> tags
+						for c := n.FirstChild; c != nil; c = c.NextSibling {
+							f(c)
+						}
+					}
+					if err == nil {
+						f(parsed)
+					}
+				}
 			} else {
-				builder.WriteString(faviconMMH3)
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Magenta(faviconMMH3).String())
+				} else {
+					builder.WriteString(faviconMMH3)
+				}
+				builder.WriteRune(']')
 			}
-			builder.WriteRune(']')
 		} else {
 			gologger.Warning().Msgf("Could not fetch favicon: %s", favErr.Error())
 		}
