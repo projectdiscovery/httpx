@@ -1421,17 +1421,9 @@ retry:
 	if scanopts.Favicon {
 		req.URL.Path = "/favicon.ico"
 		if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
-			if faviconResp.StatusCode == 200 {
+			if faviconResp.StatusCode == 200  {
 				faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(faviconResp.Data))
-				if faviconMMH3 == "0" {
-					req.URL.Path = "/"
-					if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
-						parsed, err := html.Parse(strings.NewReader(string(faviconResp.Data)))
-						if err == nil {
-							builder, favErr = scrapeFavicon(parsed, hp, scanopts, req)
-						}
-					}
-				} else {
+				if !(faviconMMH3 == "0") {
 					builder.WriteString(" [")
 					if !scanopts.OutputWithNoColor {
 						builder.WriteString(aurora.Magenta(faviconMMH3).String())
@@ -1439,6 +1431,23 @@ retry:
 						builder.WriteString(faviconMMH3)
 					}
 					builder.WriteRune(']')
+				}
+			} else {
+				req.URL.Path = "/"
+				if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
+					if faviconResp.StatusCode == 200{
+						parsed, err := html.Parse(strings.NewReader(string(faviconResp.Data)))
+						if err != nil {
+							gologger.Warning().Msgf("Could not fetch favicon: %s", err.Error())
+						} else {
+							builder, err = scrapeFavicon(parsed, hp, scanopts, req)
+							if err != nil {
+								gologger.Warning().Msgf("Could not fetch favicon: %s", err.Error())
+							}
+						}
+					} else {
+						gologger.Warning().Msgf("Could ont fetch favicon %d", faviconResp.StatusCode)
+					}
 				}
 			}
 		} else {
@@ -1764,7 +1773,7 @@ func normalizeHeaders(headers map[string][]string) map[string]interface{} {
 }
 func scrapeFavicon(n *html.Node, hp *httpx.HTTPX, scanopts *scanOptions, req *retryablehttp.Request) (*strings.Builder, error) {
 	var faviconMMH3 string
-	var favErr error
+	var err error
 	builder := &strings.Builder{}
 	if n.Type == html.ElementNode && n.Data == "link" {
 		for _, a := range n.Attr {
@@ -1791,15 +1800,19 @@ func scrapeFavicon(n *html.Node, hp *httpx.HTTPX, scanopts *scanOptions, req *re
 								}
 								builder.WriteRune(']')
 							}
+						} else {
+							gologger.Warning().Msgf("Could not fetch favicon: %s", favErr.Error())
 						}
 					}
 				}
 			}
 		}
 	}
-	// recursive call for child nodes and only run on <a> tags
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		scrapeFavicon(c, hp, scanopts, req)
+		builder, err = scrapeFavicon(c, hp, scanopts, req)
+		if err != nil {
+			gologger.Warning().Msgf("Could not fetch favicon: %s", err.Error())
+		}
 	}
-	return builder, favErr
+	return builder, err
 }
