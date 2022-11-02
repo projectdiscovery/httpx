@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/md5"
+	"crypto/sha1"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -1522,7 +1522,7 @@ retry:
 			// leaving last 4 bytes free to append ".txt"
 			domainFile = domainFile[:maxFileNameLength]
 		}
-		hash := md5.Sum([]byte(domainFile))
+		hash := sha1.Sum([]byte(domainFile))
 		domainFile = fmt.Sprintf("%x", hash) + ".txt"
 
 		// store response
