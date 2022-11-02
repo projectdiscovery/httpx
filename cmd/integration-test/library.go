@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 
 	"github.com/projectdiscovery/httpx/internal/testutils"
@@ -25,7 +26,7 @@ func (h *httpxLibrary) Execute() error {
 	var got string
 
 	options := runner.Options{
-		Methods:   "GET",
+		Methods:   http.MethodGet,
 		InputFile: testFile,
 		OnResult: func(r runner.Result) {
 			got = r.URL
