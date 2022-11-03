@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/sha1"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -1515,15 +1514,8 @@ retry:
 	var responsePath string
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		domainFile := strings.ReplaceAll(urlutil.TrimScheme(URL.String()), ":", ".")
-
-		// On various OS the file max file name length is 255 - https://serverfault.com/questions/9546/filename-length-limits-on-linux
-		// Truncating length at 255
-		if len(domainFile) >= maxFileNameLength {
-			// leaving last 4 bytes free to append ".txt"
-			domainFile = domainFile[:maxFileNameLength]
-		}
-		hash := sha1.Sum([]byte(domainFile))
-		domainFile = fmt.Sprintf("%x", hash) + ".txt"
+		hash := hashes.Sha256([]byte(domainFile))
+		domainFile = fmt.Sprintf("%s.txt", hash)
 
 		// store response
 		responsePath = filepath.Join(scanopts.StoreResponseDirectory, domainFile)

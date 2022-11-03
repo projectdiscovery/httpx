@@ -27,8 +27,6 @@ import (
 )
 
 const (
-	// The maximum file length is 251 (255 - 4 bytes for ".ext" suffix)
-	maxFileNameLength      = 251
 	two                    = 2
 	DefaultResumeFile      = "resume.cfg"
 	DefaultOutputDirectory = "output"
