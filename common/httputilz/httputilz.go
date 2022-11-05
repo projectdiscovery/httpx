@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/projectdiscovery/retryablehttp-go"
-	"github.com/projectdiscovery/urlutil"
+	urlutil "github.com/projectdiscovery/utils/url"
 )
 
 const (

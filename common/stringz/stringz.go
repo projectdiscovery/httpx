@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/projectdiscovery/urlutil"
+	urlutil "github.com/projectdiscovery/utils/url"
 	"github.com/spaolacci/murmur3"
 )
 
