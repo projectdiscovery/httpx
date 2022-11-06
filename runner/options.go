@@ -11,7 +11,6 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/projectdiscovery/cdncheck"
-	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/goflags"
 	"github.com/projectdiscovery/gologger"
@@ -24,6 +23,7 @@ import (
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
+	fileutil "github.com/projectdiscovery/utils/file"
 )
 
 const (

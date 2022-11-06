@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/projectdiscovery/httputil"
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
+	httputil "github.com/projectdiscovery/utils/http"
 )
 
 // Response contains the response to a server
