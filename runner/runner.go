@@ -1526,7 +1526,7 @@ retry:
 		}
 		data := append([]byte(fmt.Sprintf("[%s]", fullURL)), append([]byte("\n\n"), reqRaw...)...)
 		data = append(data, append([]byte("\n"), respRaw...)...)
-		fileutil.CreateFolder(domainBaseDir)
+		_ = fileutil.CreateFolder(domainBaseDir)
 		writeErr := os.WriteFile(responsePath, data, 0644)
 		if writeErr != nil {
 			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
