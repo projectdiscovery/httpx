@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -536,7 +536,7 @@ func (options *Options) ValidateOptions() error {
 		options.StoreResponse = true
 	}
 	if options.StoreResponseDir != "" {
-		os.RemoveAll(path.Join(options.StoreResponseDir, "index.txt"))
+		os.RemoveAll(filepath.Join(options.StoreResponseDir, "index.txt"))
 	}
 	if options.Hashes != "" {
 		for _, hashType := range strings.Split(options.Hashes, ",") {
