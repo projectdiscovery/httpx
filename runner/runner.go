@@ -854,6 +854,10 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 		if len(customport.Ports) == 0 {
 			for _, method := range scanopts.Methods {
 				for _, prot := range protocols {
+					if r.options.Delay != "" {
+						duration, _ := time.ParseDuration(r.options.Delay)
+						time.Sleep(duration)
+					}
 					wg.Add()
 					go func(target httpx.Target, method, protocol string) {
 						defer wg.Done()
@@ -892,6 +896,10 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 			}
 			for _, wantedProtocol := range wantedProtocols {
 				for _, method := range scanopts.Methods {
+					if r.options.Delay != "" {
+						duration, _ := time.ParseDuration(r.options.Delay)
+						time.Sleep(duration)
+					}
 					wg.Add()
 					go func(port int, target httpx.Target, method, protocol string) {
 						defer wg.Done()
