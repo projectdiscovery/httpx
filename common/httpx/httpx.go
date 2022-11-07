@@ -16,10 +16,10 @@ import (
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/gologger"
-	pdhttputil "github.com/projectdiscovery/httputil"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
-	"github.com/projectdiscovery/stringsutil"
+	pdhttputil "github.com/projectdiscovery/utils/http"
+	stringsutil "github.com/projectdiscovery/utils/strings"
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 )

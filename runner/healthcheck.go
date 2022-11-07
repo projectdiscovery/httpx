@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/goflags"
+	fileutil "github.com/projectdiscovery/utils/file"
 )
 
 func DoHealthCheck(options *Options, flagSet *goflags.FlagSet) string {
