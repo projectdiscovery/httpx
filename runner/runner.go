@@ -840,7 +840,7 @@ func (r *Runner) RunEnumeration() {
 	if r.options.StoreResponseDir != "" {
 		indexPath := filepath.Join(r.options.StoreResponseDir, "index.txt")
 
-		os.WriteFile(indexPath, []byte(r.options.indexFileData.String()), 0644)
+		_ = os.WriteFile(indexPath, []byte(r.options.indexFileData.String()), 0644)
 	}
 }
 
