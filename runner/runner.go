@@ -91,7 +91,10 @@ func New(options *Options) (*Runner, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
 	}
-
+	if options.StoreResponseDir != "" {
+		os.RemoveAll(filepath.Join(options.StoreResponseDir, "index.txt"))
+		runner.options.indexFileData = &strings.Builder{}
+	}
 	dialerOpts := fastdialer.DefaultOptions
 	dialerOpts.WithDialerHistory = true
 	dialerOpts.MaxRetries = 3
@@ -833,6 +836,12 @@ func (r *Runner) RunEnumeration() {
 	close(output)
 
 	wgoutput.Wait()
+
+	if r.options.StoreResponseDir != "" {
+		indexPath := filepath.Join(r.options.StoreResponseDir, "index.txt")
+
+		os.WriteFile(indexPath, []byte(r.options.indexFileData.String()), 0644)
+	}
 }
 
 func (r *Runner) GetScanOpts() scanOptions {
@@ -1524,26 +1533,17 @@ retry:
 		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
 			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
 		}
-		data := append([]byte(fmt.Sprintf("[%s]", fullURL)), append([]byte("\n\n"), reqRaw...)...)
+		data := append([]byte(fullURL), append([]byte("\n\n"), reqRaw...)...)
 		data = append(data, append([]byte("\n"), respRaw...)...)
 		_ = fileutil.CreateFolder(domainBaseDir)
 		writeErr := os.WriteFile(responsePath, data, 0644)
 		if writeErr != nil {
 			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
 		}
-		status := strings.ReplaceAll(strings.Split(resp.RawHeaders, "\n")[0], "HTTP/1.1 ", "")
+		status := strings.TrimSpace(strings.ReplaceAll(strings.Split(resp.RawHeaders, "\n")[0], "HTTP/1.1 ", ""))
 		status = strings.ReplaceAll(status, "HTTP/2 ", "")
 		indexData := fmt.Sprintf("%s %s (%s)\n", responsePath, fullURL, status)
-		indexPath := filepath.Join(scanopts.StoreResponseDirectory, "index.txt")
-		file, err := os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			gologger.Error().Msgf("Could not write response index at path '%s', to disk: %s", indexPath, err)
-		}
-		defer file.Close()
-		_, writeErr = file.WriteString(indexData)
-		if writeErr != nil {
-			gologger.Error().Msgf("Could not write index data at path '%s', to disk: %s", indexPath, writeErr)
-		}
+		r.options.indexFileData.WriteString(indexData)
 		if scanopts.StoreChain && resp.HasChain() {
 			domainFile = strings.ReplaceAll(domainFile, ".txt", ".chain.txt")
 			responsePath = filepath.Join(domainBaseDir, domainFile)

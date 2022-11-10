@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -254,6 +253,7 @@ type Options struct {
 	OutputFilterCondition     string
 	OutputMatchCondition      string
 	OnResult                  OnResultCallback
+	indexFileData             *strings.Builder
 }
 
 // ParseOptions parses the command line options for application
@@ -534,9 +534,6 @@ func (options *Options) ValidateOptions() error {
 	if options.StoreResponseDir != "" && !options.StoreResponse {
 		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
 		options.StoreResponse = true
-	}
-	if options.StoreResponseDir != "" {
-		os.RemoveAll(filepath.Join(options.StoreResponseDir, "index.txt"))
 	}
 	if options.Hashes != "" {
 		for _, hashType := range strings.Split(options.Hashes, ",") {
