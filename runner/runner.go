@@ -1419,7 +1419,7 @@ retry:
 	}
 	var faviconMMH3 string
 	if scanopts.Favicon {
-		req.URL.Path = "/favicon.ico"
+		req.URL.Path += "/favicon.ico"
 		if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
 			if faviconResp.StatusCode == 200  {
 				faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(faviconResp.Data))
