@@ -113,6 +113,9 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.RetryMax = options.Retries
 	httpxOptions.FollowRedirects = options.FollowRedirects
 	httpxOptions.FollowHostRedirects = options.FollowHostRedirects
+	if options.Favicon {
+		httpxOptions.FollowRedirects = true
+	}
 	httpxOptions.MaxRedirects = options.MaxRedirects
 	httpxOptions.HTTPProxy = options.HTTPProxy
 	httpxOptions.Unsafe = options.Unsafe
@@ -1419,39 +1422,69 @@ retry:
 	}
 	var faviconMMH3 string
 	if scanopts.Favicon {
-		req.URL.Path += "/favicon.ico"
-		if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
-			if faviconResp.StatusCode == 200  {
-				faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(faviconResp.Data))
-				if !(faviconMMH3 == "0") {
-					builder.WriteString(" [")
-					if !scanopts.OutputWithNoColor {
-						builder.WriteString(aurora.Magenta(faviconMMH3).String())
-					} else {
-						builder.WriteString(faviconMMH3)
-					}
-					builder.WriteRune(']')
-				}
-			} else {
-				req.URL.Path = "/"
+		faviconURL := req.URL.String()
+		if strings.HasSuffix(req.URL.Path, ".ico") {
+			faviconURL = req.URL.String()
+		} else {
+			if req.URL.Path == "" {
 				if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
-					if faviconResp.StatusCode == 200{
+					if faviconResp.StatusCode == 200 {
 						parsed, err := html.Parse(strings.NewReader(string(faviconResp.Data)))
 						if err != nil {
-							gologger.Warning().Msgf("Could not fetch favicon: %s", err.Error())
-						} else {
-							builder, err = scrapeFavicon(parsed, hp, scanopts, req)
-							if err != nil {
-								gologger.Warning().Msgf("Could not fetch favicon: %s", err.Error())
+							gologger.Warning().Msgf("Could not parse favicon response: %s", err)
+						}
+						faviconURLs := scrapeFavicon(parsed, req)
+						if len(faviconURLs) > 0 {
+							faviconURL = faviconURLs[0]
+							for _, a := range faviconURLs {
+								if strings.HasSuffix(a, ".ico") {
+									faviconURL = a
+								}
 							}
 						}
-					} else {
-						gologger.Warning().Msgf("Could ont fetch favicon %d", faviconResp.StatusCode)
 					}
 				}
+				if faviconURL == req.URL.String() {
+					faviconURL = req.URL.String() + "/favicon.ico"
+				}
+			} else {
+				if strings.HasSuffix(faviconURL, "/") {
+					faviconURL = req.URL.String() + "favicon.ico"
+				} else {
+					faviconURL = req.URL.String() + "/favicon.ico"
+				}
+			}
+		}
+		u, err := url.Parse(faviconURL)
+		if err != nil {
+			gologger.Warning().Msgf("Could not parse favicon URL: %s", err.Error())
+		}
+		req.Host = u.Host
+		req.URL.Host = u.Host
+		req.URL.Scheme = u.Scheme
+		req.URL.Path = u.Path
+		if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
+			if faviconResp.StatusCode == 200 {
+				faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(faviconResp.Data))
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Magenta(faviconURL).String())
+				} else {
+					builder.WriteString(faviconURL)
+				}
+				builder.WriteRune(']')
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Magenta(faviconMMH3).String())
+				} else {
+					builder.WriteString(faviconMMH3)
+				}
+				builder.WriteRune(']')
+			} else {
+				gologger.Error().Msgf("Favicon request returned status code %d", faviconResp.StatusCode)
 			}
 		} else {
-			gologger.Warning().Msgf("Could not fetch favicon: %s", favErr.Error())
+			gologger.Error().Msgf("Could not make favicon request: %s", favErr)
 		}
 	}
 	// adding default hashing for json output format
@@ -1771,48 +1804,26 @@ func normalizeHeaders(headers map[string][]string) map[string]interface{} {
 	}
 	return normalized
 }
-func scrapeFavicon(n *html.Node, hp *httpx.HTTPX, scanopts *scanOptions, req *retryablehttp.Request) (*strings.Builder, error) {
-	var faviconMMH3 string
-	var err error
-	builder := &strings.Builder{}
+
+func scrapeFavicon(n *html.Node, req *retryablehttp.Request) []string {
+	var faviconURLs []string
 	if n.Type == html.ElementNode && n.Data == "link" {
 		for _, a := range n.Attr {
 			if a.Key == "rel" && (a.Val == "icon" || a.Val == "shortcut icon" || a.Val == "mask-icon" || a.Val == "apple-touch-icon") {
 				for _, b := range n.Attr {
 					if b.Key == "href" {
 						if strings.HasPrefix(b.Val, "http") {
-							u, err := url.Parse(b.Val)
-							if err != nil {
-								continue
-							}
-							req.URL.Path = u.Path
+							faviconURLs = append(faviconURLs, b.Val)
 						} else {
-							req.URL.Path = "/" + b.Val
-						}
-						if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
-							if faviconResp.StatusCode == 200 {
-								faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(faviconResp.Data))
-								builder.WriteString(" [")
-								if !scanopts.OutputWithNoColor {
-									builder.WriteString(aurora.Magenta(faviconMMH3).String())
-								} else {
-									builder.WriteString(faviconMMH3)
-								}
-								builder.WriteRune(']')
-							}
-						} else {
-							gologger.Warning().Msgf("Could not fetch favicon: %s", favErr.Error())
-						}
+							faviconURLs = append(faviconURLs, req.URL.Scheme+"://"+req.URL.Host+"/"+b.Val)
+						} 
 					}
-				}
+				}	
 			}
 		}
 	}
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		builder, err = scrapeFavicon(c, hp, scanopts, req)
-		if err != nil {
-			gologger.Warning().Msgf("Could not fetch favicon: %s", err.Error())
-		}
+		faviconURLs = append(faviconURLs, scrapeFavicon(c, req)...)
 	}
-	return builder, err
+	return faviconURLs
 }
