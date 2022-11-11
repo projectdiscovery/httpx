@@ -639,7 +639,7 @@ func (r *Runner) RunEnumeration() {
 
 			if indexFile != nil {
 				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
-				indexFile.WriteString(indexData)
+				_, _ = indexFile.WriteString(indexData)
 			}
 
 			// apply matchers and filters
