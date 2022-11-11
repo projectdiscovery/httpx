@@ -253,7 +253,6 @@ type Options struct {
 	OutputFilterCondition     string
 	OutputMatchCondition      string
 	OnResult                  OnResultCallback
-	indexFileData             *strings.Builder
 }
 
 // ParseOptions parses the command line options for application

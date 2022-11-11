@@ -93,7 +93,6 @@ func New(options *Options) (*Runner, error) {
 	}
 	if options.StoreResponseDir != "" {
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "index.txt"))
-		runner.options.indexFileData = &strings.Builder{}
 	}
 	dialerOpts := fastdialer.DefaultOptions
 	dialerOpts.WithDialerHistory = true
@@ -591,7 +590,7 @@ func (r *Runner) RunEnumeration() {
 	go func(output chan Result) {
 		defer wgoutput.Done()
 
-		var f *os.File
+		var f, indexFile *os.File
 		if r.options.Output != "" {
 			var err error
 			if r.options.Resume {
@@ -600,7 +599,7 @@ func (r *Runner) RunEnumeration() {
 				f, err = os.Create(r.options.Output)
 			}
 			if err != nil {
-				gologger.Fatal().Msgf("Could not create output file '%s': %s\n", r.options.Output, err)
+				gologger.Fatal().Msgf("Could not open/create output file '%s': %s\n", r.options.Output, err)
 			}
 			defer f.Close() //nolint
 		}
@@ -611,6 +610,19 @@ func (r *Runner) RunEnumeration() {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				f.WriteString(header + "\n")
 			}
+		}
+		if r.options.StoreResponseDir != "" {
+			var err error
+			indexPath := filepath.Join(r.options.StoreResponseDir, "index.txt")
+			if r.options.Resume {
+				indexFile, err = os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+			} else {
+				indexFile, err = os.Create(indexPath)
+			}
+			if err != nil {
+				gologger.Fatal().Msgf("Could not open/create index file '%s': %s\n", r.options.Output, err)
+			}
+			defer indexFile.Close() //nolint
 		}
 
 		for resp := range output {
@@ -623,6 +635,11 @@ func (r *Runner) RunEnumeration() {
 			}
 			if resp.str == "" {
 				continue
+			}
+
+			if indexFile != nil {
+				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
+				indexFile.WriteString(indexData)
 			}
 
 			// apply matchers and filters
@@ -836,12 +853,6 @@ func (r *Runner) RunEnumeration() {
 	close(output)
 
 	wgoutput.Wait()
-
-	if r.options.StoreResponseDir != "" {
-		indexPath := filepath.Join(r.options.StoreResponseDir, "index.txt")
-
-		_ = os.WriteFile(indexPath, []byte(r.options.indexFileData.String()), 0644)
-	}
 }
 
 func (r *Runner) GetScanOpts() scanOptions {
@@ -1540,10 +1551,6 @@ retry:
 		if writeErr != nil {
 			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
 		}
-		status := strings.TrimSpace(strings.ReplaceAll(strings.Split(resp.RawHeaders, "\n")[0], "HTTP/1.1 ", ""))
-		status = strings.ReplaceAll(status, "HTTP/2 ", "")
-		indexData := fmt.Sprintf("%s %s (%s)\n", responsePath, fullURL, status)
-		r.options.indexFileData.WriteString(indexData)
 		if scanopts.StoreChain && resp.HasChain() {
 			domainFile = strings.ReplaceAll(domainFile, ".txt", ".chain.txt")
 			responsePath = filepath.Join(domainBaseDir, domainFile)
