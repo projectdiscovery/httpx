@@ -336,8 +336,8 @@ github.com/projectdiscovery/tlsx v0.0.9 h1:wUC8GYUIo5jd+enqE1lnEJ3Ew7m+N6eRmFBjb
 github.com/projectdiscovery/tlsx v0.0.9/go.mod h1:bPKwgeGRMZaDpOQCy6TjQWr3bQ7d9lW2lVH5BnWlWMI=
 github.com/projectdiscovery/utils v0.0.3 h1:pAjZTGYpnATRc6uaNACdiHv4joZ0Ml7Wpu0dudpcGfM=
 github.com/projectdiscovery/utils v0.0.3/go.mod h1:ne3eSlZlUKuhjHr8FfsfGcGteCzxcbJvFBx4VDBCxK0=
-github.com/projectdiscovery/wappalyzergo v0.0.68 h1:QUo/njWarb8GxAf8b8gCKDEuUXTKSPQMLCY4dq/wqfM=
-github.com/projectdiscovery/wappalyzergo v0.0.68/go.mod h1:HvYuW0Be4JCjVds/+XAEaMSqRG9yrI97UmZq0TPk6A0=
+github.com/projectdiscovery/wappalyzergo v0.0.69 h1:x5etq0b+bxQg3dhbSfOEYoV5ODl6M+S99KxyXLdkuFY=
+github.com/projectdiscovery/wappalyzergo v0.0.69/go.mod h1:HvYuW0Be4JCjVds/+XAEaMSqRG9yrI97UmZq0TPk6A0=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
 github.com/remeh/sizedwaitgroup v1.0.0 h1:VNGGFwNo/R5+MJBf6yrsr110p0m4/OX4S3DCy7Kyl5E=
 github.com/remeh/sizedwaitgroup v1.0.0/go.mod h1:3j2R4OIe/SeS6YDhICBy22RWjJC5eNCJ1V+9+NVNYlo=
