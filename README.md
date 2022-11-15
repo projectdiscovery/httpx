@@ -204,6 +204,7 @@ OPTIMIZATIONS:
    -ec, -exclude-cdn                  skip full port scans for CDNs (only checks for 80,443)
    -retries int                       number of retries
    -timeout int                       timeout in seconds (default 5)
+   -delay duration                      duration to wait between each connection per thread (eg: 200ms, 1s)
    -rsts, -response-size-to-save int  max response size to save in bytes (default 2147483647)
    -rstr, -response-size-to-read int  max response size to read in bytes (default 2147483647)
 ```
