@@ -165,7 +165,7 @@ type Options struct {
 	Retries                   int
 	Threads                   int
 	Timeout                   int
-	Delay                     string
+	Delay                     time.Duration
 	filterRegex               *regexp.Regexp
 	matchRegex                *regexp.Regexp
 	VHost                     bool
@@ -398,7 +398,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.ExcludeCDN, "exclude-cdn", "ec", false, "skip full port scans for CDNs (only checks for 80,443)"),
 		flagSet.IntVar(&options.Retries, "retries", 0, "number of retries"),
 		flagSet.IntVar(&options.Timeout, "timeout", 5, "timeout in seconds"),
-		flagSet.StringVar(&options.Delay, "delay", "", "duration between each http request (eg: 200ms, 1s)"),
+		flagSet.DurationVar(&options.Delay, "delay", -1, "duration between each http request (eg: 200ms, 1s)"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", math.MaxInt32, "max response size to save in bytes"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", math.MaxInt32, "max response size to read in bytes"),
 	)
@@ -551,12 +551,6 @@ func (options *Options) ValidateOptions() error {
 		options.OutputCDN = true
 	}
 
-	if options.Delay != "" {
-		_, err := time.ParseDuration(options.Delay)
-		if err != nil {
-			return errors.Wrapf(err, "error parsing delay %s", options.Delay)
-		}
-	}
 	return nil
 }
 
