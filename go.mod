@@ -14,7 +14,7 @@ require (
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1
-	github.com/projectdiscovery/clistats v0.0.8
+	github.com/projectdiscovery/clistats v0.0.9
 	github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345 // indirect
 	github.com/projectdiscovery/fastdialer v0.0.17
 	github.com/projectdiscovery/fdmax v0.0.3
