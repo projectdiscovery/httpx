@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"golang.org/x/exp/maps"
@@ -27,8 +28,6 @@ import (
 )
 
 const (
-	// The maximum file length is 251 (255 - 4 bytes for ".ext" suffix)
-	maxFileNameLength      = 251
 	two                    = 2
 	DefaultResumeFile      = "resume.cfg"
 	DefaultOutputDirectory = "output"
@@ -164,6 +163,7 @@ type Options struct {
 	Retries                   int
 	Threads                   int
 	Timeout                   int
+	Delay                     time.Duration
 	filterRegex               *regexp.Regexp
 	matchRegex                *regexp.Regexp
 	VHost                     bool
@@ -396,6 +396,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.ExcludeCDN, "exclude-cdn", "ec", false, "skip full port scans for CDNs (only checks for 80,443)"),
 		flagSet.IntVar(&options.Retries, "retries", 0, "number of retries"),
 		flagSet.IntVar(&options.Timeout, "timeout", 5, "timeout in seconds"),
+		flagSet.DurationVar(&options.Delay, "delay", -1, "duration between each http request (eg: 200ms, 1s)"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", math.MaxInt32, "max response size to save in bytes"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", math.MaxInt32, "max response size to read in bytes"),
 	)
@@ -536,7 +537,6 @@ func (options *Options) ValidateOptions() error {
 		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
 		options.StoreResponse = true
 	}
-
 	if options.Hashes != "" {
 		for _, hashType := range strings.Split(options.Hashes, ",") {
 			if !slice.StringSliceContains([]string{"md5", "sha1", "sha256", "sha512", "mmh3", "simhash"}, strings.ToLower(hashType)) {
