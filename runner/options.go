@@ -28,8 +28,6 @@ import (
 )
 
 const (
-	// The maximum file length is 251 (255 - 4 bytes for ".ext" suffix)
-	maxFileNameLength      = 251
 	two                    = 2
 	DefaultResumeFile      = "resume.cfg"
 	DefaultOutputDirectory = "output"
@@ -539,7 +537,6 @@ func (options *Options) ValidateOptions() error {
 		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
 		options.StoreResponse = true
 	}
-
 	if options.Hashes != "" {
 		for _, hashType := range strings.Split(options.Hashes, ",") {
 			if !slice.StringSliceContains([]string{"md5", "sha1", "sha256", "sha512", "mmh3", "simhash"}, strings.ToLower(hashType)) {
