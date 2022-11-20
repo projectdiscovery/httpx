@@ -520,6 +520,16 @@ func main() {
 
 # Acknowledgement
 
-`httpx` is made with 🖤 by the [projectdiscovery](https://projectdiscovery.io) team. Community contributions have made the project what it is. See the **[Thanks.md](https://github.com/projectdiscovery/httpx/blob/master/THANKS.md)** file for more details. Do also check out these similar awesome projects that may fit in your workflow:
+Probing feature is inspired by [@tomnomnom/httprobe](https://github.com/tomnomnom/httprobe) work ❤️
 
-Probing feature is inspired by [@tomnomnom/httprobe](https://github.com/tomnomnom/httprobe) work :heart:
+
+--------
+
+<div align="center">
+
+`httpx` is made with 💙 by the [projectdiscovery](https://projectdiscovery.io) team and distributed under [MIT License](LICENSE.md).
+
+
+<a href="https://discord.gg/projectdiscovery"><img src="https://raw.githubusercontent.com/projectdiscovery/nuclei-burp-plugin/main/static/join-discord.png" width="300" alt="Join Discord"></a>
+
+</div>
