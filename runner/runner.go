@@ -1534,7 +1534,7 @@ retry:
 	var responsePath string
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		domainFile := strings.ReplaceAll(urlutil.TrimScheme(URL.String()), ":", ".")
-		hash := hashes.Sha256([]byte(domainFile))
+		hash := hashes.Sha1([]byte(domainFile))
 		domainFile = fmt.Sprintf("%s.txt", hash)
 		domainBaseDir := filepath.Join(scanopts.StoreResponseDirectory, URL.Host)
 		// store response
