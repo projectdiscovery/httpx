@@ -29,7 +29,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/mapcidr/asn"
-	"github.com/projectdiscovery/mapsutil"
+	mapsutil "github.com/projectdiscovery/utils/maps"
 
 	"github.com/bluele/gcache"
 	"github.com/logrusorgru/aurora"
@@ -39,28 +39,28 @@ import (
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/httpx/common/hashes"
 	"github.com/projectdiscovery/retryablehttp-go"
-	"github.com/projectdiscovery/sliceutil"
-	"github.com/projectdiscovery/stringsutil"
-	"github.com/projectdiscovery/urlutil"
+	sliceutil "github.com/projectdiscovery/utils/slice"
+	stringsutil "github.com/projectdiscovery/utils/strings"
+	urlutil "github.com/projectdiscovery/utils/url"
 
 	"github.com/projectdiscovery/ratelimit"
 	"github.com/remeh/sizedwaitgroup"
 
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
-	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/hmap/store/hybrid"
-	pdhttputil "github.com/projectdiscovery/httputil"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
-	"github.com/projectdiscovery/iputil"
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/projectdiscovery/rawhttp"
+	fileutil "github.com/projectdiscovery/utils/file"
+	pdhttputil "github.com/projectdiscovery/utils/http"
+	iputil "github.com/projectdiscovery/utils/ip"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 )
 
@@ -854,6 +854,8 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 		if len(customport.Ports) == 0 {
 			for _, method := range scanopts.Methods {
 				for _, prot := range protocols {
+					// sleep for delay time
+					time.Sleep(r.options.Delay)
 					wg.Add()
 					go func(target httpx.Target, method, protocol string) {
 						defer wg.Done()
@@ -892,6 +894,8 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 			}
 			for _, wantedProtocol := range wantedProtocols {
 				for _, method := range scanopts.Methods {
+					// sleep for delay time
+					time.Sleep(r.options.Delay)
 					wg.Add()
 					go func(port int, target httpx.Target, method, protocol string) {
 						defer wg.Done()

@@ -9,17 +9,16 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/corpix/uarand"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/gologger"
-	pdhttputil "github.com/projectdiscovery/httputil"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
-	"github.com/projectdiscovery/stringsutil"
+	pdhttputil "github.com/projectdiscovery/utils/http"
+	stringsutil "github.com/projectdiscovery/utils/strings"
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 )
@@ -232,14 +231,14 @@ get_response:
 	// if content length is not defined
 	if resp.ContentLength <= 0 {
 		// check if it's in the header and convert to int
-		if contentLength, ok := resp.Headers["Content-Length"]; ok {
-			contentLengthInt, _ := strconv.Atoi(strings.Join(contentLength, ""))
+		if contentLength, ok := resp.Headers["Content-Length"]; ok && len(contentLength) > 0 {
+			contentLengthInt, _ := strconv.Atoi(contentLength[0])
 			resp.ContentLength = contentLengthInt
 		}
 
 		// if we have a body, then use the number of bytes in the body if the length is still zero
-		if resp.ContentLength <= 0 && len(respbodystr) > 0 {
-			resp.ContentLength = utf8.RuneCountInString(respbodystr)
+		if resp.ContentLength <= 0 && len(respbody) > 0 {
+			resp.ContentLength = len(respbody)
 		}
 	}
 
