@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -216,6 +217,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
+	scanopts.B64ResponseInStdout = options.b64responseInStdout
 	scanopts.ChainInStdout = options.chainInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
 	scanopts.TLSProbe = options.TLSProbe
@@ -1292,6 +1294,11 @@ retry:
 		request = string(requestDump)
 		responseHeader = normalizeHeaders(resp.Headers)
 		rawResponseHeader = resp.RawHeaders
+	} else if scanopts.B64ResponseInStdout {
+		serverResponseRaw = b64(resp.Data)
+		request = b64(requestDump)
+		responseHeader = normalizeHeaders(resp.Headers)
+		rawResponseHeader = b64([]byte(resp.RawHeaders))
 	}
 
 	// check for virtual host
@@ -1770,4 +1777,9 @@ func normalizeHeaders(headers map[string][]string) map[string]interface{} {
 		normalized[strings.ReplaceAll(strings.ToLower(k), "-", "_")] = strings.Join(v, ", ")
 	}
 	return normalized
+}
+
+// b64 returns base64 of given byte array
+func b64(bin []byte) string {
+	return base64.StdEncoding.EncodeToString(bin)
 }
