@@ -54,7 +54,7 @@ type scanOptions struct {
 	OutputWithNoColor         bool
 	OutputMethod              bool
 	ResponseInStdout          bool
-	B64ResponseInStdout       bool
+	Base64ResponseInStdout    bool
 	ChainInStdout             bool
 	TLSProbe                  bool
 	CSPProbe                  bool
@@ -103,7 +103,7 @@ func (s *scanOptions) Clone() *scanOptions {
 		OutputWithNoColor:         s.OutputWithNoColor,
 		OutputMethod:              s.OutputMethod,
 		ResponseInStdout:          s.ResponseInStdout,
-		B64ResponseInStdout:       s.B64ResponseInStdout,
+		Base64ResponseInStdout:    s.Base64ResponseInStdout,
 		ChainInStdout:             s.ChainInStdout,
 		TLSProbe:                  s.TLSProbe,
 		CSPProbe:                  s.CSPProbe,
@@ -186,7 +186,7 @@ type Options struct {
 	OutputServerHeader        bool
 	OutputWebSocket           bool
 	responseInStdout          bool
-	b64responseInStdout       bool
+	base64responseInStdout    bool
 	chainInStdout             bool
 	FollowHostRedirects       bool
 	MaxRedirects              int
@@ -353,7 +353,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in csv format"),
 		flagSet.BoolVar(&options.JSONOutput, "json", false, "store output in JSONL(ines) format"),
 		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr", false, "include http request/response in JSON output (-json only)"),
-		flagSet.BoolVarP(&options.b64responseInStdout, "include-response-base64", "irrb", false, "include base64 encoded http request/response in JSON output (-json only)"),
+		flagSet.BoolVarP(&options.base64responseInStdout, "include-response-base64", "irrb", false, "include base64 encoded http request/response in JSON output (-json only)"),
 		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "include redirect http chain in JSON output (-json only)"),
 		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
 	)
