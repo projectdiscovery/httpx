@@ -591,8 +591,6 @@ func (r *Runner) RunEnumeration() {
 		defer wgoutput.Done()
 
 		var f, indexFile *os.File
-		bomUtf8 := []byte{0xEF, 0xBB, 0xBF}
-		f.Write(bomUtf8)
 
 		if r.options.Output != "" {
 			var err error
@@ -607,6 +605,11 @@ func (r *Runner) RunEnumeration() {
 			defer f.Close() //nolint
 		}
 		if r.options.CSVOutput {
+			bomUtf8 := []byte{0xEF, 0xBB, 0xBF}
+			_, err := f.Write(bomUtf8)
+			if err != nil {
+				gologger.Fatal().Msgf("err on file write: %s\n", err)
+			}
 			header := Result{}.CSVHeader()
 			gologger.Silent().Msgf("%s\n", header)
 			if f != nil {
