@@ -15,19 +15,18 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1
 	github.com/projectdiscovery/clistats v0.0.9
-	github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345 // indirect
-	github.com/projectdiscovery/fastdialer v0.0.17
+	github.com/projectdiscovery/fastdialer v0.0.18
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/fileutil v0.0.3 // indirect
 	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c
 	github.com/projectdiscovery/goflags v0.1.3
 	github.com/projectdiscovery/gologger v1.1.4
 	github.com/projectdiscovery/hmap v0.0.3
-	github.com/projectdiscovery/iputil v0.0.0-20220712175312-b9406f31cdd8 // indirect
+	github.com/projectdiscovery/iputil v0.0.2 // indirect
 	github.com/projectdiscovery/mapcidr v1.0.3
 	github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e
 	github.com/projectdiscovery/retryablehttp-go v1.0.3-0.20220506110515-811d938bd26d
-	github.com/projectdiscovery/sliceutil v0.0.0-20220625085859-c3a4ecb669f4 // indirect
+	github.com/projectdiscovery/sliceutil v0.0.1 // indirect
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
 	github.com/projectdiscovery/wappalyzergo v0.0.70
 	github.com/remeh/sizedwaitgroup v1.0.0
@@ -89,7 +88,7 @@ require (
 	github.com/projectdiscovery/blackrock v0.0.0-20220628111055-35616c71b2dc // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.2-0.20220525172507-b844eafc878d // indirect
 	github.com/projectdiscovery/reflectutil v0.0.0-20210804085554-4d90952bf92f // indirect
-	github.com/projectdiscovery/retryabledns v1.0.15 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.17 // indirect
 	github.com/prometheus/client_golang v1.12.0 // indirect
 	github.com/prometheus/client_model v0.2.1-0.20210607210712-147c58e9608a // indirect
 	github.com/prometheus/common v0.32.1 // indirect
