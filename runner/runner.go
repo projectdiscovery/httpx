@@ -591,6 +591,9 @@ func (r *Runner) RunEnumeration() {
 		defer wgoutput.Done()
 
 		var f, indexFile *os.File
+		bomUtf8 := []byte{0xEF, 0xBB, 0xBF}
+		f.Write(bomUtf8)
+
 		if r.options.Output != "" {
 			var err error
 			if r.options.Resume {
@@ -796,6 +799,7 @@ func (r *Runner) RunEnumeration() {
 				row = resp.JSON(&r.scanopts)
 			} else if r.options.CSVOutput {
 				row = resp.CSVRow(&r.scanopts)
+
 			}
 
 			gologger.Silent().Msgf("%s\n", row)
@@ -1680,6 +1684,7 @@ func (r Result) CSVHeader() string { //nolint
 
 		headers = append(headers, tag)
 	}
+	// _ = writer.Write([]string{string(bomUtf8[:])})
 	_ = writer.Write(headers)
 	writer.Flush()
 
