@@ -140,6 +140,7 @@ type Options struct {
 	filterStatusCode          []int
 	filterContentLength       []int
 	Output                    string
+	OutputEncoding            string
 	StoreResponseDir          string
 	HTTPProxy                 string
 	SocksProxy                string
@@ -345,6 +346,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("output", "Output",
 		flagSet.StringVarP(&options.Output, "output", "o", "", "file to write output results"),
+		flagSet.StringVarP(&options.OutputEncoding, "output-encoding", "", "utf-8", "define output encoding"),
 		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
 		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in csv format"),
