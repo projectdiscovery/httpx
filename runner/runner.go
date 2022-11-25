@@ -1687,7 +1687,6 @@ func (r Result) CSVHeader() string { //nolint
 
 		headers = append(headers, tag)
 	}
-	// _ = writer.Write([]string{string(bomUtf8[:])})
 	_ = writer.Write(headers)
 	writer.Flush()
 
