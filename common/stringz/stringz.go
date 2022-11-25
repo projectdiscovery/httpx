@@ -127,3 +127,8 @@ func InsertInto(s string, interval int, sep rune) string {
 	buffer.WriteRune(sep)
 	return buffer.String()
 }
+
+// Base64 returns base64 of given byte array
+func Base64(bin []byte) string {
+	return base64.StdEncoding.EncodeToString(bin)
+}

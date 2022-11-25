@@ -216,6 +216,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
+	scanopts.Base64ResponseInStdout = options.base64responseInStdout
 	scanopts.ChainInStdout = options.chainInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
 	scanopts.TLSProbe = options.TLSProbe
@@ -1302,6 +1303,11 @@ retry:
 		request = string(requestDump)
 		responseHeader = normalizeHeaders(resp.Headers)
 		rawResponseHeader = resp.RawHeaders
+	} else if scanopts.Base64ResponseInStdout {
+		serverResponseRaw = stringz.Base64(resp.Data)
+		request = stringz.Base64(requestDump)
+		responseHeader = normalizeHeaders(resp.Headers)
+		rawResponseHeader = stringz.Base64([]byte(resp.RawHeaders))
 	}
 
 	// check for virtual host
