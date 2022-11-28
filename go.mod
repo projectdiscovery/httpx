@@ -28,7 +28,7 @@ require (
 	github.com/projectdiscovery/retryablehttp-go v1.0.3-0.20220506110515-811d938bd26d
 	github.com/projectdiscovery/sliceutil v0.0.1 // indirect
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
-	github.com/projectdiscovery/wappalyzergo v0.0.70
+	github.com/projectdiscovery/wappalyzergo v0.0.71
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.4.0
 	github.com/smartystreets/assertions v1.0.0 // indirect
