@@ -607,7 +607,7 @@ func (r *Runner) RunEnumeration() {
 		}
 		if r.options.CSVOutput {
 			outEncoding := strings.ToLower(r.options.OutputEncoding)
-			if outEncoding == "utf-8" || outEncoding == "utf8" {
+			if stringsutil.EqualFoldAny(outEncoding, "utf-8", "utf8") {
 				bomUtf8 := []byte{0xEF, 0xBB, 0xBF}
 				_, err := f.Write(bomUtf8)
 				if err != nil {
