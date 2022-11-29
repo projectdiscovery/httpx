@@ -142,7 +142,6 @@ type Options struct {
 	filterStatusCode          []int
 	filterContentLength       []int
 	Output                    string
-	OutputEncoding            string
 	StoreResponseDir          string
 	HTTPProxy                 string
 	SocksProxy                string
@@ -180,6 +179,7 @@ type Options struct {
 	StoreResponse             bool
 	JSONOutput                bool
 	CSVOutput                 bool
+	CSVOutputEncoding         string
 	Silent                    bool
 	Version                   bool
 	Verbose                   bool
@@ -349,10 +349,10 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("output", "Output",
 		flagSet.StringVarP(&options.Output, "output", "o", "", "file to write output results"),
-		flagSet.StringVarP(&options.OutputEncoding, "output-encoding", "", "utf-8", "define output encoding"),
 		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
 		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in csv format"),
+		flagSet.StringVarP(&options.CSVOutputEncoding, "csv-output-encoding", "csvo", "utf-8", "define output encoding"),
 		flagSet.BoolVar(&options.JSONOutput, "json", false, "store output in JSONL(ines) format"),
 		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr", false, "include http request/response in JSON output (-json only)"),
 		flagSet.BoolVarP(&options.base64responseInStdout, "include-response-base64", "irrb", false, "include base64 encoded http request/response in JSON output (-json only)"),
@@ -574,6 +574,9 @@ func (options *Options) configureOutput() {
 	}
 	if len(options.OutputMatchResponseTime) > 0 || len(options.OutputFilterResponseTime) > 0 {
 		options.OutputResponseTime = true
+	}
+	if options.CSVOutputEncoding != "" {
+		options.CSVOutput = true
 	}
 }
 

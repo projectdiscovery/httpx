@@ -606,13 +606,17 @@ func (r *Runner) RunEnumeration() {
 			defer f.Close() //nolint
 		}
 		if r.options.CSVOutput {
-			outEncoding := strings.ToLower(r.options.OutputEncoding)
-			if stringsutil.EqualFoldAny(outEncoding, "utf-8", "utf8") {
+			outEncoding := strings.ToLower(r.options.CSVOutputEncoding)
+			switch outEncoding {
+			case "": // no encoding do nothing
+			case "utf-8", "utf8":
 				bomUtf8 := []byte{0xEF, 0xBB, 0xBF}
 				_, err := f.Write(bomUtf8)
 				if err != nil {
 					gologger.Fatal().Msgf("err on file write: %s\n", err)
 				}
+			default: // unknown encoding
+				gologger.Fatal().Msgf("unknown csv output encoding: %s\n", r.options.CSVOutputEncoding)
 			}
 			header := Result{}.CSVHeader()
 			gologger.Silent().Msgf("%s\n", header)
