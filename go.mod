@@ -49,7 +49,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v0.0.1
 	github.com/projectdiscovery/dsl v0.0.3
-	github.com/projectdiscovery/ratelimit v0.0.1
+	github.com/projectdiscovery/ratelimit v0.0.2
 	github.com/projectdiscovery/tlsx v0.0.9
 	github.com/projectdiscovery/utils v0.0.3
 	github.com/stretchr/testify v1.8.1
