@@ -103,9 +103,9 @@ func New(options *Options) (*HTTPX, error) {
 			return nil
 		}
 	}
-
 	transport := &http.Transport{
 		DialContext:         httpx.Dialer.Dial,
+		DialTLSContext:      httpx.Dialer.DialTLS,
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
