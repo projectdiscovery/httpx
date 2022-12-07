@@ -235,6 +235,7 @@ type Options struct {
 	OutputFilterFavicon       goflags.StringSlice
 	OutputMatchFavicon        goflags.StringSlice
 	LeaveDefaultPorts         bool
+	ZTLS                      bool
 	OutputLinesCount          bool
 	OutputMatchLinesCount     string
 	matchLinesCount           []int
@@ -379,6 +380,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.Stream, "stream", "s", false, "stream mode - start elaborating input targets without sorting"),
 		flagSet.BoolVarP(&options.SkipDedupe, "skip-dedupe", "sd", false, "disable dedupe input items (only used with stream mode)"),
 		flagSet.BoolVarP(&options.LeaveDefaultPorts, "leave-default-ports", "ldp", false, "leave default http/https ports in host header (eg. http://host:80 - https//host:443"),
+		flagSet.BoolVar(&options.ZTLS, "ztls", false, "use ztls library with autofallback to standard one for tls13"),
 	)
 
 	flagSet.CreateGroup("debug", "Debug",
