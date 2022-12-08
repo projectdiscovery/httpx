@@ -117,7 +117,7 @@ MATCHERS:
    -mfc, -match-favicon string[]      match response with specified favicon hash (-mfc 1494302000)
    -ms, -match-string string          match response with specified string (-ms admin)
    -mr, -match-regex string           match response with specified regex (-mr admin)
-   -mcdn, -match-cdn string[]         match host with specified cdn provider (fastly, incapsula, oracle, google, azure, cloudflare, cloudfront, sucuri, leaseweb, akamai)
+   -mcdn, -match-cdn string[]         match host with specified cdn provider (oracle, google, azure, cloudflare, cloudfront, fastly, incapsula, leaseweb, akamai, sucuri)
    -mrt, -match-response-time string  match response with specified response time in seconds (-mrt '< 1')
    -mdc, -match-condition string      match response with dsl expression condition
 
@@ -133,7 +133,7 @@ FILTERS:
    -ffc, -filter-favicon string[]      filter response with specified favicon hash (-mfc 1494302000)
    -fs, -filter-string string          filter response with specified string (-fs admin)
    -fe, -filter-regex string           filter response with specified regex (-fe admin)
-   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (fastly, incapsula, oracle, google, azure, cloudflare, cloudfront, sucuri, leaseweb, akamai)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (oracle, google, azure, cloudflare, cloudfront, fastly, incapsula, leaseweb, akamai, sucuri)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
    -fdc, -filter-condition string      filter response with dsl expression condition
 
@@ -155,14 +155,16 @@ MISCELLANEOUS:
    -ldv, -list-dsl-variables  list json output field keys name that support dsl matcher/filter
 
 OUTPUT:
-   -o, -output string                file to write output results
-   -sr, -store-response              store http response to output directory
-   -srd, -store-response-dir string  store http response to custom directory
-   -csv                              store output in csv format
-   -json                             store output in JSONL(ines) format
-   -irr, -include-response           include http request/response in JSON output (-json only)
-   -include-chain                    include redirect http chain in JSON output (-json only)
-   -store-chain                      include http redirect chain in responses (-sr only)
+   -o, -output string                  file to write output results
+   -sr, -store-response                store http response to output directory
+   -srd, -store-response-dir string    store http response to custom directory
+   -csv                                store output in csv format
+   -csvo, -csv-output-encoding string  define output encoding
+   -json                               store output in JSONL(ines) format
+   -irr, -include-response             include http request/response in JSON output (-json only)
+   -irrb, -include-response-base64     include base64 encoded http request/response in JSON output (-json only)
+   -include-chain                      include redirect http chain in JSON output (-json only)
+   -store-chain                        include http redirect chain in responses (-sr only)
 
 CONFIGURATIONS:
    -r, -resolvers string[]       list of custom resolver (file or comma separated)
@@ -183,6 +185,7 @@ CONFIGURATIONS:
    -s, -stream                   stream mode - start elaborating input targets without sorting
    -sd, -skip-dedupe             disable dedupe input items (only used with stream mode)
    -ldp, -leave-default-ports    leave default http/https ports in host header (eg. http://host:80 - https//host:443
+   -ztls                         use ztls library with autofallback to standard one for tls13
 
 DEBUG:
    -health-check, -hc        run diagnostic check up
