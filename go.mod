@@ -53,7 +53,7 @@ require (
 	github.com/projectdiscovery/tlsx v1.0.0
 	github.com/projectdiscovery/utils v0.0.3
 	github.com/stretchr/testify v1.8.1
-	go.uber.org/multierr v1.8.0
+	go.uber.org/multierr v1.9.0
 	golang.org/x/exp v0.0.0-20221031165847-c99f073a8326
 )
 
