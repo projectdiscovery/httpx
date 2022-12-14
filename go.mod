@@ -27,7 +27,7 @@ require (
 	github.com/projectdiscovery/retryablehttp-go v1.0.3-0.20220506110515-811d938bd26d
 	github.com/projectdiscovery/sliceutil v0.0.1 // indirect
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
-	github.com/projectdiscovery/wappalyzergo v0.0.71
+	github.com/projectdiscovery/wappalyzergo v0.0.73
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.4.0
 	github.com/smartystreets/assertions v1.0.0 // indirect
@@ -53,7 +53,7 @@ require (
 	github.com/projectdiscovery/tlsx v0.0.9
 	github.com/projectdiscovery/utils v0.0.3
 	github.com/stretchr/testify v1.8.1
-	go.uber.org/multierr v1.8.0
+	go.uber.org/multierr v1.9.0
 	golang.org/x/exp v0.0.0-20221031165847-c99f073a8326
 )
 
