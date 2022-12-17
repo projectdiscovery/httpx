@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="static/httpx-logo.png" alt="httpx" width="200px"></a>
+  <img src="static/httpx-logo.png" alt="httpx" width="200px">
   <br>
 </h1>
 
@@ -24,12 +24,12 @@
 </p>
 
 
-httpx is a fast and multi-purpose HTTP toolkit that allows running multiple probes using the [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library. It is designed to maintain result reliability with an increased number of threads.
+`httpx` is a fast and multi-purpose HTTP toolkit that allows running multiple probes using the [retryablehttp](https://github.com/projectdiscovery/retryablehttp-go) library. It is designed to maintain result reliability with an increased number of threads.
 
 # Features
 
 <h1 align="center">
-  <img src="https://user-images.githubusercontent.com/8293321/135731750-4c1d38b1-bd2a-40f9-88e9-3c4b9f6da378.png" alt="httpx" width="700px"></a>
+  <img src="https://user-images.githubusercontent.com/8293321/135731750-4c1d38b1-bd2a-40f9-88e9-3c4b9f6da378.png" alt="httpx" width="700px">
   <br>
 </h1>
 
@@ -40,7 +40,7 @@ httpx is a fast and multi-purpose HTTP toolkit that allows running multiple prob
  - Supports hosts, URLs and CIDR as input.
  - Handles edge cases doing retries, backoffs etc for handling WAFs.
 
-### Supported probes:-
+### Supported probes
 
 | Probes          | Default check | Probes         | Default check |
 |-----------------|---------------|----------------|---------------|
@@ -62,7 +62,7 @@ httpx is a fast and multi-purpose HTTP toolkit that allows running multiple prob
 
 # Installation Instructions
 
-httpx requires **go1.17** to install successfully. Run the following command to get the repo - 
+`httpx` requires **go1.18** to install successfully. Run the following command to get the repo:
 
 ```sh
 go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
@@ -204,6 +204,7 @@ OPTIMIZATIONS:
    -ec, -exclude-cdn                  skip full port scans for CDNs (only checks for 80,443)
    -retries int                       number of retries
    -timeout int                       timeout in seconds (default 5)
+   -delay duration                    duration between each http request (eg: 200ms, 1s) (default -1ns)
    -rsts, -response-size-to-save int  max response size to save in bytes (default 2147483647)
    -rstr, -response-size-to-read int  max response size to read in bytes (default 2147483647)
 ```
@@ -241,7 +242,7 @@ https://support.hackerone.com
 
 ### File Input
 
-This will run the tool with the `probe` flag against all of the hosts in **hosts.txt** and return URLs with probed status.
+This will run the tool with the `-probe` flag against all the hosts in **hosts.txt** and return URLs with probed status.
 
 ```console
 httpx -list hosts.txt -silent -probe
@@ -467,31 +468,30 @@ https://docs.hackerone.com
 https://support.hackerone.com
 ```
 
-### Using httpx as a library
-`httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to close at the end of the program) and the `RunEnumeration` method should be called. Here follows a minimal example of how to do it:
+### Using `httpx` as a library
+`httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. Here follows a minimal example of how to do it:
 
 ```go
 package main
 
 import (
 	"log"
-	"os"
 
+	"github.com/projectdiscovery/goflags"
+	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/gologger/levels"
 	"github.com/projectdiscovery/httpx/runner"
 )
 
 func main() {
-	inputFile := "test.txt"
-	err := os.WriteFile(inputFile, []byte("scanme.sh"), 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer os.RemoveAll(inputFile)
+	gologger.DefaultLogger.SetMaxLevel(levels.LevelVerbose) // increase the verbosity (optional)
 
 	options := runner.Options{
-		Methods:   "GET",
-		InputFile: inputFile,
+		Methods: "GET",
+		InputTargetHost: goflags.StringSlice{"scanme.sh", "projectdiscovery.io"},
+		//InputFile: "./targetDomains.txt", // path to file containing the target domains list 
 	}
+
 	if err := options.ValidateOptions(); err != nil {
 		log.Fatal(err)
 	}
@@ -509,17 +509,27 @@ func main() {
 
 # Notes
 
-- As default, **httpx** checks for `HTTPS` probe and fall-back to `HTTP` only if `HTTPS` is not reachable.
-- For printing both HTTP/HTTPS results, `no-fallback` flag can be used.
+- As default, `httpx` checks for **HTTPS** probe and fall-back to **HTTP** only if **HTTPS** is not reachable.
+- The `-no-fallback` flag can be used to display both **HTTP** and **HTTPS** results 
 - Custom scheme for ports can be defined, for example `-ports http:443,http:80,https:8443`
-- `favicon`,`vhost`, `http2`, `pipeline`, `ports`, `csp-probe`, `tls-probe` and `path` are unique flag with different probes.
-- Unique flags should be used for specific use cases instead of running them as default with other probes.
-- When using `json` flag, all the information (default probes) included in the JSON output.
-- Custom resolver supports multiple protocol (**doh|tcp|udp**) in form of `protocol:resolver:port`  (eg **udp:127.0.0.1:53**)
+- The following flags should be used for specific use cases instead of running them as default with other probes:
+  * `-favicon`,`-vhost`, `-http2`, `-pipeline`, `-ports`, `-csp-probe`, `-tls-probe`, `-path`
+- When using the `-json` flag, all the default probe results are included in the JSON output.
+- Custom resolver supports multiple protocol (**doh|tcp|udp**) in form of `protocol:resolver:port` (e.g. `udp:127.0.0.1:53`)
 - Invalid custom resolvers/files are ignored.
 
 # Acknowledgement
 
-httpx is made with 🖤 by the [projectdiscovery](https://projectdiscovery.io) team. Community contributions have made the project what it is. See the **[Thanks.md](https://github.com/projectdiscovery/httpx/blob/master/THANKS.md)** file for more details. Do also check out these similar awesome projects that may fit in your workflow:
+Probing feature is inspired by [@tomnomnom/httprobe](https://github.com/tomnomnom/httprobe) work ❤️
 
-Probing feature is inspired by [@tomnomnom/httprobe](https://github.com/tomnomnom/httprobe) work :heart:
+
+--------
+
+<div align="center">
+
+`httpx` is made with 💙 by the [projectdiscovery](https://projectdiscovery.io) team and distributed under [MIT License](LICENSE.md).
+
+
+<a href="https://discord.gg/projectdiscovery"><img src="https://raw.githubusercontent.com/projectdiscovery/nuclei-burp-plugin/main/static/join-discord.png" width="300" alt="Join Discord"></a>
+
+</div>

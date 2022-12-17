@@ -8,8 +8,8 @@ import (
 	"github.com/bxcodec/faker/v4/pkg/options"
 	"github.com/mitchellh/mapstructure"
 	"github.com/projectdiscovery/httpx/common/httpx"
-	"github.com/projectdiscovery/mapsutil"
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
+	mapsutil "github.com/projectdiscovery/utils/maps"
 )
 
 type AsnResponse struct {

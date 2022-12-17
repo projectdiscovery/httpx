@@ -29,7 +29,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/mapcidr/asn"
-	"github.com/projectdiscovery/mapsutil"
+	mapsutil "github.com/projectdiscovery/utils/maps"
 
 	"github.com/bluele/gcache"
 	"github.com/logrusorgru/aurora"
@@ -39,28 +39,28 @@ import (
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/httpx/common/hashes"
 	"github.com/projectdiscovery/retryablehttp-go"
-	"github.com/projectdiscovery/sliceutil"
-	"github.com/projectdiscovery/stringsutil"
-	"github.com/projectdiscovery/urlutil"
+	sliceutil "github.com/projectdiscovery/utils/slice"
+	stringsutil "github.com/projectdiscovery/utils/strings"
+	urlutil "github.com/projectdiscovery/utils/url"
 
 	"github.com/projectdiscovery/ratelimit"
 	"github.com/remeh/sizedwaitgroup"
 
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
-	"github.com/projectdiscovery/fileutil"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/hmap/store/hybrid"
-	pdhttputil "github.com/projectdiscovery/httputil"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
-	"github.com/projectdiscovery/iputil"
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/projectdiscovery/rawhttp"
+	fileutil "github.com/projectdiscovery/utils/file"
+	pdhttputil "github.com/projectdiscovery/utils/http"
+	iputil "github.com/projectdiscovery/utils/ip"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 )
 
@@ -91,7 +91,9 @@ func New(options *Options) (*Runner, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
 	}
-
+	if options.StoreResponseDir != "" {
+		os.RemoveAll(filepath.Join(options.StoreResponseDir, "index.txt"))
+	}
 	dialerOpts := fastdialer.DefaultOptions
 	dialerOpts.WithDialerHistory = true
 	dialerOpts.MaxRetries = 3
@@ -214,6 +216,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.responseInStdout
+	scanopts.Base64ResponseInStdout = options.base64responseInStdout
 	scanopts.ChainInStdout = options.chainInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
 	scanopts.TLSProbe = options.TLSProbe
@@ -295,9 +298,9 @@ func New(options *Options) (*Runner, error) {
 	runner.hm = hm
 
 	if options.RateLimitMinute > 0 {
-		runner.ratelimiter = *ratelimit.New(context.Background(), int64(options.RateLimitMinute), time.Minute)
+		runner.ratelimiter = *ratelimit.New(context.Background(), uint(options.RateLimitMinute), time.Minute)
 	} else if options.RateLimit > 0 {
-		runner.ratelimiter = *ratelimit.New(context.Background(), int64(options.RateLimit), time.Second)
+		runner.ratelimiter = *ratelimit.New(context.Background(), uint(options.RateLimit), time.Second)
 	} else {
 		runner.ratelimiter = *ratelimit.NewUnlimited(context.Background())
 	}
@@ -588,7 +591,8 @@ func (r *Runner) RunEnumeration() {
 	go func(output chan Result) {
 		defer wgoutput.Done()
 
-		var f *os.File
+		var f, indexFile *os.File
+
 		if r.options.Output != "" {
 			var err error
 			if r.options.Resume {
@@ -597,17 +601,42 @@ func (r *Runner) RunEnumeration() {
 				f, err = os.Create(r.options.Output)
 			}
 			if err != nil {
-				gologger.Fatal().Msgf("Could not create output file '%s': %s\n", r.options.Output, err)
+				gologger.Fatal().Msgf("Could not open/create output file '%s': %s\n", r.options.Output, err)
 			}
 			defer f.Close() //nolint
 		}
 		if r.options.CSVOutput {
+			outEncoding := strings.ToLower(r.options.CSVOutputEncoding)
+			switch outEncoding {
+			case "": // no encoding do nothing
+			case "utf-8", "utf8":
+				bomUtf8 := []byte{0xEF, 0xBB, 0xBF}
+				_, err := f.Write(bomUtf8)
+				if err != nil {
+					gologger.Fatal().Msgf("err on file write: %s\n", err)
+				}
+			default: // unknown encoding
+				gologger.Fatal().Msgf("unknown csv output encoding: %s\n", r.options.CSVOutputEncoding)
+			}
 			header := Result{}.CSVHeader()
 			gologger.Silent().Msgf("%s\n", header)
 			if f != nil {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				f.WriteString(header + "\n")
 			}
+		}
+		if r.options.StoreResponseDir != "" {
+			var err error
+			indexPath := filepath.Join(r.options.StoreResponseDir, "index.txt")
+			if r.options.Resume {
+				indexFile, err = os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+			} else {
+				indexFile, err = os.Create(indexPath)
+			}
+			if err != nil {
+				gologger.Fatal().Msgf("Could not open/create index file '%s': %s\n", r.options.Output, err)
+			}
+			defer indexFile.Close() //nolint
 		}
 
 		for resp := range output {
@@ -620,6 +649,11 @@ func (r *Runner) RunEnumeration() {
 			}
 			if resp.str == "" {
 				continue
+			}
+
+			if indexFile != nil {
+				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
+				_, _ = indexFile.WriteString(indexData)
 			}
 
 			// apply matchers and filters
@@ -776,6 +810,7 @@ func (r *Runner) RunEnumeration() {
 				row = resp.JSON(&r.scanopts)
 			} else if r.options.CSVOutput {
 				row = resp.CSVRow(&r.scanopts)
+
 			}
 
 			gologger.Silent().Msgf("%s\n", row)
@@ -854,6 +889,8 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 		if len(customport.Ports) == 0 {
 			for _, method := range scanopts.Methods {
 				for _, prot := range protocols {
+					// sleep for delay time
+					time.Sleep(r.options.Delay)
 					wg.Add()
 					go func(target httpx.Target, method, protocol string) {
 						defer wg.Done()
@@ -892,6 +929,8 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 			}
 			for _, wantedProtocol := range wantedProtocols {
 				for _, method := range scanopts.Methods {
+					// sleep for delay time
+					time.Sleep(r.options.Delay)
 					wg.Add()
 					go func(port int, target httpx.Target, method, protocol string) {
 						defer wg.Done()
@@ -1268,6 +1307,11 @@ retry:
 		request = string(requestDump)
 		responseHeader = normalizeHeaders(resp.Headers)
 		rawResponseHeader = resp.RawHeaders
+	} else if scanopts.Base64ResponseInStdout {
+		serverResponseRaw = stringz.Base64(resp.Data)
+		request = stringz.Base64(requestDump)
+		responseHeader = normalizeHeaders(resp.Headers)
+		rawResponseHeader = stringz.Base64([]byte(resp.RawHeaders))
 	}
 
 	// check for virtual host
@@ -1514,28 +1558,26 @@ retry:
 	var responsePath string
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		domainFile := strings.ReplaceAll(urlutil.TrimScheme(URL.String()), ":", ".")
-
-		// On various OS the file max file name length is 255 - https://serverfault.com/questions/9546/filename-length-limits-on-linux
-		// Truncating length at 255
-		if len(domainFile) >= maxFileNameLength {
-			// leaving last 4 bytes free to append ".txt"
-			domainFile = domainFile[:maxFileNameLength]
-		}
-
-		domainFile = strings.ReplaceAll(domainFile, "/", "[slash]") + ".txt"
+		hash := hashes.Sha1([]byte(domainFile))
+		domainFile = fmt.Sprintf("%s.txt", hash)
+		domainBaseDir := filepath.Join(scanopts.StoreResponseDirectory, URL.Host)
 		// store response
-		responsePath = filepath.Join(scanopts.StoreResponseDirectory, domainFile)
+		responsePath = filepath.Join(domainBaseDir, domainFile)
 		respRaw := resp.Raw
+		reqRaw := requestDump
 		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
 			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
 		}
-		writeErr := os.WriteFile(responsePath, []byte(respRaw), 0644)
+		data := append([]byte(fullURL), append([]byte("\n\n"), reqRaw...)...)
+		data = append(data, append([]byte("\n"), respRaw...)...)
+		_ = fileutil.CreateFolder(domainBaseDir)
+		writeErr := os.WriteFile(responsePath, data, 0644)
 		if writeErr != nil {
 			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
 		}
 		if scanopts.StoreChain && resp.HasChain() {
 			domainFile = strings.ReplaceAll(domainFile, ".txt", ".chain.txt")
-			responsePath = filepath.Join(scanopts.StoreResponseDirectory, domainFile)
+			responsePath = filepath.Join(domainBaseDir, domainFile)
 			writeErr := os.WriteFile(responsePath, []byte(resp.GetChain()), 0644)
 			if writeErr != nil {
 				gologger.Warning().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
