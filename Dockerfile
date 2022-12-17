@@ -1,6 +1,7 @@
 FROM golang:1.19.2-alpine AS builder
-RUN apk add --no-cache git
-RUN go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
+ARG BUILD_SOURCE_TAG=latest
+RUN apk add --no-cache git build-base
+RUN go install -v github.com/projectdiscovery/httpx/cmd/httpx@${BUILD_SOURCE_TAG}
 
 FROM alpine:3.16.2
 RUN apk -U upgrade --no-cache \
