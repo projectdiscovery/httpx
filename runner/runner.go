@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -1674,8 +1673,7 @@ retry:
 func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp *httpx.Response) (string, error) {
 	// Check if current URI is ending with .ico => use current body without additional requests
 	if path.Ext(req.URL.Path) == ".ico" {
-		log.Println(req.URL.String())
-		r.calculateFaviconHashWithRaw(currentResp.Data)
+		return r.calculateFaviconHashWithRaw(currentResp.Data)
 	}
 
 	// search in the response of the requested path for element and rel shortcut/mask/apple-touch icon
