@@ -127,6 +127,7 @@ func New(options *Options) (*Runner, error) {
 	}
 	httpxOptions.Deny = options.Deny
 	httpxOptions.Allow = options.Allow
+	httpxOptions.ZTLS = options.ZTLS
 	httpxOptions.MaxResponseBodySizeToSave = int64(options.MaxResponseBodySizeToSave)
 	httpxOptions.MaxResponseBodySizeToRead = int64(options.MaxResponseBodySizeToRead)
 	// adjust response size saved according to the max one read by the server

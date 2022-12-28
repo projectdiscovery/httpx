@@ -15,7 +15,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1
 	github.com/projectdiscovery/clistats v0.0.9
-	github.com/projectdiscovery/fastdialer v0.0.19
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/fileutil v0.0.3 // indirect
 	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c
@@ -34,9 +33,9 @@ require (
 	github.com/smartystreets/assertions v1.0.0 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	golang.org/x/net v0.4.0
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/text v0.5.0
+	golang.org/x/net v0.2.0
+	golang.org/x/sys v0.2.0 // indirect
+	golang.org/x/text v0.4.0
 )
 
 require github.com/spaolacci/murmur3 v1.1.0
@@ -49,6 +48,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v0.0.1
 	github.com/projectdiscovery/dsl v0.0.3
+	github.com/projectdiscovery/fastdialer v0.0.19
 	github.com/projectdiscovery/ratelimit v0.0.4
 	github.com/projectdiscovery/tlsx v1.0.0
 	github.com/projectdiscovery/utils v0.0.4-0.20221214110533-9f95ee986a54

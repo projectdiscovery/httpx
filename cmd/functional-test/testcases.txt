@@ -15,4 +15,5 @@ scanme.sh {{binary}} -silent -x all
 scanme.sh {{binary}} -silent -body 'a=b'
 scanme.sh {{binary}} -silent -exclude-cdn
 scanme.sh {{binary}} -silent -ports https:443
+scanme.sh {{binary}} -silent -ztls
 https://scanme.sh?a=1*1 {{binary}} -silent
