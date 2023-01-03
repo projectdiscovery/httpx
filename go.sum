@@ -399,10 +399,10 @@ github.com/projectdiscovery/sliceutil v0.0.1 h1:YoCqCMcdwz+gqNfW5hFY8UvNHoA6SfyB
 github.com/projectdiscovery/sliceutil v0.0.1/go.mod h1:0wBmhU5uTDwMfrEZfvwH9qa5k60Q4shPVOC9E6LGsDI=
 github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZAja8BH3LqqJXMA=
 github.com/projectdiscovery/stringsutil v0.0.2/go.mod h1:EJ3w6bC5fBYjVou6ryzodQq37D5c6qbAYQpGmAy+DC0=
-github.com/projectdiscovery/tlsx v1.0.0 h1:krS0QRbh4wHqeOybVQwBImY9PmIqzFOYM9Q+cKlEiZE=
-github.com/projectdiscovery/tlsx v1.0.0/go.mod h1:LOgQpCTE96d/18+Zwu8p5b8ujOGPn6lIDqMIQCJHoXM=
-github.com/projectdiscovery/utils v0.0.4-0.20221214110533-9f95ee986a54 h1:/fZvw6gT1fzdmMLMBBw75OrJ0Z6g7dulQrxM9FRp1qU=
-github.com/projectdiscovery/utils v0.0.4-0.20221214110533-9f95ee986a54/go.mod h1:PCwA5YuCYWPgHaGiZmr53/SA9iGQmAnw7DSHuhr8VPQ=
+github.com/projectdiscovery/tlsx v1.0.3 h1:D1g+Ji6fQj4rxxABqi6Q/S7oiY3Cm52uOqeyOVSN8Hs=
+github.com/projectdiscovery/tlsx v1.0.3/go.mod h1:JDGqITCgTfL6pyu+nzeFOjuGUzj5MPiT9OBw634G/pM=
+github.com/projectdiscovery/utils v0.0.4-0.20230102120019-c7a04e2045be h1:H65vXvA5EasyvlgjFd24cdHKN7Tp/6/1MhVU0UpAMg4=
+github.com/projectdiscovery/utils v0.0.4-0.20230102120019-c7a04e2045be/go.mod h1:PCwA5YuCYWPgHaGiZmr53/SA9iGQmAnw7DSHuhr8VPQ=
 github.com/projectdiscovery/wappalyzergo v0.0.76 h1:aG15xPhVY5sK/o3GlGiHrGLpmIkDSUmpbLTGnjVpeAc=
 github.com/projectdiscovery/wappalyzergo v0.0.76/go.mod h1:HvYuW0Be4JCjVds/+XAEaMSqRG9yrI97UmZq0TPk6A0=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
