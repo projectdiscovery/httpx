@@ -32,8 +32,8 @@ require (
 	github.com/rs/xid v1.4.0
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	golang.org/x/net v0.4.0
-	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/net v0.5.0
+	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/text v0.6.0
 )
 
