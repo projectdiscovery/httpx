@@ -3,28 +3,44 @@ on:
   schedule:
     - cron:  '* * * * *'
 
-
 jobs:
-  merge:
+  sync_latest_from_upstream:
     runs-on: ubuntu-latest
+    name: Sync latest commits from upstream repo
+
     steps:
-      - uses: actions/checkout@v2
-      - name: Merge upstream
-        run: |
-          git config --global user.name 'mariandppb'
-          git config --global user.email 'maria.andriesa@ppb.com'
+    # REQUIRED step
+    # Step 1: run a standard checkout action, provided by github
+    - name: Checkout target repo
+      uses: actions/checkout@v2
+      with:
+        # optional: set the branch to checkout,
+        # sync action checks out your 'target_sync_branch' anyway
+        ref:  new_branch
+        # REQUIRED if your upstream repo is private (see wiki)
 
-          git pull --unshallow  
-          git remote add upstream https://github.com/projectdiscovery/httpx.git
-          git fetch upstream
-
-          git checkout -b new_branch origin/main
-          git merge --no-edit upstream/main
-          git checkout --ours .github/workflows/build-test.yml
-          git checkout --ours .github/workflows/codeql-analysis.yml
-          git checkout --ours .github/workflows/functional-test.yml
-          git checkout --ours .github/workflows/lint-test.yml
-          git checkout --ours .github/workflows/release-binary.yml
-          git checkout --ours .github/workflows/sonarcloud.yml
-          git commit -m "Waiting for Resync Fork to be Reviewed, Approved and Merged"
-          git push
+    # REQUIRED step
+    # Step 2: run the sync action
+    - name: Sync upstream changes
+      id: sync
+      uses: projectdiscovery/httpx.git
+      with:
+        target_sync_branch: new_branch
+        # REQUIRED 'target_repo_token' exactly like this!
+        # target_repo_token: ${{ secrets.GITHUB_TOKEN }}
+        upstream_sync_branch: main
+        upstream_sync_repo: projectdiscovery/httpx.git
+        # Set test_mode true to run tests instead of the true action!!
+        test_mode: true
+      
+    # Step 3: Display a sample message based on the sync output var 'has_new_commits'
+    - name: New commits found
+      if: steps.sync.outputs.has_new_commits == 'true'
+      run: echo "New commits were found to sync."
+    
+    - name: No new commits
+      if: steps.sync.outputs.has_new_commits == 'false'
+      run: echo "There were no new commits."
+      
+    - name: Show value of 'has_new_commits'
+      run: echo ${{ steps.sync.outputs.has_new_commits }}
