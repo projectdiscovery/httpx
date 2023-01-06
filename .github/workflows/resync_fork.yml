@@ -23,7 +23,7 @@ jobs:
     # Step 2: run the sync action
     - name: Sync upstream changes
       id: sync
-      uses: projectdiscovery/httpx.git
+      uses: mariandppb/httpx@main
       with:
         target_sync_branch: new_branch
         # REQUIRED 'target_repo_token' exactly like this!
