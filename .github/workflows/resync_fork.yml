@@ -27,4 +27,4 @@ jobs:
           git checkout --ours .github/workflows/release-binary.yml
           git checkout --ours .github/workflows/sonarcloud.yml
           git commit -m "Waiting for Resync Fork to be Reviewed, Approved and Merged"
-          git push origin new_branch
+          git push
