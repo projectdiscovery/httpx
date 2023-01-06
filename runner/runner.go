@@ -1465,10 +1465,10 @@ retry:
 		builder.WriteRune(']')
 	}
 
-	var faviconMMH3 string
+	var faviconMMH3, faviconPath string
 	if scanopts.Favicon {
 		var err error
-		faviconMMH3, err = r.handleFaviconHash(hp, req, resp)
+		faviconMMH3, faviconPath, err = r.handleFaviconHash(hp, req, resp)
 		if err == nil {
 			builder.WriteString(" [")
 			if !scanopts.OutputWithNoColor {
@@ -1654,6 +1654,7 @@ retry:
 		Technologies:       technologies,
 		FinalURL:           finalURL,
 		FavIconMMH3:        faviconMMH3,
+		FaviconPath:        faviconPath,
 		Hashes:             hashesMap,
 		Extracts:           extractResult,
 		Jarm:               jarmhash,
@@ -1669,10 +1670,11 @@ retry:
 	return result
 }
 
-func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp *httpx.Response) (string, error) {
+func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp *httpx.Response) (string, string, error) {
 	// Check if current URI is ending with .ico => use current body without additional requests
 	if path.Ext(req.URL.Path) == ".ico" {
-		return r.calculateFaviconHashWithRaw(currentResp.Data)
+		hash, err := r.calculateFaviconHashWithRaw(currentResp.Data)
+		return hash, req.URL.Path, err
 	}
 
 	// search in the response of the requested path for element and rel shortcut/mask/apple-touch icon
@@ -1680,14 +1682,14 @@ func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 	// if not, any of link from other icons can be requested
 	potentialURLs, err := extractPotentialFavIconsURLs(req, currentResp)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	// pick the first - we want only one request
 	if len(potentialURLs) > 0 {
 		URL, err := url.Parse(potentialURLs[0])
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		if URL.IsAbs() {
 			req.URL = URL
@@ -1705,9 +1707,10 @@ func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 
 	resp, err := hp.Do(req, httpx.UnsafeOptions{})
 	if err != nil {
-		return "", errors.Wrap(err, "could not fetch favicon")
+		return "", "", errors.Wrap(err, "could not fetch favicon")
 	}
-	return r.calculateFaviconHashWithRaw(resp.Data)
+	hash, err := r.calculateFaviconHashWithRaw(resp.Data)
+	return hash, req.URL.Path, err
 }
 
 func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, error) {
