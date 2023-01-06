@@ -13,6 +13,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -23,6 +24,7 @@ import (
 
 	"golang.org/x/exp/maps"
 
+	"github.com/PuerkitoBio/goquery"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	dsl "github.com/projectdiscovery/dsl"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
@@ -1462,11 +1464,12 @@ retry:
 		}
 		builder.WriteRune(']')
 	}
-	var faviconMMH3 string
+
+	var faviconMMH3, faviconPath string
 	if scanopts.Favicon {
-		req.URL.Path = "/favicon.ico"
-		if faviconResp, favErr := hp.Do(req, httpx.UnsafeOptions{}); favErr == nil {
-			faviconMMH3 = fmt.Sprintf("%d", stringz.FaviconHash(faviconResp.Data))
+		var err error
+		faviconMMH3, faviconPath, err = r.handleFaviconHash(hp, req, resp)
+		if err == nil {
 			builder.WriteString(" [")
 			if !scanopts.OutputWithNoColor {
 				builder.WriteString(aurora.Magenta(faviconMMH3).String())
@@ -1475,9 +1478,10 @@ retry:
 			}
 			builder.WriteRune(']')
 		} else {
-			gologger.Warning().Msgf("Could not fetch favicon: %s", favErr.Error())
+			gologger.Warning().Msgf("could not calculate favicon hash: %s", err)
 		}
 	}
+
 	// adding default hashing for json output format
 	if r.options.JSONOutput && len(scanopts.Hashes) == 0 {
 		scanopts.Hashes = "md5,mmh3,sha256,simhash"
@@ -1650,6 +1654,7 @@ retry:
 		Technologies:       technologies,
 		FinalURL:           finalURL,
 		FavIconMMH3:        faviconMMH3,
+		FaviconPath:        faviconPath,
 		Hashes:             hashesMap,
 		Extracts:           extractResult,
 		Jarm:               jarmhash,
@@ -1663,6 +1668,74 @@ retry:
 		r.options.OnResult(result)
 	}
 	return result
+}
+
+func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp *httpx.Response) (string, string, error) {
+	// Check if current URI is ending with .ico => use current body without additional requests
+	if path.Ext(req.URL.Path) == ".ico" {
+		hash, err := r.calculateFaviconHashWithRaw(currentResp.Data)
+		return hash, req.URL.Path, err
+	}
+
+	// search in the response of the requested path for element and rel shortcut/mask/apple-touch icon
+	// link with .ico extension (which will be prioritized if available)
+	// if not, any of link from other icons can be requested
+	potentialURLs, err := extractPotentialFavIconsURLs(req, currentResp)
+	if err != nil {
+		return "", "", err
+	}
+
+	// pick the first - we want only one request
+	if len(potentialURLs) > 0 {
+		URL, err := url.Parse(potentialURLs[0])
+		if err != nil {
+			return "", "", err
+		}
+		if URL.IsAbs() {
+			req.URL = URL
+		} else {
+			if strings.HasPrefix(URL.Path, "/") {
+				req.URL.Path = URL.Path
+			} else {
+				req.URL.Path = "/" + URL.Path
+			}
+		}
+		req.Host = URL.Host
+	} else {
+		req.URL = req.URL.JoinPath("favicon.ico")
+	}
+
+	resp, err := hp.Do(req, httpx.UnsafeOptions{})
+	if err != nil {
+		return "", "", errors.Wrap(err, "could not fetch favicon")
+	}
+	hash, err := r.calculateFaviconHashWithRaw(resp.Data)
+	return hash, req.URL.Path, err
+}
+
+func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, error) {
+	hashNum, err := stringz.FaviconHash(data)
+	if err != nil {
+		return "", errors.Wrap(err, "could not calculate favicon hash")
+	}
+	return fmt.Sprintf("%d", hashNum), nil
+}
+
+func extractPotentialFavIconsURLs(req *retryablehttp.Request, resp *httpx.Response) ([]string, error) {
+	var potentialURLs []string
+	document, err := goquery.NewDocumentFromReader(bytes.NewReader(resp.Data))
+	if err != nil {
+		return nil, err
+	}
+	document.Find("link").Each(func(i int, item *goquery.Selection) {
+		href, okHref := item.Attr("href")
+		rel, okRel := item.Attr("rel")
+		isValidRel := okRel && stringsutil.EqualFoldAny(rel, "icon", "shortcut icon", "mask-icon", "apple-touch-icon")
+		if okHref && isValidRel {
+			potentialURLs = append(potentialURLs, href)
+		}
+	})
+	return potentialURLs, nil
 }
 
 // SaveResumeConfig to file
