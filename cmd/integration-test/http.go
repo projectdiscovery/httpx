@@ -83,7 +83,7 @@ func (h *standardHttpGet) Execute() error {
 	}
 
 	if h.expectedOutput != "" && !strings.EqualFold(results[0], h.expectedOutput) {
-		return errIncorrectResult(results[0], h.expectedOutput)
+		return errIncorrectResult(h.expectedOutput, results[0])
 	}
 
 	return nil
@@ -115,7 +115,7 @@ func (h *issue276) Execute() error {
 	// title
 	expected := ts.URL + "/redirect" + " [302] [Object moved]"
 	if !strings.EqualFold(results[0], expected) {
-		return errIncorrectResult(results[0], expected)
+		return errIncorrectResult(expected, results[0])
 	}
 	return nil
 }
@@ -146,7 +146,7 @@ func (h *issue277) Execute() error {
 	// title
 	expected := ts.URL + uripath
 	if !strings.EqualFold(results[0], expected) {
-		return errIncorrectResult(results[0], expected)
+		return errIncorrectResult(expected, results[0])
 	}
 	return nil
 }
@@ -175,7 +175,7 @@ func (h *issue303) Execute() error {
 	// full url with port
 	expected := ts.URL
 	if !strings.EqualFold(results[0], expected) {
-		return errIncorrectResult(results[0], expected)
+		return errIncorrectResult(expected, results[0])
 	}
 	return nil
 }
@@ -249,7 +249,7 @@ func (h *issue414) Execute() error {
 	}
 	expected := ts.URL + uripath
 	if !strings.EqualFold(results[0], expected) {
-		return errIncorrectResult(results[0], expected)
+		return errIncorrectResult(expected, results[0])
 	}
 	return nil
 }

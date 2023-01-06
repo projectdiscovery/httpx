@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 
 	"github.com/projectdiscovery/httpx/internal/testutils"
@@ -22,9 +23,14 @@ func (h *httpxLibrary) Execute() error {
 	}
 	defer os.RemoveAll(testFile)
 
+	var got string
+
 	options := runner.Options{
-		Methods:   "GET",
+		Methods:   http.MethodGet,
 		InputFile: testFile,
+		OnResult: func(r runner.Result) {
+			got = r.URL
+		},
 	}
 	if err := options.ValidateOptions(); err != nil {
 		return err
@@ -37,5 +43,12 @@ func (h *httpxLibrary) Execute() error {
 	defer httpxRunner.Close()
 
 	httpxRunner.RunEnumeration()
+
+	expected := "https://scanme.sh:443"
+
+	if got != expected {
+		return errIncorrectResult(expected, got)
+	}
+
 	return nil
 }
