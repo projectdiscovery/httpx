@@ -1689,7 +1689,15 @@ func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		if err != nil {
 			return "", err
 		}
-		req.URL = URL
+		if URL.IsAbs() {
+			req.URL = URL
+		} else {
+			if strings.HasPrefix(URL.Path, "/") {
+				req.URL.Path = URL.Path
+			} else {
+				req.URL.Path = "/" + URL.Path
+			}
+		}
 		req.Host = URL.Host
 	} else {
 		req.URL = req.URL.JoinPath("favicon.ico")
@@ -1716,7 +1724,7 @@ func extractPotentialFavIconsURLs(req *retryablehttp.Request, resp *httpx.Respon
 	if err != nil {
 		return nil, err
 	}
-	document.Find("link[rel]").Each(func(i int, item *goquery.Selection) {
+	document.Find("link").Each(func(i int, item *goquery.Selection) {
 		href, okHref := item.Attr("href")
 		rel, okRel := item.Attr("rel")
 		isValidRel := okRel && stringsutil.EqualFoldAny(rel, "icon", "shortcut icon", "mask-icon", "apple-touch-icon")
