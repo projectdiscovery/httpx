@@ -20,8 +20,11 @@ jobs:
 
           git checkout -b new_branch origin/main
           git merge --no-edit upstream/main
+          git checkout --ours .github/workflows/build-test.yml
+          git checkout --ours .github/workflows/codeql-analysis.yml
+          git checkout --ours .github/workflows/functional-test.yml
+          git checkout --ours .github/workflows/lint-test.yml
+          git checkout --ours .github/workflows/release-binary.yml
+          git checkout --ours .github/workflows/sonarcloud.yml
+          git commit -m "Waiting for Resync Fork to be Reviewed, Approved and Merged"
           git push origin new_branch
-
-          git checkout main
-          git merge --no-edit upstream/main
-          git push origin main
