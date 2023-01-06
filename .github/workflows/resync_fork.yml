@@ -1,0 +1,25 @@
+name: Fetch and merge upstream repository
+on:
+  schedule:
+    - cron:  '* * * * *'
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Merge upstream
+        run: |
+          git config --global user.name 'mariandppb'
+          git config --global user.email 'maria.andriesa@ppb.com'
+
+          git pull --unshallow  
+          git remote add upstream https://github.com/projectdiscovery/httpx.git
+          git fetch upstream
+
+          git checkout -b new_branch/x origin/new_branch/x
+          git merge --no-edit upstream/new_branch/x
+          git push origin new_branch/x
+
+          git checkout master
+          git merge --no-edit upstream/master
+          git push origin master
