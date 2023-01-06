@@ -129,6 +129,7 @@ func New(options *Options) (*Runner, error) {
 	}
 	httpxOptions.Deny = options.Deny
 	httpxOptions.Allow = options.Allow
+	httpxOptions.ZTLS = options.ZTLS
 	httpxOptions.MaxResponseBodySizeToSave = int64(options.MaxResponseBodySizeToSave)
 	httpxOptions.MaxResponseBodySizeToRead = int64(options.MaxResponseBodySizeToRead)
 	// adjust response size saved according to the max one read by the server
@@ -966,13 +967,14 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 	results := make(chan httpx.Target)
 	go func() {
 		defer close(results)
+
+		target = strings.TrimSpace(target)
+
 		switch {
-		case strings.ContainsAny(target, "*") || strings.HasPrefix(target, "."):
+		case stringsutil.HasPrefixAny(target, "*", "."):
 			// A valid target does not contain:
-			// *
-			// spaces
 			// trim * and/or . (prefix) from the target to return the domain instead of wilcard
-			target = strings.TrimPrefix(strings.Trim(target, "*"), ".")
+			target = stringsutil.TrimPrefixAny(target, "*", ".")
 			if !r.testAndSet(target) {
 				return
 			}

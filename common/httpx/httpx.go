@@ -43,6 +43,7 @@ func New(options *Options) (*HTTPX, error) {
 	fastdialerOpts.Deny = options.Deny
 	fastdialerOpts.Allow = options.Allow
 	fastdialerOpts.WithDialerHistory = true
+	fastdialerOpts.WithZTLS = options.ZTLS
 	if len(options.Resolvers) > 0 {
 		fastdialerOpts.BaseResolvers = options.Resolvers
 	}
@@ -102,9 +103,9 @@ func New(options *Options) (*HTTPX, error) {
 			return nil
 		}
 	}
-
 	transport := &http.Transport{
 		DialContext:         httpx.Dialer.Dial,
+		DialTLSContext:      httpx.Dialer.DialTLS,
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
