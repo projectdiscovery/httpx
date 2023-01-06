@@ -19,7 +19,7 @@ jobs:
           git fetch upstream
 
           git checkout -b new_branch origin/main
-          git merge --no-edit upstream/new_branch
+          git merge --no-edit upstream/main
           git push origin new_branch
 
           git checkout main
