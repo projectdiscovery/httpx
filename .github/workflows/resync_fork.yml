@@ -16,7 +16,7 @@ jobs:
        
     - name: Sync upstream changes
       id: sync
-      uses: mariandppb/httpx@new_branch
+      uses: mariandppb/httpx@main
       with:
         upstream_repository: projectdiscovery/httpx.git
         upstream_branch: main
