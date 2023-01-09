@@ -9,31 +9,20 @@ jobs:
     name: Sync latest commits from upstream repo
 
     steps:
-    # REQUIRED step
-    # Step 1: run a standard checkout action, provided by github
     - name: Checkout target repo
       uses: actions/checkout@v2
       with:
-        # optional: set the branch to checkout,
-        # sync action checks out your 'target_sync_branch' anyway
-        ref:  new_branch
-        # REQUIRED if your upstream repo is private (see wiki)
-
-    # REQUIRED step
-    # Step 2: run the sync action
+        ref: main
+       
     - name: Sync upstream changes
       id: sync
       uses: mariandppb/httpx@main
       with:
-        target_sync_branch: new_branch
-        # REQUIRED 'target_repo_token' exactly like this!
-        # target_repo_token: ${{ secrets.GITHUB_TOKEN }}
-        upstream_sync_branch: main
-        upstream_sync_repo: projectdiscovery/httpx.git
-        # Set test_mode true to run tests instead of the true action!!
-        # test_mode: true
-      
-    # Step 3: Display a sample message based on the sync output var 'has_new_commits'
+        upstream_repository: projectdiscovery/httpx.git
+        upstream_branch: main
+        target_branch: new_branch                   
+
+
     - name: New commits found
       if: steps.sync.outputs.has_new_commits == 'true'
       run: echo "New commits were found to sync."
