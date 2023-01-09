@@ -1,4 +1,4 @@
-name: Fetch and merge upstream repository
+name: Fetch and merge upstream
 on:
   schedule:
     - cron:  '* * * * *'
