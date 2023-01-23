@@ -49,7 +49,7 @@ require (
 	github.com/projectdiscovery/dsl v0.0.3
 	github.com/projectdiscovery/fastdialer v0.0.20
 	github.com/projectdiscovery/ratelimit v0.0.5
-	github.com/projectdiscovery/tlsx v1.0.3
+	github.com/projectdiscovery/tlsx v1.0.4
 	github.com/projectdiscovery/utils v0.0.4-0.20230102120019-c7a04e2045be
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/multierr v1.9.0
@@ -115,7 +115,7 @@ require (
 	github.com/yl2chen/cidranger v1.0.2 // indirect
 	github.com/zmap/rc2 v0.0.0-20131011165748-24b9757f5521 // indirect
 	github.com/zmap/zcertificate v0.0.0-20180516150559-0e3d58b1bac4 // indirect
-	github.com/zmap/zcrypto v0.0.0-20220803033029-557f3e4940be // indirect
+	github.com/zmap/zcrypto v0.0.0-20230113044912-682e75113af0 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/mod v0.6.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect
