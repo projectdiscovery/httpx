@@ -16,7 +16,6 @@ require (
 	github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1
 	github.com/projectdiscovery/clistats v0.0.11
 	github.com/projectdiscovery/fdmax v0.0.4
-	github.com/projectdiscovery/fileutil v0.0.3 // indirect
 	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c
 	github.com/projectdiscovery/goflags v0.1.6
 	github.com/projectdiscovery/gologger v1.1.7
@@ -24,8 +23,7 @@ require (
 	github.com/projectdiscovery/iputil v0.0.2 // indirect
 	github.com/projectdiscovery/mapcidr v1.0.3
 	github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e
-	github.com/projectdiscovery/retryablehttp-go v1.0.3-0.20220506110515-811d938bd26d
-	github.com/projectdiscovery/sliceutil v0.0.1 // indirect
+	github.com/projectdiscovery/retryablehttp-go v1.0.8
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
 	github.com/projectdiscovery/wappalyzergo v0.0.80
 	github.com/remeh/sizedwaitgroup v1.0.0
@@ -47,7 +45,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v0.0.1
 	github.com/projectdiscovery/dsl v0.0.3
-	github.com/projectdiscovery/fastdialer v0.0.20
+	github.com/projectdiscovery/fastdialer v0.0.22
 	github.com/projectdiscovery/ratelimit v0.0.5
 	github.com/projectdiscovery/tlsx v1.0.3
 	github.com/projectdiscovery/utils v0.0.4-0.20230102120019-c7a04e2045be
@@ -92,7 +90,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.4 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.3 // indirect
 	github.com/projectdiscovery/reflectutil v0.0.0-20210804085554-4d90952bf92f // indirect
-	github.com/projectdiscovery/retryabledns v1.0.17 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.20 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.39.0 // indirect
