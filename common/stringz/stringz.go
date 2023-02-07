@@ -93,8 +93,8 @@ func RemoveURLDefaultPort(rawURL string) string {
 		return rawURL
 	}
 
-	if u.Scheme == urlutil.HTTP && u.Port == "80" || u.Scheme == urlutil.HTTPS && u.Port == "443" {
-		u.Port = ""
+	if u.Scheme == urlutil.HTTP && u.Port() == "80" || u.Scheme == urlutil.HTTPS && u.Port() == "443" {
+		u.TrimPort()
 	}
 	return u.String()
 }
@@ -102,10 +102,9 @@ func RemoveURLDefaultPort(rawURL string) string {
 func GetInvalidURI(rawURL string) (bool, string) {
 	if _, err := url.Parse(rawURL); err != nil {
 		if u, err := urlutil.Parse(rawURL); err == nil {
-			return true, u.RequestURI
+			return true, u.GetRelativePath()
 		}
 	}
-
 	return false, ""
 }
 

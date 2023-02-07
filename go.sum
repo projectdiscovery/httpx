@@ -338,6 +338,10 @@ github.com/projectdiscovery/tlsx v1.0.3 h1:D1g+Ji6fQj4rxxABqi6Q/S7oiY3Cm52uOqeyO
 github.com/projectdiscovery/tlsx v1.0.3/go.mod h1:JDGqITCgTfL6pyu+nzeFOjuGUzj5MPiT9OBw634G/pM=
 github.com/projectdiscovery/utils v0.0.4-0.20230102120019-c7a04e2045be h1:H65vXvA5EasyvlgjFd24cdHKN7Tp/6/1MhVU0UpAMg4=
 github.com/projectdiscovery/utils v0.0.4-0.20230102120019-c7a04e2045be/go.mod h1:PCwA5YuCYWPgHaGiZmr53/SA9iGQmAnw7DSHuhr8VPQ=
+github.com/projectdiscovery/utils v0.0.7 h1:jqDuZedy3t66o6ejQUXjgNWbyAHqiBqLAUDkst9DA2M=
+github.com/projectdiscovery/utils v0.0.7/go.mod h1:PCwA5YuCYWPgHaGiZmr53/SA9iGQmAnw7DSHuhr8VPQ=
+github.com/projectdiscovery/utils v0.0.8-0.20230207142824-2343fd8d6d0b h1:Nu3lpNgNKU+npZzn5bGWQljWd94XgdkH+q5XwC3wwoY=
+github.com/projectdiscovery/utils v0.0.8-0.20230207142824-2343fd8d6d0b/go.mod h1:PCwA5YuCYWPgHaGiZmr53/SA9iGQmAnw7DSHuhr8VPQ=
 github.com/projectdiscovery/wappalyzergo v0.0.80 h1:QWE1Nrxwc3bo5dYMgO1NMADZRzPWY0l25bcAPFjKBB4=
 github.com/projectdiscovery/wappalyzergo v0.0.80/go.mod h1:HvYuW0Be4JCjVds/+XAEaMSqRG9yrI97UmZq0TPk6A0=
 github.com/prometheus/client_golang v1.14.0 h1:nJdhIvne2eSX/XRAFV9PcvFFRbrjbcTUj0VP62TMhnw=

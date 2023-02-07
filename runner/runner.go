@@ -937,7 +937,12 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 					wg.Add()
 					go func(port int, target httpx.Target, method, protocol string) {
 						defer wg.Done()
-						target.Host, _ = urlutil.ChangePort(target.Host, fmt.Sprint(port))
+						if urlx, err := urlutil.Parse(target.Host); err != nil {
+							gologger.Warning().Msgf("failed to update port of %v got %v", target.Host, err)
+						} else {
+							urlx.UpdatePort(fmt.Sprint(port))
+							target.Host = urlx.Host
+						}
 						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
@@ -1033,7 +1038,7 @@ retry:
 	}
 
 	// check if we have to skip the host:port as a result of a previous failure
-	hostPort := net.JoinHostPort(URL.Host, URL.Port)
+	hostPort := net.JoinHostPort(URL.Host, URL.Port())
 	if r.options.HostMaxErrors >= 0 && r.HostErrorsCache.Has(hostPort) {
 		numberOfErrors, err := r.HostErrorsCache.GetIFPresent(hostPort)
 		if err == nil && numberOfErrors.(int) >= r.options.HostMaxErrors {
@@ -1042,26 +1047,21 @@ retry:
 	}
 
 	// check if the combination host:port should be skipped if belonging to a cdn
-	if r.skipCDNPort(URL.Host, URL.Port) {
-		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port)
+	if r.skipCDNPort(URL.Host, URL.Port()) {
+		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port())
 		return Result{URL: target.Host, Input: origInput, err: errors.New("cdn target only allows ports 80 and 443")}
 	}
 
 	URL.Scheme = protocol
 
-	if !strings.Contains(target.Host, URL.Port) {
-		URL.Port = ""
+	if !strings.Contains(target.Host, URL.Port()) {
+		URL.TrimPort()
 	}
 
 	var reqURI string
 	// retry with unsafe
-	if scanopts.Unsafe {
-		reqURI = URL.RequestURI + scanopts.RequestURI
-		// then create a base request without it to avoid go errors
-		URL.RequestURI = ""
-	} else {
-		// in case of standard requests append the new path to the existing one
-		URL.RequestURI += scanopts.RequestURI
+	if err := URL.MergePath(scanopts.RequestURI, scanopts.Unsafe); err != nil {
+		gologger.Debug().Msgf("failed to merge paths of url %v and %v", URL.String(), scanopts.RequestURI)
 	}
 	var req *retryablehttp.Request
 	if target.CustomIP != "" {
@@ -1144,10 +1144,10 @@ retry:
 		return Result{URL: URL.String(), Input: origInput, err: errParse}
 	} else {
 		if r.options.Unsafe {
-			parsedURL.RequestURI = reqURI
+			parsedURL.Path = reqURI
 			// if the full url doesn't end with the custom path we pick the original input value
 		} else if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
-			parsedURL.RequestURI = scanopts.RequestURI
+			parsedURL.Path = scanopts.RequestURI
 		}
 		fullURL = parsedURL.String()
 	}
@@ -1336,7 +1336,7 @@ retry:
 
 	pipeline := false
 	if scanopts.Pipeline {
-		port, _ := strconv.Atoi(URL.Port)
+		port, _ := strconv.Atoi(URL.Port())
 		r.ratelimiter.Take()
 		pipeline = hp.SupportPipeline(protocol, method, URL.Host, port)
 		if pipeline {
@@ -1563,7 +1563,8 @@ retry:
 	// store responses or chain in directory
 	var responsePath string
 	if scanopts.StoreResponse || scanopts.StoreChain {
-		domainFile := strings.ReplaceAll(urlutil.TrimScheme(URL.String()), ":", ".")
+		// URL.EscapedString returns that can be used as filename
+		domainFile := URL.EscapedString()
 		hash := hashes.Sha1([]byte(domainFile))
 		domainFile = fmt.Sprintf("%s.txt", hash)
 		domainBaseDir := filepath.Join(scanopts.StoreResponseDirectory, URL.Host)
@@ -1596,7 +1597,7 @@ retry:
 		return Result{URL: fullURL, Input: origInput, err: errors.Wrap(err, "could not parse url")}
 	}
 
-	finalPort := parsed.Port
+	finalPort := parsed.Port()
 	if finalPort == "" {
 		if parsed.Scheme == "http" {
 			finalPort = "80"
@@ -1604,7 +1605,7 @@ retry:
 			finalPort = "443"
 		}
 	}
-	finalPath := parsed.RequestURI
+	finalPath := parsed.RequestURI()
 	if finalPath == "" {
 		finalPath = "/"
 	}
