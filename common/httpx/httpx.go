@@ -19,6 +19,7 @@ import (
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	stringsutil "github.com/projectdiscovery/utils/strings"
+	urlutil "github.com/projectdiscovery/utils/url"
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 )
@@ -330,11 +331,15 @@ func (h *HTTPX) NewRequest(method, targetURL string) (req *retryablehttp.Request
 
 // NewRequest from url
 func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL string) (req *retryablehttp.Request, err error) {
-	req, err = retryablehttp.NewRequestWithContext(ctx, method, targetURL, nil)
+	urlx, err := urlutil.ParseURL(targetURL, h.Options.Unsafe)
 	if err != nil {
-		return
+		return nil, err
 	}
 
+	req, err = retryablehttp.NewRequestFromURLWithContext(ctx, method, urlx, nil)
+	if err != nil {
+		return nil, err
+	}
 	// Skip if unsafe is used
 	if !h.Options.Unsafe {
 		// set default user agent

@@ -44,7 +44,8 @@ func (h *httpxLibrary) Execute() error {
 
 	httpxRunner.RunEnumeration()
 
-	expected := "https://scanme.sh:443"
+	// httpx removes default ports for simplicity Ref: https://pkg.go.dev/github.com/projectdiscovery/httpx/common/stringz#RemoveURLDefaultPort
+	expected := "https://scanme.sh"
 
 	if got != expected {
 		return errIncorrectResult(expected, got)
