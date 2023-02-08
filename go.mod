@@ -14,7 +14,7 @@ require (
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1
-	github.com/projectdiscovery/clistats v0.0.11
+	github.com/projectdiscovery/clistats v0.0.12
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c
 	github.com/projectdiscovery/goflags v0.1.6
@@ -25,7 +25,7 @@ require (
 	github.com/projectdiscovery/rawhttp v0.1.9-0.20230208140210-81c468e769ed
 	github.com/projectdiscovery/retryablehttp-go v1.0.11-0.20230208144003-54f3176b2916
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
-	github.com/projectdiscovery/wappalyzergo v0.0.80
+	github.com/projectdiscovery/wappalyzergo v0.0.81
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.4.0
 	go.etcd.io/bbolt v1.3.7 // indirect
@@ -84,6 +84,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nwaples/rardecode v1.1.0 // indirect
+	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/projectdiscovery/blackrock v0.0.0-20220628111055-35616c71b2dc // indirect
