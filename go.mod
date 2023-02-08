@@ -23,7 +23,7 @@ require (
 	github.com/projectdiscovery/iputil v0.0.2 // indirect
 	github.com/projectdiscovery/mapcidr v1.0.3
 	github.com/projectdiscovery/rawhttp v0.0.8-0.20210814181734-56cca67b6e7e
-	github.com/projectdiscovery/retryablehttp-go v1.0.8
+	github.com/projectdiscovery/retryablehttp-go v1.0.10
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
 	github.com/projectdiscovery/wappalyzergo v0.0.81
 	github.com/remeh/sizedwaitgroup v1.0.0
@@ -47,8 +47,8 @@ require (
 	github.com/projectdiscovery/dsl v0.0.3
 	github.com/projectdiscovery/fastdialer v0.0.22
 	github.com/projectdiscovery/ratelimit v0.0.5
-	github.com/projectdiscovery/tlsx v1.0.3
-	github.com/projectdiscovery/utils v0.0.4-0.20230102120019-c7a04e2045be
+	github.com/projectdiscovery/tlsx v0.0.7
+	github.com/projectdiscovery/utils v0.0.4-0.20230117135930-7371ae6a739d
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/multierr v1.9.0
 	golang.org/x/exp v0.0.0-20221230185412-738e83a70c30
@@ -112,7 +112,6 @@ require (
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/yl2chen/cidranger v1.0.2 // indirect
 	github.com/zmap/rc2 v0.0.0-20131011165748-24b9757f5521 // indirect
-	github.com/zmap/zcertificate v0.0.0-20180516150559-0e3d58b1bac4 // indirect
 	github.com/zmap/zcrypto v0.0.0-20220803033029-557f3e4940be // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/mod v0.6.0 // indirect
