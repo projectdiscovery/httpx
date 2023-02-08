@@ -1686,20 +1686,26 @@ func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		return "", "", err
 	}
 
+	faviconPath := "/favicon.ico"
 	// pick the first - we want only one request
 	if len(potentialURLs) > 0 {
 		URL, err := r.parseURL(potentialURLs[0])
 		if err != nil {
 			return "", "", err
 		}
-		req.URL = URL
-	} else {
-		err := req.URL.MergePath("/favicon.ico", false)
-		if err != nil {
-			return "", "", errorutil.NewWithTag("favicon", "failed to add /favicon.ico to url got %v", err)
+		if URL.IsAbs() {
+			req.SetURL(URL)
+			faviconPath = ""
+		} else {
+			faviconPath = URL.String()
 		}
 	}
-
+	if faviconPath != "" {
+		err = req.URL.MergePath(faviconPath, false)
+		if err != nil {
+			return "", "", errorutil.NewWithTag("favicon", "failed to add %v to url got %v", faviconPath, err)
+		}
+	}
 	resp, err := hp.Do(req, httpx.UnsafeOptions{})
 	if err != nil {
 		return "", "", errors.Wrap(err, "could not fetch favicon")

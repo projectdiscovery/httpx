@@ -349,6 +349,8 @@ github.com/projectdiscovery/retryablehttp-go v1.0.10 h1:A8tsJZhzpijgnvHT41JNrhiX
 github.com/projectdiscovery/retryablehttp-go v1.0.10/go.mod h1:a5bmSbaxgHvC0P80csOymMOwKaJirMnsS6otRUH/vcU=
 github.com/projectdiscovery/retryablehttp-go v1.0.11-0.20230208133157-acb223323d89 h1:KkTW2sNFZfRH7DPAArTHpVH6ltxSkIaVfVVZBARFJ08=
 github.com/projectdiscovery/retryablehttp-go v1.0.11-0.20230208133157-acb223323d89/go.mod h1:RWViUDjf9NTx1j8HatkstoSj2hE4xrrDIum1SsQqZfE=
+github.com/projectdiscovery/retryablehttp-go v1.0.11-0.20230208144003-54f3176b2916 h1:9kdsj7NGuj/5treBvUbK+vQ8wQrUhi0LcIGvpfKrBpw=
+github.com/projectdiscovery/retryablehttp-go v1.0.11-0.20230208144003-54f3176b2916/go.mod h1:RWViUDjf9NTx1j8HatkstoSj2hE4xrrDIum1SsQqZfE=
 github.com/projectdiscovery/sliceutil v0.0.1 h1:YoCqCMcdwz+gqNfW5hFY8UvNHoA6SfyBSNkVahatleg=
 github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZAja8BH3LqqJXMA=
 github.com/projectdiscovery/stringsutil v0.0.2/go.mod h1:EJ3w6bC5fBYjVou6ryzodQq37D5c6qbAYQpGmAy+DC0=
@@ -362,6 +364,10 @@ github.com/projectdiscovery/utils v0.0.8-0.20230207142824-2343fd8d6d0b h1:Nu3lpN
 github.com/projectdiscovery/utils v0.0.8-0.20230207142824-2343fd8d6d0b/go.mod h1:PCwA5YuCYWPgHaGiZmr53/SA9iGQmAnw7DSHuhr8VPQ=
 github.com/projectdiscovery/utils v0.0.8-0.20230207220018-0e486b130065 h1:nguDaV3Ye3j3vLah56pRI+wK25JSJF0eGE7+19ZZ0dM=
 github.com/projectdiscovery/utils v0.0.8-0.20230207220018-0e486b130065/go.mod h1:PCwA5YuCYWPgHaGiZmr53/SA9iGQmAnw7DSHuhr8VPQ=
+github.com/projectdiscovery/utils v0.0.8-0.20230208155508-3c9cca192663 h1:p9sVYDQ6goXthAYkmONL2XDmU3tDZMtZWe0deVciWEA=
+github.com/projectdiscovery/utils v0.0.8-0.20230208155508-3c9cca192663/go.mod h1:PCwA5YuCYWPgHaGiZmr53/SA9iGQmAnw7DSHuhr8VPQ=
+github.com/projectdiscovery/utils v0.0.8-0.20230208160155-47c6b52af9f0 h1:jGragVJHVeWtXcmxJGbDiVFrh3Q6Ud6krgwXuXHRwPs=
+github.com/projectdiscovery/utils v0.0.8-0.20230208160155-47c6b52af9f0/go.mod h1:PCwA5YuCYWPgHaGiZmr53/SA9iGQmAnw7DSHuhr8VPQ=
 github.com/projectdiscovery/wappalyzergo v0.0.80 h1:QWE1Nrxwc3bo5dYMgO1NMADZRzPWY0l25bcAPFjKBB4=
 github.com/projectdiscovery/wappalyzergo v0.0.80/go.mod h1:HvYuW0Be4JCjVds/+XAEaMSqRG9yrI97UmZq0TPk6A0=
 github.com/prometheus/client_golang v1.14.0 h1:nJdhIvne2eSX/XRAFV9PcvFFRbrjbcTUj0VP62TMhnw=

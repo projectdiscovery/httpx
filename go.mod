@@ -23,7 +23,7 @@ require (
 	github.com/projectdiscovery/iputil v0.0.2 // indirect
 	github.com/projectdiscovery/mapcidr v1.0.3
 	github.com/projectdiscovery/rawhttp v0.1.9-0.20230208140210-81c468e769ed
-	github.com/projectdiscovery/retryablehttp-go v1.0.11-0.20230208133157-acb223323d89
+	github.com/projectdiscovery/retryablehttp-go v1.0.11-0.20230208144003-54f3176b2916
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
 	github.com/projectdiscovery/wappalyzergo v0.0.80
 	github.com/remeh/sizedwaitgroup v1.0.0
@@ -48,7 +48,7 @@ require (
 	github.com/projectdiscovery/fastdialer v0.0.22
 	github.com/projectdiscovery/ratelimit v0.0.5
 	github.com/projectdiscovery/tlsx v1.0.3
-	github.com/projectdiscovery/utils v0.0.8-0.20230207220018-0e486b130065
+	github.com/projectdiscovery/utils v0.0.8-0.20230208160155-47c6b52af9f0
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/multierr v1.9.0
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
