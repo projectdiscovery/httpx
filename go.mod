@@ -47,7 +47,7 @@ require (
 	github.com/projectdiscovery/dsl v0.0.3
 	github.com/projectdiscovery/fastdialer v0.0.22
 	github.com/projectdiscovery/ratelimit v0.0.5
-	github.com/projectdiscovery/tlsx v1.0.3
+	github.com/projectdiscovery/tlsx v1.0.4
 	github.com/projectdiscovery/utils v0.0.8-0.20230208160155-47c6b52af9f0
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/multierr v1.9.0

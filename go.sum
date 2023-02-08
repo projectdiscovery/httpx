@@ -300,8 +300,8 @@ github.com/projectdiscovery/retryablehttp-go v1.0.11-0.20230208144003-54f3176b29
 github.com/projectdiscovery/sliceutil v0.0.1 h1:YoCqCMcdwz+gqNfW5hFY8UvNHoA6SfyBSNkVahatleg=
 github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZAja8BH3LqqJXMA=
 github.com/projectdiscovery/stringsutil v0.0.2/go.mod h1:EJ3w6bC5fBYjVou6ryzodQq37D5c6qbAYQpGmAy+DC0=
-github.com/projectdiscovery/tlsx v1.0.3 h1:D1g+Ji6fQj4rxxABqi6Q/S7oiY3Cm52uOqeyOVSN8Hs=
-github.com/projectdiscovery/tlsx v1.0.3/go.mod h1:JDGqITCgTfL6pyu+nzeFOjuGUzj5MPiT9OBw634G/pM=
+github.com/projectdiscovery/tlsx v1.0.4 h1:aVkoxl1Vq6Uh7Ietpv2X5TfXPRRBj3VGCtoelhj9BE0=
+github.com/projectdiscovery/tlsx v1.0.4/go.mod h1:N50JpF12eeLg+rcDRwIZ8r974MOvJZeV7M0rIxHWV2g=
 github.com/projectdiscovery/utils v0.0.8-0.20230208160155-47c6b52af9f0 h1:jGragVJHVeWtXcmxJGbDiVFrh3Q6Ud6krgwXuXHRwPs=
 github.com/projectdiscovery/utils v0.0.8-0.20230208160155-47c6b52af9f0/go.mod h1:PCwA5YuCYWPgHaGiZmr53/SA9iGQmAnw7DSHuhr8VPQ=
 github.com/projectdiscovery/wappalyzergo v0.0.81 h1:i7WYrH+O2EoHbY1g/WnrxO4YF/0OkA/G1bw6z8WKcjA=
