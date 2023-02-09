@@ -22,6 +22,18 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
+      interval: "weekly"
+    target-branch: "dev"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    labels:
+      - "Type: Maintenance"
+  
+   # Maintain dependencies for pd releases daily
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
       interval: "daily"
     target-branch: "dev"
     commit-message:
@@ -29,6 +41,10 @@ updates:
       include: "scope"
     labels:
       - "Type: Maintenance"
+    allow:
+    # Allow only direct updates for projectdiscovery
+    - dependency-name: "*projectdiscovery*"
+      dependency-type: "direct"
 
   # Maintain dependencies for docker
   - package-ecosystem: "docker"
