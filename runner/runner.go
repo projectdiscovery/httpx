@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -31,6 +30,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/mapcidr/asn"
+	errorutil "github.com/projectdiscovery/utils/errors"
 	mapsutil "github.com/projectdiscovery/utils/maps"
 
 	"github.com/bluele/gcache"
@@ -645,7 +645,7 @@ func (r *Runner) RunEnumeration() {
 		for resp := range output {
 			if resp.err != nil {
 				// Change the error message if any port value passed explicitly
-				if url, err := url.Parse(resp.URL); err == nil && url.Port() != "" {
+				if url, err := r.parseURL(resp.URL); err == nil && url.Port() != "" {
 					resp.err = errors.New(strings.ReplaceAll(resp.err.Error(), "address", "port"))
 				}
 				gologger.Debug().Msgf("Failed '%s': %s\n", resp.URL, resp.err)
@@ -837,7 +837,7 @@ func (r *Runner) RunEnumeration() {
 
 		protocol := r.options.protocol
 		// attempt to parse url as is
-		if u, err := url.Parse(k); err == nil {
+		if u, err := r.parseURL(k); err == nil {
 			if r.options.NoFallbackScheme && u.Scheme == httpx.HTTP || u.Scheme == httpx.HTTPS {
 				protocol = u.Scheme
 			}
@@ -937,7 +937,12 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 					wg.Add()
 					go func(port int, target httpx.Target, method, protocol string) {
 						defer wg.Done()
-						target.Host, _ = urlutil.ChangePort(target.Host, fmt.Sprint(port))
+						if urlx, err := r.parseURL(target.Host); err != nil {
+							gologger.Warning().Msgf("failed to update port of %v got %v", target.Host, err)
+						} else {
+							urlx.UpdatePort(fmt.Sprint(port))
+							target.Host = urlx.Host
+						}
 						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
@@ -996,7 +1001,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 				results <- httpx.Target{Host: ip}
 			}
 		case r.options.ProbeAllIPS:
-			URL, err := urlutil.Parse(target)
+			URL, err := r.parseURL(target)
 			if err != nil {
 				results <- httpx.Target{Host: target}
 			}
@@ -1027,13 +1032,13 @@ retry:
 	if scanopts.VHostInput && target.CustomHost == "" {
 		return Result{Input: origInput}
 	}
-	URL, err := urlutil.Parse(target.Host)
+	URL, err := r.parseURL(target.Host)
 	if err != nil {
 		return Result{URL: target.Host, Input: origInput, err: err}
 	}
 
 	// check if we have to skip the host:port as a result of a previous failure
-	hostPort := net.JoinHostPort(URL.Host, URL.Port)
+	hostPort := net.JoinHostPort(URL.Host, URL.Port())
 	if r.options.HostMaxErrors >= 0 && r.HostErrorsCache.Has(hostPort) {
 		numberOfErrors, err := r.HostErrorsCache.GetIFPresent(hostPort)
 		if err == nil && numberOfErrors.(int) >= r.options.HostMaxErrors {
@@ -1042,26 +1047,21 @@ retry:
 	}
 
 	// check if the combination host:port should be skipped if belonging to a cdn
-	if r.skipCDNPort(URL.Host, URL.Port) {
-		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port)
+	if r.skipCDNPort(URL.Host, URL.Port()) {
+		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port())
 		return Result{URL: target.Host, Input: origInput, err: errors.New("cdn target only allows ports 80 and 443")}
 	}
 
 	URL.Scheme = protocol
 
-	if !strings.Contains(target.Host, URL.Port) {
-		URL.Port = ""
+	if !strings.Contains(target.Host, URL.Port()) {
+		URL.TrimPort()
 	}
 
 	var reqURI string
 	// retry with unsafe
-	if scanopts.Unsafe {
-		reqURI = URL.RequestURI + scanopts.RequestURI
-		// then create a base request without it to avoid go errors
-		URL.RequestURI = ""
-	} else {
-		// in case of standard requests append the new path to the existing one
-		URL.RequestURI += scanopts.RequestURI
+	if err := URL.MergePath(scanopts.RequestURI, scanopts.Unsafe); err != nil {
+		gologger.Debug().Msgf("failed to merge paths of url %v and %v", URL.String(), scanopts.RequestURI)
 	}
 	var req *retryablehttp.Request
 	if target.CustomIP != "" {
@@ -1140,14 +1140,14 @@ retry:
 	}
 	// fix the final output url
 	fullURL := req.URL.String()
-	if parsedURL, errParse := urlutil.Parse(fullURL); errParse != nil {
+	if parsedURL, errParse := r.parseURL(fullURL); errParse != nil {
 		return Result{URL: URL.String(), Input: origInput, err: errParse}
 	} else {
 		if r.options.Unsafe {
-			parsedURL.RequestURI = reqURI
+			parsedURL.Path = reqURI
 			// if the full url doesn't end with the custom path we pick the original input value
 		} else if !stringsutil.HasSuffixAny(fullURL, scanopts.RequestURI) {
-			parsedURL.RequestURI = scanopts.RequestURI
+			parsedURL.Path = scanopts.RequestURI
 		}
 		fullURL = parsedURL.String()
 	}
@@ -1336,7 +1336,7 @@ retry:
 
 	pipeline := false
 	if scanopts.Pipeline {
-		port, _ := strconv.Atoi(URL.Port)
+		port, _ := strconv.Atoi(URL.Port())
 		r.ratelimiter.Take()
 		pipeline = hp.SupportPipeline(protocol, method, URL.Host, port)
 		if pipeline {
@@ -1478,7 +1478,7 @@ retry:
 			}
 			builder.WriteRune(']')
 		} else {
-			gologger.Warning().Msgf("could not calculate favicon hash: %s", err)
+			gologger.Warning().Msgf("could not calculate favicon hash for path %v : %s", faviconPath, err)
 		}
 	}
 
@@ -1563,7 +1563,8 @@ retry:
 	// store responses or chain in directory
 	var responsePath string
 	if scanopts.StoreResponse || scanopts.StoreChain {
-		domainFile := strings.ReplaceAll(urlutil.TrimScheme(URL.String()), ":", ".")
+		// URL.EscapedString returns that can be used as filename
+		domainFile := URL.EscapedString()
 		hash := hashes.Sha1([]byte(domainFile))
 		domainFile = fmt.Sprintf("%s.txt", hash)
 		domainBaseDir := filepath.Join(scanopts.StoreResponseDirectory, URL.Host)
@@ -1591,12 +1592,12 @@ retry:
 		}
 	}
 
-	parsed, err := urlutil.Parse(fullURL)
+	parsed, err := r.parseURL(fullURL)
 	if err != nil {
 		return Result{URL: fullURL, Input: origInput, err: errors.Wrap(err, "could not parse url")}
 	}
 
-	finalPort := parsed.Port
+	finalPort := parsed.Port()
 	if finalPort == "" {
 		if parsed.Scheme == "http" {
 			finalPort = "80"
@@ -1604,7 +1605,7 @@ retry:
 			finalPort = "443"
 		}
 	}
-	finalPath := parsed.RequestURI
+	finalPath := parsed.RequestURI()
 	if finalPath == "" {
 		finalPath = "/"
 	}
@@ -1685,26 +1686,26 @@ func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		return "", "", err
 	}
 
+	faviconPath := "/favicon.ico"
 	// pick the first - we want only one request
 	if len(potentialURLs) > 0 {
-		URL, err := url.Parse(potentialURLs[0])
+		URL, err := r.parseURL(potentialURLs[0])
 		if err != nil {
 			return "", "", err
 		}
 		if URL.IsAbs() {
-			req.URL = URL
+			req.SetURL(URL)
+			faviconPath = ""
 		} else {
-			if strings.HasPrefix(URL.Path, "/") {
-				req.URL.Path = URL.Path
-			} else {
-				req.URL.Path = "/" + URL.Path
-			}
+			faviconPath = URL.String()
 		}
-		req.Host = URL.Host
-	} else {
-		req.URL = req.URL.JoinPath("favicon.ico")
 	}
-
+	if faviconPath != "" {
+		err = req.URL.MergePath(faviconPath, false)
+		if err != nil {
+			return "", "", errorutil.NewWithTag("favicon", "failed to add %v to url got %v", faviconPath, err)
+		}
+	}
 	resp, err := hp.Do(req, httpx.UnsafeOptions{})
 	if err != nil {
 		return "", "", errors.Wrap(err, "could not fetch favicon")
@@ -1716,7 +1717,7 @@ func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, error) {
 	hashNum, err := stringz.FaviconHash(data)
 	if err != nil {
-		return "", errors.Wrap(err, "could not calculate favicon hash")
+		return "", errorutil.NewWithTag("favicon", "could not calculate favicon hash").Wrap(err)
 	}
 	return fmt.Sprintf("%d", hashNum), nil
 }
@@ -1845,6 +1846,15 @@ func (r *Runner) skipCDNPort(host string, port string) bool {
 	}
 
 	return false
+}
+
+// parseURL parses url based on cli option(unsafe)
+func (r *Runner) parseURL(url string) (*urlutil.URL, error) {
+	urlx, err := urlutil.ParseURL(url, r.options.Unsafe)
+	if err != nil {
+		gologger.Debug().Msgf("failed to parse url %v got %v in unsafe:%v", url, err, r.options.Unsafe)
+	}
+	return urlx, err
 }
 
 func getDNSData(hp *httpx.HTTPX, hostname string) (ips, cnames []string, err error) {
