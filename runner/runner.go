@@ -1370,17 +1370,16 @@ retry:
 
 	var asnResponse *AsnResponse
 	if r.options.Asn {
-		results := asnmap.NewClient().GetData(asnmap.IP(ip))
+		results, _ := asnmap.DefaultClient.GetData(ip)
 		if len(results) > 0 {
-			var cidrs []string
-			for _, cidr := range asnmap.GetCIDR(results) {
-				cidrs = append(cidrs, cidr.String())
-			}
+			cidrs, _ := asnmap.GetCIDR(results)
 			asnResponse = &AsnResponse{
 				AsNumber:  fmt.Sprintf("AS%v", results[0].ASN),
 				AsName:    results[0].Org,
 				AsCountry: results[0].Country,
-				AsRange:   cidrs,
+			}
+			for _, cidr := range cidrs {
+				asnResponse.AsRange = append(asnResponse.AsRange, cidr.String())
 			}
 			builder.WriteString(" [")
 			if !scanopts.OutputWithNoColor {
