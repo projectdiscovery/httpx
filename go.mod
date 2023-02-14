@@ -21,7 +21,7 @@ require (
 	github.com/projectdiscovery/gologger v1.1.7
 	github.com/projectdiscovery/hmap v0.0.7
 	github.com/projectdiscovery/iputil v0.0.2 // indirect
-	github.com/projectdiscovery/mapcidr v1.0.3
+	github.com/projectdiscovery/mapcidr v1.1.0
 	github.com/projectdiscovery/rawhttp v0.1.9-0.20230208140210-81c468e769ed
 	github.com/projectdiscovery/retryablehttp-go v1.0.11-0.20230208144003-54f3176b2916
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
@@ -43,7 +43,7 @@ require (
 	github.com/hdm/jarm-go v0.0.7
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/projectdiscovery/asnmap v0.0.1
+	github.com/projectdiscovery/asnmap v1.0.0
 	github.com/projectdiscovery/dsl v0.0.3
 	github.com/projectdiscovery/fastdialer v0.0.23
 	github.com/projectdiscovery/ratelimit v0.0.6
@@ -87,7 +87,7 @@ require (
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/projectdiscovery/blackrock v0.0.0-20220628111055-35616c71b2dc // indirect
+	github.com/projectdiscovery/blackrock v0.0.0-20221025011524-9e4efe804fb4 // indirect
 	github.com/projectdiscovery/freeport v0.0.4 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.3 // indirect
 	github.com/projectdiscovery/reflectutil v0.0.0-20210804085554-4d90952bf92f // indirect
