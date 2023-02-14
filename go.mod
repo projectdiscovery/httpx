@@ -45,7 +45,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v0.0.1
 	github.com/projectdiscovery/dsl v0.0.3
-	github.com/projectdiscovery/fastdialer v0.0.22
+	github.com/projectdiscovery/fastdialer v0.0.23
 	github.com/projectdiscovery/ratelimit v0.0.6
 	github.com/projectdiscovery/tlsx v1.0.4
 	github.com/projectdiscovery/utils v0.0.8-0.20230208160155-47c6b52af9f0
