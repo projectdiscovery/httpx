@@ -20,6 +20,12 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
+      - name: Go Mod hygine
+        run: |
+          go clean -modcache
+          go mod tidy
+        working-directory: .
+
       - name: Build
         run: go build .
         working-directory: cmd/httpx/
