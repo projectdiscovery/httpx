@@ -71,7 +71,7 @@ go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
 # Usage
 
 ```sh
-httpx -h
+httpx --help
 ```
 
 This will display help for the tool. Here are all the switches it supports.
