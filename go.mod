@@ -45,7 +45,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.0
 	github.com/projectdiscovery/dsl v0.0.3
-	github.com/projectdiscovery/fastdialer v0.0.23
+	github.com/projectdiscovery/fastdialer v0.0.24
 	github.com/projectdiscovery/ratelimit v0.0.6
 	github.com/projectdiscovery/tlsx v1.0.4
 	github.com/projectdiscovery/utils v0.0.8-0.20230208160155-47c6b52af9f0
@@ -89,9 +89,9 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/projectdiscovery/blackrock v0.0.0-20221025011524-9e4efe804fb4 // indirect
 	github.com/projectdiscovery/freeport v0.0.4 // indirect
-	github.com/projectdiscovery/networkpolicy v0.0.3 // indirect
+	github.com/projectdiscovery/networkpolicy v0.0.4 // indirect
 	github.com/projectdiscovery/reflectutil v0.0.0-20210804085554-4d90952bf92f // indirect
-	github.com/projectdiscovery/retryabledns v1.0.20 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.21 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.39.0 // indirect
