@@ -1,4 +1,4 @@
-FROM golang:1.20.0-alpine AS builder
+FROM golang:1.20.1-alpine AS builder
 ARG BUILD_SOURCE_TAG=latest
 RUN apk add --no-cache git build-base gcc musl-dev
 RUN go install -v github.com/projectdiscovery/httpx/cmd/httpx@${BUILD_SOURCE_TAG}
