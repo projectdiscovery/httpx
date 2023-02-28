@@ -23,7 +23,7 @@ require (
 	github.com/projectdiscovery/iputil v0.0.2 // indirect
 	github.com/projectdiscovery/mapcidr v1.1.0
 	github.com/projectdiscovery/rawhttp v0.1.9-0.20230208140210-81c468e769ed
-	github.com/projectdiscovery/retryablehttp-go v1.0.11-0.20230208144003-54f3176b2916
+	github.com/projectdiscovery/retryablehttp-go v1.0.12
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
 	github.com/projectdiscovery/wappalyzergo v0.0.83
 	github.com/remeh/sizedwaitgroup v1.0.0
