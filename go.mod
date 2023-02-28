@@ -25,7 +25,7 @@ require (
 	github.com/projectdiscovery/rawhttp v0.1.9-0.20230208140210-81c468e769ed
 	github.com/projectdiscovery/retryablehttp-go v1.0.12
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
-	github.com/projectdiscovery/wappalyzergo v0.0.83
+	github.com/projectdiscovery/wappalyzergo v0.0.84
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.4.0
 	go.etcd.io/bbolt v1.3.7 // indirect
