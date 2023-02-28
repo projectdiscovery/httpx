@@ -141,3 +141,20 @@ func TestRunner_countTargetFromRawTarget(t *testing.T) {
 	got = r.countTargetFromRawTarget(input)
 	require.Equal(t, expected, got, "got wrong output")
 }
+
+func TestRunner_urlWithComma_targets(t *testing.T) {
+	options := &Options{}
+	r, err := New(options)
+	require.Nil(t, err, "could not create httpx runner")
+	input := []string{"http://scanme.sh?a=1,2"}
+	expected := []httpx.Target{{
+		Host: "http://scanme.sh?a=1,2",
+	}}
+	got := []httpx.Target{}
+	for _, inp := range input {
+		for target := range r.targets(r.hp, inp) {
+			got = append(got, target)
+		}
+	}
+	require.ElementsMatch(t, expected, got, "could not exepcted output")
+}
