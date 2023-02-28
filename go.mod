@@ -49,7 +49,7 @@ require (
 	github.com/projectdiscovery/ratelimit v0.0.6
 	github.com/projectdiscovery/tlsx v1.0.4
 	github.com/projectdiscovery/utils v0.0.13
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	go.uber.org/multierr v1.9.0
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
 )
