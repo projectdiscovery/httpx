@@ -17,3 +17,4 @@ scanme.sh {{binary}} -silent -exclude-cdn
 scanme.sh {{binary}} -silent -ports https:443
 scanme.sh {{binary}} -silent -ztls
 https://scanme.sh?a=1*1 {{binary}} -silent
+https://scanme.sh:443 {{binary}} -asn
