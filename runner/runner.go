@@ -1363,6 +1363,11 @@ retry:
 	} else {
 		// hp.Dialer.GetDialedIP would return only the last dialed one
 		ip = hp.Dialer.GetDialedIP(URL.Host)
+		if ip == "" {
+			if onlyHost, _, err := net.SplitHostPort(URL.Host); err == nil {
+				ip = hp.Dialer.GetDialedIP(onlyHost)
+			}
+		}
 	}
 
 	var asnResponse *AsnResponse
