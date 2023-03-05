@@ -3,13 +3,15 @@ name: 🚨 CodeQL Analysis
 on:
   workflow_dispatch:
   pull_request:
+    paths:
+      - '**.go'
     branches:
       - dev
 
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-16-cores
     permissions:
       actions: read
       contents: read
