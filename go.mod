@@ -17,7 +17,7 @@ require (
 	github.com/projectdiscovery/clistats v0.0.12
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
-	github.com/projectdiscovery/goflags v0.1.7
+	github.com/projectdiscovery/goflags v0.1.8
 	github.com/projectdiscovery/gologger v1.1.8
 	github.com/projectdiscovery/hmap v0.0.8
 	github.com/projectdiscovery/iputil v0.0.2 // indirect
