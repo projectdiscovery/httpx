@@ -115,7 +115,7 @@ MATCHERS:
    -mlc, -match-line-count string     match response body with specified line count (-mlc 423,532)
    -mwc, -match-word-count string     match response body with specified word count (-mwc 43,55)
    -mfc, -match-favicon string[]      match response with specified favicon hash (-mfc 1494302000)
-   -ms, -match-string string          match response with specified string (-ms admin)
+   -ms, -match-string string          match response with specified string (case insensitive) (-ms admin)
    -mr, -match-regex string           match response with specified regex (-mr admin)
    -mcdn, -match-cdn string[]         match host with specified cdn provider (oracle, google, azure, cloudflare, cloudfront, fastly, incapsula, leaseweb, akamai, sucuri)
    -mrt, -match-response-time string  match response with specified response time in seconds (-mrt '< 1')
