@@ -1,11 +1,15 @@
-FROM golang:1.20.0-alpine AS builder
-ARG BUILD_SOURCE_TAG=latest
-RUN apk add --no-cache git build-base gcc musl-dev
-RUN go install -v github.com/projectdiscovery/httpx/cmd/httpx@${BUILD_SOURCE_TAG}
+# Base
+FROM golang:1.20.1-alpine AS builder
 
-FROM alpine:3.17.1
+RUN apk add --no-cache git build-base gcc musl-dev
+WORKDIR /app
+COPY . /app
+RUN go mod download
+RUN go build ./cmd/httpx
+
+FROM alpine:3.17.2
 RUN apk -U upgrade --no-cache \
     && apk add --no-cache bind-tools ca-certificates
-COPY --from=builder /go/bin/httpx /usr/local/bin/
+COPY --from=builder /app/httpx /usr/local/bin/
 
 ENTRYPOINT ["httpx"]

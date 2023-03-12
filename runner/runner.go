@@ -77,14 +77,12 @@ type Runner struct {
 	stats           clistats.StatisticsClient
 	ratelimiter     ratelimit.Limiter
 	HostErrorsCache gcache.Cache
-	asnClinet       asn.ASNClient
 }
 
 // New creates a new client for running enumeration process.
 func New(options *Options) (*Runner, error) {
 	runner := &Runner{
-		options:   options,
-		asnClinet: asn.New(),
+		options: options,
 	}
 	var err error
 	if options.TechDetect {
@@ -490,7 +488,6 @@ func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int) {
 			expandedTarget = int(ipsCount)
 		}
 	case asn.IsASN(rawTarget):
-		asn := asn.New()
 		cidrs, _ := asn.GetCIDRsForASNNum(rawTarget)
 		for _, cidr := range cidrs {
 			expandedTarget += int(mapcidr.AddressCountIpnet(cidr))
@@ -985,7 +982,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 			}
 			results <- httpx.Target{Host: target}
 		case asn.IsASN(target):
-			cidrIps, err := r.asnClinet.GetIPAddressesAsStream(target)
+			cidrIps, err := asn.GetIPAddressesAsStream(target)
 			if err != nil {
 				return
 			}
@@ -1012,7 +1009,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 			for _, ip := range ips {
 				results <- httpx.Target{Host: target, CustomIP: ip}
 			}
-		case strings.Index(target, ",") > 0:
+		case !stringsutil.HasPrefixAny(target, "http://", "https://") && stringsutil.ContainsAny(target, ","):
 			idxComma := strings.Index(target, ",")
 			results <- httpx.Target{Host: target[idxComma+1:], CustomHost: target[:idxComma]}
 		default:
@@ -1366,15 +1363,21 @@ retry:
 	} else {
 		// hp.Dialer.GetDialedIP would return only the last dialed one
 		ip = hp.Dialer.GetDialedIP(URL.Host)
+		if ip == "" {
+			if onlyHost, _, err := net.SplitHostPort(URL.Host); err == nil {
+				ip = hp.Dialer.GetDialedIP(onlyHost)
+			}
+		}
 	}
 
 	var asnResponse *AsnResponse
 	if r.options.Asn {
-		results := asnmap.NewClient().GetData(asnmap.IP(ip))
+		results, _ := asnmap.DefaultClient.GetData(ip)
 		if len(results) > 0 {
 			var cidrs []string
-			for _, cidr := range asnmap.GetCIDR(results) {
-				cidrs = append(cidrs, cidr.String())
+			ipnets, _ := asnmap.GetCIDR(results)
+			for _, ipnet := range ipnets {
+				cidrs = append(cidrs, ipnet.String())
 			}
 			asnResponse = &AsnResponse{
 				AsNumber:  fmt.Sprintf("AS%v", results[0].ASN),
