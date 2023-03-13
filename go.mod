@@ -22,7 +22,7 @@ require (
 	github.com/projectdiscovery/hmap v0.0.10
 	github.com/projectdiscovery/iputil v0.0.2 // indirect
 	github.com/projectdiscovery/mapcidr v1.1.0
-	github.com/projectdiscovery/rawhttp v0.1.9
+	github.com/projectdiscovery/rawhttp v0.1.10
 	github.com/projectdiscovery/retryablehttp-go v1.0.13
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
 	github.com/projectdiscovery/wappalyzergo v0.0.85
