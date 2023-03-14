@@ -197,8 +197,8 @@ github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZA
 github.com/projectdiscovery/stringsutil v0.0.2/go.mod h1:EJ3w6bC5fBYjVou6ryzodQq37D5c6qbAYQpGmAy+DC0=
 github.com/projectdiscovery/tlsx v1.0.4 h1:aVkoxl1Vq6Uh7Ietpv2X5TfXPRRBj3VGCtoelhj9BE0=
 github.com/projectdiscovery/tlsx v1.0.4/go.mod h1:N50JpF12eeLg+rcDRwIZ8r974MOvJZeV7M0rIxHWV2g=
-github.com/projectdiscovery/utils v0.0.15-0.20230312150239-2528d5ff811d h1:SH4/bKOzajIhyT5Urrm2VZMN5guHUCgvH6+vb1MJjhg=
-github.com/projectdiscovery/utils v0.0.15-0.20230312150239-2528d5ff811d/go.mod h1:tmR53wBeGXNSuO7N2PQgVTVwMCxQFduPbelgBhkfyaI=
+github.com/projectdiscovery/utils v0.0.16 h1:7vmi3haCyM3vk0yXSLjoid4p2/7bo042rcmG4Dtk+Sk=
+github.com/projectdiscovery/utils v0.0.16/go.mod h1:Cu216AlQ7rAYa8aDBqB2OgNfu5p24Uj+tG9RxV8Wbfs=
 github.com/projectdiscovery/wappalyzergo v0.0.86 h1:w4UP+F1emlhoDXRHZanSzWQNYm/tv/A0ocGOpeuParo=
 github.com/projectdiscovery/wappalyzergo v0.0.86/go.mod h1:HvYuW0Be4JCjVds/+XAEaMSqRG9yrI97UmZq0TPk6A0=
 github.com/remeh/sizedwaitgroup v1.0.0 h1:VNGGFwNo/R5+MJBf6yrsr110p0m4/OX4S3DCy7Kyl5E=
