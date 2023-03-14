@@ -22,10 +22,10 @@ require (
 	github.com/projectdiscovery/hmap v0.0.10
 	github.com/projectdiscovery/iputil v0.0.2 // indirect
 	github.com/projectdiscovery/mapcidr v1.1.0
-	github.com/projectdiscovery/rawhttp v0.1.9
+	github.com/projectdiscovery/rawhttp v0.1.10
 	github.com/projectdiscovery/retryablehttp-go v1.0.13
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
-	github.com/projectdiscovery/wappalyzergo v0.0.85
+	github.com/projectdiscovery/wappalyzergo v0.0.86
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.4.0
 	go.etcd.io/bbolt v1.3.7 // indirect
@@ -42,7 +42,7 @@ require (
 	github.com/hdm/jarm-go v0.0.7
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/projectdiscovery/asnmap v1.0.1
+	github.com/projectdiscovery/asnmap v1.0.2
 	github.com/projectdiscovery/dsl v0.0.3
 	github.com/projectdiscovery/fastdialer v0.0.24
 	github.com/projectdiscovery/ratelimit v0.0.6
@@ -73,7 +73,6 @@ require (
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/fatih/color v1.14.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-github/v30 v30.1.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
@@ -89,7 +88,6 @@ require (
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.1 // indirect
 	github.com/nwaples/rardecode v1.1.0 // indirect
-	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -126,6 +124,5 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/djherbis/times.v1 v1.3.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
