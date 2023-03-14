@@ -25,6 +25,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	fileutil "github.com/projectdiscovery/utils/file"
+	updateutils "github.com/projectdiscovery/utils/update"
 )
 
 const (
@@ -260,6 +261,7 @@ type Options struct {
 	OutputFilterCondition     string
 	OutputMatchCondition      string
 	OnResult                  OnResultCallback
+	DisableUpdateCheck        bool
 }
 
 // ParseOptions parses the command line options for application
@@ -346,6 +348,11 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.HTTP2Probe, "http2", false, "probe and display server supporting HTTP2"),
 		flagSet.BoolVar(&options.VHost, "vhost", false, "probe and display server supporting VHOST"),
 		flagSet.BoolVarP(&options.ListDSLVariable, "list-dsl-variables", "ldv", false, "list json output field keys name that support dsl matcher/filter"),
+	)
+
+	flagSet.CreateGroup("update", "Update",
+		flagSet.CallbackVarP(GetUpdateCallback(), "update", "up", "update httpx to latest version"),
+		flagSet.BoolVarP(&options.DisableUpdateCheck, "disable-update-check", "duc", false, "disable automatic httpx update check"),
 	)
 
 	flagSet.CreateGroup("output", "Output",
@@ -440,8 +447,19 @@ func ParseOptions() *Options {
 	showBanner()
 
 	if options.Version {
-		gologger.Info().Msgf("Current Version: %s\n", Version)
+		gologger.Info().Msgf("Current Version: %s\n", version)
 		os.Exit(0)
+	}
+
+	if !options.DisableUpdateCheck {
+		latestVersion, err := updateutils.GetVersionCheckCallback("httpx")()
+		if err != nil {
+			if options.Verbose {
+				gologger.Error().Msgf("httpx version check failed: %v", err.Error())
+			}
+		} else {
+			gologger.Info().Msgf("Current httpx version %v %v", version, updateutils.GetVersionDescription(version, latestVersion))
+		}
 	}
 
 	if err := options.ValidateOptions(); err != nil {
