@@ -151,8 +151,8 @@ github.com/projectdiscovery/tlsx v1.0.4 h1:aVkoxl1Vq6Uh7Ietpv2X5TfXPRRBj3VGCtoel
 github.com/projectdiscovery/tlsx v1.0.4/go.mod h1:N50JpF12eeLg+rcDRwIZ8r974MOvJZeV7M0rIxHWV2g=
 github.com/projectdiscovery/utils v0.0.15 h1:32RMOryDiwT+OyPMaMR9LDYcBliUD3aOqvFVzkEsyWI=
 github.com/projectdiscovery/utils v0.0.15/go.mod h1:2CyxZXcx62NUiGJZZam23CpphqXy3kaomE9uvgHgkEo=
-github.com/projectdiscovery/wappalyzergo v0.0.85 h1:dBLi/4O3ZLVBGmmp8FV1wcU1M/7ouCQDBX8P5p3kU/w=
-github.com/projectdiscovery/wappalyzergo v0.0.85/go.mod h1:HvYuW0Be4JCjVds/+XAEaMSqRG9yrI97UmZq0TPk6A0=
+github.com/projectdiscovery/wappalyzergo v0.0.86 h1:w4UP+F1emlhoDXRHZanSzWQNYm/tv/A0ocGOpeuParo=
+github.com/projectdiscovery/wappalyzergo v0.0.86/go.mod h1:HvYuW0Be4JCjVds/+XAEaMSqRG9yrI97UmZq0TPk6A0=
 github.com/remeh/sizedwaitgroup v1.0.0 h1:VNGGFwNo/R5+MJBf6yrsr110p0m4/OX4S3DCy7Kyl5E=
 github.com/remeh/sizedwaitgroup v1.0.0/go.mod h1:3j2R4OIe/SeS6YDhICBy22RWjJC5eNCJ1V+9+NVNYlo=
 github.com/rogpeppe/go-internal v1.9.0 h1:73kH8U+JUqXU8lRuOHeVHaa/SZPifC7BkcraZVejAe8=
