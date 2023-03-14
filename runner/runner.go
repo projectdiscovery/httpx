@@ -1001,10 +1001,12 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 			URL, err := r.parseURL(target)
 			if err != nil {
 				results <- httpx.Target{Host: target}
+				return
 			}
 			ips, _, err := getDNSData(hp, URL.Host)
 			if err != nil || len(ips) == 0 {
 				results <- httpx.Target{Host: target}
+				return
 			}
 			for _, ip := range ips {
 				results <- httpx.Target{Host: target, CustomIP: ip}
