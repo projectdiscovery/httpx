@@ -47,7 +47,7 @@ require (
 	github.com/projectdiscovery/fastdialer v0.0.24
 	github.com/projectdiscovery/ratelimit v0.0.6
 	github.com/projectdiscovery/tlsx v1.0.4
-	github.com/projectdiscovery/utils v0.0.15
+	github.com/projectdiscovery/utils v0.0.16
 	github.com/stretchr/testify v1.8.2
 	go.uber.org/multierr v1.10.0
 	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2
@@ -93,7 +93,7 @@ require (
 	github.com/zmap/rc2 v0.0.0-20190804163417-abaa70531248 // indirect
 	github.com/zmap/zcertificate v0.0.0-20180516150559-0e3d58b1bac4 // indirect
 	github.com/zmap/zcrypto v0.0.0-20230205235340-d51ce4775101 // indirect
-	golang.org/x/crypto v0.5.0 // indirect
+	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/tools v0.6.0 // indirect
 	gopkg.in/djherbis/times.v1 v1.3.0 // indirect
