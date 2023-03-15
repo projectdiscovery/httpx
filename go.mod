@@ -14,7 +14,7 @@ require (
 	github.com/miekg/dns v1.1.52 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1
-	github.com/projectdiscovery/clistats v0.0.12
+	github.com/projectdiscovery/clistats v0.0.14
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.8
@@ -120,7 +120,7 @@ require (
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/projectdiscovery/blackrock v0.0.0-20221025011524-9e4efe804fb4 // indirect
-	github.com/projectdiscovery/freeport v0.0.4 // indirect
+	github.com/projectdiscovery/freeport v0.0.5 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.4 // indirect
 	github.com/projectdiscovery/retryabledns v1.0.21 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
