@@ -498,14 +498,11 @@ func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int) {
 	return expandedTarget
 }
 
-var (
-	lastRequestsCount float64
-)
-
 func makePrintCallback(stats clistats.StatisticsClient, tickDuration time.Duration) {
-
 	tick := time.NewTicker(tickDuration)
 	defer tick.Stop()
+	var lastRequestsCount float64
+
 	for range tick.C {
 		builder := &strings.Builder{}
 
