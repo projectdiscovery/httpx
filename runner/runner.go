@@ -379,11 +379,11 @@ func (r *Runner) prepareInput() {
 		r.stats.AddCounter("hosts", 0)
 		r.stats.AddStatic("startedAt", time.Now())
 		r.stats.AddCounter("requests", 0)
-
-		err := r.stats.Start(makePrintCallback(), time.Duration(r.options.StatsInterval)*time.Second)
+		err := r.stats.Start()
 		if err != nil {
 			gologger.Warning().Msgf("Could not create statistics: %s\n", err)
 		}
+		go makePrintCallback(r.stats, time.Duration(r.options.StatsInterval)*time.Second)
 	}
 }
 
@@ -502,9 +502,13 @@ var (
 	lastRequestsCount float64
 )
 
-func makePrintCallback() func(stats clistats.StatisticsClient) {
-	builder := &strings.Builder{}
-	return func(stats clistats.StatisticsClient) {
+func makePrintCallback(stats clistats.StatisticsClient, tickDuration time.Duration) {
+
+	tick := time.NewTicker(tickDuration)
+	defer tick.Stop()
+	for range tick.C {
+		builder := &strings.Builder{}
+
 		startedAt, _ := stats.GetStatic("startedAt")
 		duration := time.Since(startedAt.(time.Time))
 
