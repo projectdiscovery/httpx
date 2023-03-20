@@ -19,7 +19,7 @@ require (
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.8
 	github.com/projectdiscovery/gologger v1.1.8
-	github.com/projectdiscovery/hmap v0.0.10
+	github.com/projectdiscovery/hmap v0.0.11
 	github.com/projectdiscovery/iputil v0.0.2 // indirect
 	github.com/projectdiscovery/mapcidr v1.1.0
 	github.com/projectdiscovery/rawhttp v0.1.10
