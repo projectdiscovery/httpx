@@ -1301,17 +1301,25 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", serverHeader))
 	}
 
-	var serverResponseRaw string
-	var request string
-	var rawResponseHeader string
-	var responseHeader map[string]interface{}
+	var (
+		serverResponseRaw string
+		request           string
+		rawResponseHeader string
+		responseHeader    map[string]interface{}
+	)
+
+	respData := string(resp.Data)
+	if r.options.NoDecode {
+		respData = string(resp.RawData)
+	}
+
 	if scanopts.ResponseInStdout {
-		serverResponseRaw = string(resp.Data)
+		serverResponseRaw = string(respData)
 		request = string(requestDump)
 		responseHeader = normalizeHeaders(resp.Headers)
 		rawResponseHeader = resp.RawHeaders
 	} else if scanopts.Base64ResponseInStdout {
-		serverResponseRaw = stringz.Base64(resp.Data)
+		serverResponseRaw = stringz.Base64([]byte(respData))
 		request = stringz.Base64(requestDump)
 		responseHeader = normalizeHeaders(resp.Headers)
 		rawResponseHeader = stringz.Base64([]byte(resp.RawHeaders))

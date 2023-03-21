@@ -218,6 +218,10 @@ get_response:
 		return nil, closeErr
 	}
 
+	// Todo: replace with https://github.com/projectdiscovery/utils/issues/110
+	resp.RawData = make([]byte, len(respbody))
+	copy(resp.RawData, respbody)
+
 	respbody, err = DecodeData(respbody, httpresp.Header)
 	if err != nil && !shouldIgnoreBodyErrors {
 		return nil, closeErr
