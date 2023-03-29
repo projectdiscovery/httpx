@@ -186,6 +186,7 @@ CONFIGURATIONS:
    -sd, -skip-dedupe             disable dedupe input items (only used with stream mode)
    -ldp, -leave-default-ports    leave default http/https ports in host header (eg. http://host:80 - https//host:443
    -ztls                         use ztls library with autofallback to standard one for tls13
+   -no-decode                    avoid decoding body
 
 DEBUG:
    -health-check, -hc        run diagnostic check up
