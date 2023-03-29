@@ -1580,7 +1580,8 @@ retry:
 		domainFile := URL.EscapedString()
 		hash := hashes.Sha1([]byte(domainFile))
 		domainFile = fmt.Sprintf("%s.txt", hash)
-		domainBaseDir := filepath.Join(scanopts.StoreResponseDirectory, URL.Host)
+		host := strings.ReplaceAll(URL.Host, ":", "_")
+		domainBaseDir := filepath.Join(scanopts.StoreResponseDirectory, host)
 		// store response
 		responsePath = filepath.Join(domainBaseDir, domainFile)
 		respRaw := resp.Raw
