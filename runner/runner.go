@@ -1300,17 +1300,25 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", serverHeader))
 	}
 
-	var serverResponseRaw string
-	var request string
-	var rawResponseHeader string
-	var responseHeader map[string]interface{}
+	var (
+		serverResponseRaw string
+		request           string
+		rawResponseHeader string
+		responseHeader    map[string]interface{}
+	)
+
+	respData := string(resp.Data)
+	if r.options.NoDecode {
+		respData = string(resp.RawData)
+	}
+
 	if scanopts.ResponseInStdout || r.options.OutputMatchCondition != "" || r.options.OutputFilterCondition != "" {
-		serverResponseRaw = string(resp.Data)
+		serverResponseRaw = string(respData)
 		request = string(requestDump)
 		responseHeader = normalizeHeaders(resp.Headers)
 		rawResponseHeader = resp.RawHeaders
 	} else if scanopts.Base64ResponseInStdout {
-		serverResponseRaw = stringz.Base64(resp.Data)
+		serverResponseRaw = stringz.Base64([]byte(respData))
 		request = stringz.Base64(requestDump)
 		responseHeader = normalizeHeaders(resp.Headers)
 		rawResponseHeader = stringz.Base64([]byte(resp.RawHeaders))
@@ -1571,7 +1579,8 @@ retry:
 		domainFile := URL.EscapedString()
 		hash := hashes.Sha1([]byte(domainFile))
 		domainFile = fmt.Sprintf("%s.txt", hash)
-		domainBaseDir := filepath.Join(scanopts.StoreResponseDirectory, URL.Host)
+		host := strings.ReplaceAll(URL.Host, ":", "_")
+		domainBaseDir := filepath.Join(scanopts.StoreResponseDirectory, host)
 		// store response
 		responsePath = filepath.Join(domainBaseDir, domainFile)
 		respRaw := resp.Raw
