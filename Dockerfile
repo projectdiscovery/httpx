@@ -7,7 +7,7 @@ COPY . /app
 RUN go mod download
 RUN go build ./cmd/httpx
 
-FROM alpine:3.17.2
+FROM alpine:3.17.3
 RUN apk -U upgrade --no-cache \
     && apk add --no-cache bind-tools ca-certificates
 COPY --from=builder /app/httpx /usr/local/bin/
