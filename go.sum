@@ -725,8 +725,8 @@ github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZA
 github.com/projectdiscovery/stringsutil v0.0.2/go.mod h1:EJ3w6bC5fBYjVou6ryzodQq37D5c6qbAYQpGmAy+DC0=
 github.com/projectdiscovery/tlsx v1.0.6 h1:omMbtedk4BjXtauPpB9Y+FQml9cVthOnIxOMKHIrxm8=
 github.com/projectdiscovery/tlsx v1.0.6/go.mod h1:9PTwYVVbaLYpNIwZIvgVxJzctbiemM/pgukkOb3/4wY=
-github.com/projectdiscovery/utils v0.0.18 h1:gyBMnA4y2ryui0G98iFqKAXuNdoSy6Z6K0/1KHB0czU=
-github.com/projectdiscovery/utils v0.0.18/go.mod h1:Cu216AlQ7rAYa8aDBqB2OgNfu5p24Uj+tG9RxV8Wbfs=
+github.com/projectdiscovery/utils v0.0.19 h1:5m70xVhBq86h5KsOMVWSO0H+PTmkwlOGAekWcHsaTxI=
+github.com/projectdiscovery/utils v0.0.19/go.mod h1:Cu216AlQ7rAYa8aDBqB2OgNfu5p24Uj+tG9RxV8Wbfs=
 github.com/projectdiscovery/wappalyzergo v0.0.88 h1:N/1vFlKmc3GJco9rANJdHrxg8jdav/xmnICo8rztmH8=
 github.com/projectdiscovery/wappalyzergo v0.0.88/go.mod h1:HvYuW0Be4JCjVds/+XAEaMSqRG9yrI97UmZq0TPk6A0=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
