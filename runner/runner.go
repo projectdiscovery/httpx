@@ -31,7 +31,6 @@ import (
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/mapcidr/asn"
 	errorutil "github.com/projectdiscovery/utils/errors"
-	mapsutil "github.com/projectdiscovery/utils/maps"
 
 	"github.com/bluele/gcache"
 	"github.com/logrusorgru/aurora"
@@ -663,11 +662,11 @@ func (r *Runner) RunEnumeration() {
 					gologger.Warning().Msgf("Could not decode response: %s\n", err)
 					continue
 				}
-
-				flatMap := make(map[string]any)
-				mapsutil.Walk(rawMap, func(k string, v any) {
-					flatMap[k] = v
-				})
+				dslVars, _ := dslVariables()
+				flatMap := make(map[string]interface{})
+				for _, v := range dslVars {
+					flatMap[v] = rawMap[v]
+				}
 
 				if r.options.OutputMatchCondition != "" {
 					res, err := dsl.EvalExpr(r.options.OutputMatchCondition, flatMap)
@@ -1313,7 +1312,7 @@ retry:
 		respData = string(resp.RawData)
 	}
 
-	if scanopts.ResponseInStdout {
+	if scanopts.ResponseInStdout || r.options.OutputMatchCondition != "" || r.options.OutputFilterCondition != "" {
 		serverResponseRaw = string(respData)
 		request = string(requestDump)
 		responseHeader = normalizeHeaders(resp.Headers)
