@@ -29,8 +29,8 @@ require (
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.4.0
 	go.etcd.io/bbolt v1.3.7 // indirect
-	golang.org/x/net v0.8.0
-	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/net v0.9.0
+	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/text v0.9.0
 )
 
