@@ -39,7 +39,7 @@ var defaultProviders = strings.Join(cdncheck.GetDefaultProviders(), ", ")
 // OnResultCallback (hostResult)
 type OnResultCallback func(Result)
 
-type scanOptions struct {
+type ScanOptions struct {
 	Methods                   []string
 	StoreResponseDirectory    string
 	RequestURI                string
@@ -87,8 +87,8 @@ type scanOptions struct {
 	Hashes                    string
 }
 
-func (s *scanOptions) Clone() *scanOptions {
-	return &scanOptions{
+func (s *ScanOptions) Clone() *ScanOptions {
+	return &ScanOptions{
 		Methods:                   s.Methods,
 		StoreResponseDirectory:    s.StoreResponseDirectory,
 		RequestURI:                s.RequestURI,

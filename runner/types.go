@@ -25,20 +25,20 @@ func (o AsnResponse) String() string {
 
 // Result of a scan
 type Result struct {
-	Timestamp          time.Time    `json:"timestamp,omitempty" csv:"timestamp"`
-	ASN                *AsnResponse `json:"asn,omitempty" csv:"asn"`
-	err                error
+	Timestamp          time.Time              `json:"timestamp,omitempty" csv:"timestamp"`
+	ASN                *AsnResponse           `json:"asn,omitempty" csv:"asn"`
+	Err                error                  `json:"-" csv:"-"`
 	CSPData            *httpx.CSPData         `json:"csp,omitempty" csv:"csp"`
 	TLSData            *clients.Response      `json:"tls,omitempty" csv:"tls"`
 	Hashes             map[string]interface{} `json:"hash,omitempty" csv:"hash"`
 	ExtractRegex       []string               `json:"extract_regex,omitempty" csv:"extract_regex"`
 	CDNName            string                 `json:"cdn_name,omitempty" csv:"cdn_name"`
 	Port               string                 `json:"port,omitempty" csv:"port"`
-	raw                string
-	URL                string `json:"url,omitempty" csv:"url"`
-	Input              string `json:"input,omitempty" csv:"input"`
-	Location           string `json:"location,omitempty" csv:"location"`
-	Title              string `json:"title,omitempty" csv:"title"`
+	Raw                string                 `json:"-" csv:"-"`
+	URL                string                 `json:"url,omitempty" csv:"url"`
+	Input              string                 `json:"input,omitempty" csv:"input"`
+	Location           string                 `json:"location,omitempty" csv:"location"`
+	Title              string                 `json:"title,omitempty" csv:"title"`
 	str                string
 	Scheme             string                 `json:"scheme,omitempty" csv:"scheme"`
 	Error              string                 `json:"error,omitempty" csv:"error"`
