@@ -46,7 +46,7 @@ require (
 	github.com/projectdiscovery/dsl v0.0.6
 	github.com/projectdiscovery/fastdialer v0.0.24
 	github.com/projectdiscovery/ratelimit v0.0.6
-	github.com/projectdiscovery/tlsx v1.0.6
+	github.com/projectdiscovery/tlsx v1.0.7
 	github.com/projectdiscovery/utils v0.0.20
 	github.com/stretchr/testify v1.8.2
 	go.uber.org/multierr v1.11.0
@@ -177,7 +177,7 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20210624195500-8bfb893ecb84 // indirect
 	google.golang.org/grpc v1.38.0 // indirect
-	google.golang.org/protobuf v1.29.0 // indirect
+	google.golang.org/protobuf v1.29.1 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
 	gopkg.in/djherbis/times.v1 v1.3.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
