@@ -85,6 +85,8 @@ type scanOptions struct {
 	OutputLinesCount          bool
 	OutputWordsCount          bool
 	Hashes                    string
+	Screenshot                bool
+	UseInstalledChrome        bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -131,6 +133,8 @@ func (s *scanOptions) Clone() *scanOptions {
 		OutputLinesCount:          s.OutputLinesCount,
 		OutputWordsCount:          s.OutputWordsCount,
 		Hashes:                    s.Hashes,
+		Screenshot:                s.Screenshot,
+		UseInstalledChrome:        s.UseInstalledChrome,
 	}
 }
 
@@ -263,6 +267,8 @@ type Options struct {
 	OnResult                  OnResultCallback
 	DisableUpdateCheck        bool
 	NoDecode                  bool
+	Screenshot                bool
+	UseInstalledChrome        bool
 }
 
 // ParseOptions parses the command line options for application
@@ -299,6 +305,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Asn, "asn", false, "display host asn information"),
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "display cdn in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),
+		flagSet.BoolVar(&options.Screenshot, "screenshot", false, "screenshot"),
+		flagSet.BoolVar(&options.UseInstalledChrome, "system-chrome", false, "Use local installed chrome browser"),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",
