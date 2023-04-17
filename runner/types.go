@@ -72,6 +72,7 @@ type Result struct {
 	CDN                bool                   `json:"cdn,omitempty" csv:"cdn"`
 	HTTP2              bool                   `json:"http2,omitempty" csv:"http2"`
 	Pipeline           bool                   `json:"pipeline,omitempty" csv:"pipeline"`
+	HeadlessBody       string                 `json:"headless_body,omitempty" csv:"headless_body"`
 	ScreenshotBytes    []byte                 `json:"screenshot_bytes,omitempty" csv:"screenshot_bytes"`
 	StoredResponsePath string                 `json:"stored_response_path,omitempty" csv:"stored_response_path"`
 	ScreenshotPath     string                 `json:"screenshot_path,omitempty" csv:"screenshot_path"`

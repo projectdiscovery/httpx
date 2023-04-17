@@ -305,6 +305,9 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Asn, "asn", false, "display host asn information"),
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "display cdn in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),
+	)
+
+	flagSet.CreateGroup("headless", "Headless",
 		flagSet.BoolVar(&options.Screenshot, "screenshot", false, "screenshot"),
 		flagSet.BoolVar(&options.UseInstalledChrome, "system-chrome", false, "Use local installed chrome browser"),
 	)
@@ -573,6 +576,7 @@ func (options *Options) ValidateOptions() error {
 		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
 		options.StoreResponse = true
 	}
+
 	if options.Hashes != "" {
 		for _, hashType := range strings.Split(options.Hashes, ",") {
 			if !slice.StringSliceContains([]string{"md5", "sha1", "sha256", "sha512", "mmh3", "simhash"}, strings.ToLower(hashType)) {

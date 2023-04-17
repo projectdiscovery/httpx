@@ -84,26 +84,36 @@ func NewBrowser(proxy string, useLocal bool) (*Browser, error) {
 	return engine, nil
 }
 
-func (b *Browser) Screenshot(url string, timeout time.Duration) ([]byte, error) {
+func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration) ([]byte, string, error) {
 	page, err := b.engine.Page(proto.TargetCreateTarget{})
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	page = page.Timeout(timeout)
 	defer page.Close()
 
 	if err := page.Navigate(url); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	page.Timeout(2 * time.Second).WaitNavigation(proto.PageLifecycleEventNameFirstMeaningfulPaint)()
 
 	if err := page.WaitLoad(); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	_ = page.WaitIdle(1 * time.Second)
 
-	return page.Screenshot(true, &proto.PageCaptureScreenshot{})
+	screenshot, err := page.Screenshot(true, &proto.PageCaptureScreenshot{})
+	if err != nil {
+		return nil, "", err
+	}
+
+	body, err := page.HTML()
+	if err != nil {
+		return screenshot, "", err
+	}
+
+	return screenshot, body, nil
 }
 
 func (b *Browser) Close() {

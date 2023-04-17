@@ -1662,11 +1662,12 @@ retry:
 	// screenshot
 	var (
 		screenshotBytes []byte
+		headlessBody    string
 		screenshotPath  string
 	)
 	if scanopts.Screenshot {
 		var err error
-		screenshotBytes, err = r.browser.Screenshot(fullURL, r.hp.Options.Timeout)
+		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, r.hp.Options.Timeout)
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
@@ -1727,6 +1728,7 @@ retry:
 		StoredResponsePath: responsePath,
 		ScreenshotBytes:    screenshotBytes,
 		ScreenshotPath:     screenshotPath,
+		HeadlessBody:       headlessBody,
 	}
 	if r.options.OnResult != nil {
 		r.options.OnResult(result)
