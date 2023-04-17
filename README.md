@@ -109,6 +109,10 @@ PROBES:
    -cdn                  display cdn in use
    -probe                display probe status
 
+HEADLESS:
+   -screenshot     screenshot
+   -system-chrome  Use local installed chrome browser
+
 MATCHERS:
    -mc, -match-code string            match response with specified status code (-mc 200,302)
    -ml, -match-length string          match response with specified content length (-ml 100,102)
@@ -472,44 +476,11 @@ https://docs.hackerone.com
 https://support.hackerone.com
 ```
 
+### Headless
+`httpx` supports the `-screenshot` flag that enables the tool to take screenshots of target websites along with the rendered DOM. The flag `-system-chrome` instructs the tool to use the locally installed system chrome.
+
 ### Using `httpx` as a library
-`httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. Here follows a minimal example of how to do it:
-
-```go
-package main
-
-import (
-	"log"
-
-	"github.com/projectdiscovery/goflags"
-	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/gologger/levels"
-	"github.com/projectdiscovery/httpx/runner"
-)
-
-func main() {
-	gologger.DefaultLogger.SetMaxLevel(levels.LevelVerbose) // increase the verbosity (optional)
-
-	options := runner.Options{
-		Methods: "GET",
-		InputTargetHost: goflags.StringSlice{"scanme.sh", "projectdiscovery.io"},
-		//InputFile: "./targetDomains.txt", // path to file containing the target domains list 
-	}
-
-	if err := options.ValidateOptions(); err != nil {
-		log.Fatal(err)
-	}
-
-	httpxRunner, err := runner.New(&options)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer httpxRunner.Close()
-
-	httpxRunner.RunEnumeration()
-}
-```
-
+`httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. A minimal example of how to do it is in the [examples](examples/) folder
 
 # Notes
 
