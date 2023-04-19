@@ -3,7 +3,6 @@ package runner
 import (
 	"fmt"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/go-rod/rod"
@@ -11,13 +10,14 @@ import (
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/pkg/errors"
 	fileutil "github.com/projectdiscovery/utils/file"
+	osutils "github.com/projectdiscovery/utils/os"
 )
 
 // MustDisableSandbox determines if the current os and user needs sandbox mode disabled
 func MustDisableSandbox() bool {
 	// linux with root user needs "--no-sandbox" option
 	// https://github.com/chromium/chromium/blob/c4d3c31083a2e1481253ff2d24298a1dfe19c754/chrome/test/chromedriver/client/chromedriver.py#L209
-	return runtime.GOOS == "linux" && os.Geteuid() == 0
+	return osutils.IsLinux() && os.Geteuid() == 0
 }
 
 type Browser struct {
@@ -32,7 +32,6 @@ func NewBrowser(proxy string, useLocal bool) (*Browser, error) {
 	}
 
 	chromeLauncher := launcher.New().
-		Leakless(false).
 		Set("disable-gpu", "true").
 		Set("ignore-certificate-errors", "true").
 		Set("ignore-certificate-errors", "1").
@@ -43,6 +42,7 @@ func NewBrowser(proxy string, useLocal bool) (*Browser, error) {
 		Set("mute-audio", "true").
 		Set("incognito", "true").
 		Delete("use-mock-keychain").
+		Headless(true).
 		UserDataDir(dataStore)
 
 	if MustDisableSandbox() {
