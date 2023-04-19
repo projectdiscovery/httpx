@@ -565,6 +565,9 @@ func (r *Runner) Close() {
 	if r.options.HostMaxErrors >= 0 {
 		r.HostErrorsCache.Purge()
 	}
+	if r.options.Screenshot {
+		r.browser.Close()
+	}
 }
 
 // RunEnumeration on targets for httpx client
