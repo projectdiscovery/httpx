@@ -1621,10 +1621,11 @@ retry:
 	domainScreenshotBaseDir := filepath.Join(scanopts.StoreResponseDirectory, "screenshot")
 	responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
 	screenshotBaseDir := filepath.Join(domainScreenshotBaseDir, hostFilename)
+
+	var responsePath, screenshotPath string
 	// store response
-	responsePath := filepath.Join(responseBaseDir, domainResponseFile)
-	screenshotPath := filepath.Join(screenshotBaseDir, screenshotResponseFile)
 	if scanopts.StoreResponse || scanopts.StoreChain {
+		responsePath = filepath.Join(responseBaseDir, domainResponseFile)
 		// URL.EscapedString returns that can be used as filename
 		respRaw := resp.Raw
 		reqRaw := requestDump
@@ -1679,6 +1680,7 @@ retry:
 		headlessBody    string
 	)
 	if scanopts.Screenshot {
+		screenshotPath = filepath.Join(screenshotBaseDir, screenshotResponseFile)
 		var err error
 		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, r.hp.Options.Timeout)
 		if err != nil {
