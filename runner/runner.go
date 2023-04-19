@@ -1625,7 +1625,7 @@ retry:
 	var responsePath, screenshotPath string
 	// store response
 	if scanopts.StoreResponse || scanopts.StoreChain {
-		responsePath = filepath.Join(responseBaseDir, domainResponseFile)
+		responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
 		// URL.EscapedString returns that can be used as filename
 		respRaw := resp.Raw
 		reqRaw := requestDump
@@ -1640,7 +1640,6 @@ retry:
 			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
 		}
 		if scanopts.StoreChain && resp.HasChain() {
-			responsePath = filepath.Join(responseBaseDir, domainResponseFile)
 			writeErr := os.WriteFile(responsePath, []byte(resp.GetChain()), 0644)
 			if writeErr != nil {
 				gologger.Warning().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
@@ -1680,7 +1679,7 @@ retry:
 		headlessBody    string
 	)
 	if scanopts.Screenshot {
-		screenshotPath = filepath.Join(screenshotBaseDir, screenshotResponseFile)
+		screenshotPath = fileutilz.AbsPathOrDefault(filepath.Join(screenshotBaseDir, screenshotResponseFile))
 		var err error
 		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, r.hp.Options.Timeout)
 		if err != nil {
