@@ -454,7 +454,7 @@ func ParseOptions() *Options {
 	}
 
 	if !options.DisableUpdateCheck {
-		latestVersion, err := updateutils.GetVersionCheckCallback("httpx")()
+		latestVersion, err := updateutils.GetToolVersionCallback("httpx", version)()
 		if err != nil {
 			if options.Verbose {
 				gologger.Error().Msgf("httpx version check failed: %v", err.Error())
