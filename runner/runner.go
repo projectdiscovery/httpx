@@ -32,7 +32,7 @@ import (
 	"github.com/projectdiscovery/mapcidr/asn"
 	errorutil "github.com/projectdiscovery/utils/errors"
 
-	"github.com/bluele/gcache"
+	"github.com/Mzack9999/gcache"
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
 
@@ -75,7 +75,8 @@ type Runner struct {
 	hm              *hybrid.HybridMap
 	stats           clistats.StatisticsClient
 	ratelimiter     ratelimit.Limiter
-	HostErrorsCache gcache.Cache
+	HostErrorsCache gcache.Cache[string, int]
+	browser         *Browser
 }
 
 // New creates a new client for running enumeration process.
@@ -91,7 +92,8 @@ func New(options *Options) (*Runner, error) {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
 	}
 	if options.StoreResponseDir != "" {
-		os.RemoveAll(filepath.Join(options.StoreResponseDir, "index.txt"))
+		os.RemoveAll(filepath.Join(options.StoreResponseDir, "response", "index.txt"))
+		os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
 	}
 	dialerOpts := fastdialer.DefaultOptions
 	dialerOpts.WithDialerHistory = true
@@ -242,6 +244,15 @@ func New(options *Options) (*Runner, error) {
 	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
 	scanopts.extractRegexps = make(map[string]*regexp.Regexp)
+	if options.Screenshot {
+		browser, err := NewBrowser(options.HTTPProxy, options.UseInstalledChrome)
+		if err != nil {
+			return nil, err
+		}
+		runner.browser = browser
+	}
+	scanopts.Screenshot = options.Screenshot
+	scanopts.UseInstalledChrome = options.UseInstalledChrome
 
 	if options.OutputExtractRegexs != nil {
 		for _, regex := range options.OutputExtractRegexs {
@@ -306,7 +317,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	if options.HostMaxErrors >= 0 {
-		gc := gcache.New(1000).
+		gc := gcache.New[string, int](1000).
 			ARC().
 			Build()
 		runner.HostErrorsCache = gc
@@ -554,14 +565,28 @@ func (r *Runner) Close() {
 	if r.options.HostMaxErrors >= 0 {
 		r.HostErrorsCache.Purge()
 	}
+	if r.options.Screenshot {
+		r.browser.Close()
+	}
 }
 
 // RunEnumeration on targets for httpx client
 func (r *Runner) RunEnumeration() {
-	// Try to create output folder if it doesn't exist
+	// Try to create output folders if it doesn't exist
 	if r.options.StoreResponse && !fileutil.FolderExists(r.options.StoreResponseDir) {
+		// main folder
 		if err := os.MkdirAll(r.options.StoreResponseDir, os.ModePerm); err != nil {
 			gologger.Fatal().Msgf("Could not create output directory '%s': %s\n", r.options.StoreResponseDir, err)
+		}
+		// response folder
+		responseFolder := filepath.Join(r.options.StoreResponseDir, "response")
+		if err := os.MkdirAll(responseFolder, os.ModePerm); err != nil {
+			gologger.Fatal().Msgf("Could not create output response directory '%s': %s\n", r.options.StoreResponseDir, err)
+		}
+		// screenshot folder
+		screenshotFolder := filepath.Join(r.options.StoreResponseDir, "screenshot")
+		if err := os.MkdirAll(screenshotFolder, os.ModePerm); err != nil {
+			gologger.Fatal().Msgf("Could not create output screenshot directory '%s': %s\n", r.options.StoreResponseDir, err)
 		}
 	}
 
@@ -590,7 +615,7 @@ func (r *Runner) RunEnumeration() {
 	go func(output chan Result) {
 		defer wgoutput.Done()
 
-		var f, indexFile *os.File
+		var f, indexFile, indexScreenshotFile *os.File
 
 		if r.options.Output != "" {
 			var err error
@@ -626,7 +651,7 @@ func (r *Runner) RunEnumeration() {
 		}
 		if r.options.StoreResponseDir != "" {
 			var err error
-			indexPath := filepath.Join(r.options.StoreResponseDir, "index.txt")
+			indexPath := filepath.Join(r.options.StoreResponseDir, "response", "index.txt")
 			if r.options.Resume {
 				indexFile, err = os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 			} else {
@@ -636,6 +661,19 @@ func (r *Runner) RunEnumeration() {
 				gologger.Fatal().Msgf("Could not open/create index file '%s': %s\n", r.options.Output, err)
 			}
 			defer indexFile.Close() //nolint
+		}
+		if r.options.Screenshot {
+			var err error
+			indexScreenshotPath := filepath.Join(r.options.StoreResponseDir, "screenshot", "index_screenshot.txt")
+			if r.options.Resume {
+				indexScreenshotFile, err = os.OpenFile(indexScreenshotPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+			} else {
+				indexScreenshotFile, err = os.Create(indexScreenshotPath)
+			}
+			if err != nil {
+				gologger.Fatal().Msgf("Could not open/create index screenshot file '%s': %s\n", r.options.Output, err)
+			}
+			defer indexScreenshotFile.Close() //nolint
 		}
 
 		for resp := range output {
@@ -653,6 +691,10 @@ func (r *Runner) RunEnumeration() {
 			if indexFile != nil {
 				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
 				_, _ = indexFile.WriteString(indexData)
+			}
+			if indexScreenshotFile != nil {
+				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.ScreenshotPath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
+				_, _ = indexScreenshotFile.WriteString(indexData)
 			}
 
 			// apply matchers and filters
@@ -1039,7 +1081,7 @@ retry:
 	hostPort := net.JoinHostPort(URL.Host, URL.Port())
 	if r.options.HostMaxErrors >= 0 && r.HostErrorsCache.Has(hostPort) {
 		numberOfErrors, err := r.HostErrorsCache.GetIFPresent(hostPort)
-		if err == nil && numberOfErrors.(int) >= r.options.HostMaxErrors {
+		if err == nil && numberOfErrors >= r.options.HostMaxErrors {
 			return Result{URL: target.Host, err: errors.New("skipping as previously unresponsive")}
 		}
 	}
@@ -1199,10 +1241,10 @@ retry:
 		// mark the host:port as failed to avoid further checks
 		if r.options.HostMaxErrors >= 0 {
 			errorCount, err := r.HostErrorsCache.GetIFPresent(hostPort)
-			if err != nil || errorCount == nil {
+			if err != nil || errorCount == 0 {
 				_ = r.HostErrorsCache.Set(hostPort, 1)
-			} else if errorCount != nil {
-				_ = r.HostErrorsCache.Set(hostPort, errorCount.(int)+1)
+			} else if errorCount > 0 {
+				_ = r.HostErrorsCache.Set(hostPort, errorCount+1)
 			}
 		}
 
@@ -1573,16 +1615,21 @@ retry:
 	}
 
 	// store responses or chain in directory
-	var responsePath string
+	domainFile := URL.EscapedString()
+	hash := hashes.Sha1([]byte(domainFile))
+	domainResponseFile := fmt.Sprintf("%s.txt", hash)
+	screenshotResponseFile := fmt.Sprintf("%s.png", hash)
+	hostFilename := strings.ReplaceAll(URL.Host, ":", "_")
+	domainResponseBaseDir := filepath.Join(scanopts.StoreResponseDirectory, "response")
+	domainScreenshotBaseDir := filepath.Join(scanopts.StoreResponseDirectory, "screenshot")
+	responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
+	screenshotBaseDir := filepath.Join(domainScreenshotBaseDir, hostFilename)
+
+	var responsePath, screenshotPath string
+	// store response
 	if scanopts.StoreResponse || scanopts.StoreChain {
+		responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
 		// URL.EscapedString returns that can be used as filename
-		domainFile := URL.EscapedString()
-		hash := hashes.Sha1([]byte(domainFile))
-		domainFile = fmt.Sprintf("%s.txt", hash)
-		host := strings.ReplaceAll(URL.Host, ":", "_")
-		domainBaseDir := filepath.Join(scanopts.StoreResponseDirectory, host)
-		// store response
-		responsePath = filepath.Join(domainBaseDir, domainFile)
 		respRaw := resp.Raw
 		reqRaw := requestDump
 		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
@@ -1590,14 +1637,12 @@ retry:
 		}
 		data := append([]byte(fullURL), append([]byte("\n\n"), reqRaw...)...)
 		data = append(data, append([]byte("\n"), respRaw...)...)
-		_ = fileutil.CreateFolder(domainBaseDir)
+		_ = fileutil.CreateFolder(responseBaseDir)
 		writeErr := os.WriteFile(responsePath, data, 0644)
 		if writeErr != nil {
 			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
 		}
 		if scanopts.StoreChain && resp.HasChain() {
-			domainFile = strings.ReplaceAll(domainFile, ".txt", ".chain.txt")
-			responsePath = filepath.Join(domainBaseDir, domainFile)
 			writeErr := os.WriteFile(responsePath, []byte(resp.GetChain()), 0644)
 			if writeErr != nil {
 				gologger.Warning().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
@@ -1629,6 +1674,26 @@ retry:
 	var chainItems []httpx.ChainItem
 	if scanopts.ChainInStdout && resp.HasChain() {
 		chainItems = append(chainItems, resp.GetChainAsSlice()...)
+	}
+
+	// screenshot
+	var (
+		screenshotBytes []byte
+		headlessBody    string
+	)
+	if scanopts.Screenshot {
+		screenshotPath = fileutilz.AbsPathOrDefault(filepath.Join(screenshotBaseDir, screenshotResponseFile))
+		var err error
+		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, r.hp.Options.Timeout)
+		if err != nil {
+			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
+		} else {
+			_ = fileutil.CreateFolder(screenshotBaseDir)
+			err := os.WriteFile(screenshotPath, screenshotBytes, 0644)
+			if err != nil {
+				gologger.Error().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
+			}
+		}
 	}
 
 	result := Result{
@@ -1677,6 +1742,9 @@ retry:
 		ASN:                asnResponse,
 		ExtractRegex:       extractRegex,
 		StoredResponsePath: responsePath,
+		ScreenshotBytes:    screenshotBytes,
+		ScreenshotPath:     screenshotPath,
+		HeadlessBody:       headlessBody,
 	}
 	if r.options.OnResult != nil {
 		r.options.OnResult(result)

@@ -109,15 +109,19 @@ PROBES:
    -cdn                  display cdn in use
    -probe                display probe status
 
+HEADLESS:
+   -ss, -screenshot  enable saving screenshot of the page using headless browser
+   -system-chrome    enable using local installed chrome for screenshot
+
 MATCHERS:
    -mc, -match-code string            match response with specified status code (-mc 200,302)
    -ml, -match-length string          match response with specified content length (-ml 100,102)
    -mlc, -match-line-count string     match response body with specified line count (-mlc 423,532)
    -mwc, -match-word-count string     match response body with specified word count (-mwc 43,55)
    -mfc, -match-favicon string[]      match response with specified favicon hash (-mfc 1494302000)
-   -ms, -match-string string          match response with specified string (case insensitive) (-ms admin)
+   -ms, -match-string string          match response with specified string (-ms admin)
    -mr, -match-regex string           match response with specified regex (-mr admin)
-   -mcdn, -match-cdn string[]         match host with specified cdn provider (oracle, google, azure, cloudflare, cloudfront, fastly, incapsula, leaseweb, akamai, sucuri)
+   -mcdn, -match-cdn string[]         match host with specified cdn provider (incapsula, oracle, google, azure, cloudflare, cloudfront, fastly, akamai, sucuri, leaseweb)
    -mrt, -match-response-time string  match response with specified response time in seconds (-mrt '< 1')
    -mdc, -match-condition string      match response with dsl expression condition
 
@@ -133,7 +137,7 @@ FILTERS:
    -ffc, -filter-favicon string[]      filter response with specified favicon hash (-mfc 1494302000)
    -fs, -filter-string string          filter response with specified string (-fs admin)
    -fe, -filter-regex string           filter response with specified regex (-fe admin)
-   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (oracle, google, azure, cloudflare, cloudfront, fastly, incapsula, leaseweb, akamai, sucuri)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (incapsula, oracle, google, azure, cloudflare, cloudfront, fastly, akamai, sucuri, leaseweb)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
    -fdc, -filter-condition string      filter response with dsl expression condition
 
@@ -153,6 +157,10 @@ MISCELLANEOUS:
    -http2                     probe and display server supporting HTTP2
    -vhost                     probe and display server supporting VHOST
    -ldv, -list-dsl-variables  list json output field keys name that support dsl matcher/filter
+
+UPDATE:
+   -up, -update                 update httpx to latest version
+   -duc, -disable-update-check  disable automatic httpx update check
 
 OUTPUT:
    -o, -output string                  file to write output results
@@ -184,7 +192,7 @@ CONFIGURATIONS:
    -body string                  post body to include in http request
    -s, -stream                   stream mode - start elaborating input targets without sorting
    -sd, -skip-dedupe             disable dedupe input items (only used with stream mode)
-   -ldp, -leave-default-ports    leave default http/https ports in host header (eg. http://host:80 - https//host:443
+   -ldp, -leave-default-ports    leave default http/https ports in host header (eg. http://host:80 - https://host:443
    -ztls                         use ztls library with autofallback to standard one for tls13
    -no-decode                    avoid decoding body
 
@@ -472,55 +480,75 @@ https://docs.hackerone.com
 https://support.hackerone.com
 ```
 
-### Using `httpx` as a library
-`httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. Here follows a minimal example of how to do it:
+### Screenshot
 
-```go
-package main
+Latest addition to the project, the addition of the `-screenshot` option in httpx, a powerful new feature that allows users to take screenshots of target URLs, pages, or endpoints along with the rendered DOM. This functionality enables the **visual content discovery process**, providing a comprehensive view of the target's visual appearance.
 
-import (
-	"log"
+Rendered DOM body is also included in json line output when `-screenshot` option is used with `-json` option.
 
-	"github.com/projectdiscovery/goflags"
-	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/gologger/levels"
-	"github.com/projectdiscovery/httpx/runner"
-)
+#### 🚩 Usage
 
-func main() {
-	gologger.DefaultLogger.SetMaxLevel(levels.LevelVerbose) // increase the verbosity (optional)
+To use the screenshot feature, simply add the `-screenshot` flag to your httpx command:
 
-	options := runner.Options{
-		Methods: "GET",
-		InputTargetHost: goflags.StringSlice{"scanme.sh", "projectdiscovery.io"},
-		//InputFile: "./targetDomains.txt", // path to file containing the target domains list 
-	}
-
-	if err := options.ValidateOptions(); err != nil {
-		log.Fatal(err)
-	}
-
-	httpxRunner, err := runner.New(&options)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer httpxRunner.Close()
-
-	httpxRunner.RunEnumeration()
-}
+```console
+httpx -screenshot -u https://example.com
 ```
 
+🎯 Domain, Subdomain, and Path Support
+The `-screenshot` option is versatile and can be used to capture screenshots for domains, subdomains, and even specific paths when used in conjunction with the `-path` option:
+
+```console
+httpx -screenshot -u example.com
+httpx -screenshot -u https://example.com/login
+httpx -screenshot -path fuzz_path.txt -u https://example.com
+```
+
+Using with other tools:
+
+```console
+subfinder -d example.com | httpx -screenshot
+```
+
+#### 🌐 System Chrome
+
+By default, httpx will use the go-rod library to install and manage Chrome for taking screenshots. However, if you prefer to use your locally installed system Chrome, add the `-system-chrome` flag:
+
+```console
+httpx -screenshot -system-chrome -u https://example.com
+```
+
+#### 📁 Output Directory
+
+Screenshots are stored in the output/screenshot directory by default. To specify a custom output directory, use the `-srd` option:
+
+```console
+httpx -screenshot -srd /path/to/custom/directory -u https://example.com
+```
+
+#### ⏳ Performance Considerations
+
+Please note that since screenshots are captured using a headless browser, httpx runs will be slower when using the `-screenshot` option.
+
+### Using `httpx` as a library
+`httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. A minimal example of how to do it is in the [examples](examples/) folder
 
 # Notes
 
-- As default, `httpx` checks for **HTTPS** probe and fall-back to **HTTP** only if **HTTPS** is not reachable.
-- The `-no-fallback` flag can be used to display both **HTTP** and **HTTPS** results 
+- As default, `httpx` probe with **HTTPS** scheme and fall-back to **HTTP** only if **HTTPS** is not reachable.
+- The `-no-fallback` flag can be used to probe and display both **HTTP** and **HTTPS** result.
 - Custom scheme for ports can be defined, for example `-ports http:443,http:80,https:8443`
-- The following flags should be used for specific use cases instead of running them as default with other probes:
-  * `-favicon`,`-vhost`, `-http2`, `-pipeline`, `-ports`, `-csp-probe`, `-tls-probe`, `-path`
-- When using the `-json` flag, all the default probe results are included in the JSON output.
 - Custom resolver supports multiple protocol (**doh|tcp|udp**) in form of `protocol:resolver:port` (e.g. `udp:127.0.0.1:53`)
-- Invalid custom resolvers/files are ignored.
+- The following flags should be used for specific use cases instead of running them as default with other probes:
+   - `-ports`
+   - `-path`
+   - `-vhost`
+   - `-screenshot`
+   - `-csp-probe`
+   - `-tls-probe`
+   - `-favicon`
+   - `-http2`
+   - `-pipeline`
+
 
 # Acknowledgement
 

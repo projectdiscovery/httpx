@@ -85,6 +85,8 @@ type scanOptions struct {
 	OutputLinesCount          bool
 	OutputWordsCount          bool
 	Hashes                    string
+	Screenshot                bool
+	UseInstalledChrome        bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -131,6 +133,8 @@ func (s *scanOptions) Clone() *scanOptions {
 		OutputLinesCount:          s.OutputLinesCount,
 		OutputWordsCount:          s.OutputWordsCount,
 		Hashes:                    s.Hashes,
+		Screenshot:                s.Screenshot,
+		UseInstalledChrome:        s.UseInstalledChrome,
 	}
 }
 
@@ -263,6 +267,8 @@ type Options struct {
 	OnResult                  OnResultCallback
 	DisableUpdateCheck        bool
 	NoDecode                  bool
+	Screenshot                bool
+	UseInstalledChrome        bool
 }
 
 // ParseOptions parses the command line options for application
@@ -299,6 +305,11 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Asn, "asn", false, "display host asn information"),
 		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "display cdn in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),
+	)
+
+	flagSet.CreateGroup("headless", "Headless",
+		flagSet.BoolVarP(&options.Screenshot, "screenshot", "ss", false, "enable saving screenshot of the page using headless browser"),
+		flagSet.BoolVar(&options.UseInstalledChrome, "system-chrome", false, "enable using local installed chrome for screenshot"),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",
@@ -412,7 +423,7 @@ func ParseOptions() *Options {
 		flagSet.IntVarP(&options.HostMaxErrors, "max-host-error", "maxhr", 30, "max error count per host before skipping remaining path/s"),
 		flagSet.BoolVarP(&options.ExcludeCDN, "exclude-cdn", "ec", false, "skip full port scans for CDNs (only checks for 80,443)"),
 		flagSet.IntVar(&options.Retries, "retries", 0, "number of retries"),
-		flagSet.IntVar(&options.Timeout, "timeout", 5, "timeout in seconds"),
+		flagSet.IntVar(&options.Timeout, "timeout", 10, "timeout in seconds"),
 		flagSet.DurationVar(&options.Delay, "delay", -1, "duration between each http request (eg: 200ms, 1s)"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", math.MaxInt32, "max response size to save in bytes"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", math.MaxInt32, "max response size to read in bytes"),
@@ -557,6 +568,10 @@ func (options *Options) ValidateOptions() error {
 		gologger.Debug().Msgf("Using resolvers: %s\n", strings.Join(options.Resolvers, ","))
 	}
 
+	if options.Screenshot && !options.StoreResponse {
+		gologger.Debug().Msgf("automatically enabling store response")
+		options.StoreResponse = true
+	}
 	if options.StoreResponse && options.StoreResponseDir == "" {
 		gologger.Debug().Msgf("Store response directory not specified, using \"%s\"\n", DefaultOutputDirectory)
 		options.StoreResponseDir = DefaultOutputDirectory
@@ -565,6 +580,7 @@ func (options *Options) ValidateOptions() error {
 		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
 		options.StoreResponse = true
 	}
+
 	if options.Hashes != "" {
 		for _, hashType := range strings.Split(options.Hashes, ",") {
 			if !slice.StringSliceContains([]string{"md5", "sha1", "sha256", "sha512", "mmh3", "simhash"}, strings.ToLower(hashType)) {

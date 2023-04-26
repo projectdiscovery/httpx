@@ -80,3 +80,10 @@ func LoadCidrsFromSliceOrFileWithMaxRecursion(option string, splitchar string, m
 
 	return
 }
+
+func AbsPathOrDefault(p string) string {
+	if absPath, err := filepath.Abs(p); err == nil {
+		return absPath
+	}
+	return p
+}
