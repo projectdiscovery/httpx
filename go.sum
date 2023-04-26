@@ -691,8 +691,8 @@ github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1 h1:QtT
 github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1/go.mod h1:EevMeCG1ogBoUJYaa0Mv9R1VUboDm/DiynId7DboKy0=
 github.com/projectdiscovery/clistats v0.0.12 h1:KLYJxpiwEFidduU4PbcwEcCQ2L7c5wrf7DI5IN5fZ+8=
 github.com/projectdiscovery/clistats v0.0.12/go.mod h1:9luKJj+7Hjq3+a7g129sKWRYx4SbTdkUWZQxabn3H5Y=
-github.com/projectdiscovery/dsl v0.0.6 h1:wO6K4yyDxjqHPF3xLGO3iM8qpyFfAqNBxhYgwRqQsxY=
-github.com/projectdiscovery/dsl v0.0.6/go.mod h1:LoI70ALos3Xp1uPa6itBPNmrmd8VhdqYKtky6ryfu2o=
+github.com/projectdiscovery/dsl v0.0.7 h1:Jn2dUN9Le7lrw8BvWcU50ueV+pQREhUkikDrIkjGpAs=
+github.com/projectdiscovery/dsl v0.0.7/go.mod h1:71bLB5xpDKWSFTMaiV49uG2Sl2AtO9FHsMNPJ4eCpoE=
 github.com/projectdiscovery/fastdialer v0.0.24 h1:yEyYALCmDQpPYWttZ4uo9AJseqt4mYWcyx3s9WYzqW8=
 github.com/projectdiscovery/fastdialer v0.0.24/go.mod h1:X7zZy3BGdGoprR6CftHKeJyV86a3OjSAlJcNU7FL26E=
 github.com/projectdiscovery/fdmax v0.0.4 h1:K9tIl5MUZrEMzjvwn/G4drsHms2aufTn1xUdeVcmhmc=
@@ -795,8 +795,8 @@ github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca/go.mod h1:uugorj
 github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d h1:hrujxIzL1woJ7AwssoOcM/tq5JjjG2yYOc8odClEiXA=
 github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d/go.mod h1:uugorj2VCxiV1x+LzaIdVa9b4S4qGAcH6cbhh4qVxOU=
 github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da/go.mod h1:gi+0XIa01GRL2eRQVjQkKGqKF3SF9vZR/HnPullcV2E=
-github.com/sashabaranov/go-openai v1.7.0 h1:D1dBXoZhtf/aKNu6WFf0c7Ah2NM30PZ/3Mqly6cZ7fk=
-github.com/sashabaranov/go-openai v1.7.0/go.mod h1:lj5b/K+zjTSFxVLijLSTDZuP7adOgerWeFyZLUhAKRg=
+github.com/sashabaranov/go-openai v1.8.0 h1:IZrNK/gGqxtp0j19F4NLGbmfoOkyDpM3oC9i/tv9bBM=
+github.com/sashabaranov/go-openai v1.8.0/go.mod h1:lj5b/K+zjTSFxVLijLSTDZuP7adOgerWeFyZLUhAKRg=
 github.com/sassoftware/go-rpmutils v0.0.0-20190420191620-a8f1baeba37b/go.mod h1:am+Fp8Bt506lA3Rk3QCmSqmYmLMnPDhdDUcosQCAx+I=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/sergi/go-diff v1.0.0/go.mod h1:0CfEIISq7TuYL3j771MWULgwwjU+GofnZX9QAmXWZgo=
