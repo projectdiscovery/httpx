@@ -12,7 +12,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.23
 	github.com/miekg/dns v1.1.53 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1
+	github.com/projectdiscovery/cdncheck v1.0.0
 	github.com/projectdiscovery/clistats v0.0.12
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
@@ -51,7 +51,7 @@ require (
 	github.com/projectdiscovery/utils v0.0.25
 	github.com/stretchr/testify v1.8.2
 	go.uber.org/multierr v1.11.0
-	golang.org/x/exp v0.0.0-20230315142452-642cacee5cc0
+	golang.org/x/exp v0.0.0-20230420155640-133eef4313cb
 )
 
 require (
@@ -126,7 +126,7 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
-	github.com/projectdiscovery/blackrock v0.0.0-20230328171319-f24b18d05b64 // indirect
+	github.com/projectdiscovery/blackrock v0.0.1 // indirect
 	github.com/projectdiscovery/freeport v0.0.4 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.4 // indirect
 	github.com/projectdiscovery/retryabledns v1.0.21 // indirect
@@ -159,7 +159,7 @@ require (
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/ulule/deepcopier v0.0.0-20200430083143-45decc6639b6 // indirect
 	github.com/urfave/cli v1.22.5 // indirect
-	github.com/weppos/publicsuffix-go v0.20.0 // indirect
+	github.com/weppos/publicsuffix-go v0.30.0 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	github.com/yl2chen/cidranger v1.0.2 // indirect
@@ -183,10 +183,10 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/zap v1.16.0 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
-	golang.org/x/mod v0.9.0 // indirect
+	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.7.0 // indirect
+	golang.org/x/tools v0.8.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20210624195500-8bfb893ecb84 // indirect
 	google.golang.org/grpc v1.38.0 // indirect
