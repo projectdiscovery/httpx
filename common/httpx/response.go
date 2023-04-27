@@ -12,7 +12,8 @@ import (
 type Response struct {
 	StatusCode    int
 	Headers       map[string][]string
-	Data          []byte
+	RawData       []byte // undecoded data
+	Data          []byte // decoded data
 	ContentLength int
 	Raw           string
 	RawHeaders    string

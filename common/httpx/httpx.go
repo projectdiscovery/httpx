@@ -14,7 +14,6 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
-	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 	pdhttputil "github.com/projectdiscovery/utils/http"
@@ -151,10 +150,7 @@ func New(options *Options) (*HTTPX, error) {
 	httpx.htmlPolicy = bluemonday.NewPolicy()
 	httpx.CustomHeaders = httpx.Options.CustomHeaders
 	if options.CdnCheck || options.ExcludeCdn {
-		httpx.cdn, err = cdncheck.NewWithCache()
-		if err != nil {
-			gologger.Error().Msgf("could not create cdn check: %v", err)
-		}
+		httpx.cdn = cdncheck.New()
 	}
 
 	return httpx, nil
@@ -217,6 +213,10 @@ get_response:
 	if closeErr != nil && !shouldIgnoreBodyErrors {
 		return nil, closeErr
 	}
+
+	// Todo: replace with https://github.com/projectdiscovery/utils/issues/110
+	resp.RawData = make([]byte, len(respbody))
+	copy(resp.RawData, respbody)
 
 	respbody, err = DecodeData(respbody, httpresp.Header)
 	if err != nil && !shouldIgnoreBodyErrors {
