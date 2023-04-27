@@ -34,8 +34,6 @@ const (
 	DefaultOutputDirectory = "output"
 )
 
-var defaultProviders = strings.Join(cdncheck.GetDefaultProviders(), ", ")
-
 // OnResultCallback (hostResult)
 type OnResultCallback func(Result)
 
@@ -85,6 +83,8 @@ type scanOptions struct {
 	OutputLinesCount          bool
 	OutputWordsCount          bool
 	Hashes                    string
+	Screenshot                bool
+	UseInstalledChrome        bool
 }
 
 func (s *scanOptions) Clone() *scanOptions {
@@ -131,6 +131,8 @@ func (s *scanOptions) Clone() *scanOptions {
 		OutputLinesCount:          s.OutputLinesCount,
 		OutputWordsCount:          s.OutputWordsCount,
 		Hashes:                    s.Hashes,
+		Screenshot:                s.Screenshot,
+		UseInstalledChrome:        s.UseInstalledChrome,
 	}
 }
 
@@ -262,6 +264,9 @@ type Options struct {
 	OutputMatchCondition      string
 	OnResult                  OnResultCallback
 	DisableUpdateCheck        bool
+	NoDecode                  bool
+	Screenshot                bool
+	UseInstalledChrome        bool
 }
 
 // ParseOptions parses the command line options for application
@@ -300,6 +305,11 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),
 	)
 
+	flagSet.CreateGroup("headless", "Headless",
+		flagSet.BoolVarP(&options.Screenshot, "screenshot", "ss", false, "enable saving screenshot of the page using headless browser"),
+		flagSet.BoolVar(&options.UseInstalledChrome, "system-chrome", false, "enable using local installed chrome for screenshot"),
+	)
+
 	flagSet.CreateGroup("matchers", "Matchers",
 		flagSet.StringVarP(&options.OutputMatchStatusCode, "match-code", "mc", "", "match response with specified status code (-mc 200,302)"),
 		flagSet.StringVarP(&options.OutputMatchContentLength, "match-length", "ml", "", "match response with specified content length (-ml 100,102)"),
@@ -308,7 +318,7 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", nil, "match response with specified favicon hash (-mfc 1494302000)", goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "match response with specified string (-ms admin)"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "match response with specified regex (-mr admin)"),
-		flagSet.StringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", nil, fmt.Sprintf("match host with specified cdn provider (%s)", defaultProviders), goflags.NormalizedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", nil, fmt.Sprintf("match host with specified cdn provider (%s)", cdncheck.DefaultCDNProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputMatchResponseTime, "match-response-time", "mrt", "", "match response with specified response time in seconds (-mrt '< 1')"),
 		flagSet.StringVarP(&options.OutputMatchCondition, "match-condition", "mdc", "", "match response with dsl expression condition"),
 	)
@@ -326,7 +336,7 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", nil, "filter response with specified favicon hash (-mfc 1494302000)", goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "filter response with specified string (-fs admin)"),
 		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "filter response with specified regex (-fe admin)"),
-		flagSet.StringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", nil, fmt.Sprintf("filter host with specified cdn provider (%s)", defaultProviders), goflags.NormalizedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", nil, fmt.Sprintf("filter host with specified cdn provider (%s)", cdncheck.DefaultCDNProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
 		flagSet.StringVarP(&options.OutputFilterCondition, "filter-condition", "fdc", "", "filter response with dsl expression condition"),
 	)
@@ -386,8 +396,9 @@ func ParseOptions() *Options {
 		flagSet.StringVar(&options.RequestBody, "body", "", "post body to include in http request"),
 		flagSet.BoolVarP(&options.Stream, "stream", "s", false, "stream mode - start elaborating input targets without sorting"),
 		flagSet.BoolVarP(&options.SkipDedupe, "skip-dedupe", "sd", false, "disable dedupe input items (only used with stream mode)"),
-		flagSet.BoolVarP(&options.LeaveDefaultPorts, "leave-default-ports", "ldp", false, "leave default http/https ports in host header (eg. http://host:80 - https//host:443"),
+		flagSet.BoolVarP(&options.LeaveDefaultPorts, "leave-default-ports", "ldp", false, "leave default http/https ports in host header (eg. http://host:80 - https://host:443"),
 		flagSet.BoolVar(&options.ZTLS, "ztls", false, "use ztls library with autofallback to standard one for tls13"),
+		flagSet.BoolVar(&options.NoDecode, "no-decode", false, "avoid decoding body"),
 	)
 
 	flagSet.CreateGroup("debug", "Debug",
@@ -410,7 +421,7 @@ func ParseOptions() *Options {
 		flagSet.IntVarP(&options.HostMaxErrors, "max-host-error", "maxhr", 30, "max error count per host before skipping remaining path/s"),
 		flagSet.BoolVarP(&options.ExcludeCDN, "exclude-cdn", "ec", false, "skip full port scans for CDNs (only checks for 80,443)"),
 		flagSet.IntVar(&options.Retries, "retries", 0, "number of retries"),
-		flagSet.IntVar(&options.Timeout, "timeout", 5, "timeout in seconds"),
+		flagSet.IntVar(&options.Timeout, "timeout", 10, "timeout in seconds"),
 		flagSet.DurationVar(&options.Delay, "delay", -1, "duration between each http request (eg: 200ms, 1s)"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", math.MaxInt32, "max response size to save in bytes"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", math.MaxInt32, "max response size to read in bytes"),
@@ -452,7 +463,7 @@ func ParseOptions() *Options {
 	}
 
 	if !options.DisableUpdateCheck {
-		latestVersion, err := updateutils.GetVersionCheckCallback("httpx")()
+		latestVersion, err := updateutils.GetToolVersionCallback("httpx", version)()
 		if err != nil {
 			if options.Verbose {
 				gologger.Error().Msgf("httpx version check failed: %v", err.Error())
@@ -555,6 +566,10 @@ func (options *Options) ValidateOptions() error {
 		gologger.Debug().Msgf("Using resolvers: %s\n", strings.Join(options.Resolvers, ","))
 	}
 
+	if options.Screenshot && !options.StoreResponse {
+		gologger.Debug().Msgf("automatically enabling store response")
+		options.StoreResponse = true
+	}
 	if options.StoreResponse && options.StoreResponseDir == "" {
 		gologger.Debug().Msgf("Store response directory not specified, using \"%s\"\n", DefaultOutputDirectory)
 		options.StoreResponseDir = DefaultOutputDirectory
@@ -563,6 +578,7 @@ func (options *Options) ValidateOptions() error {
 		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
 		options.StoreResponse = true
 	}
+
 	if options.Hashes != "" {
 		for _, hashType := range strings.Split(options.Hashes, ",") {
 			if !slice.StringSliceContains([]string{"md5", "sha1", "sha256", "sha512", "mmh3", "simhash"}, strings.ToLower(hashType)) {

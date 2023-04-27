@@ -11,5 +11,5 @@ func (h *HTTPX) CdnCheck(ip string) (bool, string, error) {
 		return false, "", fmt.Errorf("cdn client not configured")
 	}
 
-	return h.cdn.Check(net.ParseIP((ip)))
+	return h.cdn.CheckCDN(net.ParseIP((ip)))
 }
