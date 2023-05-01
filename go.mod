@@ -12,7 +12,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.23
 	github.com/miekg/dns v1.1.53 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/projectdiscovery/cdncheck v1.0.0
+	github.com/projectdiscovery/cdncheck v1.0.1
 	github.com/projectdiscovery/clistats v0.0.12
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
