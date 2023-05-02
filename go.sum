@@ -189,10 +189,8 @@ github.com/projectdiscovery/clistats v0.0.12 h1:KLYJxpiwEFidduU4PbcwEcCQ2L7c5wrf
 github.com/projectdiscovery/clistats v0.0.12/go.mod h1:9luKJj+7Hjq3+a7g129sKWRYx4SbTdkUWZQxabn3H5Y=
 github.com/projectdiscovery/dsl v0.0.8 h1:c++LiTVvVpGhWVI9jIZTRb69+4gKuS4rYMOhvw5nenY=
 github.com/projectdiscovery/dsl v0.0.8/go.mod h1:9qd8YW0EHT/vNIvg4Q/hnLChUMF/VDu476awC/1QI8I=
-github.com/projectdiscovery/fastdialer v0.0.25 h1:/j7M8sL35ZqpRYmz9hDjnWNBnN8Yj5iL0kab7qzp1nQ=
-github.com/projectdiscovery/fastdialer v0.0.25/go.mod h1:jQLHYaNsDc3MhpySVjKIo4o0GaUb07ISlDdkKURAxSo=
-github.com/projectdiscovery/fastdialer v0.0.26-0.20230501180938-d1f905f88ebf h1:+iQ8DG3nvhJ+bR9nD/3t8/zCZQd6OsJjE32absqzypU=
-github.com/projectdiscovery/fastdialer v0.0.26-0.20230501180938-d1f905f88ebf/go.mod h1:jQLHYaNsDc3MhpySVjKIo4o0GaUb07ISlDdkKURAxSo=
+github.com/projectdiscovery/fastdialer v0.0.26 h1:7dihwvnm76GU/cw0ViZvIlAB7dLHppifRYlVdJdMnRw=
+github.com/projectdiscovery/fastdialer v0.0.26/go.mod h1:kcWKnyh/H6iyZKlzQXSMZ4cDSZJpB4zdZV9W6PNty1k=
 github.com/projectdiscovery/fdmax v0.0.4 h1:K9tIl5MUZrEMzjvwn/G4drsHms2aufTn1xUdeVcmhmc=
 github.com/projectdiscovery/fdmax v0.0.4/go.mod h1:oZLqbhMuJ5FmcoaalOm31B1P4Vka/CqP50nWjgtSz+I=
 github.com/projectdiscovery/freeport v0.0.4 h1:H4VrK/7hUcC1zbg46zv9iSMBACBDpUqcHkV+FUyXISw=
@@ -207,8 +205,8 @@ github.com/projectdiscovery/hmap v0.0.11 h1:nA3qCFzWPcOw27T8PII5IWI3ZP0ys7TGCi2n
 github.com/projectdiscovery/hmap v0.0.11/go.mod h1:5sbLn2OHexvpVupStNOhusWO9jLCyEm5jcHwWB2nOkI=
 github.com/projectdiscovery/mapcidr v1.1.1 h1:68Xvw9cKugNeAVxHE3Nl1Ej26nm1taWq6e1WPXpluc0=
 github.com/projectdiscovery/mapcidr v1.1.1/go.mod h1:yyp9ghqmmC0+r5DySgDBXE4cf2QW8SBloVESCteWiAg=
-github.com/projectdiscovery/networkpolicy v0.0.5 h1:yiW1+nqtZmVB4RRt20Rhxs0tAO7ghPy+OY5kv3iaAG8=
-github.com/projectdiscovery/networkpolicy v0.0.5/go.mod h1:egI9+HL+Q80AzXs1PrOfARWZm1bAn6n3HMONM49uWS8=
+github.com/projectdiscovery/networkpolicy v0.0.6 h1:yDvm0XCrS9HeemRrBS+J+22surzVczM94W5nHiOy/1o=
+github.com/projectdiscovery/networkpolicy v0.0.6/go.mod h1:8HJQ/33Pi7v3a3MRWIQGXzpj+zHw2d60TysEL4qdoQk=
 github.com/projectdiscovery/ratelimit v0.0.6 h1:SAD2ArdT9F8NmbkAIZpl7DjNnbiXdUQLnMZt5dbVmZ0=
 github.com/projectdiscovery/ratelimit v0.0.6/go.mod h1:WFL6gIggPLTwYwDbxqQODuWrz/lcMP2E5ofKSAz3YwI=
 github.com/projectdiscovery/rawhttp v0.1.11 h1:NbfunXIVdmFWAhZ864fx09sQLnHOVTYKhAe9P2Cnass=
