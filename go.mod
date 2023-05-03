@@ -42,7 +42,7 @@ require (
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.3
-	github.com/projectdiscovery/dsl v0.0.8
+	github.com/projectdiscovery/dsl v0.0.9
 	github.com/projectdiscovery/fastdialer v0.0.26
 	github.com/projectdiscovery/ratelimit v0.0.6
 	github.com/projectdiscovery/tlsx v1.0.9
@@ -57,6 +57,7 @@ require (
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/Mzack9999/go-http-digest-auth-client v0.6.1-0.20220414142836-eb8883508809 // indirect
+	github.com/Mzack9999/gostruct v0.0.0-20230415193108-30b70932da81 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/alecthomas/chroma v0.10.0 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
@@ -103,7 +104,7 @@ require (
 	github.com/projectdiscovery/retryabledns v1.0.23 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
-	github.com/sashabaranov/go-openai v1.9.0 // indirect
+	github.com/sashabaranov/go-openai v1.9.1 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.3 // indirect
 	github.com/shoenig/go-m1cpu v0.1.4 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
