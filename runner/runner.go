@@ -964,6 +964,13 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 		}
 
 		for port, wantedProtocolForPort := range customport.Ports {
+			// NoFallbackScheme overrides custom ports scheme
+			// Example: httpx -u https://www.example.com -ports http:8080,https:443 --no-fallback-scheme
+			// In this case, the requests will be created with the target scheme (ignoring the custom ports scheme)
+			// Examples: https://www.example.com:8080 and https://www.example.com:443
+			if scanopts.NoFallbackScheme {
+				wantedProtocolForPort = protocol
+			}
 			wantedProtocols := []string{wantedProtocolForPort}
 			if wantedProtocolForPort == httpx.HTTPandHTTPS {
 				wantedProtocols = []string{httpx.HTTPS, httpx.HTTP}
