@@ -177,8 +177,8 @@ github.com/projectdiscovery/asnmap v1.0.3 h1:Jxo8bcLui9OphkABDEuuEYne0UWMvgSThRe
 github.com/projectdiscovery/asnmap v1.0.3/go.mod h1:tR5ZE2RxDvyPJ/w1mpmTusPeLW8rTz1ojZ5M4ATKeO4=
 github.com/projectdiscovery/blackrock v0.0.1 h1:lHQqhaaEFjgf5WkuItbpeCZv2DUIE45k0VbGJyft6LQ=
 github.com/projectdiscovery/blackrock v0.0.1/go.mod h1:ANUtjDfaVrqB453bzToU+YB4cUbvBRpLvEwoWIwlTss=
-github.com/projectdiscovery/cdncheck v1.0.2 h1:8bd7Ed8NgTyH4nyhf0jwRQdGIrTFsnQoPGr2shxR/xM=
-github.com/projectdiscovery/cdncheck v1.0.2/go.mod h1:6otjXPoRQ42LRbEUqOeTDvFwToOVJptdvlUkiXe/rEE=
+github.com/projectdiscovery/cdncheck v1.0.3 h1:bJn6tsciyyV094Y4C4HHVCV4LRT4dDcL5fDEGR0ln88=
+github.com/projectdiscovery/cdncheck v1.0.3/go.mod h1:NN0QRfxBzUVZJoS0lN37spElCOXHzFuvq1yg5RhTxCE=
 github.com/projectdiscovery/clistats v0.0.12 h1:KLYJxpiwEFidduU4PbcwEcCQ2L7c5wrf7DI5IN5fZ+8=
 github.com/projectdiscovery/clistats v0.0.12/go.mod h1:9luKJj+7Hjq3+a7g129sKWRYx4SbTdkUWZQxabn3H5Y=
 github.com/projectdiscovery/dsl v0.0.9 h1:VfznBxpbNKMn2amQd9gtRnMfK1/Sf9MwsJD9x2Et/fY=
@@ -205,8 +205,8 @@ github.com/projectdiscovery/ratelimit v0.0.6 h1:SAD2ArdT9F8NmbkAIZpl7DjNnbiXdUQL
 github.com/projectdiscovery/ratelimit v0.0.6/go.mod h1:WFL6gIggPLTwYwDbxqQODuWrz/lcMP2E5ofKSAz3YwI=
 github.com/projectdiscovery/rawhttp v0.1.11 h1:NbfunXIVdmFWAhZ864fx09sQLnHOVTYKhAe9P2Cnass=
 github.com/projectdiscovery/rawhttp v0.1.11/go.mod h1:aH95fdyjmvUmyQWPTnIcHv5ncjhisOki76nXqXZZYYg=
-github.com/projectdiscovery/retryabledns v1.0.23 h1:8X6HECevl6n7K7kxqfHLTcsCVXDdz9HR+1hS6fto7sw=
-github.com/projectdiscovery/retryabledns v1.0.23/go.mod h1:tj8BEe0jWCB4m3aAhHq4S2dqfpod0h+BiCZmXkXAGac=
+github.com/projectdiscovery/retryabledns v1.0.24 h1:CbC0a1EcyRDBcGFHZDGfW5orkWkOCfa0mAMF060XJpI=
+github.com/projectdiscovery/retryabledns v1.0.24/go.mod h1:bCmv0neiqgemgmFChevfX2BgCxIp8sn5OnbwL1Gov9M=
 github.com/projectdiscovery/retryablehttp-go v1.0.16 h1:xrEK9VVkLf0eN4bYOTc2Pg0qRqz47g8T823vqpCIsl8=
 github.com/projectdiscovery/retryablehttp-go v1.0.16/go.mod h1:9m76To4lNgBtVfqADzLxZg1wWajv6y/uYMWCOs1Olo8=
 github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZAja8BH3LqqJXMA=
