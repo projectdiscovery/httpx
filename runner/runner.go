@@ -986,7 +986,7 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 							gologger.Warning().Msgf("failed to update port of %v got %v", target.Host, err)
 						} else {
 							urlx.UpdatePort(fmt.Sprint(port))
-							target.Host = urlx.Host
+							target.Host = urlx.String()
 						}
 						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
