@@ -26,7 +26,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	dsl "github.com/projectdiscovery/dsl"
-	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/mapcidr/asn"
@@ -70,7 +69,6 @@ type Runner struct {
 	options         *Options
 	hp              *httpx.HTTPX
 	wappalyzer      *wappalyzer.Wappalyze
-	fastdialer      *fastdialer.Dialer
 	scanopts        ScanOptions
 	hm              *hybrid.HybridMap
 	stats           clistats.StatisticsClient
@@ -95,18 +93,6 @@ func New(options *Options) (*Runner, error) {
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "response", "index.txt"))
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
 	}
-	dialerOpts := fastdialer.DefaultOptions
-	dialerOpts.WithDialerHistory = true
-	dialerOpts.MaxRetries = 3
-	dialerOpts.DialerTimeout = time.Duration(options.Timeout) * time.Second
-	if len(options.Resolvers) > 0 {
-		dialerOpts.BaseResolvers = options.Resolvers
-	}
-	fastDialer, err := fastdialer.NewDialer(dialerOpts)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not create dialer")
-	}
-	runner.fastdialer = fastDialer
 
 	httpxOptions := httpx.DefaultOptions
 	// Enables automatically tlsgrab if tlsprobe is requested
@@ -1602,7 +1588,7 @@ retry:
 	}
 	jarmhash := ""
 	if r.options.Jarm {
-		jarmhash = jarm.Jarm(r.fastdialer, fullURL, r.options.Timeout)
+		jarmhash = jarm.Jarm(r.hp.Dialer, fullURL, r.options.Timeout)
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Magenta(jarmhash).String())
