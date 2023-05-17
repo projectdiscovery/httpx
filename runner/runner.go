@@ -1346,7 +1346,7 @@ retry:
 	}
 
 	sslcert := httpx.OutputSSLCert(resp)
-	if scanopts.OutputTitle {
+	if scanopts.OutputSSLCert {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Cyan(sslcert).String())
