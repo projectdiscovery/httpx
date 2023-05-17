@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"net"
 	"net/http"
-
+	"strings"
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 )
 
@@ -46,6 +46,16 @@ func (h *HTTPX) TLSGrab(r *http.Response) *clients.Response {
 		ServerName:          r.TLS.ServerName,
 	}
 	return response
+}
+
+func OutputSSLCert(r *Response) (sslCert string) {
+	// Try to parse the DOM
+	if r.TLSData != nil && r.TLSData.CertificateResponse.SubjectAN!=nil{
+		sslCert := strings.Join(r.TLSData.CertificateResponse.SubjectAN,",")
+		return(sslCert)
+	}
+
+	return ""
 }
 
 func convertCertificateToResponse(hostname string, cert *x509.Certificate) *clients.CertificateResponse {

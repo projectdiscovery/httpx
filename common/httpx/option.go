@@ -27,6 +27,7 @@ type Options struct {
 	MaxRedirects         int
 	Unsafe               bool
 	TLSGrab              bool
+	OutputSSLCert       bool
 	ZTLS                 bool
 	// VHOSTs options
 	VHostIgnoreStatusCode     bool

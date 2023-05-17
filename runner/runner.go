@@ -210,6 +210,7 @@ func New(options *Options) (*Runner, error) {
 	runner.options.protocol = httpx.HTTPorHTTPS
 	scanopts.VHost = options.VHost
 	scanopts.OutputTitle = options.ExtractTitle
+	scanopts.OutputSSLCert = options.OutputSSLCert
 	scanopts.OutputStatusCode = options.StatusCode
 	scanopts.OutputLocation = options.Location
 	scanopts.OutputContentLength = options.ContentLength
@@ -1344,6 +1345,16 @@ retry:
 		builder.WriteRune(']')
 	}
 
+	sslcert := httpx.OutputSSLCert(resp)
+	if scanopts.OutputTitle {
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Cyan(sslcert).String())
+		} else {
+			builder.WriteString(sslcert)
+		}
+		builder.WriteRune(']')
+	}
 	serverHeader := resp.GetHeader("Server")
 	if scanopts.OutputServerHeader {
 		builder.WriteString(fmt.Sprintf(" [%s]", serverHeader))

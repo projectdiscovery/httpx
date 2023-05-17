@@ -57,6 +57,7 @@ type ScanOptions struct {
 	ChainInStdout             bool
 	TLSProbe                  bool
 	CSPProbe                  bool
+	OutputSSLCert       	  bool
 	VHostInput                bool
 	OutputContentType         bool
 	Unsafe                    bool
@@ -108,6 +109,7 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		ChainInStdout:             s.ChainInStdout,
 		TLSProbe:                  s.TLSProbe,
 		CSPProbe:                  s.CSPProbe,
+		OutputSSLCert:       	   s.OutputSSLCert,
 		OutputContentType:         s.OutputContentType,
 		Unsafe:                    s.Unsafe,
 		Pipeline:                  s.Pipeline,
@@ -197,6 +199,7 @@ type Options struct {
 	OutputMethod              bool
 	TLSProbe                  bool
 	CSPProbe                  bool
+	OutputSSLCert       	  bool
 	OutputContentType         bool
 	OutputIP                  bool
 	OutputCName               bool
@@ -354,6 +357,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.TLSProbe, "tls-probe", false, "send http probes on the extracted TLS domains (dns_name)"),
 		flagSet.BoolVar(&options.CSPProbe, "csp-probe", false, "send http probes on the extracted CSP domains"),
 		flagSet.BoolVar(&options.TLSGrab, "tls-grab", false, "perform TLS(SSL) data grabbing"),
+		flagSet.BoolVar(&options.OutputSSLCert, "ssl-grab", false, "show ssl certs"),
 		flagSet.BoolVar(&options.Pipeline, "pipeline", false, "probe and display server supporting HTTP1.1 pipeline"),
 		flagSet.BoolVar(&options.HTTP2Probe, "http2", false, "probe and display server supporting HTTP2"),
 		flagSet.BoolVar(&options.VHost, "vhost", false, "probe and display server supporting VHOST"),
