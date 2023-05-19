@@ -262,11 +262,12 @@ type Options struct {
 	ListDSLVariable           bool
 	OutputFilterCondition     string
 	OutputMatchCondition      string
-	OnResult                  OnResultCallback
-	DisableUpdateCheck        bool
-	NoDecode                  bool
-	Screenshot                bool
-	UseInstalledChrome        bool
+	//The OnResult callback function is invoked for each result. It is important to check for errors in the result before using Result.Err.
+	OnResult           OnResultCallback
+	DisableUpdateCheck bool
+	NoDecode           bool
+	Screenshot         bool
+	UseInstalledChrome bool
 }
 
 // ParseOptions parses the command line options for application
