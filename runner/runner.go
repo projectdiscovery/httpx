@@ -286,8 +286,6 @@ func New(options *Options) (*Runner, error) {
 		}
 	}
 
-	hmapOptions := hybrid.DefaultDiskOptions
-	hmapOptions.DBType = hybrid.PogrebDB
 	hm, err := hybrid.New(hybrid.DefaultDiskOptions)
 	if err != nil {
 		return nil, err
