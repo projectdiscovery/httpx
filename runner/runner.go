@@ -683,7 +683,7 @@ func (r *Runner) RunEnumeration() {
 				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
 				_, _ = indexFile.WriteString(indexData)
 			}
-			if indexScreenshotFile != nil {
+			if indexScreenshotFile != nil && resp.ScreenshotPath != "" {
 				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.ScreenshotPath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
 				_, _ = indexScreenshotFile.WriteString(indexData)
 			}
@@ -1680,12 +1680,12 @@ retry:
 		headlessBody    string
 	)
 	if scanopts.Screenshot {
-		screenshotPath = fileutilz.AbsPathOrDefault(filepath.Join(screenshotBaseDir, screenshotResponseFile))
 		var err error
 		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, r.hp.Options.Timeout)
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
+			screenshotPath = fileutilz.AbsPathOrDefault(filepath.Join(screenshotBaseDir, screenshotResponseFile))
 			_ = fileutil.CreateFolder(screenshotBaseDir)
 			err := os.WriteFile(screenshotPath, screenshotBytes, 0644)
 			if err != nil {
