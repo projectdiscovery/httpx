@@ -122,6 +122,7 @@ func New(options *Options) (*Runner, error) {
 		httpxOptions.MaxResponseBodySizeToSave = httpxOptions.MaxResponseBodySizeToRead
 	}
 	httpxOptions.Resolvers = options.Resolvers
+	httpxOptions.TlsImpersonate = options.TlsImpersonate
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
