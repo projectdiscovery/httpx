@@ -12,7 +12,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.24
 	github.com/miekg/dns v1.1.54 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/projectdiscovery/cdncheck v1.0.6
+	github.com/projectdiscovery/cdncheck v1.0.8
 	github.com/projectdiscovery/clistats v0.0.12
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
@@ -46,8 +46,8 @@ require (
 	github.com/projectdiscovery/fastdialer v0.0.26
 	github.com/projectdiscovery/ratelimit v0.0.8
 	github.com/projectdiscovery/tlsx v1.0.9
-	github.com/projectdiscovery/utils v0.0.32
-	github.com/stretchr/testify v1.8.3
+	github.com/projectdiscovery/utils v0.0.34
+	github.com/stretchr/testify v1.8.4
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20230420155640-133eef4313cb
 )
@@ -101,7 +101,7 @@ require (
 	github.com/projectdiscovery/blackrock v0.0.1 // indirect
 	github.com/projectdiscovery/freeport v0.0.4 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.6 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.24 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.26 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/sashabaranov/go-openai v1.9.1 // indirect
