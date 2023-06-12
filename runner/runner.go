@@ -1701,6 +1701,108 @@ retry:
 				gologger.Error().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
 			}
 		}
+
+		HTMLBeginning := `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Screenshot Table</title>
+    <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    table {
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid black;
+    }
+
+    .thumbnail {
+      width: 400px;
+      height: 300px;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <table>
+    <thead>
+      <tr>
+        <th>Response Info</th>
+        <th>Screenshot</th>
+      </tr>
+    </thead>
+    <tbody>
+`
+		HTMLEnd := `    </tbody>
+</table>
+</body>
+</html>`
+		HTMLRow := fmt.Sprintf(`
+      <tr>
+        <td>%s</td>
+        <td>
+          <a href="%s" target="_blank">
+            <img src="%s" alt="Screenshot" class="thumbnail">
+          </a>
+        </td>
+
+      </tr>`, fullURL, screenshotPath, screenshotPath)
+		var HTMLScreenshotFile *os.File
+		defer HTMLScreenshotFile.Close()
+		HTMLPath := filepath.Join(domainScreenshotBaseDir, "screenshot.html")
+
+		// check if the html exists in the saving path, if not create it
+		_, err = os.Stat(HTMLPath)
+		if os.IsNotExist(err) {
+			if HTMLScreenshotFile, err = os.Create(HTMLPath); err != nil {
+				gologger.Error().Msgf("Could not create a new HTML file at path '%s': %s", HTMLPath, err)
+			}
+
+			if _, err = HTMLScreenshotFile.WriteString(HTMLBeginning); err != nil {
+				gologger.Error().Msgf("Could not write the base HTML to the HTML file: %s", err)
+			}
+
+			if _, err = HTMLScreenshotFile.WriteString(HTMLRow); err != nil {
+				gologger.Error().Msgf("Could not write the new row to the HTML file: %s", err)
+			}
+		} else {
+			if HTMLScreenshotFile, err = os.OpenFile(HTMLPath, os.O_RDWR, 0600); err != nil {
+				gologger.Error().Msgf("Could not open the HTML file at path '%s': %s", HTMLPath, err)
+			}
+
+			HTMLByte, _ := io.ReadAll(HTMLScreenshotFile)
+			HTMLString := string(HTMLByte)
+
+			index := strings.Index(HTMLString, HTMLEnd)
+			if index == -1 {
+				gologger.Error().Msgf("Could not find the end of the HTML file: %s", err)
+			}
+
+			HTMLString = HTMLString[:index]
+			HTMLString += HTMLRow
+
+			if err = os.WriteFile(HTMLPath, []byte(HTMLString), 0600); err != nil {
+				gologger.Error().Msgf("Could not write to the HTML file: %s", err)
+			}
+		}
+
+		if _, err = HTMLScreenshotFile.Seek(0, io.SeekEnd); err != nil {
+			gologger.Error().Msgf("Could not find the end of the HTML file: %s", err)
+		}
+
+		if _, err = HTMLScreenshotFile.WriteString(HTMLEnd); err != nil {
+			gologger.Error().Msgf("Could not write the end of the HTML file: %s", err)
+		}
 	}
 
 	result := Result{
