@@ -1712,7 +1712,6 @@ retry:
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
     }
 
     table {
@@ -1761,7 +1760,6 @@ retry:
 		defer HTMLScreenshotFile.Close()
 		HTMLPath := filepath.Join(domainScreenshotBaseDir, "screenshot.html")
 
-		// check if the html exists in the saving path, if not create it
 		_, err = os.Stat(HTMLPath)
 		if os.IsNotExist(err) {
 			if HTMLScreenshotFile, err = os.Create(HTMLPath); err != nil {
