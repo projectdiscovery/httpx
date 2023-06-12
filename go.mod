@@ -22,7 +22,7 @@ require (
 	github.com/projectdiscovery/mapcidr v1.1.2
 	github.com/projectdiscovery/rawhttp v0.1.12
 	github.com/projectdiscovery/retryablehttp-go v1.0.17
-	github.com/projectdiscovery/wappalyzergo v0.0.97
+	github.com/projectdiscovery/wappalyzergo v0.0.100
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
 	go.etcd.io/bbolt v1.3.7 // indirect
