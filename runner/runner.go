@@ -1701,7 +1701,7 @@ retry:
 				gologger.Error().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
 			}
 		}
-
+		technologiesString := strings.Join(technologies, ", ")
 		HTMLBeginning := `
 <!DOCTYPE html>
 <html>
@@ -1733,12 +1733,12 @@ retry:
   </style>
 </head>
 <body>
-  <table>
+  <table style="margin: 20px auto; border-collapse: collapse;">
     <thead>
-      <tr>
-        <th>Response Info</th>
-        <th>Screenshot</th>
-      </tr>
+    <tr>
+        <th style="padding: 10px; text-align: center; border: 1px solid black;"><strong>Response Info</strong></th>
+        <th style="padding: 10px; text-align: center; border: 1px solid black;"><strong>Screenshot</strong></th>
+    </tr>
     </thead>
     <tbody>
 `
@@ -1748,14 +1748,21 @@ retry:
 </html>`
 		HTMLRow := fmt.Sprintf(`
       <tr>
-        <td>%s</td>
-        <td>
-          <a href="%s" target="_blank">
-            <img src="%s" alt="Screenshot" class="thumbnail">
-          </a>
+        <td style="padding: 10px; border: 1px solid black;">
+            <ul style="list-style-type: none; padding-left: 0;">
+                <li><strong>Host:</strong> <a style="text-decoration: none; color: blue;">%s</a></li>
+                <li><strong>Status Code:</strong> <a style="text-decoration: none; color: blue;">%d</a></li>
+                <li><strong>Title:</strong> <a style="text-decoration: none; color: blue;">%s</a></li>
+                <li><strong>WebServer:</strong> <a style="text-decoration: none; color: blue;">%s</a></li>
+                <li><strong>Technologies:</strong> <a style="text-decoration: none; color: blue;">%s</a></li>
+            </ul>
         </td>
-
-      </tr>`, fullURL, screenshotPath, screenshotPath)
+        <td style="padding: 10px; border: 1px solid black;">
+            <a href="%s" target="_blank">
+                <img src="%s" alt="Screenshot" style="width: 400px; height: 300px;">
+            </a>
+        </td>
+      </tr>`, fullURL, resp.StatusCode, title, serverHeader, technologiesString, screenshotPath, screenshotPath)
 		var HTMLScreenshotFile *os.File
 		defer HTMLScreenshotFile.Close()
 		HTMLPath := filepath.Join(domainScreenshotBaseDir, "screenshot.html")
