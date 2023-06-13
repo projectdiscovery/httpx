@@ -18,7 +18,7 @@ require (
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.9
 	github.com/projectdiscovery/gologger v1.1.10
-	github.com/projectdiscovery/hmap v0.0.12
+	github.com/projectdiscovery/hmap v0.0.13
 	github.com/projectdiscovery/mapcidr v1.1.2
 	github.com/projectdiscovery/rawhttp v0.1.13
 	github.com/projectdiscovery/retryablehttp-go v1.0.17
