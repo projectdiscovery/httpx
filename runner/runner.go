@@ -1692,7 +1692,8 @@ retry:
 				gologger.Error().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
 			}
 		}
-		technologiesString := strings.Join(technologies, ", ")
+
+		// HTML Output
 		HTMLBeginning := `
 <!DOCTYPE html>
 <html>
@@ -1742,10 +1743,6 @@ retry:
         <td style="padding: 10px; border: 1px solid black;">
             <ul style="list-style-type: none; padding-left: 0;">
                 <li><strong>Host:</strong> <a style="text-decoration: none; color: blue;">%s</a></li>
-                <li><strong>Status Code:</strong> <a style="text-decoration: none; color: blue;">%d</a></li>
-                <li><strong>Title:</strong> <a style="text-decoration: none; color: blue;">%s</a></li>
-                <li><strong>WebServer:</strong> <a style="text-decoration: none; color: blue;">%s</a></li>
-                <li><strong>Technologies:</strong> <a style="text-decoration: none; color: blue;">%s</a></li>
             </ul>
         </td>
         <td style="padding: 10px; border: 1px solid black;">
@@ -1753,7 +1750,45 @@ retry:
                 <img src="%s" alt="Screenshot" style="width: 400px; height: 300px;">
             </a>
         </td>
-      </tr>`, fullURL, resp.StatusCode, title, serverHeader, technologiesString, screenshotPath, screenshotPath)
+      </tr>`, fullURL, screenshotPath, screenshotPath)
+		if scanopts.OutputStatusCode {
+			HTMLRow = appendLineToRow(HTMLRow, "Status Code", resp.StatusCode)
+		}
+		if scanopts.OutputTitle {
+			HTMLRow = appendLineToRow(HTMLRow, "Title", title)
+		}
+		if scanopts.OutputContentLength {
+			HTMLRow = appendLineToRow(HTMLRow, "Content-Length", resp.ContentLength)
+		}
+		if scanopts.OutputLocation {
+			HTMLRow = appendLineToRow(HTMLRow, "Location", resp.GetHeaderPart("Location", ";"))
+		}
+		if scanopts.Favicon {
+			HTMLRow = appendLineToRow(HTMLRow, "Favicon", faviconMMH3)
+		}
+		if scanopts.OutputResponseTime {
+			HTMLRow = appendLineToRow(HTMLRow, "Response Duration", resp.Duration)
+		}
+		if scanopts.OutputLinesCount {
+			HTMLRow = appendLineToRow(HTMLRow, "Response Line Count", resp.Lines)
+		}
+		if scanopts.OutputWordsCount {
+			HTMLRow = appendLineToRow(HTMLRow, "Response Word Count", resp.Words)
+		}
+		if scanopts.OutputServerHeader {
+			HTMLRow = appendLineToRow(HTMLRow, "Server", serverHeader)
+		}
+		if scanopts.TechDetect {
+			technologiesString := strings.Join(technologies, ", ")
+			HTMLRow = appendLineToRow(HTMLRow, "Technologies", technologiesString)
+		}
+		if scanopts.OutputIP {
+			HTMLRow = appendLineToRow(HTMLRow, "IP", ip)
+		}
+		if scanopts.OutputCDN && isCDN && err == nil {
+			HTMLRow = appendLineToRow(HTMLRow, "CDN", cdnName)
+		}
+
 		var HTMLScreenshotFile *os.File
 		defer HTMLScreenshotFile.Close()
 		HTMLPath := filepath.Join(domainScreenshotBaseDir, "screenshot.html")
@@ -2061,4 +2096,13 @@ func normalizeHeaders(headers map[string][]string) map[string]interface{} {
 		normalized[strings.ReplaceAll(strings.ToLower(k), "-", "_")] = strings.Join(v, ", ")
 	}
 	return normalized
+}
+
+func appendLineToRow(HTMLRow, title string, value interface{}) string {
+	line := fmt.Sprintf("<li><strong>%s:</strong> <a style=\"text-decoration: none; color: blue;\">%v</a></li>\n</ul>", title, value)
+	before, after, _ := strings.Cut(HTMLRow, "</ul>")
+	before += line
+	before += after
+
+	return before
 }
