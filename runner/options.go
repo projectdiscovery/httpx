@@ -85,6 +85,7 @@ type ScanOptions struct {
 	Hashes                    string
 	Screenshot                bool
 	UseInstalledChrome        bool
+	DisableStdini             bool
 }
 
 func (s *ScanOptions) Clone() *ScanOptions {
@@ -269,6 +270,7 @@ type Options struct {
 	Screenshot         bool
 	UseInstalledChrome bool
 	TlsImpersonate     bool
+	DisableStdin       bool
 }
 
 // ParseOptions parses the command line options for application
@@ -402,6 +404,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.ZTLS, "ztls", false, "use ztls library with autofallback to standard one for tls13"),
 		flagSet.BoolVar(&options.NoDecode, "no-decode", false, "avoid decoding body"),
 		flagSet.BoolVar(&options.TlsImpersonate, "tls-impersonate", false, "tls impersonate (random)"),
+		flagSet.BoolVar(&options.DisableStdin, "no-stdin", false, "Disable Stdin processing"),
 	)
 
 	flagSet.CreateGroup("debug", "Debug",
