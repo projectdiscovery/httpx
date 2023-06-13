@@ -85,6 +85,7 @@ type ScanOptions struct {
 	Hashes                    string
 	Screenshot                bool
 	UseInstalledChrome        bool
+	DisableStdini             bool
 }
 
 func (s *ScanOptions) Clone() *ScanOptions {
@@ -262,11 +263,13 @@ type Options struct {
 	ListDSLVariable           bool
 	OutputFilterCondition     string
 	OutputMatchCondition      string
-	OnResult                  OnResultCallback
-	DisableUpdateCheck        bool
-	NoDecode                  bool
-	Screenshot                bool
-	UseInstalledChrome        bool
+	//The OnResult callback function is invoked for each result. It is important to check for errors in the result before using Result.Err.
+	OnResult           OnResultCallback
+	DisableUpdateCheck bool
+	NoDecode           bool
+	Screenshot         bool
+	UseInstalledChrome bool
+	DisableStdin       bool
 }
 
 // ParseOptions parses the command line options for application
@@ -399,6 +402,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.LeaveDefaultPorts, "leave-default-ports", "ldp", false, "leave default http/https ports in host header (eg. http://host:80 - https://host:443"),
 		flagSet.BoolVar(&options.ZTLS, "ztls", false, "use ztls library with autofallback to standard one for tls13"),
 		flagSet.BoolVar(&options.NoDecode, "no-decode", false, "avoid decoding body"),
+		flagSet.BoolVar(&options.DisableStdin, "no-stdin", false, "Disable Stdin processing"),
 	)
 
 	flagSet.CreateGroup("debug", "Debug",
