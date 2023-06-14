@@ -18,7 +18,7 @@ require (
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.9
 	github.com/projectdiscovery/gologger v1.1.10
-	github.com/projectdiscovery/hmap v0.0.12
+	github.com/projectdiscovery/hmap v0.0.13
 	github.com/projectdiscovery/mapcidr v1.1.2
 	github.com/projectdiscovery/rawhttp v0.1.13
 	github.com/projectdiscovery/retryablehttp-go v1.0.17
@@ -28,7 +28,7 @@ require (
 	go.etcd.io/bbolt v1.3.7 // indirect
 	golang.org/x/net v0.10.0
 	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/text v0.9.0
+	golang.org/x/text v0.10.0
 )
 
 require github.com/spaolacci/murmur3 v1.1.0
