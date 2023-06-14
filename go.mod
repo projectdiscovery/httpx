@@ -52,6 +52,8 @@ require (
 	golang.org/x/exp v0.0.0-20230420155640-133eef4313cb
 )
 
+require github.com/projectdiscovery/stringsutil v0.0.2 // indirect
+
 require (
 	aead.dev/minisign v0.2.0 // indirect
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
@@ -102,6 +104,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.4 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.6 // indirect
 	github.com/projectdiscovery/retryabledns v1.0.29 // indirect
+	github.com/projectdiscovery/useragent v0.0.1
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/sashabaranov/go-openai v1.9.1 // indirect

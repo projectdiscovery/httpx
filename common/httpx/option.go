@@ -9,6 +9,7 @@ import (
 // Options contains configuration options for the client
 type Options struct {
 	RandomAgent      bool
+	RandomAgentType  []string
 	DefaultUserAgent string
 	HTTPProxy        string
 	SocksProxy       string

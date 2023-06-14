@@ -111,6 +111,7 @@ func New(options *Options) (*Runner, error) {
 		httpxOptions.RandomAgent = false
 	} else {
 		httpxOptions.RandomAgent = options.RandomAgent
+		httpxOptions.RandomAgentType = options.RandomAgentType
 	}
 	httpxOptions.Deny = options.Deny
 	httpxOptions.Allow = options.Allow

@@ -210,8 +210,11 @@ github.com/projectdiscovery/retryabledns v1.0.29/go.mod h1:NtbDTfcsW9hIUf0HuVQNZ
 github.com/projectdiscovery/retryablehttp-go v1.0.17 h1:oppnrypatWsHxcMU5RuAcUsUu3nxBhId2CF3OBj9XJA=
 github.com/projectdiscovery/retryablehttp-go v1.0.17/go.mod h1:zJh8bQdxhIsaEGnxsacvMbgiCKT4UAOr4T1kZBnSa68=
 github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZAja8BH3LqqJXMA=
+github.com/projectdiscovery/stringsutil v0.0.2/go.mod h1:EJ3w6bC5fBYjVou6ryzodQq37D5c6qbAYQpGmAy+DC0=
 github.com/projectdiscovery/tlsx v1.0.9 h1:StUwVpPG0lrXq6FvxbFarPM+fu9Vke1sOPoyJcBVOFA=
 github.com/projectdiscovery/tlsx v1.0.9/go.mod h1:4vGhl8lxUWjXuyoVvnL2ObMY/FSrb9Mpx5U2KaTV05A=
+github.com/projectdiscovery/useragent v0.0.1 h1:8n+jPle8gOTUNjxU/GvV5POtfpBZxeFQBLK3fG8lJJs=
+github.com/projectdiscovery/useragent v0.0.1/go.mod h1:C3m9gELPT7tPx9QdBVSoduJwuemQGN2sq/J41mVYV0o=
 github.com/projectdiscovery/utils v0.0.37 h1:axtIvjrguwhwKCBajj3N3MCmetfi4XLUI9UUpEhxtbQ=
 github.com/projectdiscovery/utils v0.0.37/go.mod h1:sy0CqulJzn95Ro24VQPlDvwxV9yxl8YMoTDYQNxr85U=
 github.com/projectdiscovery/wappalyzergo v0.0.100 h1:qDBDr0AnEmgMa5PTco9k+EtSUkeI2O9HprK7X3eVt1o=
@@ -225,6 +228,7 @@ github.com/rivo/uniseg v0.4.4/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUc
 github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=
 github.com/rs/xid v1.5.0 h1:mKX4bl4iPYJtEIxp6CYiUuLQ/8DYMoz0PUdtGgMFRVc=
 github.com/rs/xid v1.5.0/go.mod h1:trrq9SKmegXys3aeAKXMUTdJsYXVwGY3RLcfgqegfbg=
+github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca/go.mod h1:uugorj2VCxiV1x+LzaIdVa9b4S4qGAcH6cbhh4qVxOU=
 github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d h1:hrujxIzL1woJ7AwssoOcM/tq5JjjG2yYOc8odClEiXA=
 github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d/go.mod h1:uugorj2VCxiV1x+LzaIdVa9b4S4qGAcH6cbhh4qVxOU=
 github.com/sashabaranov/go-openai v1.9.1 h1:3N52HkJKo9Zlo/oe1AVv5ZkCOny0ra58/ACvAxkN3MM=
