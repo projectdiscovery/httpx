@@ -403,7 +403,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.LeaveDefaultPorts, "leave-default-ports", "ldp", false, "leave default http/https ports in host header (eg. http://host:80 - https://host:443"),
 		flagSet.BoolVar(&options.ZTLS, "ztls", false, "use ztls library with autofallback to standard one for tls13"),
 		flagSet.BoolVar(&options.NoDecode, "no-decode", false, "avoid decoding body"),
-		flagSet.BoolVar(&options.TlsImpersonate, "tls-impersonate", false, "tls impersonate (random)"),
+		flagSet.BoolVarP(&options.TlsImpersonate, "tls-impersonate", "tlsi", false, "enable tls connection impersonation (random)"),
 		flagSet.BoolVar(&options.DisableStdin, "no-stdin", false, "Disable Stdin processing"),
 	)
 
