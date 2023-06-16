@@ -546,6 +546,7 @@ func (r *Runner) Close() {
 	// nolint:errcheck // ignore
 	r.hm.Close()
 	r.hp.Dialer.Close()
+	r.ratelimiter.Stop()
 	if r.options.HostMaxErrors >= 0 {
 		r.HostErrorsCache.Purge()
 	}
