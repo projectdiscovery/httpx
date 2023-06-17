@@ -123,6 +123,7 @@ func New(options *Options) (*Runner, error) {
 		httpxOptions.MaxResponseBodySizeToSave = httpxOptions.MaxResponseBodySizeToRead
 	}
 	httpxOptions.Resolvers = options.Resolvers
+	httpxOptions.TlsImpersonate = options.TlsImpersonate
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
@@ -374,11 +375,18 @@ func (r *Runner) prepareInput() {
 		r.stats.AddCounter("hosts", 0)
 		r.stats.AddStatic("startedAt", time.Now())
 		r.stats.AddCounter("requests", 0)
-
-		err := r.stats.Start(makePrintCallback(), time.Duration(r.options.StatsInterval)*time.Second)
+		r.stats.AddDynamic("summary", makePrintCallback())
+		err := r.stats.Start()
 		if err != nil {
 			gologger.Warning().Msgf("Could not create statistics: %s\n", err)
 		}
+
+		r.stats.GetStatResponse(time.Duration(r.options.StatsInterval)*time.Second, func(s string, err error) error {
+			if err != nil && r.options.Verbose {
+				gologger.Error().Msgf("Could not read statistics: %s\n", err)
+			}
+			return nil
+		})
 	}
 }
 
@@ -497,9 +505,9 @@ var (
 	lastRequestsCount float64
 )
 
-func makePrintCallback() func(stats clistats.StatisticsClient) {
+func makePrintCallback() func(stats clistats.StatisticsClient) interface{} {
 	builder := &strings.Builder{}
-	return func(stats clistats.StatisticsClient) {
+	return func(stats clistats.StatisticsClient) interface{} {
 		startedAt, _ := stats.GetStatic("startedAt")
 		duration := time.Since(startedAt.(time.Time))
 
@@ -534,11 +542,12 @@ func makePrintCallback() func(stats clistats.StatisticsClient) {
 		builder.WriteRune(')')
 
 		builder.WriteRune('\n')
-
-		fmt.Fprintf(os.Stderr, "%s", builder.String())
+		statString := builder.String()
+		fmt.Fprintf(os.Stderr, "%s", statString)
 		builder.Reset()
 
 		lastRequestsCount = currentRequests
+		return statString
 	}
 }
 
