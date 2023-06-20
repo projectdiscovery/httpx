@@ -20,7 +20,7 @@ require (
 	github.com/projectdiscovery/gologger v1.1.10
 	github.com/projectdiscovery/hmap v0.0.13
 	github.com/projectdiscovery/mapcidr v1.1.2
-	github.com/projectdiscovery/rawhttp v0.1.13
+	github.com/projectdiscovery/rawhttp v0.1.15
 	github.com/projectdiscovery/retryablehttp-go v1.0.17
 	github.com/projectdiscovery/wappalyzergo v0.0.100
 	github.com/remeh/sizedwaitgroup v1.0.0
@@ -46,7 +46,7 @@ require (
 	github.com/projectdiscovery/fastdialer v0.0.29
 	github.com/projectdiscovery/ratelimit v0.0.8
 	github.com/projectdiscovery/tlsx v1.0.9
-	github.com/projectdiscovery/utils v0.0.37
+	github.com/projectdiscovery/utils v0.0.38
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20230420155640-133eef4313cb
@@ -139,7 +139,7 @@ require (
 	github.com/zmap/zcrypto v0.0.0-20230205235340-d51ce4775101 // indirect
 	golang.org/x/crypto v0.10.0 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/oauth2 v0.8.0 // indirect
+	golang.org/x/oauth2 v0.9.0 // indirect
 	golang.org/x/tools v0.8.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.29.1 // indirect
