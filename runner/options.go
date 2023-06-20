@@ -146,6 +146,7 @@ type Options struct {
 	filterStatusCode          []int
 	filterContentLength       []int
 	Output                    string
+	OutputAll                 bool
 	StoreResponseDir          string
 	HTTPProxy                 string
 	SocksProxy                string
@@ -370,6 +371,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("output", "Output",
 		flagSet.StringVarP(&options.Output, "output", "o", "", "file to write output results"),
+		flagSet.BoolVarP(&options.OutputAll, "output-all", "oA", false, "filename to write output results in all formats"),
 		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
 		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in csv format"),
@@ -433,6 +435,11 @@ func ParseOptions() *Options {
 
 	_ = flagSet.Parse()
 
+	if options.OutputAll {
+		options.JSONOutput = true
+		options.CSVOutput = true
+	}
+
 	if options.HealthCheck {
 		gologger.Print().Msgf("%s\n", DoHealthCheck(options, flagSet))
 		os.Exit(0)
@@ -491,11 +498,6 @@ func (options *Options) ValidateOptions() error {
 
 	if options.InputRawRequest != "" && !fileutil.FileExists(options.InputRawRequest) {
 		return fmt.Errorf("file '%s' does not exist", options.InputRawRequest)
-	}
-
-	multiOutput := options.CSVOutput && options.JSONOutput
-	if multiOutput {
-		return fmt.Errorf("results can only be displayed in one format: 'JSON' or 'CSV'")
 	}
 
 	if options.Silent {
