@@ -131,13 +131,14 @@ EXTRACTOR:
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
+   -fep, -filter-error-page            filter response with ML based error page detection
    -fl, -filter-length string          filter response with specified content length (-fl 23,33)
    -flc, -filter-line-count string     filter response body with specified line count (-flc 423,532)
    -fwc, -filter-word-count string     filter response body with specified word count (-fwc 423,532)
    -ffc, -filter-favicon string[]      filter response with specified favicon hash (-mfc 1494302000)
    -fs, -filter-string string          filter response with specified string (-fs admin)
    -fe, -filter-regex string           filter response with specified regex (-fe admin)
-   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (incapsula, oracle, google, azure, cloudflare, cloudfront, fastly, akamai, sucuri, leaseweb)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (google, leaseweb, stackpath, cloudfront, fastly)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
    -fdc, -filter-condition string      filter response with dsl expression condition
 

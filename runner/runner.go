@@ -27,6 +27,7 @@ import (
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	dsl "github.com/projectdiscovery/dsl"
 	"github.com/projectdiscovery/httpx/common/customextract"
+	"github.com/projectdiscovery/httpx/common/errorpageclassifier"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/mapcidr/asn"
 	errorutil "github.com/projectdiscovery/utils/errors"
@@ -66,15 +67,16 @@ import (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options         *Options
-	hp              *httpx.HTTPX
-	wappalyzer      *wappalyzer.Wappalyze
-	scanopts        ScanOptions
-	hm              *hybrid.HybridMap
-	stats           clistats.StatisticsClient
-	ratelimiter     ratelimit.Limiter
-	HostErrorsCache gcache.Cache[string, int]
-	browser         *Browser
+	options             *Options
+	hp                  *httpx.HTTPX
+	wappalyzer          *wappalyzer.Wappalyze
+	scanopts            ScanOptions
+	hm                  *hybrid.HybridMap
+	stats               clistats.StatisticsClient
+	ratelimiter         ratelimit.Limiter
+	HostErrorsCache     gcache.Cache[string, int]
+	browser             *Browser
+	errorPageClassifier *errorpageclassifier.ErrorPageClassifier
 }
 
 // New creates a new client for running enumeration process.
@@ -307,6 +309,8 @@ func New(options *Options) (*Runner, error) {
 			Build()
 		runner.HostErrorsCache = gc
 	}
+
+	runner.errorPageClassifier = errorpageclassifier.New()
 
 	return runner, nil
 }
@@ -735,6 +739,9 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
+			if r.options.OutputFilterErrorPage && resp.KnowledgeBase["PageType"] == "error" {
+				continue
+			}
 			if len(r.options.filterStatusCode) > 0 && slice.IntSliceContains(r.options.filterStatusCode, resp.StatusCode) {
 				continue
 			}
@@ -1753,6 +1760,9 @@ retry:
 		ScreenshotBytes:    screenshotBytes,
 		ScreenshotPath:     screenshotPath,
 		HeadlessBody:       headlessBody,
+		KnowledgeBase: map[string]interface{}{
+			"PageType": r.errorPageClassifier.Classify(respData),
+		},
 	}
 	if r.options.OnResult != nil {
 		r.options.OnResult(result)
