@@ -42,7 +42,7 @@ require (
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.4
-	github.com/projectdiscovery/dsl v0.0.9
+	github.com/projectdiscovery/dsl v0.0.10
 	github.com/projectdiscovery/fastdialer v0.0.29
 	github.com/projectdiscovery/ratelimit v0.0.8
 	github.com/projectdiscovery/tlsx v1.1.0
@@ -108,7 +108,7 @@ require (
 	github.com/refraction-networking/utls v1.3.2 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
-	github.com/sashabaranov/go-openai v1.9.1 // indirect
+	github.com/sashabaranov/go-openai v1.11.2 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.5 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
