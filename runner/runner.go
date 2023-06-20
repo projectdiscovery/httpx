@@ -1754,9 +1754,6 @@ retry:
 		ScreenshotPath:     screenshotPath,
 		HeadlessBody:       headlessBody,
 	}
-	if r.options.OnResult != nil {
-		r.options.OnResult(result)
-	}
 	return result
 }
 
