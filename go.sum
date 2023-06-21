@@ -189,8 +189,8 @@ github.com/projectdiscovery/clistats v0.0.18 h1:WLQNqLXsKvjoieDwXJO/1jlnxR0x9vdF
 github.com/projectdiscovery/clistats v0.0.18/go.mod h1:YUnUrMHFw+FHwUTIKr1KDUwz81x+SFjPU3xfLqXfzf0=
 github.com/projectdiscovery/dsl v0.0.10 h1:soBL/dgyCYC9cf3BY8YzVs0sI/dFVztOOQPaaza5TfQ=
 github.com/projectdiscovery/dsl v0.0.10/go.mod h1:bpJD7YUHBx2D0obqI4jdRVepBGTJZ8p+86j3WNb0QXs=
-github.com/projectdiscovery/fastdialer v0.0.29 h1:uDy2/bXHl8ISkuRp0EpmajkfWHewL3q5oDcYxB07ME8=
-github.com/projectdiscovery/fastdialer v0.0.29/go.mod h1:CBzmr7QS+Ml66h1jjuudR8Uzl6bt2YeqYmTg0IedWsI=
+github.com/projectdiscovery/fastdialer v0.0.31 h1:eu0wTBCWjT8dXChmBtnQaAxoFpkLdvq0VroRxZoe/M8=
+github.com/projectdiscovery/fastdialer v0.0.31/go.mod h1:ttLvt0xnpNQAStYYQ6ElIBHfSXHuPEiXBkLH/OLbYlc=
 github.com/projectdiscovery/fdmax v0.0.4 h1:K9tIl5MUZrEMzjvwn/G4drsHms2aufTn1xUdeVcmhmc=
 github.com/projectdiscovery/fdmax v0.0.4/go.mod h1:oZLqbhMuJ5FmcoaalOm31B1P4Vka/CqP50nWjgtSz+I=
 github.com/projectdiscovery/freeport v0.0.5 h1:jnd3Oqsl4S8n0KuFkE5Hm8WGDP24ITBvmyw5pFTHS8Q=
@@ -211,8 +211,8 @@ github.com/projectdiscovery/ratelimit v0.0.8 h1:K6S/DCr48xNxTXHRmU82wl1mj7j0VrXn
 github.com/projectdiscovery/ratelimit v0.0.8/go.mod h1:JJAtj8Rd5DNqN5FgwyMHWIi4BHivOw1+8gDrpsBf8Ic=
 github.com/projectdiscovery/rawhttp v0.1.15 h1:wW6U+M98NHtD0ZlSFJ49vS24gpSNZ6KZV3TZNPVCpAc=
 github.com/projectdiscovery/rawhttp v0.1.15/go.mod h1:f57f8nG7oV8PqrhKmI1duKIT28mdpZauytslt8gP/7s=
-github.com/projectdiscovery/retryabledns v1.0.29 h1:44EphLP5gRgVxlge9/qm5Gue+9cDd/BAILTF9PQQx54=
-github.com/projectdiscovery/retryabledns v1.0.29/go.mod h1:NtbDTfcsW9hIUf0HuVQNZSTTG063Phy0uaBBjZlif0Q=
+github.com/projectdiscovery/retryabledns v1.0.30 h1:7bc8Lq3r/qzw4LdXXAxKtQa52iGiEx1WasZLVCO6Oj0=
+github.com/projectdiscovery/retryabledns v1.0.30/go.mod h1:+Aqc0TjKGcTtP0HtXE8o1GzrjAHhSno6hSF+L63TBtI=
 github.com/projectdiscovery/retryablehttp-go v1.0.17 h1:oppnrypatWsHxcMU5RuAcUsUu3nxBhId2CF3OBj9XJA=
 github.com/projectdiscovery/retryablehttp-go v1.0.17/go.mod h1:zJh8bQdxhIsaEGnxsacvMbgiCKT4UAOr4T1kZBnSa68=
 github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZAja8BH3LqqJXMA=

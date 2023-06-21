@@ -43,7 +43,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.4
 	github.com/projectdiscovery/dsl v0.0.10
-	github.com/projectdiscovery/fastdialer v0.0.29
+	github.com/projectdiscovery/fastdialer v0.0.31
 	github.com/projectdiscovery/ratelimit v0.0.8
 	github.com/projectdiscovery/tlsx v1.1.0
 	github.com/projectdiscovery/utils v0.0.38
@@ -104,7 +104,7 @@ require (
 	github.com/projectdiscovery/blackrock v0.0.1 // indirect
 	github.com/projectdiscovery/freeport v0.0.5 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.6 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.29 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.30 // indirect
 	github.com/refraction-networking/utls v1.3.2 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
