@@ -1764,9 +1764,6 @@ retry:
 			"PageType": r.errorPageClassifier.Classify(respData),
 		},
 	}
-	if r.options.OnResult != nil {
-		r.options.OnResult(result)
-	}
 	return result
 }
 
