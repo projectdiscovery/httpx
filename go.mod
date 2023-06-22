@@ -39,11 +39,13 @@ require (
 	github.com/bxcodec/faker/v4 v4.0.0-beta.3
 	github.com/go-rod/rod v0.113.3
 	github.com/hdm/jarm-go v0.0.7
+	github.com/jaytaylor/html2text v0.0.0-20230321000545-74c2419ad056
+	github.com/kljensen/snowball v0.8.0
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.4
 	github.com/projectdiscovery/dsl v0.0.10
-	github.com/projectdiscovery/fastdialer v0.0.31
+	github.com/projectdiscovery/fastdialer v0.0.32-0.20230622050633-937580e0c57d
 	github.com/projectdiscovery/ratelimit v0.0.8
 	github.com/projectdiscovery/tlsx v1.1.0
 	github.com/projectdiscovery/utils v0.0.38
@@ -82,11 +84,9 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
-	github.com/jaytaylor/html2text v0.0.0-20230321000545-74c2419ad056 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kataras/jwt v0.1.8 // indirect
 	github.com/klauspost/compress v1.15.15 // indirect
-	github.com/kljensen/snowball v0.8.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
