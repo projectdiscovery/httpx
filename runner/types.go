@@ -82,7 +82,7 @@ type Result struct {
 // function to get dsl variables from result struct
 func dslVariables() ([]string, error) {
 	fakeResult := Result{}
-	fieldsToIgnore := []string{"Hashes", "ResponseHeader", "Err"}
+	fieldsToIgnore := []string{"Hashes", "ResponseHeader", "Err", "KnowledgeBase"}
 	if err := faker.FakeData(&fakeResult, options.WithFieldsToIgnore(fieldsToIgnore...)); err != nil {
 		return nil, err
 	}

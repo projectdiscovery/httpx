@@ -709,8 +709,13 @@ func (r *Runner) RunEnumeration() {
 					gologger.Warning().Msgf("Could not decode response: %s\n", err)
 					continue
 				}
-				dslVars, _ := dslVariables()
+				dslVars, err := dslVariables()
+				if err != nil {
+					gologger.Warning().Msgf("Could not retrieve dsl variables: %s\n", err)
+					continue
+				}
 				flatMap := make(map[string]interface{})
+
 				for _, v := range dslVars {
 					flatMap[v] = rawMap[v]
 				}
