@@ -7,6 +7,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net"
 	"net/http"
@@ -593,11 +594,14 @@ func (r *Runner) RunEnumeration() {
 	}
 
 	// output routine
-	wgoutput := sizedwaitgroup.New(1)
+	wgoutput := sizedwaitgroup.New(2)
 	wgoutput.Add()
+
 	output := make(chan Result)
-	go func(output chan Result) {
+	htmlResChan := make(chan Result)
+	go func(output chan Result, outputDupe chan<- Result) {
 		defer wgoutput.Done()
+		defer close(outputDupe)
 
 		var f, indexFile, indexScreenshotFile *os.File
 
@@ -850,8 +854,175 @@ func (r *Runner) RunEnumeration() {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				f.WriteString(row + "\n")
 			}
+			outputDupe <- resp
 		}
-	}(output)
+	}(output, htmlResChan)
+
+	// HTML Screenshot indexing
+	wgoutput.Add() // will fix this
+	go func(output chan Result) {
+		defer wgoutput.Done()
+
+		if r.options.Screenshot {
+			screenshotHtmlPath := filepath.Join(r.options.StoreResponseDir, "screenshot", "screenshot.html")
+			screenshotHtml, err := os.Create(screenshotHtmlPath)
+			if err != nil {
+				gologger.Fatal().Msgf("Could not create HTML file %s\n", err)
+			}
+			defer screenshotHtml.Close()
+
+			HtmlTemplate := `
+<!DOCTYPE html>
+			<html>
+				<head>
+					<title>Screenshot Table</title>
+					<style>
+						body {
+							display: flex;
+							justify-content: center;
+							align-items: center;
+						}
+
+						table {
+							margin-top: 20px;
+							border-collapse: collapse;
+						}
+
+						th,
+						td {
+							padding: 10px;
+							text-align: center;
+							border: 1px solid black;
+						}
+
+						.thumbnail {
+							width: 400px;
+							height: 300px;
+							object-fit: cover;
+						}
+					</style>
+				</head>
+				<body>
+					
+					<table style="margin: 20px auto; border-collapse: collapse">
+						<thead>
+							<tr>
+								<th style="padding: 10px; text-align: center; border: 1px solid black">
+									<strong>Response Info</strong>
+								</th>
+								<th style="padding: 10px; text-align: center; border: 1px solid black">
+									<strong>Screenshot</strong>
+								</th>
+							</tr>
+						</thead>
+						<tbody>
+							{{ $ExtractTitle := .Options.ExtractTitle }}
+							{{ $OutputStatusCode := .Options.StatusCode }}
+							{{ $OutputContentLength := .Options.ContentLength }}
+							{{ $Favicon := .Options.Favicon }}
+							{{ $OutputResponseTime := .Options.OutputResponseTime }}
+							{{ $OutputLinesCount := .Options.OutputLinesCount }}
+							{{ $OutputWordsCount := .Options.OutputWordsCount }}
+							{{ $OutputServerHeader := .Options.OutputServerHeader }}
+							{{ $TechDetect := .Options.TechDetect }}
+							{{range .Output}}
+							    {{if ne .ScreenshotPath ""}}
+							        <tr>
+							            <td style="padding: 10px; border: 1px solid black">
+							                <ul style="list-style-type: none; padding-left: 0">
+							                    <li>
+							                        <strong>Host:</strong>
+							                        <a style="text-decoration: none; color: blue">{{.URL}}</a>
+							                    </li>
+												{{if $ExtractTitle}}
+													<li>
+														<strong>Title:</strong>
+														<a style="text-decoration: none; color: blue">{{.Title}}</a>
+													</li>
+												{{end}}
+												{{if $OutputStatusCode}}
+													<li>
+														<strong>Status Code:</strong>
+														<a style="text-decoration: none; color: blue">{{.StatusCode}}</a>
+													</li>
+												{{end}}
+												{{if $OutputContentLength}}
+													<li>
+														<strong>Content-Length:</strong>
+														<a style="text-decoration: none; color: blue">{{.ContentLength}}</a>
+													</li>
+												{{end}}
+												{{if $Favicon}}
+													<li>
+														<strong>Favicon:</strong>
+														<a style="text-decoration: none; color: blue">{{.FavIconMMH3}}</a>
+													</li>
+												{{end}}
+												{{if $OutputResponseTime}}
+													<li>
+														<strong>Response Time:</strong>
+														<a style="text-decoration: none; color: blue">{{.ResponseTime}}</a>
+													</li>
+												{{end}}
+												{{if $OutputLinesCount}}
+													<li>
+														<strong>Total Lines:</strong>
+														<a style="text-decoration: none; color: blue">{{.Lines}}</a>
+													</li>
+												{{end}}
+												{{if $OutputWordsCount}}
+													<li>
+														<strong>Words Count:</strong>
+														<a style="text-decoration: none; color: blue">{{.Words}}</a>
+													</li>
+												{{end}}
+												{{if $OutputServerHeader}}
+													<li>
+														<strong>Webserver:</strong>
+														<a style="text-decoration: none; color: blue">{{.WebServer}}</a>
+													</li>
+												{{end}}
+												{{if $TechDetect}}
+													<li>
+														<strong>Technologies:</strong>
+														<a style="text-decoration: none; color: blue">{{.Technologies}}</a>
+													</li>
+												{{end}}
+							                </ul>
+							            </td>
+							            <td style="padding: 10px; border: 1px solid black">
+							                <a href="{{.ScreenshotPath}}" target="_blank">
+							                    <img src="{{.ScreenshotPath}}" alt="Screenshot" style="width: 400px; height: 300px" />
+							                </a>
+							            </td>
+							        </tr>
+							    {{end}}
+							{{end}}
+						</tbody>
+					</table>
+				</body>
+			</html>
+`
+			tmpl, err := template.New("screenshotTemplate").Parse(HtmlTemplate)
+			if err != nil {
+				gologger.Warning().Msgf("Could not create HTML template: %v\n", err)
+			}
+
+			if err = tmpl.Execute(screenshotHtml, struct {
+				Options Options
+				Output  chan Result
+			}{
+				Options: *r.options,
+				Output:  output,
+			}); err != nil {
+				gologger.Warning().Msgf("Could not execute HTML template: %v\n", err)
+			}
+		}
+
+		// unblocks if screenshot is false
+		for _ = range output {
+		}
+	}(htmlResChan)
 
 	wg := sizedwaitgroup.New(r.options.Threads)
 
@@ -1691,148 +1862,6 @@ retry:
 			if err != nil {
 				gologger.Error().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
 			}
-		}
-
-		// HTML Output
-		HTMLBeginning := `
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Screenshot Table</title>
-    <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    table {
-      margin-top: 20px;
-      border-collapse: collapse;
-    }
-
-    th, td {
-      padding: 10px;
-      text-align: center;
-      border: 1px solid black;
-    }
-
-    .thumbnail {
-      width: 400px;
-      height: 300px;
-      object-fit: cover;
-    }
-  </style>
-</head>
-<body>
-  <table style="margin: 20px auto; border-collapse: collapse;">
-    <thead>
-    <tr>
-        <th style="padding: 10px; text-align: center; border: 1px solid black;"><strong>Response Info</strong></th>
-        <th style="padding: 10px; text-align: center; border: 1px solid black;"><strong>Screenshot</strong></th>
-    </tr>
-    </thead>
-    <tbody>
-`
-		HTMLEnd := `    </tbody>
-</table>
-</body>
-</html>`
-		HTMLRow := fmt.Sprintf(`
-      <tr>
-        <td style="padding: 10px; border: 1px solid black;">
-            <ul style="list-style-type: none; padding-left: 0;">
-                <li><strong>Host:</strong> <a style="text-decoration: none; color: blue;">%s</a></li>
-            </ul>
-        </td>
-        <td style="padding: 10px; border: 1px solid black;">
-            <a href="%s" target="_blank">
-                <img src="%s" alt="Screenshot" style="width: 400px; height: 300px;">
-            </a>
-        </td>
-      </tr>`, fullURL, screenshotPath, screenshotPath)
-		if scanopts.OutputStatusCode {
-			HTMLRow = appendLineToRow(HTMLRow, "Status Code", resp.StatusCode)
-		}
-		if scanopts.OutputTitle {
-			HTMLRow = appendLineToRow(HTMLRow, "Title", title)
-		}
-		if scanopts.OutputContentLength {
-			HTMLRow = appendLineToRow(HTMLRow, "Content-Length", resp.ContentLength)
-		}
-		if scanopts.OutputLocation {
-			HTMLRow = appendLineToRow(HTMLRow, "Location", resp.GetHeaderPart("Location", ";"))
-		}
-		if scanopts.Favicon {
-			HTMLRow = appendLineToRow(HTMLRow, "Favicon", faviconMMH3)
-		}
-		if scanopts.OutputResponseTime {
-			HTMLRow = appendLineToRow(HTMLRow, "Response Duration", resp.Duration)
-		}
-		if scanopts.OutputLinesCount {
-			HTMLRow = appendLineToRow(HTMLRow, "Response Line Count", resp.Lines)
-		}
-		if scanopts.OutputWordsCount {
-			HTMLRow = appendLineToRow(HTMLRow, "Response Word Count", resp.Words)
-		}
-		if scanopts.OutputServerHeader {
-			HTMLRow = appendLineToRow(HTMLRow, "Server", serverHeader)
-		}
-		if scanopts.TechDetect {
-			technologiesString := strings.Join(technologies, ", ")
-			HTMLRow = appendLineToRow(HTMLRow, "Technologies", technologiesString)
-		}
-		if scanopts.OutputIP {
-			HTMLRow = appendLineToRow(HTMLRow, "IP", ip)
-		}
-		if scanopts.OutputCDN && isCDN && err == nil {
-			HTMLRow = appendLineToRow(HTMLRow, "CDN", cdnName)
-		}
-
-		var HTMLScreenshotFile *os.File
-		defer HTMLScreenshotFile.Close()
-		HTMLPath := filepath.Join(domainScreenshotBaseDir, "screenshot.html")
-
-		_, err = os.Stat(HTMLPath)
-		if os.IsNotExist(err) {
-			if HTMLScreenshotFile, err = os.Create(HTMLPath); err != nil {
-				gologger.Error().Msgf("Could not create a new HTML file at path '%s': %s", HTMLPath, err)
-			}
-
-			if _, err = HTMLScreenshotFile.WriteString(HTMLBeginning); err != nil {
-				gologger.Error().Msgf("Could not write the base HTML to the HTML file: %s", err)
-			}
-
-			if _, err = HTMLScreenshotFile.WriteString(HTMLRow); err != nil {
-				gologger.Error().Msgf("Could not write the new row to the HTML file: %s", err)
-			}
-		} else {
-			if HTMLScreenshotFile, err = os.OpenFile(HTMLPath, os.O_RDWR, 0600); err != nil {
-				gologger.Error().Msgf("Could not open the HTML file at path '%s': %s", HTMLPath, err)
-			}
-
-			HTMLByte, _ := io.ReadAll(HTMLScreenshotFile)
-			HTMLString := string(HTMLByte)
-
-			index := strings.Index(HTMLString, HTMLEnd)
-			if index == -1 {
-				gologger.Error().Msgf("Could not find the end of the HTML file: %s", err)
-			}
-
-			HTMLString = HTMLString[:index]
-			HTMLString += HTMLRow
-
-			if err = os.WriteFile(HTMLPath, []byte(HTMLString), 0600); err != nil {
-				gologger.Error().Msgf("Could not write to the HTML file: %s", err)
-			}
-		}
-
-		if _, err = HTMLScreenshotFile.Seek(0, io.SeekEnd); err != nil {
-			gologger.Error().Msgf("Could not find the end of the HTML file: %s", err)
-		}
-
-		if _, err = HTMLScreenshotFile.WriteString(HTMLEnd); err != nil {
-			gologger.Error().Msgf("Could not write the end of the HTML file: %s", err)
 		}
 	}
 
