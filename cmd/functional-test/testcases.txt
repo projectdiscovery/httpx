@@ -19,3 +19,4 @@ scanme.sh {{binary}} -silent -ztls
 scanme.sh {{binary}} -silent -jarm
 https://scanme.sh?a=1*1 {{binary}} -silent
 https://scanme.sh:443 {{binary}} -asn
+scanme.sh {{binary}} -silent -tls-impersonate
