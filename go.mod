@@ -10,7 +10,7 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/microcosm-cc/bluemonday v1.0.24
-	github.com/miekg/dns v1.1.54 // indirect
+	github.com/miekg/dns v1.1.55 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v1.0.9
 	github.com/projectdiscovery/clistats v0.0.18
@@ -46,7 +46,7 @@ require (
 	github.com/projectdiscovery/fastdialer v0.0.31
 	github.com/projectdiscovery/ratelimit v0.0.8
 	github.com/projectdiscovery/tlsx v1.1.0
-	github.com/projectdiscovery/utils v0.0.39-0.20230621163048-8647c83e20f4
+	github.com/projectdiscovery/utils v0.0.39
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230205235340-d51ce4775101
 	go.uber.org/multierr v1.11.0
