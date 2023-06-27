@@ -264,8 +264,12 @@ get_response:
 	resp.Lines = len(strings.Split(respbodystr, "\n"))
 
 	if !h.Options.Unsafe && h.Options.TLSGrab {
-		// extracts TLS data if any
-		resp.TLSData = h.TLSGrab(httpresp)
+		if h.Options.ZTLS {
+			resp.TLSData = h.ZTLSGrab(httpresp)
+		} else {
+			// extracts TLS data if any
+			resp.TLSData = h.TLSGrab(httpresp)
+		}
 	}
 
 	resp.CSPData = h.CSPGrab(&resp)
