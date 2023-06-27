@@ -3,6 +3,7 @@ package httpx
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"net"
 	"net/http"
 
@@ -59,7 +60,9 @@ func (h *HTTPX) ZTLSGrab(r *http.Response) *clients.Response {
 	if port == "" {
 		port = "443"
 	}
-	tlsConn, err := h.Dialer.DialTLS(r.Request.Context(), "tcp", hostname+":"+port)
+	// canonical net concatenation
+	host = net.JoinHostPort(hostname, fmt.Sprint(port))
+	tlsConn, err := h.Dialer.DialTLS(r.Request.Context(), "tcp", host)
 	if err != nil {
 		return nil
 	}
