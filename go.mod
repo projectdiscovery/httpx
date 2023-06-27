@@ -13,7 +13,7 @@ require (
 	github.com/miekg/dns v1.1.55 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v1.0.9
-	github.com/projectdiscovery/clistats v0.0.18
+	github.com/projectdiscovery/clistats v0.0.19
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.10
