@@ -10,10 +10,10 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/microcosm-cc/bluemonday v1.0.24
-	github.com/miekg/dns v1.1.54 // indirect
+	github.com/miekg/dns v1.1.55 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v1.0.9
-	github.com/projectdiscovery/clistats v0.0.18
+	github.com/projectdiscovery/clistats v0.0.19
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.10
@@ -21,7 +21,7 @@ require (
 	github.com/projectdiscovery/hmap v0.0.13
 	github.com/projectdiscovery/mapcidr v1.1.2
 	github.com/projectdiscovery/rawhttp v0.1.15
-	github.com/projectdiscovery/retryablehttp-go v1.0.17
+	github.com/projectdiscovery/retryablehttp-go v1.0.18
 	github.com/projectdiscovery/wappalyzergo v0.0.101
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
@@ -42,11 +42,11 @@ require (
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.4
-	github.com/projectdiscovery/dsl v0.0.10
+	github.com/projectdiscovery/dsl v0.0.11
 	github.com/projectdiscovery/fastdialer v0.0.32
 	github.com/projectdiscovery/ratelimit v0.0.8
 	github.com/projectdiscovery/tlsx v1.1.0
-	github.com/projectdiscovery/utils v0.0.38
+	github.com/projectdiscovery/utils v0.0.39
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230205235340-d51ce4775101
 	go.uber.org/multierr v1.11.0
