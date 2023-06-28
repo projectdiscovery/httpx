@@ -5,7 +5,7 @@ package errorpageclassifier
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"sort"
@@ -59,23 +59,22 @@ func NewClassifierFromFile(path string) (*Classifier, error) {
 
 	fl, err := os.Open(path)
 	if err != nil {
-
 		return classifier, err
 	}
 	defer fl.Close()
 
-	dErr := gob.NewDecoder(fl).Decode(classifier)
-	if dErr != nil {
-		return classifier, dErr
-	}
-
-	return classifier, nil
+	return NewClassifierWithReader(fl)
 }
 
 // create and initialize the classifier from a file data
 func NewClassifierFromFileData(data []byte) (*Classifier, error) {
+	return NewClassifierWithReader(bytes.NewReader(data))
+}
+
+// create and initialize the classifier from a file data
+func NewClassifierWithReader(reader io.Reader) (*Classifier, error) {
 	classifier := &Classifier{}
-	err := gob.NewDecoder(bytes.NewReader(data)).Decode(classifier)
+	err := gob.NewDecoder(reader).Decode(classifier)
 	if err != nil {
 		return classifier, err
 	}
@@ -84,31 +83,31 @@ func NewClassifierFromFileData(data []byte) (*Classifier, error) {
 }
 
 // save the classifier to a file
-func (c *Classifier) SaveClassifierToFile(path string) error {
-	fl, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer fl.Close()
+// func (c *Classifier) SaveClassifierToFile(path string) error {
+// 	fl, err := os.Create(path)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer fl.Close()
 
-	err = gob.NewEncoder(fl).Encode(&c)
-	if err != nil {
-		return err
-	}
+// 	err = gob.NewEncoder(fl).Encode(&c)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // Train the classifier
-func (c *Classifier) Train(category string, document string) {
-	for word, count := range countWords(document) {
-		c.Words[category][word] += count
-		c.CategoriesWords[category] += count
-		c.TotalWords += count
-	}
-	c.CategoriesDocuments[category]++
-	c.TotalDocuments++
-}
+// func (c *Classifier) Train(category string, document string) {
+// 	for word, count := range countWords(document) {
+// 		c.Words[category][word] += count
+// 		c.CategoriesWords[category] += count
+// 		c.TotalWords += count
+// 	}
+// 	c.CategoriesDocuments[category]++
+// 	c.TotalDocuments++
+// }
 
 // Classify a document
 func (c *Classifier) Classify(document string) (category string) {
@@ -190,6 +189,6 @@ func stem(word string) string {
 	if err == nil {
 		return stemmed
 	}
-	fmt.Println("Cannot stem word:", word)
+	// fmt.Println("Cannot stem word:", word)
 	return word
 }
