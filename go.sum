@@ -220,8 +220,8 @@ github.com/projectdiscovery/tlsx v1.1.0 h1:6L5VKpHaoqvIHN6lH9zi7jIvph1JwYMYZOIpW
 github.com/projectdiscovery/tlsx v1.1.0/go.mod h1:C9xTbU2t54Anmvuq+4jxevR5rzqpp6XUUtV7G9J5CTE=
 github.com/projectdiscovery/utils v0.0.39 h1:iyi5qPilENRmFyt16qtd58pb65fUu0wAU2C0Lq5t6zo=
 github.com/projectdiscovery/utils v0.0.39/go.mod h1:rrd8dTBuKEScNMLgs1Xiu8rPCVeR0QTzmRcQ5iM3ymo=
-github.com/projectdiscovery/wappalyzergo v0.0.101 h1:g3vEDqdsfIvsbp1YsXCdVMGurucdK+j72trncROMVjo=
-github.com/projectdiscovery/wappalyzergo v0.0.101/go.mod h1:4Z3DKhi75zIPMuA+qSDDWxZvnhL4qTLmDx4dxNMu7MA=
+github.com/projectdiscovery/wappalyzergo v0.0.102 h1:ABjZghof2U2yzGNL+q5ouWHEardLd2o53Ukgrf8CZzE=
+github.com/projectdiscovery/wappalyzergo v0.0.102/go.mod h1:4Z3DKhi75zIPMuA+qSDDWxZvnhL4qTLmDx4dxNMu7MA=
 github.com/refraction-networking/utls v1.3.2 h1:o+AkWB57mkcoW36ET7uJ002CpBWHu0KPxi6vzxvPnv8=
 github.com/refraction-networking/utls v1.3.2/go.mod h1:fmoaOww2bxzzEpIKOebIsnBvjQpqP7L2vcm/9KUfm/E=
 github.com/remeh/sizedwaitgroup v1.0.0 h1:VNGGFwNo/R5+MJBf6yrsr110p0m4/OX4S3DCy7Kyl5E=
