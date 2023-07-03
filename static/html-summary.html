@@ -119,8 +119,9 @@
                     </ul>
                 </td>
                 <td style="padding: 10px; border: 1px solid black">
-                    <a href="{{.ScreenshotPath}}" target="_blank">
-                        <img src="{{.ScreenshotPath}}" alt="Screenshot" style="width: 400px; height: 300px" />
+                    {{.ScreenshotPath}}
+                    <a href="{{.ScreenshotPath | safeURL}}" target="_blank">
+                        <img src="{{.ScreenshotPath | safeURL}}" alt="Screenshot" style="width: 400px; height: 300px" />
                     </a>
                 </td>
             </tr>

@@ -32,6 +32,7 @@ import (
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	errorutil "github.com/projectdiscovery/utils/errors"
+	osutil "github.com/projectdiscovery/utils/os"
 
 	"github.com/Mzack9999/gcache"
 	"github.com/logrusorgru/aurora"
@@ -609,10 +610,16 @@ func (r *Runner) RunEnumeration() {
 	wgoutput.Add()
 
 	output := make(chan Result)
-	htmlResChan := make(chan Result)
-	go func(output chan Result, outputDupe chan<- Result) {
+	nextStep := make(chan Result)
+
+	go func(output chan Result, nextSteps ...chan Result) {
 		defer wgoutput.Done()
-		defer close(outputDupe)
+
+		defer func() {
+			for _, nextStep := range nextSteps {
+				close(nextStep)
+			}
+		}()
 
 		var f, indexFile, indexScreenshotFile *os.File
 
@@ -865,12 +872,17 @@ func (r *Runner) RunEnumeration() {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				f.WriteString(row + "\n")
 			}
-			outputDupe <- resp
-		}
-	}(output, htmlResChan)
 
-	// HTML Screenshot indexing
-	wgoutput.Add() // will fix this
+			for _, nextStep := range nextSteps {
+				nextStep <- resp
+			}
+		}
+	}(output, nextStep)
+
+	// HTML Summary
+	// - needs output of previous routine
+	// - separate goroutine due to incapability of go templates to render from file
+	wgoutput.Add()
 	go func(output chan Result) {
 		defer wgoutput.Done()
 
@@ -878,11 +890,22 @@ func (r *Runner) RunEnumeration() {
 			screenshotHtmlPath := filepath.Join(r.options.StoreResponseDir, "screenshot", "screenshot.html")
 			screenshotHtml, err := os.Create(screenshotHtmlPath)
 			if err != nil {
-				gologger.Fatal().Msgf("Could not create HTML file %s\n", err)
+				gologger.Warning().Msgf("Could not create HTML file %s\n", err)
 			}
 			defer screenshotHtml.Close()
 
-			tmpl, err := template.New("screenshotTemplate").Parse(static.HtmlTemplate)
+			templateMap := template.FuncMap{
+				"safeURL": func(u string) template.URL {
+					if osutil.IsWindows() {
+						u = fmt.Sprintf("file:///%s", u)
+					}
+					return template.URL(u)
+				},
+			}
+			tmpl, err := template.
+				New("screenshotTemplate").
+				Funcs(templateMap).
+				Parse(static.HtmlTemplate)
 			if err != nil {
 				gologger.Warning().Msgf("Could not create HTML template: %v\n", err)
 			}
@@ -897,7 +920,11 @@ func (r *Runner) RunEnumeration() {
 				gologger.Warning().Msgf("Could not execute HTML template: %v\n", err)
 			}
 		}
-	}(htmlResChan)
+
+		// fallthrough if anything is left in the buffer unblocks if screenshot is false
+		for range output {
+		}
+	}(nextStep)
 
 	wg := sizedwaitgroup.New(r.options.Threads)
 
