@@ -746,6 +746,7 @@ func (r *Runner) RunEnumeration() {
 			}
 
 			if r.options.OutputFilterErrorPage && resp.KnowledgeBase["PageType"] == "error" {
+				logFilteredErrorPage(resp.URL)
 				continue
 			}
 			if len(r.options.filterStatusCode) > 0 && slice.IntSliceContains(r.options.filterStatusCode, resp.StatusCode) {
@@ -923,6 +924,37 @@ func (r *Runner) RunEnumeration() {
 	close(output)
 
 	wgoutput.Wait()
+}
+
+func logFilteredErrorPage(url string) {
+	fileName := "filtered_error_page.json"
+	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		gologger.Fatal().Msgf("Could not open/create output file '%s': %s\n", fileName, err)
+		return
+	}
+	defer file.Close()
+
+	info := map[string]interface{}{
+		"url":           url,
+		"time_filtered": time.Now(),
+	}
+
+	data, err := json.Marshal(info)
+	if err != nil {
+		fmt.Println("Failed to marshal JSON:", err)
+		return
+	}
+
+	if _, err := file.Write(data); err != nil {
+		gologger.Fatal().Msgf("Failed to write to '%s': %s\n", fileName, err)
+		return
+	}
+
+	if _, err := file.WriteString("\n"); err != nil {
+		gologger.Fatal().Msgf("Failed to write newline to '%s': %s\n", fileName, err)
+		return
+	}
 }
 
 func (r *Runner) GetScanOpts() ScanOptions {
