@@ -204,8 +204,8 @@ func New(options *Options) (*Runner, error) {
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.OutputWithNoColor = options.NoColor
-	scanopts.ResponseInStdout = options.responseInStdout
-	scanopts.Base64ResponseInStdout = options.base64responseInStdout
+	scanopts.ResponseInStdout = options.ResponseInStdout
+	scanopts.Base64ResponseInStdout = options.Base64responseInStdout
 	scanopts.ChainInStdout = options.chainInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
 	scanopts.TLSProbe = options.TLSProbe
