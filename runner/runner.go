@@ -640,7 +640,10 @@ func (r *Runner) RunEnumeration() {
 				gologger.Fatal().Msgf("unknown csv output encoding: %s\n", r.options.CSVOutputEncoding)
 			}
 			header := Result{}.CSVHeader()
-			gologger.Silent().Msgf("%s\n", header)
+			if !r.options.OutputAll {
+				gologger.Silent().Msgf("%s\n", header)
+			}
+
 			if csvFile != nil {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				csvFile.WriteString(header + "\n")
@@ -851,6 +854,10 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
+			if notJsonOrCsv || r.options.OutputAll {
+				gologger.Silent().Msgf("%s\n", resp.str)
+			}
+
 			if plainFile != nil {
 				row := resp.str
 
@@ -860,7 +867,10 @@ func (r *Runner) RunEnumeration() {
 
 			if r.options.JSONOutput && jsonFile != nil {
 				row := resp.JSON(&r.scanopts)
-				gologger.Silent().Msgf("%s\n", row)
+
+				if !r.options.OutputAll {
+					gologger.Silent().Msgf("%s\n", row)
+				}
 
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				jsonFile.WriteString(row + "\n")
@@ -868,7 +878,10 @@ func (r *Runner) RunEnumeration() {
 
 			if r.options.CSVOutput && csvFile != nil {
 				row := resp.CSVRow(&r.scanopts)
-				gologger.Silent().Msgf("%s\n", row)
+
+				if !r.options.OutputAll {
+					gologger.Silent().Msgf("%s\n", row)
+				}
 
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				csvFile.WriteString(row + "\n")
