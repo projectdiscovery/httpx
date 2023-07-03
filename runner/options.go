@@ -435,6 +435,10 @@ func ParseOptions() *Options {
 
 	_ = flagSet.Parse()
 
+	if options.OutputAll && options.Output == "" {
+		gologger.Fatal().Msg("Please specify an output file using -o/-output when using -oA/-output-all")
+	}
+
 	if options.OutputAll {
 		options.JSONOutput = true
 		options.CSVOutput = true
