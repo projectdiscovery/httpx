@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
@@ -30,6 +32,7 @@ var httpTestcases = map[string]testutils.TestCase{
 	"Multiple Custom Header":                                                              &customHeader{inputData: []string{"-debug-req", "-H", "'user-agent: test'", "-H", "'foo: bar'"}, expectedOutput: []string{"User-Agent: test", "Foo: bar"}},
 	"Output Match Condition":                                                              &outputMatchCondition{inputData: []string{"-silent", "-mdc", "\"status_code == 200\""}},
 	"Output Filter Condition":                                                             &outputFilterCondition{inputData: []string{"-silent", "-fdc", "\"status_code == 400\""}},
+	"Output All":                                                                          &outputAll{},
 }
 
 type standardHttpGet struct {
@@ -375,5 +378,50 @@ func (h *outputFilterCondition) Execute() error {
 	if len(results) != 1 {
 		return errIncorrectResultsCount(results)
 	}
+	return nil
+}
+
+type outputAll struct {
+}
+
+func (h *outputAll) Execute() error {
+	customTempDirectory, err := os.MkdirTemp("", "")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(customTempDirectory)
+	fileName := path.Join(customTempDirectory, "test")
+
+	var ts *httptest.Server
+	router := httprouter.New()
+	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(200)
+		fmt.Fprint(w, `{"status": "ok"}`)
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+
+	results, err := testutils.RunHttpxAndGetResults(ts.URL, false, []string{"-o", fileName, "-oA"}...)
+	if err != nil {
+		return err
+	}
+
+	if len(results) != 1 {
+		return errIncorrectResultsCount(results)
+	}
+
+	files, err := os.ReadDir(customTempDirectory)
+	if err != nil {
+		return err
+	}
+	var fileNames []string
+	for _, file := range files {
+		fileNames = append(fileNames, file.Name())
+	}
+	if len(fileNames) != 3 {
+		return errIncorrectResultsCount(results)
+	}
+
 	return nil
 }
