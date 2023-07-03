@@ -3,10 +3,13 @@ package httpx
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"net"
 	"net/http"
 
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
+	"github.com/projectdiscovery/tlsx/pkg/tlsx/ztls"
+	zmaptls "github.com/zmap/zcrypto/tls"
 )
 
 // versionToTLSVersionString converts tls version to version string
@@ -44,6 +47,42 @@ func (h *HTTPX) TLSGrab(r *http.Response) *clients.Response {
 		TLSConnection:       "ctls",
 		CertificateResponse: convertCertificateToResponse(hostname, leafCertificate),
 		ServerName:          r.TLS.ServerName,
+	}
+	return response
+}
+
+func (h *HTTPX) ZTLSGrab(r *http.Response) *clients.Response {
+	host := r.Request.URL.Host
+	hostname, port, _ := net.SplitHostPort(host)
+	if hostname == "" {
+		hostname = host
+	}
+	if port == "" {
+		port = "443"
+	}
+	// canonical net concatenation
+	host = net.JoinHostPort(hostname, fmt.Sprint(port))
+	tlsConn, err := h.Dialer.DialTLS(r.Request.Context(), "tcp", host)
+	if err != nil {
+		return nil
+	}
+	ztlsConn, ok := (tlsConn).(*zmaptls.Conn)
+	if !ok {
+		return nil
+	}
+	ztlsState := ztlsConn.ConnectionState()
+	if len(ztlsState.PeerCertificates) == 0 {
+		return nil
+	}
+	response := &clients.Response{
+		Host:                hostname,
+		ProbeStatus:         true,
+		Port:                port,
+		Version:             versionToTLSVersionString[ztlsState.Version],
+		Cipher:              tls.CipherSuiteName(ztlsState.CipherSuite),
+		TLSConnection:       "ztls",
+		CertificateResponse: ztls.ConvertCertificateToResponse(&clients.Options{}, hostname, ztlsState.PeerCertificates[0]),
+		ServerName:          ztlsState.ServerName,
 	}
 	return response
 }
