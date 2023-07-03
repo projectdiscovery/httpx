@@ -1028,10 +1028,6 @@ func (r *Runner) RunEnumeration() {
 				gologger.Warning().Msgf("Could not execute HTML template: %v\n", err)
 			}
 		}
-
-		// unblocks if screenshot is false
-		for _ = range output {
-		}
 	}(htmlResChan)
 
 	wg := sizedwaitgroup.New(r.options.Threads)
