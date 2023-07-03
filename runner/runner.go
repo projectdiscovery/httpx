@@ -865,7 +865,7 @@ func (r *Runner) RunEnumeration() {
 				plainFile.WriteString(row + "\n")
 			}
 
-			if r.options.JSONOutput && jsonFile != nil {
+			if r.options.JSONOutput {
 				row := resp.JSON(&r.scanopts)
 
 				if !r.options.OutputAll {
@@ -873,10 +873,12 @@ func (r *Runner) RunEnumeration() {
 				}
 
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
-				jsonFile.WriteString(row + "\n")
+				if jsonFile != nil {
+					jsonFile.WriteString(row + "\n")
+				}
 			}
 
-			if r.options.CSVOutput && csvFile != nil {
+			if r.options.CSVOutput {
 				row := resp.CSVRow(&r.scanopts)
 
 				if !r.options.OutputAll {
@@ -884,7 +886,9 @@ func (r *Runner) RunEnumeration() {
 				}
 
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
-				csvFile.WriteString(row + "\n")
+				if csvFile != nil {
+					csvFile.WriteString(row + "\n")
+				}
 			}
 
 		}
