@@ -344,6 +344,26 @@ https://support.hackerone.com [301,302,301,200] [HackerOne] [Cloudflare,Ruby on 
 https://resources.hackerone.com [301,301,404] [Sorry, no Folders found.]
 ```
 
+### Error Page Classifier and Filtering
+The Error Page Classifier and Filtering feature aims to add intelligence to the tool by enabling it to classify and filter out common error pages returned by web applications. It is an enhancement to the existing httpx capabilities and is geared towards reducing the noise in the results and helping users focus on what matters most.
+
+```console
+httpx -l list.txt -fep
+
+    __    __  __       _  __
+   / /_  / /_/ /_____ | |/ /
+  / __ \/ __/ __/ __ \|   /
+ / / / / /_/ /_/ /_/ /   |
+/_/ /_/\__/\__/ .___/_/|_|
+             /_/
+
+                projectdiscovery.io
+
+[INF] Current httpx version v1.3.2 (latest)
+https://projectdiscovery.io
+https://scanme.sh
+```
+
 ### Favicon Hash
 
 
