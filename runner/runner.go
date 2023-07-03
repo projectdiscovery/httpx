@@ -855,14 +855,32 @@ func (r *Runner) RunEnumeration() {
 			}
 
 			if notJsonOrCsv || r.options.OutputAll {
+				//remove default hashes for plain output.
+				//FIXME: this is a hack, need to fix this properly. See #1613
+				if r.options.Hashes == "" {
+					counter := 0
+					for _, hash := range resp.Hashes {
+						if strings.Contains(resp.str, hash.(string)) {
+							if !r.scanopts.OutputWithNoColor {
+								resp.str = strings.ReplaceAll(resp.str, aurora.Magenta(hash.(string)).String(), "")
+							} else {
+								resp.str = strings.ReplaceAll(resp.str, hash.(string), "")
+							}
+							counter++
+						}
+					}
+					var sb strings.Builder
+					for i := 0; i < counter-1; i++ {
+						sb.WriteString(",")
+					}
+					resp.str = strings.ReplaceAll(resp.str, " ["+sb.String()+"]", "")
+				}
 				gologger.Silent().Msgf("%s\n", resp.str)
-			}
-
-			if plainFile != nil {
-				row := resp.str
 
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
-				plainFile.WriteString(row + "\n")
+				if plainFile != nil {
+					plainFile.WriteString(resp.str + "\n")
+				}
 			}
 
 			if r.options.JSONOutput {
