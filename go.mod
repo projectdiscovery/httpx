@@ -36,7 +36,7 @@ require github.com/spaolacci/murmur3 v1.1.0
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
 	github.com/PuerkitoBio/goquery v1.8.1
-	github.com/bxcodec/faker/v4 v4.0.0-beta.3
+	github.com/go-faker/faker/v4 v4.1.1
 	github.com/go-rod/rod v0.113.3
 	github.com/hdm/jarm-go v0.0.7
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
