@@ -864,33 +864,11 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
-			if notJsonOrCsv || r.options.OutputAll {
-				//remove default hashes for plain output.
-				//FIXME: this is a hack, need to fix this properly. See #1613
-				if r.options.Hashes == "" {
-					counter := 0
-					for _, hash := range resp.Hashes {
-						if strings.Contains(resp.str, hash.(string)) {
-							if !r.scanopts.OutputWithNoColor {
-								resp.str = strings.ReplaceAll(resp.str, aurora.Magenta(hash.(string)).String(), "")
-							} else {
-								resp.str = strings.ReplaceAll(resp.str, hash.(string), "")
-							}
-							counter++
-						}
-					}
-					var sb strings.Builder
-					for i := 0; i < counter-1; i++ {
-						sb.WriteString(",")
-					}
-					resp.str = strings.ReplaceAll(resp.str, " ["+sb.String()+"]", "")
-				}
-				gologger.Silent().Msgf("%s\n", resp.str)
+			gologger.Silent().Msgf("%s\n", resp.str)
 
-				//nolint:errcheck // this method needs a small refactor to reduce complexity
-				if plainFile != nil {
-					plainFile.WriteString(resp.str + "\n")
-				}
+			//nolint:errcheck // this method needs a small refactor to reduce complexity
+			if plainFile != nil {
+				plainFile.WriteString(resp.str + "\n")
 			}
 
 			if r.options.JSONOutput {
@@ -1624,7 +1602,10 @@ retry:
 	hashesMap := make(map[string]interface{})
 	if scanopts.Hashes != "" {
 		hs := strings.Split(scanopts.Hashes, ",")
-		builder.WriteString(" [")
+		outputHashes := !(r.options.JSONOutput || r.options.OutputAll)
+		if outputHashes {
+			builder.WriteString(" [")
+		}
 		for index, hashType := range hs {
 			var (
 				hashHeader, hashBody string
@@ -1653,17 +1634,21 @@ retry:
 			if hashBody != "" {
 				hashesMap[fmt.Sprintf("body_%s", hashType)] = hashBody
 				hashesMap[fmt.Sprintf("header_%s", hashType)] = hashHeader
-				if !scanopts.OutputWithNoColor {
-					builder.WriteString(aurora.Magenta(hashBody).String())
-				} else {
-					builder.WriteString(hashBody)
-				}
-				if index != len(hs)-1 {
-					builder.WriteString(",")
+				if outputHashes {
+					if !scanopts.OutputWithNoColor {
+						builder.WriteString(aurora.Magenta(hashBody).String())
+					} else {
+						builder.WriteString(hashBody)
+					}
+					if index != len(hs)-1 {
+						builder.WriteString(",")
+					}
 				}
 			}
 		}
-		builder.WriteRune(']')
+		if outputHashes {
+			builder.WriteRune(']')
+		}
 	}
 	if scanopts.OutputLinesCount {
 		builder.WriteString(" [")
