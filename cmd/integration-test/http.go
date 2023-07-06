@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
@@ -390,7 +390,7 @@ func (h *outputAll) Execute() error {
 		return err
 	}
 	defer os.RemoveAll(customTempDirectory)
-	fileName := path.Join(customTempDirectory, "test")
+	fileName := filepath.Join(customTempDirectory, "test")
 
 	var ts *httptest.Server
 	router := httprouter.New()
