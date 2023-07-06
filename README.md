@@ -196,6 +196,8 @@ CONFIGURATIONS:
    -ldp, -leave-default-ports    leave default http/https ports in host header (eg. http://host:80 - https://host:443
    -ztls                         use ztls library with autofallback to standard one for tls13
    -no-decode                    avoid decoding body
+   -tlsi, -tls-impersonate  enable random tls client (ja3) impersonation (experimental)
+   -no-stdin                     Disable Stdin processing
 
 DEBUG:
    -health-check, -hc        run diagnostic check up
@@ -549,6 +551,7 @@ Please note that since screenshots are captured using a headless browser, httpx 
    - `-favicon`
    - `-http2`
    - `-pipeline`
+   - `-tls-impersonate`
 
 
 # Acknowledgement

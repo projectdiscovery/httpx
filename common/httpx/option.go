@@ -42,6 +42,7 @@ type Options struct {
 	Resolvers                 []string
 	customCookies             []*http.Cookie
 	SniName                   string
+	TlsImpersonate            bool
 }
 
 // DefaultOptions contains the default options
