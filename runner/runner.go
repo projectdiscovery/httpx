@@ -627,12 +627,12 @@ func (r *Runner) RunEnumeration() {
 		}
 
 		if r.options.Output != "" && r.options.JSONOutput && jsonFile == nil {
-			jsonFile = openOrCreateFile(r.options.Resume, r.options.Output+".json")
+			jsonFile = openOrCreateFile(r.options.Resume, r.options.Output)
 			defer jsonFile.Close()
 		}
 
 		if r.options.Output != "" && r.options.CSVOutput && csvFile == nil {
-			csvFile = openOrCreateFile(r.options.Resume, r.options.Output+".csv")
+			csvFile = openOrCreateFile(r.options.Resume, r.options.Output)
 			defer csvFile.Close()
 		}
 
@@ -864,7 +864,9 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
-			gologger.Silent().Msgf("%s\n", resp.str)
+			if notJsonOrCsv || r.options.OutputAll {
+				gologger.Silent().Msgf("%s\n", resp.str)
+			}
 
 			//nolint:errcheck // this method needs a small refactor to reduce complexity
 			if plainFile != nil {
