@@ -43,10 +43,10 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.4
 	github.com/projectdiscovery/dsl v0.0.12
-	github.com/projectdiscovery/fastdialer v0.0.32
+	github.com/projectdiscovery/fastdialer v0.0.33
 	github.com/projectdiscovery/ratelimit v0.0.9
 	github.com/projectdiscovery/tlsx v1.1.0
-	github.com/projectdiscovery/utils v0.0.40-0.20230627061640-8ec2b35f851c
+	github.com/projectdiscovery/utils v0.0.40
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230205235340-d51ce4775101
 	go.uber.org/multierr v1.11.0
