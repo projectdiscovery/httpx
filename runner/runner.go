@@ -620,19 +620,28 @@ func (r *Runner) RunEnumeration() {
 			defer csvFile.Close()
 		}
 
-		notJsonOrCsv := !(r.options.JSONOutput || r.options.CSVOutput)
-		if r.options.Output != "" && plainFile == nil && notJsonOrCsv {
+		jsonOrCsv := (r.options.JSONOutput || r.options.CSVOutput)
+		jsonAndCsv := (r.options.JSONOutput && r.options.CSVOutput)
+		if r.options.Output != "" && plainFile == nil && !jsonOrCsv {
 			plainFile = openOrCreateFile(r.options.Resume, r.options.Output)
 			defer plainFile.Close()
 		}
 
 		if r.options.Output != "" && r.options.JSONOutput && jsonFile == nil {
-			jsonFile = openOrCreateFile(r.options.Resume, r.options.Output)
+			ext := ""
+			if jsonAndCsv {
+				ext = ".json"
+			}
+			jsonFile = openOrCreateFile(r.options.Resume, r.options.Output+ext)
 			defer jsonFile.Close()
 		}
 
 		if r.options.Output != "" && r.options.CSVOutput && csvFile == nil {
-			csvFile = openOrCreateFile(r.options.Resume, r.options.Output)
+			ext := ""
+			if jsonAndCsv {
+				ext = ".csv"
+			}
+			csvFile = openOrCreateFile(r.options.Resume, r.options.Output+ext)
 			defer csvFile.Close()
 		}
 
@@ -650,7 +659,7 @@ func (r *Runner) RunEnumeration() {
 				gologger.Fatal().Msgf("unknown csv output encoding: %s\n", r.options.CSVOutputEncoding)
 			}
 			header := Result{}.CSVHeader()
-			if !r.options.OutputAll {
+			if !r.options.OutputAll && !jsonAndCsv {
 				gologger.Silent().Msgf("%s\n", header)
 			}
 
@@ -864,7 +873,7 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
-			if notJsonOrCsv || r.options.OutputAll {
+			if !jsonOrCsv || jsonAndCsv || r.options.OutputAll {
 				gologger.Silent().Msgf("%s\n", resp.str)
 			}
 
@@ -876,7 +885,7 @@ func (r *Runner) RunEnumeration() {
 			if r.options.JSONOutput {
 				row := resp.JSON(&r.scanopts)
 
-				if !r.options.OutputAll {
+				if !r.options.OutputAll && !jsonAndCsv {
 					gologger.Silent().Msgf("%s\n", row)
 				}
 
@@ -889,7 +898,7 @@ func (r *Runner) RunEnumeration() {
 			if r.options.CSVOutput {
 				row := resp.CSVRow(&r.scanopts)
 
-				if !r.options.OutputAll {
+				if !r.options.OutputAll && !jsonAndCsv {
 					gologger.Silent().Msgf("%s\n", row)
 				}
 
