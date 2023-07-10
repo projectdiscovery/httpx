@@ -409,8 +409,6 @@ func (h *outputAll) Execute() error {
 			actualFiles = append(actualFiles, file)
 		}
 	}
-	fmt.Println("files len:" + fmt.Sprint(len(actualFiles)))
-	fmt.Println(actualFiles)
 	if len(actualFiles) != 3 {
 		return errIncorrectResultsCount(actualFiles)
 	}
