@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bxcodec/faker/v4"
-	"github.com/bxcodec/faker/v4/pkg/options"
+	"github.com/go-faker/faker/v4"
+	"github.com/go-faker/faker/v4/pkg/options"
 	"github.com/mitchellh/mapstructure"
-	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 	mapsutil "github.com/projectdiscovery/utils/maps"
+
+	"github.com/projectdiscovery/httpx/common/httpx"
 )
 
 type AsnResponse struct {
