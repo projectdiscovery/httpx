@@ -402,9 +402,9 @@ func (h *outputAll) Execute() error {
 	ts = httptest.NewServer(router)
 	defer ts.Close()
 
-	results, err := testutils.RunHttpxAndGetResults(ts.URL, false, []string{"-o", fileName, "-oA"}...)
-	if err != nil {
-		return err
+	_, hErr := testutils.RunHttpxAndGetResults(ts.URL, false, []string{"-o", fileName, "-oA"}...)
+	if hErr != nil {
+		return hErr
 	}
 
 	files, err := os.ReadDir(customTempDirectory)
@@ -416,7 +416,7 @@ func (h *outputAll) Execute() error {
 		fileNames = append(fileNames, file.Name())
 	}
 	if len(fileNames) != 3 {
-		return errIncorrectResultsCount(results)
+		return errIncorrectResultsCount(fileNames)
 	}
 
 	return nil
