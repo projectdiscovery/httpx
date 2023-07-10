@@ -407,10 +407,6 @@ func (h *outputAll) Execute() error {
 		return err
 	}
 
-	if len(results) != 1 {
-		return errIncorrectResultsCount(results)
-	}
-
 	files, err := os.ReadDir(customTempDirectory)
 	if err != nil {
 		return err
