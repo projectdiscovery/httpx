@@ -415,6 +415,7 @@ func (h *outputAll) Execute() error {
 	for _, file := range files {
 		fileNames = append(fileNames, file.Name())
 	}
+	fmt.Println(fileNames)
 	if len(fileNames) != 3 {
 		return errIncorrectResultsCount(fileNames)
 	}
