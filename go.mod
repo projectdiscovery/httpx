@@ -20,7 +20,7 @@ require (
 	github.com/projectdiscovery/gologger v1.1.10
 	github.com/projectdiscovery/hmap v0.0.13
 	github.com/projectdiscovery/mapcidr v1.1.2
-	github.com/projectdiscovery/rawhttp v0.1.15
+	github.com/projectdiscovery/rawhttp v0.1.17
 	github.com/projectdiscovery/retryablehttp-go v1.0.18
 	github.com/projectdiscovery/wappalyzergo v0.0.102
 	github.com/remeh/sizedwaitgroup v1.0.0
@@ -46,7 +46,7 @@ require (
 	github.com/projectdiscovery/fastdialer v0.0.32
 	github.com/projectdiscovery/ratelimit v0.0.9
 	github.com/projectdiscovery/tlsx v1.1.0
-	github.com/projectdiscovery/utils v0.0.40-0.20230627061640-8ec2b35f851c
+	github.com/projectdiscovery/utils v0.0.40
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230205235340-d51ce4775101
 	go.uber.org/multierr v1.11.0
