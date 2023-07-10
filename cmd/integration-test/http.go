@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/projectdiscovery/httpx/internal/testutils"
+	fileutil "github.com/projectdiscovery/utils/file"
 )
 
 var httpTestcases = map[string]testutils.TestCase{
@@ -385,13 +385,6 @@ type outputAll struct {
 }
 
 func (h *outputAll) Execute() error {
-	customTempDirectory, err := os.MkdirTemp("", "")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(customTempDirectory)
-	fileName := filepath.Join(customTempDirectory, "test")
-
 	var ts *httptest.Server
 	router := httprouter.New()
 	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -402,23 +395,27 @@ func (h *outputAll) Execute() error {
 	ts = httptest.NewServer(router)
 	defer ts.Close()
 
+	fileName := "test_output_all"
 	_, hErr := testutils.RunHttpxAndGetResults(ts.URL, false, []string{"-o", fileName, "-oA"}...)
 	if hErr != nil {
 		return hErr
 	}
 
-	files, err := os.ReadDir(customTempDirectory)
-	if err != nil {
-		return err
+	expectedFiles := []string{fileName, fileName + ".json", fileName + ".csv"}
+	var actualFiles []string
+
+	for _, file := range expectedFiles {
+		if fileutil.FileExists(file) {
+			actualFiles = append(actualFiles, file)
+		}
 	}
-	var fileNames []string
-	for _, file := range files {
-		fileNames = append(fileNames, file.Name())
+	fmt.Println("files len:" + fmt.Sprint(len(actualFiles)))
+	fmt.Println(actualFiles)
+	if len(actualFiles) != 3 {
+		return errIncorrectResultsCount(actualFiles)
 	}
-	fmt.Println(fileNames)
-	if len(fileNames) != 3 {
-		return errIncorrectResultsCount(fileNames)
-	}
+
+	_ = os.RemoveAll(fileName + "*")
 
 	return nil
 }
