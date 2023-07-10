@@ -415,7 +415,9 @@ func (h *outputAll) Execute() error {
 		return errIncorrectResultsCount(actualFiles)
 	}
 
-	_ = os.RemoveAll(fileName + "*")
+	for _, file := range actualFiles {
+		_ = os.Remove(file)
+	}
 
 	return nil
 }
