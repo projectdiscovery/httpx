@@ -68,6 +68,11 @@
 go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
 ```
 
+| :exclamation:  **Disclaimer**  |
+|---------------------------------|
+| **This project is in active development**. Expect breaking changes with releases. Review the changelog before updating. |
+| This project was primarily built to be used as a standalone CLI tool. **Running it as a service may pose security risks.** It's recommended to use with caution and additional security measures. |
+
 # Usage
 
 ```sh
