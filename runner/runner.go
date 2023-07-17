@@ -7,6 +7,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net"
 	"net/http"
@@ -30,8 +31,10 @@ import (
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/errorpageclassifier"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
+	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	errorutil "github.com/projectdiscovery/utils/errors"
+	osutil "github.com/projectdiscovery/utils/os"
 
 	"github.com/Mzack9999/gcache"
 	"github.com/logrusorgru/aurora"
@@ -608,11 +611,20 @@ func (r *Runner) RunEnumeration() {
 	}
 
 	// output routine
-	wgoutput := sizedwaitgroup.New(1)
+	wgoutput := sizedwaitgroup.New(2)
 	wgoutput.Add()
+
 	output := make(chan Result)
-	go func(output chan Result) {
+	nextStep := make(chan Result)
+
+	go func(output chan Result, nextSteps ...chan Result) {
 		defer wgoutput.Done()
+
+		defer func() {
+			for _, nextStep := range nextSteps {
+				close(nextStep)
+			}
+		}()
 
 		var f, indexFile, indexScreenshotFile *os.File
 
@@ -874,8 +886,59 @@ func (r *Runner) RunEnumeration() {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				f.WriteString(row + "\n")
 			}
+
+			for _, nextStep := range nextSteps {
+				nextStep <- resp
+			}
 		}
-	}(output)
+	}(output, nextStep)
+
+	// HTML Summary
+	// - needs output of previous routine
+	// - separate goroutine due to incapability of go templates to render from file
+	wgoutput.Add()
+	go func(output chan Result) {
+		defer wgoutput.Done()
+
+		if r.options.Screenshot {
+			screenshotHtmlPath := filepath.Join(r.options.StoreResponseDir, "screenshot", "screenshot.html")
+			screenshotHtml, err := os.Create(screenshotHtmlPath)
+			if err != nil {
+				gologger.Warning().Msgf("Could not create HTML file %s\n", err)
+			}
+			defer screenshotHtml.Close()
+
+			templateMap := template.FuncMap{
+				"safeURL": func(u string) template.URL {
+					if osutil.IsWindows() {
+						u = fmt.Sprintf("file:///%s", u)
+					}
+					return template.URL(u)
+				},
+			}
+			tmpl, err := template.
+				New("screenshotTemplate").
+				Funcs(templateMap).
+				Parse(static.HtmlTemplate)
+			if err != nil {
+				gologger.Warning().Msgf("Could not create HTML template: %v\n", err)
+			}
+
+			if err = tmpl.Execute(screenshotHtml, struct {
+				Options Options
+				Output  chan Result
+			}{
+				Options: *r.options,
+				Output:  output,
+			}); err != nil {
+				gologger.Warning().Msgf("Could not execute HTML template: %v\n", err)
+			}
+		}
+
+		// fallthrough if anything is left in the buffer unblocks if screenshot is false
+		for range output {
+		}
+	}(nextStep)
 
 	wg := sizedwaitgroup.New(r.options.Threads)
 
