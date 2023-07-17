@@ -354,7 +354,7 @@ https://resources.hackerone.com [301,301,404] [Sorry, no Folders found.]
 The Error Page Classifier and Filtering feature aims to add intelligence to the tool by enabling it to classify and filter out common error pages returned by web applications. It is an enhancement to the existing httpx capabilities and is geared towards reducing the noise in the results and helping users focus on what matters most.
 
 ```console
-httpx -l list.txt -fep
+httpx -l urls.txt -path /v1/api -fep
 
     __    __  __       _  __
    / /_  / /_/ /_____ | |/ /
@@ -365,9 +365,8 @@ httpx -l list.txt -fep
 
                 projectdiscovery.io
 
-[INF] Current httpx version v1.3.2 (latest)
-https://projectdiscovery.io
-https://scanme.sh
+[INF] Current httpx version v1.3.3 (latest)
+https://scanme.sh/v1/api
 ```
 
 ### Favicon Hash
