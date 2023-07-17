@@ -373,7 +373,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("output", "Output",
 		flagSet.StringVarP(&options.Output, "output", "o", "", "file to write output results"),
-		flagSet.BoolVarP(&options.OutputAll, "output-all", "oA", false, "filename to write output results in all formats"),
+		flagSet.BoolVarP(&options.OutputAll, "output-all", "oa", false, "filename to write output results in all formats"),
 		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
 		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in csv format"),
@@ -440,7 +440,7 @@ func ParseOptions() *Options {
 	_ = flagSet.Parse()
 
 	if options.OutputAll && options.Output == "" {
-		gologger.Fatal().Msg("Please specify an output file using -o/-output when using -oA/-output-all")
+		gologger.Fatal().Msg("Please specify an output file using -o/-output when using -oa/-output-all")
 	}
 
 	if options.OutputAll {
