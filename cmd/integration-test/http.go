@@ -5,10 +5,12 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/projectdiscovery/httpx/internal/testutils"
+	fileutil "github.com/projectdiscovery/utils/file"
 )
 
 var httpTestcases = map[string]testutils.TestCase{
@@ -30,6 +32,7 @@ var httpTestcases = map[string]testutils.TestCase{
 	"Multiple Custom Header":                                                              &customHeader{inputData: []string{"-debug-req", "-H", "'user-agent: test'", "-H", "'foo: bar'"}, expectedOutput: []string{"User-Agent: test", "Foo: bar"}},
 	"Output Match Condition":                                                              &outputMatchCondition{inputData: []string{"-silent", "-mdc", "\"status_code == 200\""}},
 	"Output Filter Condition":                                                             &outputFilterCondition{inputData: []string{"-silent", "-fdc", "\"status_code == 400\""}},
+	"Output All":                                                                          &outputAll{},
 }
 
 type standardHttpGet struct {
@@ -375,5 +378,44 @@ func (h *outputFilterCondition) Execute() error {
 	if len(results) != 1 {
 		return errIncorrectResultsCount(results)
 	}
+	return nil
+}
+
+type outputAll struct {
+}
+
+func (h *outputAll) Execute() error {
+	var ts *httptest.Server
+	router := httprouter.New()
+	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(200)
+		fmt.Fprint(w, `{"status": "ok"}`)
+	}))
+	ts = httptest.NewServer(router)
+	defer ts.Close()
+
+	fileName := "test_output_all"
+	_, hErr := testutils.RunHttpxAndGetResults(ts.URL, false, []string{"-o", fileName, "-oa"}...)
+	if hErr != nil {
+		return hErr
+	}
+
+	expectedFiles := []string{fileName, fileName + ".json", fileName + ".csv"}
+	var actualFiles []string
+
+	for _, file := range expectedFiles {
+		if fileutil.FileExists(file) {
+			actualFiles = append(actualFiles, file)
+		}
+	}
+	if len(actualFiles) != 3 {
+		return errIncorrectResultsCount(actualFiles)
+	}
+
+	for _, file := range actualFiles {
+		_ = os.Remove(file)
+	}
+
 	return nil
 }
