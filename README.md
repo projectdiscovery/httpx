@@ -164,6 +164,7 @@ UPDATE:
 
 OUTPUT:
    -o, -output string                  file to write output results
+   -oa, -output-all                    filename to write output results in all formats
    -sr, -store-response                store http response to output directory
    -srd, -store-response-dir string    store http response to custom directory
    -csv                                store output in csv format
