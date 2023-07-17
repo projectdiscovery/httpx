@@ -396,7 +396,7 @@ func (h *outputAll) Execute() error {
 	defer ts.Close()
 
 	fileName := "test_output_all"
-	_, hErr := testutils.RunHttpxAndGetResults(ts.URL, false, []string{"-o", fileName, "-oA"}...)
+	_, hErr := testutils.RunHttpxAndGetResults(ts.URL, false, []string{"-o", fileName, "-oa"}...)
 	if hErr != nil {
 		return hErr
 	}
