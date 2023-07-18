@@ -1623,7 +1623,7 @@ retry:
 	}
 
 	// store responses or chain in directory
-	domainFile := URL.EscapedString()
+	domainFile := method + ":" + URL.EscapedString()
 	hash := hashes.Sha1([]byte(domainFile))
 	domainResponseFile := fmt.Sprintf("%s.txt", hash)
 	screenshotResponseFile := fmt.Sprintf("%s.png", hash)
