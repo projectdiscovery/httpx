@@ -27,7 +27,9 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	dsl "github.com/projectdiscovery/dsl"
+	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
+	"github.com/projectdiscovery/httpx/common/errorpageclassifier"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
@@ -69,15 +71,16 @@ import (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options         *Options
-	hp              *httpx.HTTPX
-	wappalyzer      *wappalyzer.Wappalyze
-	scanopts        ScanOptions
-	hm              *hybrid.HybridMap
-	stats           clistats.StatisticsClient
-	ratelimiter     ratelimit.Limiter
-	HostErrorsCache gcache.Cache[string, int]
-	browser         *Browser
+	options             *Options
+	hp                  *httpx.HTTPX
+	wappalyzer          *wappalyzer.Wappalyze
+	scanopts            ScanOptions
+	hm                  *hybrid.HybridMap
+	stats               clistats.StatisticsClient
+	ratelimiter         ratelimit.Limiter
+	HostErrorsCache     gcache.Cache[string, int]
+	browser             *Browser
+	errorPageClassifier *errorpageclassifier.ErrorPageClassifier
 }
 
 // New creates a new client for running enumeration process.
@@ -310,6 +313,8 @@ func New(options *Options) (*Runner, error) {
 			Build()
 		runner.HostErrorsCache = gc
 	}
+
+	runner.errorPageClassifier = errorpageclassifier.New()
 
 	return runner, nil
 }
@@ -742,8 +747,13 @@ func (r *Runner) RunEnumeration() {
 					gologger.Warning().Msgf("Could not decode response: %s\n", err)
 					continue
 				}
-				dslVars, _ := dslVariables()
+				dslVars, err := dslVariables()
+				if err != nil {
+					gologger.Warning().Msgf("Could not retrieve dsl variables: %s\n", err)
+					continue
+				}
 				flatMap := make(map[string]interface{})
+
 				for _, v := range dslVars {
 					flatMap[v] = rawMap[v]
 				}
@@ -772,6 +782,10 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
+			if r.options.OutputFilterErrorPage && resp.KnowledgeBase["PageType"] == "error" {
+				logFilteredErrorPage(resp.URL)
+				continue
+			}
 			if len(r.options.filterStatusCode) > 0 && slice.IntSliceContains(r.options.filterStatusCode, resp.StatusCode) {
 				continue
 			}
@@ -1022,6 +1036,36 @@ func (r *Runner) RunEnumeration() {
 	wgoutput.Wait()
 }
 
+func logFilteredErrorPage(url string) {
+	fileName := "filtered_error_page.json"
+	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		gologger.Fatal().Msgf("Could not open/create output file '%s': %s\n", fileName, err)
+		return
+	}
+	defer file.Close()
+
+	info := map[string]interface{}{
+		"url":           url,
+		"time_filtered": time.Now(),
+	}
+
+	data, err := json.Marshal(info)
+	if err != nil {
+		fmt.Println("Failed to marshal JSON:", err)
+		return
+	}
+
+	if _, err := file.Write(data); err != nil {
+		gologger.Fatal().Msgf("Failed to write to '%s': %s\n", fileName, err)
+		return
+	}
+
+	if _, err := file.WriteString("\n"); err != nil {
+		gologger.Fatal().Msgf("Failed to write newline to '%s': %s\n", fileName, err)
+		return
+	}
+}
 func openOrCreateFile(resume bool, filename string) *os.File {
 	var err error
 	var f *os.File
@@ -1243,7 +1287,7 @@ retry:
 		} else {
 			requestIP = target.CustomIP
 		}
-		ctx := context.WithValue(context.Background(), "ip", requestIP) //nolint
+		ctx := context.WithValue(context.Background(), fastdialer.IP, requestIP)
 		req, err = hp.NewRequestWithContext(ctx, method, URL.String())
 	} else {
 		req, err = hp.NewRequest(method, URL.String())
@@ -1884,6 +1928,9 @@ retry:
 		ScreenshotBytes:    screenshotBytes,
 		ScreenshotPath:     screenshotPath,
 		HeadlessBody:       headlessBody,
+		KnowledgeBase: map[string]interface{}{
+			"PageType": r.errorPageClassifier.Classify(respData),
+		},
 	}
 	return result
 }

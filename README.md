@@ -136,13 +136,14 @@ EXTRACTOR:
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
+   -fep, -filter-error-page            filter response with ML based error page detection
    -fl, -filter-length string          filter response with specified content length (-fl 23,33)
    -flc, -filter-line-count string     filter response body with specified line count (-flc 423,532)
    -fwc, -filter-word-count string     filter response body with specified word count (-fwc 423,532)
    -ffc, -filter-favicon string[]      filter response with specified favicon hash (-mfc 1494302000)
    -fs, -filter-string string          filter response with specified string (-fs admin)
    -fe, -filter-regex string           filter response with specified regex (-fe admin)
-   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (incapsula, oracle, google, azure, cloudflare, cloudfront, fastly, akamai, sucuri, leaseweb)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (google, leaseweb, stackpath, cloudfront, fastly)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
    -fdc, -filter-condition string      filter response with dsl expression condition
 
@@ -348,6 +349,28 @@ https://docs.hackerone.com [200] [HackerOne Platform Documentation] [Ruby on Rai
 https://support.hackerone.com [301,302,301,200] [HackerOne] [Cloudflare,Ruby on Rails,Ruby]
 https://resources.hackerone.com [301,301,404] [Sorry, no Folders found.]
 ```
+
+### Error Page Classifier and Filtering
+
+The Error Page Classifier and Filtering feature aims to add intelligence to the tool by enabling it to classify and filter out common error pages returned by web applications. It is an enhancement to the existing httpx capabilities and is geared towards reducing the noise in the results and helping users focus on what matters most.
+
+```console
+httpx -l urls.txt -path /v1/api -fep
+
+    __    __  __       _  __
+   / /_  / /_/ /_____ | |/ /
+  / __ \/ __/ __/ __ \|   /
+ / / / / /_/ /_/ /_/ /   |
+/_/ /_/\__/\__/ .___/_/|_|
+             /_/
+
+                projectdiscovery.io
+
+[INF] Current httpx version v1.3.3 (latest)
+https://scanme.sh/v1/api
+```
+
+Filtered error pages are stored to predefined file `filtered_error_page.json` in jsonline format when `-filter-error-page` option is used.
 
 ### Favicon Hash
 

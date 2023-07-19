@@ -159,6 +159,7 @@ type Options struct {
 	OutputMatchStatusCode     string
 	OutputMatchContentLength  string
 	OutputFilterStatusCode    string
+	OutputFilterErrorPage     bool
 	OutputFilterContentLength string
 	InputRawRequest           string
 	rawRequest                string
@@ -336,6 +337,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("filters", "Filters",
 		flagSet.StringVarP(&options.OutputFilterStatusCode, "filter-code", "fc", "", "filter response with specified status code (-fc 403,401)"),
+		flagSet.BoolVarP(&options.OutputFilterErrorPage, "filter-error-page", "fep", false, "filter response with ML based error page detection"),
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "filter response with specified content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "filter response body with specified line count (-flc 423,532)"),
 		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-word-count", "fwc", "", "filter response body with specified word count (-fwc 423,532)"),

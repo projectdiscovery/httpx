@@ -77,12 +77,13 @@ type Result struct {
 	ScreenshotBytes    []byte                 `json:"screenshot_bytes,omitempty" csv:"screenshot_bytes"`
 	StoredResponsePath string                 `json:"stored_response_path,omitempty" csv:"stored_response_path"`
 	ScreenshotPath     string                 `json:"screenshot_path,omitempty" csv:"screenshot_path"`
+	KnowledgeBase      map[string]interface{} `json:"knowledgebase,omitempty" csv:"knowledgebase"`
 }
 
 // function to get dsl variables from result struct
 func dslVariables() ([]string, error) {
 	fakeResult := Result{}
-	fieldsToIgnore := []string{"Hashes", "ResponseHeader", "Err"}
+	fieldsToIgnore := []string{"Hashes", "ResponseHeader", "Err", "KnowledgeBase"}
 	if err := faker.FakeData(&fakeResult, options.WithFieldsToIgnore(fieldsToIgnore...)); err != nil {
 		return nil, err
 	}

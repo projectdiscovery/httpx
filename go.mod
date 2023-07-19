@@ -39,6 +39,7 @@ require (
 	github.com/go-faker/faker/v4 v4.1.1
 	github.com/go-rod/rod v0.113.4
 	github.com/hdm/jarm-go v0.0.7
+	github.com/jaytaylor/html2text v0.0.0-20230321000545-74c2419ad056
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.4
@@ -86,6 +87,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kataras/jwt v0.1.8 // indirect
 	github.com/klauspost/compress v1.15.15 // indirect
+	github.com/kljensen/snowball v0.8.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -112,6 +114,7 @@ require (
 	github.com/sashabaranov/go-openai v1.13.0 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.6 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
+	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tidwall/btree v1.6.0 // indirect
 	github.com/tidwall/buntdb v1.3.0 // indirect
