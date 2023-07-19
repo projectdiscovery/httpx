@@ -205,7 +205,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.ResponseInStdout
-	scanopts.Base64ResponseInStdout = options.Base64responseInStdout
+	scanopts.Base64ResponseInStdout = options.Base64ResponseInStdout
 	scanopts.ChainInStdout = options.chainInStdout
 	scanopts.OutputWebSocket = options.OutputWebSocket
 	scanopts.TLSProbe = options.TLSProbe
