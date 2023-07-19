@@ -1,5 +1,6 @@
 .idea/
 .vscode/
+dist
 cmd/httpx/httpx
 integration_tests/httpx
 integration_tests/integration-test
@@ -7,3 +8,5 @@ cmd/functional-test/httpx_dev
 cmd/functional-test/functional-test
 cmd/functional-test/httpx
 cmd/functional-test/*.cfg
+
+.devcontainer

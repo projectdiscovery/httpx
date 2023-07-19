@@ -62,11 +62,16 @@
 
 # Installation Instructions
 
-`httpx` requires **go1.19** to install successfully. Run the following command to get the repo:
+`httpx` requires **go1.20** to install successfully. Run the following command to get the repo:
 
 ```sh
 go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
 ```
+
+| :exclamation:  **Disclaimer**  |
+|---------------------------------|
+| **This project is in active development**. Expect breaking changes with releases. Review the changelog before updating. |
+| This project was primarily built to be used as a standalone CLI tool. **Running it as a service may pose security risks.** It's recommended to use with caution and additional security measures. |
 
 # Usage
 
@@ -164,6 +169,7 @@ UPDATE:
 
 OUTPUT:
    -o, -output string                  file to write output results
+   -oa, -output-all                    filename to write output results in all formats
    -sr, -store-response                store http response to output directory
    -srd, -store-response-dir string    store http response to custom directory
    -csv                                store output in csv format

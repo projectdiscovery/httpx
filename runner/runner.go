@@ -7,6 +7,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net"
 	"net/http"
@@ -28,8 +29,10 @@ import (
 	dsl "github.com/projectdiscovery/dsl"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
+	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	errorutil "github.com/projectdiscovery/utils/errors"
+	osutil "github.com/projectdiscovery/utils/os"
 
 	"github.com/Mzack9999/gcache"
 	"github.com/logrusorgru/aurora"
@@ -603,33 +606,64 @@ func (r *Runner) RunEnumeration() {
 	}
 
 	// output routine
-	wgoutput := sizedwaitgroup.New(1)
+	wgoutput := sizedwaitgroup.New(2)
 	wgoutput.Add()
+
 	output := make(chan Result)
-	go func(output chan Result) {
+	nextStep := make(chan Result)
+
+	go func(output chan Result, nextSteps ...chan Result) {
 		defer wgoutput.Done()
 
-		var f, indexFile, indexScreenshotFile *os.File
+		defer func() {
+			for _, nextStep := range nextSteps {
+				close(nextStep)
+			}
+		}()
 
-		if r.options.Output != "" {
-			var err error
-			if r.options.Resume {
-				f, err = os.OpenFile(r.options.Output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-			} else {
-				f, err = os.Create(r.options.Output)
-			}
-			if err != nil {
-				gologger.Fatal().Msgf("Could not open/create output file '%s': %s\n", r.options.Output, err)
-			}
-			defer f.Close() //nolint
+		var plainFile, jsonFile, csvFile, indexFile, indexScreenshotFile *os.File
+
+		if r.options.Output != "" && r.options.OutputAll {
+			plainFile = openOrCreateFile(r.options.Resume, r.options.Output)
+			defer plainFile.Close()
+			jsonFile = openOrCreateFile(r.options.Resume, r.options.Output+".json")
+			defer jsonFile.Close()
+			csvFile = openOrCreateFile(r.options.Resume, r.options.Output+".csv")
+			defer csvFile.Close()
 		}
+
+		jsonOrCsv := (r.options.JSONOutput || r.options.CSVOutput)
+		jsonAndCsv := (r.options.JSONOutput && r.options.CSVOutput)
+		if r.options.Output != "" && plainFile == nil && !jsonOrCsv {
+			plainFile = openOrCreateFile(r.options.Resume, r.options.Output)
+			defer plainFile.Close()
+		}
+
+		if r.options.Output != "" && r.options.JSONOutput && jsonFile == nil {
+			ext := ""
+			if jsonAndCsv {
+				ext = ".json"
+			}
+			jsonFile = openOrCreateFile(r.options.Resume, r.options.Output+ext)
+			defer jsonFile.Close()
+		}
+
+		if r.options.Output != "" && r.options.CSVOutput && csvFile == nil {
+			ext := ""
+			if jsonAndCsv {
+				ext = ".csv"
+			}
+			csvFile = openOrCreateFile(r.options.Resume, r.options.Output+ext)
+			defer csvFile.Close()
+		}
+
 		if r.options.CSVOutput {
 			outEncoding := strings.ToLower(r.options.CSVOutputEncoding)
 			switch outEncoding {
 			case "": // no encoding do nothing
 			case "utf-8", "utf8":
 				bomUtf8 := []byte{0xEF, 0xBB, 0xBF}
-				_, err := f.Write(bomUtf8)
+				_, err := csvFile.Write(bomUtf8)
 				if err != nil {
 					gologger.Fatal().Msgf("err on file write: %s\n", err)
 				}
@@ -637,10 +671,13 @@ func (r *Runner) RunEnumeration() {
 				gologger.Fatal().Msgf("unknown csv output encoding: %s\n", r.options.CSVOutputEncoding)
 			}
 			header := Result{}.CSVHeader()
-			gologger.Silent().Msgf("%s\n", header)
-			if f != nil {
+			if !r.options.OutputAll && !jsonAndCsv {
+				gologger.Silent().Msgf("%s\n", header)
+			}
+
+			if csvFile != nil {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
-				f.WriteString(header + "\n")
+				csvFile.WriteString(header + "\n")
 			}
 		}
 		if r.options.StoreResponseDir != "" {
@@ -847,21 +884,94 @@ func (r *Runner) RunEnumeration() {
 					}
 				}
 			}
-			row := resp.str
-			if r.options.JSONOutput {
-				row = resp.JSON(&r.scanopts)
-			} else if r.options.CSVOutput {
-				row = resp.CSVRow(&r.scanopts)
 
+			if !jsonOrCsv || jsonAndCsv || r.options.OutputAll {
+				gologger.Silent().Msgf("%s\n", resp.str)
 			}
 
-			gologger.Silent().Msgf("%s\n", row)
-			if f != nil {
+			//nolint:errcheck // this method needs a small refactor to reduce complexity
+			if plainFile != nil {
+				plainFile.WriteString(resp.str + "\n")
+			}
+
+			if r.options.JSONOutput {
+				row := resp.JSON(&r.scanopts)
+
+				if !r.options.OutputAll && !jsonAndCsv {
+					gologger.Silent().Msgf("%s\n", row)
+				}
+
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
-				f.WriteString(row + "\n")
+				if jsonFile != nil {
+					jsonFile.WriteString(row + "\n")
+				}
+			}
+
+			if r.options.CSVOutput {
+				row := resp.CSVRow(&r.scanopts)
+
+				if !r.options.OutputAll && !jsonAndCsv {
+					gologger.Silent().Msgf("%s\n", row)
+				}
+
+				//nolint:errcheck // this method needs a small refactor to reduce complexity
+				if csvFile != nil {
+					csvFile.WriteString(row + "\n")
+				}
+			}
+
+			for _, nextStep := range nextSteps {
+				nextStep <- resp
 			}
 		}
-	}(output)
+	}(output, nextStep)
+
+	// HTML Summary
+	// - needs output of previous routine
+	// - separate goroutine due to incapability of go templates to render from file
+	wgoutput.Add()
+	go func(output chan Result) {
+		defer wgoutput.Done()
+
+		if r.options.Screenshot {
+			screenshotHtmlPath := filepath.Join(r.options.StoreResponseDir, "screenshot", "screenshot.html")
+			screenshotHtml, err := os.Create(screenshotHtmlPath)
+			if err != nil {
+				gologger.Warning().Msgf("Could not create HTML file %s\n", err)
+			}
+			defer screenshotHtml.Close()
+
+			templateMap := template.FuncMap{
+				"safeURL": func(u string) template.URL {
+					if osutil.IsWindows() {
+						u = fmt.Sprintf("file:///%s", u)
+					}
+					return template.URL(u)
+				},
+			}
+			tmpl, err := template.
+				New("screenshotTemplate").
+				Funcs(templateMap).
+				Parse(static.HtmlTemplate)
+			if err != nil {
+				gologger.Warning().Msgf("Could not create HTML template: %v\n", err)
+			}
+
+			if err = tmpl.Execute(screenshotHtml, struct {
+				Options Options
+				Output  chan Result
+			}{
+				Options: *r.options,
+				Output:  output,
+			}); err != nil {
+				gologger.Warning().Msgf("Could not execute HTML template: %v\n", err)
+			}
+		}
+
+		// fallthrough if anything is left in the buffer unblocks if screenshot is false
+		for range output {
+		}
+	}(nextStep)
 
 	wg := sizedwaitgroup.New(r.options.Threads)
 
@@ -910,6 +1020,20 @@ func (r *Runner) RunEnumeration() {
 	close(output)
 
 	wgoutput.Wait()
+}
+
+func openOrCreateFile(resume bool, filename string) *os.File {
+	var err error
+	var f *os.File
+	if resume {
+		f, err = os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	} else {
+		f, err = os.Create(filename)
+	}
+	if err != nil {
+		gologger.Fatal().Msgf("Could not open/create output file '%s': %s\n", filename, err)
+	}
+	return f
 }
 
 func (r *Runner) GetScanOpts() ScanOptions {
@@ -1551,7 +1675,10 @@ retry:
 	hashesMap := make(map[string]interface{})
 	if scanopts.Hashes != "" {
 		hs := strings.Split(scanopts.Hashes, ",")
-		builder.WriteString(" [")
+		outputHashes := !(r.options.JSONOutput || r.options.OutputAll)
+		if outputHashes {
+			builder.WriteString(" [")
+		}
 		for index, hashType := range hs {
 			var (
 				hashHeader, hashBody string
@@ -1580,17 +1707,21 @@ retry:
 			if hashBody != "" {
 				hashesMap[fmt.Sprintf("body_%s", hashType)] = hashBody
 				hashesMap[fmt.Sprintf("header_%s", hashType)] = hashHeader
-				if !scanopts.OutputWithNoColor {
-					builder.WriteString(aurora.Magenta(hashBody).String())
-				} else {
-					builder.WriteString(hashBody)
-				}
-				if index != len(hs)-1 {
-					builder.WriteString(",")
+				if outputHashes {
+					if !scanopts.OutputWithNoColor {
+						builder.WriteString(aurora.Magenta(hashBody).String())
+					} else {
+						builder.WriteString(hashBody)
+					}
+					if index != len(hs)-1 {
+						builder.WriteString(",")
+					}
 				}
 			}
 		}
-		builder.WriteRune(']')
+		if outputHashes {
+			builder.WriteRune(']')
+		}
 	}
 	if scanopts.OutputLinesCount {
 		builder.WriteString(" [")
