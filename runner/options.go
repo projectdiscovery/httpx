@@ -146,6 +146,7 @@ type Options struct {
 	filterStatusCode          []int
 	filterContentLength       []int
 	Output                    string
+	OutputAll                 bool
 	StoreResponseDir          string
 	HTTPProxy                 string
 	SocksProxy                string
@@ -158,6 +159,7 @@ type Options struct {
 	OutputMatchStatusCode     string
 	OutputMatchContentLength  string
 	OutputFilterStatusCode    string
+	OutputFilterErrorPage     bool
 	OutputFilterContentLength string
 	InputRawRequest           string
 	rawRequest                string
@@ -190,8 +192,8 @@ type Options struct {
 	NoColor                   bool
 	OutputServerHeader        bool
 	OutputWebSocket           bool
-	responseInStdout          bool
-	base64responseInStdout    bool
+	ResponseInStdout          bool
+	Base64ResponseInStdout    bool
 	chainInStdout             bool
 	FollowHostRedirects       bool
 	MaxRedirects              int
@@ -276,6 +278,7 @@ type Options struct {
 // ParseOptions parses the command line options for application
 func ParseOptions() *Options {
 	options := &Options{}
+	var cfgFile string
 
 	flagSet := goflags.NewFlagSet()
 	flagSet.SetDescription(`httpx is a fast and multi-purpose HTTP toolkit that allows running multiple probes using the retryablehttp library.`)
@@ -334,6 +337,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("filters", "Filters",
 		flagSet.StringVarP(&options.OutputFilterStatusCode, "filter-code", "fc", "", "filter response with specified status code (-fc 403,401)"),
+		flagSet.BoolVarP(&options.OutputFilterErrorPage, "filter-error-page", "fep", false, "filter response with ML based error page detection"),
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "filter response with specified content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "filter response body with specified line count (-flc 423,532)"),
 		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-word-count", "fwc", "", "filter response body with specified word count (-fwc 423,532)"),
@@ -371,18 +375,20 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("output", "Output",
 		flagSet.StringVarP(&options.Output, "output", "o", "", "file to write output results"),
+		flagSet.BoolVarP(&options.OutputAll, "output-all", "oa", false, "filename to write output results in all formats"),
 		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
 		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in csv format"),
 		flagSet.StringVarP(&options.CSVOutputEncoding, "csv-output-encoding", "csvo", "", "define output encoding"),
 		flagSet.BoolVar(&options.JSONOutput, "json", false, "store output in JSONL(ines) format"),
-		flagSet.BoolVarP(&options.responseInStdout, "include-response", "irr", false, "include http request/response in JSON output (-json only)"),
-		flagSet.BoolVarP(&options.base64responseInStdout, "include-response-base64", "irrb", false, "include base64 encoded http request/response in JSON output (-json only)"),
+		flagSet.BoolVarP(&options.ResponseInStdout, "include-response", "irr", false, "include http request/response in JSON output (-json only)"),
+		flagSet.BoolVarP(&options.Base64ResponseInStdout, "include-response-base64", "irrb", false, "include base64 encoded http request/response in JSON output (-json only)"),
 		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "include redirect http chain in JSON output (-json only)"),
 		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
 	)
 
 	flagSet.CreateGroup("configs", "Configurations",
+		flagSet.StringVar(&cfgFile, "config", "", "path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)"),
 		flagSet.StringSliceVarP(&options.Resolvers, "resolvers", "r", nil, "list of custom resolver (file or comma separated)", goflags.NormalizedStringSliceOptions),
 		flagSet.Var(&options.Allow, "allow", "allowed list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
@@ -434,6 +440,25 @@ func ParseOptions() *Options {
 	)
 
 	_ = flagSet.Parse()
+
+	if options.OutputAll && options.Output == "" {
+		gologger.Fatal().Msg("Please specify an output file using -o/-output when using -oa/-output-all")
+	}
+
+	if options.OutputAll {
+		options.JSONOutput = true
+		options.CSVOutput = true
+	}
+
+	if cfgFile != "" {
+		if !fileutil.FileExists(cfgFile) {
+			gologger.Fatal().Msgf("given config file '%s' does not exist", cfgFile)
+		}
+		// merge config file with flags
+		if err := flagSet.MergeConfigFile(cfgFile); err != nil {
+			gologger.Fatal().Msgf("Could not read config: %s\n", err)
+		}
+	}
 
 	if options.HealthCheck {
 		gologger.Print().Msgf("%s\n", DoHealthCheck(options, flagSet))
@@ -493,11 +518,6 @@ func (options *Options) ValidateOptions() error {
 
 	if options.InputRawRequest != "" && !fileutil.FileExists(options.InputRawRequest) {
 		return fmt.Errorf("file '%s' does not exist", options.InputRawRequest)
-	}
-
-	multiOutput := options.CSVOutput && options.JSONOutput
-	if multiOutput {
-		return fmt.Errorf("results can only be displayed in one format: 'JSON' or 'CSV'")
 	}
 
 	if options.Silent {

@@ -1,10 +1,9 @@
 package runner
 
 import (
-    "github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/gologger"
 	updateutils "github.com/projectdiscovery/utils/update"
 )
-
 
 const banner = `
     __    __  __       _  __
