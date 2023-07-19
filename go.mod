@@ -37,7 +37,7 @@ require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/go-faker/faker/v4 v4.1.1
-	github.com/go-rod/rod v0.113.4
+	github.com/go-rod/rod v0.114.0
 	github.com/hdm/jarm-go v0.0.7
 	github.com/jaytaylor/html2text v0.0.0-20230321000545-74c2419ad056
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
