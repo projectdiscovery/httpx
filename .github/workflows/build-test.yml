@@ -53,10 +53,3 @@ jobs:
       - name: Race Condition Tests
         run: go build -race .
         working-directory: cmd/httpx/
-
-      - name: release test
-        uses: goreleaser/goreleaser-action@v4
-        with:
-          args: "release --clean --snapshot"
-          version: latest
-          workdir: .
