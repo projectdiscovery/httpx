@@ -53,3 +53,7 @@ func Close() error {
 	close(dBChan)
 	return db.Close()
 }
+
+func Wait() {
+	wg.Wait()
+}

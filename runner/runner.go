@@ -934,6 +934,10 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
+			if r.options.WebUI {
+				r.options.SaveResult(resp)
+			}
+
 			for _, nextStep := range nextSteps {
 				nextStep <- resp
 			}

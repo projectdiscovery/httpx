@@ -526,7 +526,7 @@ func ParseOptions() *Options {
 		if strings.HasPrefix(address, ":") {
 			address = "127.0.0.1" + address
 		}
-		gologger.Info().Msgf("Started Web Server at http://%s\n", address)
+		gologger.Info().Msgf("Started Web Server at http://%s/\n", address)
 	}
 
 	return options

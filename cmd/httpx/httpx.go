@@ -8,6 +8,7 @@ import (
 
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/httpx/runner"
+	"github.com/projectdiscovery/httpx/runner/server"
 	errorutil "github.com/projectdiscovery/utils/errors"
 )
 
@@ -37,7 +38,6 @@ func main() {
 	if err != nil {
 		gologger.Fatal().Msgf("Could not create runner: %s\n", err)
 	}
-
 	// Setup graceful exits
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
@@ -45,6 +45,7 @@ func main() {
 		for range c {
 			gologger.Info().Msgf("CTRL+C pressed: Exiting\n")
 			httpxRunner.Close()
+			server.Close()
 			if options.ShouldSaveResume() {
 				gologger.Info().Msgf("Creating resume file: %s\n", runner.DefaultResumeFile)
 				err := httpxRunner.SaveResumeConfig()
@@ -58,6 +59,9 @@ func main() {
 
 	httpxRunner.RunEnumeration()
 	httpxRunner.Close()
+	if options.WebUI {
+		server.Wait() // do not exit when running in webui mode
+	}
 }
 
 func init() {

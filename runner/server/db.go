@@ -33,7 +33,8 @@ func (h *httpxDB) Get(key string) ([]byte, bool) {
 
 // Set sets
 func (h *httpxDB) Set(value []byte) error {
-	return h.hm.Set(string(h.counter.Add(1)), value)
+	index := strconv.Itoa(int(h.counter.Add(1)))
+	return h.hm.Set(index, value)
 }
 
 // Count returns the number of entries in the database
