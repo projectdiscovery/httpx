@@ -444,7 +444,7 @@ func ParseOptions() *Options {
 	)
 
 	flagSet.CreateGroup("web", "Web",
-		flagSet.BoolVarP(&options.WebUI, "web", "w", false, "start web ui server"),
+		flagSet.BoolVar(&options.WebUI, "web", false, "start web ui server"),
 		flagSet.StringVarP(&options.ServerAddr, "server-addr", "sa", ":8085", "server address to listen on (default:8085)"),
 	)
 
@@ -523,7 +523,7 @@ func ParseOptions() *Options {
 			gologger.Fatal().Msgf("%s\n", err)
 		}
 		address := options.ServerAddr
-		if strings.HasPrefix(":", address) {
+		if strings.HasPrefix(address, ":") {
 			address = "127.0.0.1" + address
 		}
 		gologger.Info().Msgf("Started Web Server at http://%s\n", address)
