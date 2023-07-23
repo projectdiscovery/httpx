@@ -24,6 +24,7 @@ import (
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
+	"github.com/projectdiscovery/httpx/runner/server"
 	fileutil "github.com/projectdiscovery/utils/file"
 	updateutils "github.com/projectdiscovery/utils/update"
 )
@@ -273,6 +274,9 @@ type Options struct {
 	UseInstalledChrome bool
 	TlsImpersonate     bool
 	DisableStdin       bool
+	WebUI              bool
+	ServerAddr         string
+	serverChan         chan<- []byte
 }
 
 // ParseOptions parses the command line options for application
@@ -439,6 +443,11 @@ func ParseOptions() *Options {
 		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", math.MaxInt32, "max response size to read in bytes"),
 	)
 
+	flagSet.CreateGroup("web", "Web",
+		flagSet.BoolVarP(&options.WebUI, "web", "w", false, "start web ui server"),
+		flagSet.StringVarP(&options.ServerAddr, "server-addr", "sa", ":8085", "server address to listen on (default:8085)"),
+	)
+
 	_ = flagSet.Parse()
 
 	if options.OutputAll && options.Output == "" {
@@ -508,7 +517,26 @@ func ParseOptions() *Options {
 		gologger.Fatal().Msgf("%s\n", err)
 	}
 
+	if options.WebUI {
+		options.serverChan, err = server.SetupServer(options.ServerAddr)
+		if err != nil {
+			gologger.Fatal().Msgf("%s\n", err)
+		}
+		address := options.ServerAddr
+		if strings.HasPrefix(":", address) {
+			address = "127.0.0.1" + address
+		}
+		gologger.Info().Msgf("Started Web Server at http://%s\n", address)
+	}
+
 	return options
+}
+
+// SaveResult saves result to db if webui is enabled
+func (options *Options) SaveResult(res Result) {
+	if options.serverChan != nil {
+		options.serverChan <- []byte(res.JSON(nil))
+	}
 }
 
 func (options *Options) ValidateOptions() error {
