@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -17,11 +18,12 @@ import (
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/fastdialer/fastdialer/ja3/impersonate"
 	"github.com/projectdiscovery/rawhttp"
-	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
+	"github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/utils/generic"
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	urlutil "github.com/projectdiscovery/utils/url"
+	"golang.org/x/exp/rand"
 	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 )
@@ -42,6 +44,7 @@ type HTTPX struct {
 func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
 	fastdialerOpts := fastdialer.DefaultOptions
+	fastdialerOpts.CacheType = fastdialer.Memory
 	fastdialerOpts.EnableFallback = true
 	fastdialerOpts.Deny = options.Deny
 	fastdialerOpts.Allow = options.Allow
@@ -64,6 +67,16 @@ func New(options *Options) (*HTTPX, error) {
 	var retryablehttpOptions = retryablehttp.DefaultOptionsSpraying
 	retryablehttpOptions.Timeout = httpx.Options.Timeout
 	retryablehttpOptions.RetryMax = httpx.Options.RetryMax
+
+	retryablehttpOptions.Backoff = func(min, max time.Duration, attemptNum int, _ *http.Response) time.Duration {
+		base := float64(min)
+		capLevel := float64(max)
+
+		temp := math.Min(capLevel, base*math.Exp2(float64(attemptNum)))
+		halfTemp := int64(temp / 2)
+		sleep := halfTemp + rand.Int63n(halfTemp)
+		return time.Duration(sleep)
+	}
 
 	var redirectFunc = func(_ *http.Request, _ []*http.Request) error {
 		// Tell the http client to not follow redirect
@@ -378,7 +391,7 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 		}
 	}
 	if h.Options.RandomAgent {
-		r.Header.Set("User-Agent", uarand.GetRandom()) //nolint
+		r.Header.Set("User-Agent", uarand.GetRandom()) // nolint
 	}
 }
 
