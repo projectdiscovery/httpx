@@ -277,7 +277,7 @@ get_response:
 	// number of lines
 	resp.Lines = len(strings.Split(respbodystr, "\n"))
 
-	if !h.Options.Unsafe && h.Options.TLSGrab {
+	if h.Options.TLSGrab {
 		if h.Options.ZTLS {
 			resp.TLSData = h.ZTLSGrab(httpresp)
 		} else {
@@ -309,9 +309,9 @@ type UnsafeOptions struct {
 
 // getResponse returns response from safe / unsafe request
 func (h *HTTPX) getResponse(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (resp *http.Response, err error) {
-	if h.Options.Unsafe {
-		return h.doUnsafeWithOptions(req, unsafeOptions)
-	}
+	// if h.Options.Unsafe {
+	// 	return h.doUnsafeWithOptions(req, unsafeOptions)
+	// }
 	return h.client.Do(req)
 }
 

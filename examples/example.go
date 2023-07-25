@@ -7,6 +7,7 @@ import (
 	"github.com/projectdiscovery/goflags"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/gologger/levels"
+
 	"github.com/projectdiscovery/httpx/runner"
 )
 
@@ -14,9 +15,10 @@ func main() {
 	gologger.DefaultLogger.SetMaxLevel(levels.LevelVerbose) // increase the verbosity (optional)
 
 	options := runner.Options{
+		Unsafe:          true,
 		Methods:         "GET",
 		InputTargetHost: goflags.StringSlice{"scanme.sh", "projectdiscovery.io", "localhost"},
-		//InputFile: "./targetDomains.txt", // path to file containing the target domains list
+		// InputFile: "./targetDomains.txt", // path to file containing the target domains list
 		OnResult: func(r runner.Result) {
 			// handle error
 			if r.Err != nil {
