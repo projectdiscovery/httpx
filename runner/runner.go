@@ -296,7 +296,9 @@ func New(options *Options) (*Runner, error) {
 		}
 	}
 
-	hm, err := hybrid.New(hybrid.DefaultOptions)
+	cacheOptions := hybrid.DefaultHybridOptions
+	cacheOptions.DBType = hybrid.BBoltDB
+	hm, err := hybrid.New(cacheOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -1248,8 +1250,12 @@ func (r *Runner) analyze(hp *httpx.HTTPX, protocol string, target httpx.Target, 
 	}
 	retried := false
 
-	// ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	ctx, cancel := context.WithTimeout(context.Background(), r.hp.Options.Timeout)
+	timeOut := r.hp.Options.Timeout
+	if timeOut == 0 {
+		timeOut = 20 * time.Minute
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeOut)
 	defer cancel()
 
 retry:

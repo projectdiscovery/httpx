@@ -2,6 +2,8 @@ module github.com/projectdiscovery/httpx
 
 go 1.20
 
+replace github.com/projectdiscovery/fastdialer => github.com/anhnmt/fastdialer v0.0.0-20230725093233-1189e1513a01
+
 require (
 	github.com/akrylysov/pogreb v0.10.1 // indirect
 	github.com/corpix/uarand v0.2.0
