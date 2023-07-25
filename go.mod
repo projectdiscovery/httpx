@@ -2,9 +2,11 @@ module github.com/projectdiscovery/httpx
 
 go 1.20
 
-replace github.com/projectdiscovery/fastdialer => github.com/anhnmt/fastdialer v0.0.0-20230725093233-1189e1513a01
+replace github.com/projectdiscovery/fastdialer => github.com/anhnmt/fastdialer v0.0.0-20230725102735-2b4ae4c3c495
 
 replace github.com/projectdiscovery/asnmap => github.com/anhnmt/asnmap v0.0.0-20230725101319-d8476a9df87d
+
+replace github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 
 require (
 	github.com/akrylysov/pogreb v0.10.1 // indirect
