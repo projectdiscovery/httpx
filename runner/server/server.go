@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -12,7 +11,7 @@ import (
 func SetupServer(addr string) (chan<- []byte, error) {
 	var err error
 	// Initialize the database
-	db, err = newHttpxDB()
+	db, err = NewHttpxDB("")
 	if err != nil {
 		return nil, err
 	}
@@ -21,23 +20,31 @@ func SetupServer(addr string) (chan<- []byte, error) {
 		w.Write([]byte(strconv.Itoa(db.Count())))
 	})
 
-	// expected url format: /data?index=1
+	// expected url format: /data?limit=10&cursor=1000
 	http.HandleFunc("/data", func(w http.ResponseWriter, r *http.Request) {
-		index := r.URL.Query().Get("index")
-		val, err := strconv.Atoi(index)
+		gologger.DefaultLogger.Print().Msgf("[%v] %v %v", r.RemoteAddr, r.Method, r.RequestURI)
+		// Parse query parameters
+		limit := r.URL.Query().Get("limit")
+		cursor := r.URL.Query().Get("cursor")
+
+		// Convert limit to integer
+		n, err := strconv.Atoi(limit)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "invalid data index : %v error: %v", index, err)
+			http.Error(w, "Invalid limit", http.StatusBadRequest)
 			return
 		}
-		data, ok := db.Get(strconv.Itoa(val))
-		if !ok {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "invalid data index : %v", index)
+
+		// Call GetWithCursor
+		buff, lastKey, err := db.GetWithCursor(n, cursor)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusOK)
-		w.Write(data)
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("x-cursor", lastKey)
+		// Write the buffer content and the lastKey to the response
+		w.Write(buff.Bytes())
 	})
 
 	go func() {
