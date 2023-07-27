@@ -296,8 +296,8 @@ func New(options *Options) (*Runner, error) {
 		}
 	}
 
-	cacheOptions := hybrid.DefaultHybridOptions
-	cacheOptions.DBType = hybrid.BBoltDB
+	cacheOptions := hybrid.DefaultDiskOptions
+	cacheOptions.DBType = hybrid.PogrebDB
 	hm, err := hybrid.New(cacheOptions)
 	if err != nil {
 		return nil, err
