@@ -224,6 +224,7 @@ type Options struct {
 	Allow                     customlist.CustomList
 	MaxResponseBodySizeToSave int
 	MaxResponseBodySizeToRead int
+	ResponseBodyPreviewSize   int
 	OutputExtractRegexs       goflags.StringSlice
 	OutputExtractPresets      goflags.StringSlice
 	RateLimit                 int
@@ -418,6 +419,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Debug, "debug", false, "display request/response content in cli"),
 		flagSet.BoolVar(&options.DebugRequests, "debug-req", false, "display request content in cli"),
 		flagSet.BoolVar(&options.DebugResponse, "debug-resp", false, "display response content in cli"),
+		flagSet.IntVarP(&options.ResponseBodyPreviewSize, "body-preview", "bp", 0, "display first N characters of response body"),
 		flagSet.BoolVar(&options.Version, "version", false, "display httpx version"),
 		flagSet.BoolVar(&options.ShowStatistics, "stats", false, "display scan statistic"),
 		flagSet.StringVar(&options.Memprofile, "profile-mem", "", "optional httpx memory profile dump file"),
