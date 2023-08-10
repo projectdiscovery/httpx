@@ -266,6 +266,7 @@ type Options struct {
 	ListDSLVariable           bool
 	OutputFilterCondition     string
 	OutputMatchCondition      string
+	StripeFilter              string
 	//The OnResult callback function is invoked for each result. It is important to check for errors in the result before using Result.Err.
 	OnResult           OnResultCallback
 	DisableUpdateCheck bool
@@ -349,6 +350,7 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", nil, fmt.Sprintf("filter host with specified cdn provider (%s)", cdncheck.DefaultCDNProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
 		flagSet.StringVarP(&options.OutputFilterCondition, "filter-condition", "fdc", "", "filter response with dsl expression condition"),
+		flagSet.DynamicVar(&options.StripeFilter, "stripe", "html", "stripes all tags in response. supported formats: html,xml"),
 	)
 
 	flagSet.CreateGroup("rate-limit", "Rate-Limit",
