@@ -1345,14 +1345,15 @@ retry:
 		gologger.Info().Msgf("Dumped HTTP request for %s\n\n", fullURL)
 		gologger.Print().Msgf("%s", string(requestDump))
 	}
-	if r.options.ResponseBodyPreviewSize > 0 && resp != nil {
-		gologger.Info().Msgf("Dumped first %v character of HTTP response for %s\n\n", r.options.ResponseBodyPreviewSize, fullURL)
-		resBody := string(resp.Data)
-		if len(resBody) > r.options.ResponseBodyPreviewSize {
-			resBody = resBody[:r.options.ResponseBodyPreviewSize]
-		}
-		gologger.Print().Msgf("%s", resBody)
-	}
+	// if r.options.ResponseBodyPreviewSize > 0 && resp != nil {
+	// 	gologger.Info().Msgf("Dumped first %v character of HTTP response for %s\n\n", r.options.ResponseBodyPreviewSize, fullURL)
+	// 	resBody := string(resp.Data)
+	// 	resBody = httpx.ExtractTextUsingHTMLParser(resBody, true, true)
+	// 	if len(resBody) > r.options.ResponseBodyPreviewSize {
+	// 		resBody = resBody[:r.options.ResponseBodyPreviewSize]
+	// 	}
+	// 	gologger.Print().Msgf("%s", resBody)
+	// }
 	if (r.options.Debug || r.options.DebugResponse) && resp != nil {
 		gologger.Info().Msgf("Dumped HTTP response for %s\n\n", fullURL)
 		gologger.Print().Msgf("%s", string(resp.Raw))
@@ -1490,6 +1491,21 @@ retry:
 			builder.WriteString(aurora.Cyan(title).String())
 		} else {
 			builder.WriteString(title)
+		}
+		builder.WriteRune(']')
+	}
+
+	if r.options.ResponseBodyPreviewSize > 0 && resp != nil {
+		resBody := string(resp.Data)
+		resBody = httpx.ExtractTextUsingHTMLParser(resBody, true, true)
+		if len(resBody) > r.options.ResponseBodyPreviewSize {
+			resBody = resBody[:r.options.ResponseBodyPreviewSize]
+		}
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Blue(resBody).String())
+		} else {
+			builder.WriteString(resBody)
 		}
 		builder.WriteRune(']')
 	}

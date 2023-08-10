@@ -79,3 +79,27 @@ func trimTitleTags(title string) string {
 	}
 	return title[titleBegin+1 : titleEnd]
 }
+
+func ExtractTextUsingHTMLParser(rawHTML string, trimLine, normalizeSpaces bool) string {
+	htmlDoc, _ := html.Parse(strings.NewReader(rawHTML))
+	var buf bytes.Buffer
+	crawler(htmlDoc, &buf)
+	extractedText := buf.String()
+	if trimLine {
+		extractedText = strings.Replace(extractedText, "\n", "", -1)
+	}
+	if normalizeSpaces {
+		re := regexp.MustCompile(`\s+`)
+		extractedText = re.ReplaceAllString(extractedText, " ")
+	}
+	return extractedText
+}
+
+func crawler(node *html.Node, buf *bytes.Buffer) {
+	if node.Type == html.TextNode {
+		buf.WriteString(node.Data)
+	}
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		crawler(child, buf)
+	}
+}
