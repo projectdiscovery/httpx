@@ -556,6 +556,16 @@ Screenshots are stored in the output/screenshot directory by default. To specify
 httpx -screenshot -srd /path/to/custom/directory -u https://example.com
 ```
 
+### Body Preview & Strip HTML
+Body preview shows first N characters of response. And strip html tags in response
+```console
+httpx -u https://example.com -silent -bp -strip
+https://example.com [ Example Domain This domain is for use in illustrative examples in documents. You may use this domai]
+
+httpx -u https://example.com -silent -bp=200 -strip=html
+https://example.com [ Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information...]
+```
+
 #### ⏳ Performance Considerations
 
 Please note that since screenshots are captured using a headless browser, httpx runs will be slower when using the `-screenshot` option.

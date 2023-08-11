@@ -1489,9 +1489,11 @@ retry:
 	if r.options.ResponseBodyPreviewSize > 0 && resp != nil {
 		resBody := string(resp.Data)
 		if stringsutil.EqualFoldAny(r.options.StripFilter, "html", "xml") {
-			resBody = httpx.ExtractTextUsingHTMLParser(resBody, true, true)
+			resBody = r.hp.Sanitize(resBody, true, true)
 		} else {
 			resBody = strings.ReplaceAll(resBody, "\n", "\\n")
+			re := regexp.MustCompile(`\s+`)
+			resBody = re.ReplaceAllString(resBody, " ")
 		}
 		if len(resBody) > r.options.ResponseBodyPreviewSize {
 			resBody = resBody[:r.options.ResponseBodyPreviewSize]

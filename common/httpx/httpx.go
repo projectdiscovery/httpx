@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -388,4 +389,16 @@ func (httpx *HTTPX) setCustomCookies(req *http.Request) {
 			req.AddCookie(cookie)
 		}
 	}
+}
+
+func (httpx *HTTPX) Sanitize(respStr string, trimLine, normalizeSpaces bool) string {
+	respStr = httpx.htmlPolicy.Sanitize(respStr)
+	if trimLine {
+		respStr = strings.Replace(respStr, "\n", "", -1)
+	}
+	if normalizeSpaces {
+		re := regexp.MustCompile(`\s+`)
+		respStr = re.ReplaceAllString(respStr, " ")
+	}
+	return respStr
 }
