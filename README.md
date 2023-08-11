@@ -104,6 +104,7 @@ PROBES:
    -lc, -line-count      display response body line count
    -wc, -word-count      display response body word count
    -title                display page title
+   -bp, -body-preview    display first N characters of response body (default 100)
    -server, -web-server  display server name
    -td, -tech-detect     display technology in use based on wappalyzer dataset
    -method               display http request method
@@ -146,6 +147,7 @@ FILTERS:
    -fcdn, -filter-cdn string[]         filter host with specified cdn provider (google, leaseweb, stackpath, cloudfront, fastly)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
    -fdc, -filter-condition string      filter response with dsl expression condition
+   -strip                              stripes all tags in response. supported formats: html,xml (default html)
 
 RATE-LIMIT:
    -t, -threads int              number of threads to use (default 50)
