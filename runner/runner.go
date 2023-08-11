@@ -1345,7 +1345,7 @@ retry:
 		gologger.Info().Msgf("Dumped HTTP request for %s\n\n", fullURL)
 		gologger.Print().Msgf("%s", string(requestDump))
 	}
-	if r.options.StripeFilter == "" && r.options.ResponseBodyPreviewSize > 0 && resp != nil {
+	if r.options.StripFilter == "" && r.options.ResponseBodyPreviewSize > 0 && resp != nil {
 		gologger.Info().Msgf("Dumped first %v character of HTTP response for %s\n\n", r.options.ResponseBodyPreviewSize, fullURL)
 		resBody := string(resp.Data)
 		if len(resBody) > r.options.ResponseBodyPreviewSize {
@@ -1494,7 +1494,7 @@ retry:
 		builder.WriteRune(']')
 	}
 
-	if stringsutil.EqualFoldAny(r.options.StripeFilter, "html", "xml") && r.options.ResponseBodyPreviewSize > 0 && resp != nil {
+	if stringsutil.EqualFoldAny(r.options.StripFilter, "html", "xml") && r.options.ResponseBodyPreviewSize > 0 && resp != nil {
 		resBody := string(resp.Data)
 		resBody = httpx.ExtractTextUsingHTMLParser(resBody, true, true)
 		if len(resBody) > r.options.ResponseBodyPreviewSize {
