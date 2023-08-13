@@ -1505,6 +1505,7 @@ retry:
 	title := httpx.ExtractTitle(resp)
 	if scanopts.OutputTitle {
 		builder.WriteString(" [")
+		title = strings.ReplaceAll(title, "\n", "")
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Cyan(title).String())
 		} else {
