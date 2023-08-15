@@ -136,6 +136,8 @@ EXTRACTOR:
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
+   -ftt, -filter-title string[]        filter response body with specified html title (-ftt WAF,Firewall)
+   -fsh, -filter-server string[]       filter response with specified server header (-fsh cloudflare,stgw)
    -fep, -filter-error-page            filter response with ML based error page detection
    -fl, -filter-length string          filter response with specified content length (-fl 23,33)
    -flc, -filter-line-count string     filter response body with specified line count (-flc 423,532)
