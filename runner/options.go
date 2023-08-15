@@ -159,6 +159,8 @@ type Options struct {
 	OutputMatchStatusCode     string
 	OutputMatchContentLength  string
 	OutputFilterStatusCode    string
+	OutputFilterTitle         goflags.StringSlice
+	OutputFilterServerHeader  goflags.StringSlice
 	OutputFilterErrorPage     bool
 	OutputFilterContentLength string
 	InputRawRequest           string
@@ -337,6 +339,8 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("filters", "Filters",
 		flagSet.StringVarP(&options.OutputFilterStatusCode, "filter-code", "fc", "", "filter response with specified status code (-fc 403,401)"),
+		flagSet.StringSliceVarP(&options.OutputFilterTitle, "filter-title", "ftt", nil, "filter response body with specified html title (-ftt WAF,Firewall)", goflags.NormalizedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.OutputFilterServerHeader, "filter-server", "fsh", nil, "filter response with specified server header (-fsh cloudflare,stgw)", goflags.NormalizedStringSliceOptions),
 		flagSet.BoolVarP(&options.OutputFilterErrorPage, "filter-error-page", "fep", false, "filter response with ML based error page detection"),
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "filter response with specified content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "filter response body with specified line count (-flc 423,532)"),

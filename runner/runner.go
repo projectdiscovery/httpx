@@ -777,6 +777,12 @@ func (r *Runner) RunEnumeration() {
 			if r.options.OutputFilterString != "" && strings.Contains(strings.ToLower(resp.Raw), strings.ToLower(r.options.OutputFilterString)) {
 				continue
 			}
+			if len(r.options.OutputFilterTitle) > 0 && stringsutil.EqualFoldAny(resp.Title, r.options.OutputFilterTitle...) {
+				continue
+			}
+			if len(r.options.OutputFilterServerHeader) > 0 && stringsutil.EqualFoldAny(resp.WebServer, r.options.OutputFilterServerHeader...) {
+				continue
+			}
 			if len(r.options.OutputFilterFavicon) > 0 && stringsutil.EqualFoldAny(resp.FavIconMMH3, r.options.OutputFilterFavicon...) {
 				continue
 			}
