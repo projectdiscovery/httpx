@@ -167,6 +167,7 @@ type Options struct {
 	OutputFilterString        string
 	OutputMatchString         string
 	OutputFilterRegex         string
+	OutputMatchTech           string
 	OutputMatchRegex          string
 	Retries                   int
 	Threads                   int
@@ -324,6 +325,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-word-count", "mwc", "", "match response body with specified word count (-mwc 43,55)"),
 		flagSet.StringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", nil, "match response with specified favicon hash (-mfc 1494302000)", goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "match response with specified string (-ms admin)"),
+		flagSet.StringVarP(&options.OutputMatchTech, "match-tech", "mt", "", "match response with specified tech (-mt wordpress)"),
 		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "match response with specified regex (-mr admin)"),
 		flagSet.StringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", nil, fmt.Sprintf("match host with specified cdn provider (%s)", cdncheck.DefaultCDNProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputMatchResponseTime, "match-response-time", "mrt", "", "match response with specified response time in seconds (-mrt '< 1')"),

@@ -813,6 +813,9 @@ func (r *Runner) RunEnumeration() {
 			if len(r.options.matchContentLength) > 0 && !slice.IntSliceContains(r.options.matchContentLength, resp.ContentLength) {
 				continue
 			}
+			if r.options.OutputMatchTech != "" && !SearchArray(r.options.OutputMatchTech, resp.Technologies) {
+				continue
+			}
 			if r.options.matchRegex != nil && !r.options.matchRegex.MatchString(resp.Raw) {
 				continue
 			}
@@ -1066,6 +1069,16 @@ func logFilteredErrorPage(url string) {
 		return
 	}
 }
+func SearchArray(wordtosearch string, array []string) bool {
+	for _, detect := range array {
+		lowerDetect := strings.ToLower(detect)
+		if strings.Contains(lowerDetect, wordtosearch) {
+			return true
+		}
+	}
+	return false
+}
+
 func openOrCreateFile(resume bool, filename string) *os.File {
 	var err error
 	var f *os.File
