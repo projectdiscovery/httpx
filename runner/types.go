@@ -1,12 +1,17 @@
 package runner
 
 import (
+	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/go-faker/faker/v4"
 	"github.com/go-faker/faker/v4/pkg/options"
 	"github.com/mitchellh/mapstructure"
+	"github.com/projectdiscovery/dsl"
+	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 	mapsutil "github.com/projectdiscovery/utils/maps"
 
@@ -87,7 +92,7 @@ func dslVariables() ([]string, error) {
 	if err := faker.FakeData(&fakeResult, options.WithFieldsToIgnore(fieldsToIgnore...)); err != nil {
 		return nil, err
 	}
-	m, err := ResultToMap(fakeResult)
+	m, err := resultToMap(fakeResult)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +104,22 @@ func dslVariables() ([]string, error) {
 	return vars, nil
 }
 
-func ResultToMap(resp Result) (map[string]any, error) {
+func evalDslExpr(result Result, dslExpr string) bool {
+	resultMap, err := resultToMap(result)
+	if err != nil {
+		gologger.Warning().Msgf("Could not map result: %s\n", err)
+		return false
+	}
+
+	res, err := dsl.EvalExpr(dslExpr, resultMap)
+	if err != nil && !ignoreErr(err) {
+		gologger.Error().Msgf("Could not evaluate DSL expression: %s\n", err)
+		return false
+	}
+	return res == true
+}
+
+func resultToMap(resp Result) (map[string]any, error) {
 	m := make(map[string]any)
 	config := &mapstructure.DecoderConfig{
 		TagName: "json",
@@ -113,5 +133,38 @@ func ResultToMap(resp Result) (map[string]any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error decoding: %v", err)
 	}
-	return m, nil
+	return flatten(m), nil
+}
+
+// mapsutil.Flatten w/o separator
+func flatten(m map[string]any) map[string]any {
+	o := make(map[string]any)
+	for k, v := range m {
+		switch child := v.(type) {
+		case map[string]any:
+			nm := flatten(child)
+			for nk, nv := range nm {
+				o[nk] = nv
+			}
+		default:
+			o[k] = v
+		}
+	}
+	return o
+}
+
+var (
+	// showDSLErr controls whether to show hidden DSL errors or not
+	showDSLErr = strings.EqualFold(os.Getenv("SHOW_DSL_ERRORS"), "true")
+)
+
+// ignoreErr checks if the error is to be ignored or not
+func ignoreErr(err error) bool {
+	if showDSLErr {
+		return false
+	}
+	if errors.Is(err, dsl.ErrParsingArg) || strings.Contains(err.Error(), "No parameter") {
+		return true
+	}
+	return false
 }

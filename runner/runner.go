@@ -26,16 +26,14 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
-	"github.com/projectdiscovery/dsl"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
-	"github.com/projectdiscovery/mapcidr/asn"
-	errorutil "github.com/projectdiscovery/utils/errors"
-	osutil "github.com/projectdiscovery/utils/os"
-
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/errorpageclassifier"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/httpx/static"
+	"github.com/projectdiscovery/mapcidr/asn"
+	errorutil "github.com/projectdiscovery/utils/errors"
+	osutil "github.com/projectdiscovery/utils/os"
 
 	"github.com/Mzack9999/gcache"
 	"github.com/logrusorgru/aurora"
@@ -43,12 +41,11 @@ import (
 
 	"github.com/projectdiscovery/clistats"
 	"github.com/projectdiscovery/goconfig"
+	"github.com/projectdiscovery/httpx/common/hashes"
 	"github.com/projectdiscovery/retryablehttp-go"
 	sliceutil "github.com/projectdiscovery/utils/slice"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	urlutil "github.com/projectdiscovery/utils/url"
-
-	"github.com/projectdiscovery/httpx/common/hashes"
 
 	"github.com/projectdiscovery/ratelimit"
 	"github.com/remeh/sizedwaitgroup"
@@ -57,19 +54,18 @@ import (
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/hmap/store/hybrid"
-	"github.com/projectdiscovery/mapcidr"
-	"github.com/projectdiscovery/rawhttp"
-	fileutil "github.com/projectdiscovery/utils/file"
-	pdhttputil "github.com/projectdiscovery/utils/http"
-	iputil "github.com/projectdiscovery/utils/ip"
-	wappalyzer "github.com/projectdiscovery/wappalyzergo"
-
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
+	"github.com/projectdiscovery/mapcidr"
+	"github.com/projectdiscovery/rawhttp"
+	fileutil "github.com/projectdiscovery/utils/file"
+	pdhttputil "github.com/projectdiscovery/utils/http"
+	iputil "github.com/projectdiscovery/utils/ip"
+	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 )
 
 // Runner is a client for running the enumeration process.
@@ -343,7 +339,7 @@ func (r *Runner) prepareInput() {
 			expandedTarget := r.countTargetFromRawTarget(target)
 			if expandedTarget > 0 {
 				numHosts += expandedTarget
-				r.hm.Set(target, nil) // nolint
+				r.hm.Set(target, nil) //nolint
 			}
 		}
 	}
@@ -481,7 +477,7 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 		expandedTarget := r.countTargetFromRawTarget(target)
 		if expandedTarget > 0 {
 			numTargets += expandedTarget
-			r.hm.Set(target, nil) // nolint
+			r.hm.Set(target, nil) //nolint
 		}
 	}
 	err = finput.Close()
@@ -701,7 +697,7 @@ func (r *Runner) RunEnumeration() {
 			if err != nil {
 				gologger.Fatal().Msgf("Could not open/create index file '%s': %s\n", r.options.Output, err)
 			}
-			defer indexFile.Close() // nolint
+			defer indexFile.Close() //nolint
 		}
 		if r.options.Screenshot {
 			var err error
@@ -714,7 +710,7 @@ func (r *Runner) RunEnumeration() {
 			if err != nil {
 				gologger.Fatal().Msgf("Could not open/create index screenshot file '%s': %s\n", r.options.Output, err)
 			}
-			defer indexScreenshotFile.Close() // nolint
+			defer indexScreenshotFile.Close() //nolint
 		}
 
 		for resp := range output {
@@ -747,42 +743,16 @@ func (r *Runner) RunEnumeration() {
 
 			// apply matchers and filters
 			if r.options.OutputFilterCondition != "" || r.options.OutputMatchCondition != "" {
-				rawMap, err := ResultToMap(resp)
-				if err != nil {
-					gologger.Warning().Msgf("Could not decode response: %s\n", err)
-					continue
-				}
-				dslVars, err := dslVariables()
-				if err != nil {
-					gologger.Warning().Msgf("Could not retrieve dsl variables: %s\n", err)
-					continue
-				}
-				flatMap := make(map[string]interface{})
-
-				for _, v := range dslVars {
-					flatMap[v] = rawMap[v]
-				}
-
 				if r.options.OutputMatchCondition != "" {
-					res, err := dsl.EvalExpr(r.options.OutputMatchCondition, flatMap)
-					if err != nil {
-						gologger.Error().Msgf("Could not evaluate match condition: %s\n", err)
+					matched := evalDslExpr(resp, r.options.OutputMatchCondition)
+					if !matched {
 						continue
-					} else {
-						if res == false {
-							continue
-						}
 					}
 				}
 				if r.options.OutputFilterCondition != "" {
-					res, err := dsl.EvalExpr(r.options.OutputFilterCondition, flatMap)
-					if err != nil {
-						gologger.Error().Msgf("Could not evaluate filter condition: %s\n", err)
+					matched := evalDslExpr(resp, r.options.OutputFilterCondition)
+					if matched {
 						continue
-					} else {
-						if res == true {
-							continue
-						}
 					}
 				}
 			}
@@ -2026,7 +1996,7 @@ func (r *Runner) SaveResumeConfig() error {
 }
 
 // JSON the result
-func (r Result) JSON(scanopts *ScanOptions) string { // nolint
+func (r Result) JSON(scanopts *ScanOptions) string { //nolint
 	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySizeToSave {
 		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySizeToSave]
 	}
@@ -2039,7 +2009,7 @@ func (r Result) JSON(scanopts *ScanOptions) string { // nolint
 }
 
 // CSVHeader the CSV headers
-func (r Result) CSVHeader() string { // nolint
+func (r Result) CSVHeader() string { //nolint
 	buffer := bytes.Buffer{}
 	writer := csv.NewWriter(&buffer)
 
@@ -2061,7 +2031,7 @@ func (r Result) CSVHeader() string { // nolint
 }
 
 // CSVRow the CSV Row
-func (r Result) CSVRow(scanopts *ScanOptions) string { // nolint
+func (r Result) CSVRow(scanopts *ScanOptions) string { //nolint
 	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySizeToSave {
 		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySizeToSave]
 	}
