@@ -813,7 +813,7 @@ func (r *Runner) RunEnumeration() {
 			if len(r.options.matchContentLength) > 0 && !slice.IntSliceContains(r.options.matchContentLength, resp.ContentLength) {
 				continue
 			}
-			if r.options.OutputMatchTech != "" && !SearchArray(r.options.OutputMatchTech, resp.Technologies) {
+			if r.options.OutputMatchTech != "" && !stringsutil.EqualFoldAny(r.options.OutputMatchTech, resp.Technologies...) {
 				continue
 			}
 			if r.options.matchRegex != nil && !r.options.matchRegex.MatchString(resp.Raw) {
@@ -1068,15 +1068,6 @@ func logFilteredErrorPage(url string) {
 		gologger.Fatal().Msgf("Failed to write newline to '%s': %s\n", fileName, err)
 		return
 	}
-}
-func SearchArray(wordtosearch string, array []string) bool {
-	for _, detect := range array {
-		lowerDetect := strings.ToLower(detect)
-		if strings.Contains(lowerDetect, wordtosearch) {
-			return true
-		}
-	}
-	return false
 }
 
 func openOrCreateFile(resume bool, filename string) *os.File {
