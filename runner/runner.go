@@ -1891,7 +1891,7 @@ retry:
 	result := Result{
 		Timestamp:          time.Now(),
 		Request:            request,
-		ResponseHeaders:     responseHeader,
+		ResponseHeaders:    responseHeader,
 		RawHeader:          rawResponseHeaders,
 		Scheme:             parsed.Scheme,
 		Port:               finalPort,
