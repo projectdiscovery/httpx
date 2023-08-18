@@ -49,10 +49,10 @@ type ScanOptions struct {
 	OutputContentLength       bool
 	StoreResponse             bool
 	OutputServerHeader        bool
-	OutputResponseHeaderss    bool
 	OutputWebSocket           bool
 	OutputWithNoColor         bool
 	OutputMethod              bool
+	ResponseHeadersInStdout   bool
 	ResponseInStdout          bool
 	Base64ResponseInStdout    bool
 	ChainInStdout             bool
@@ -102,10 +102,10 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		OutputContentLength:       s.OutputContentLength,
 		StoreResponse:             s.StoreResponse,
 		OutputServerHeader:        s.OutputServerHeader,
-		OutputResponseHeaderss:    s.OutputResponseHeaderss,
 		OutputWebSocket:           s.OutputWebSocket,
 		OutputWithNoColor:         s.OutputWithNoColor,
 		OutputMethod:              s.OutputMethod,
+		ResponseHeadersInStdout:   s.ResponseHeadersInStdout,
 		ResponseInStdout:          s.ResponseInStdout,
 		Base64ResponseInStdout:    s.Base64ResponseInStdout,
 		ChainInStdout:             s.ChainInStdout,
@@ -193,8 +193,8 @@ type Options struct {
 	Verbose                   bool
 	NoColor                   bool
 	OutputServerHeader        bool
-	OutputResponseHeaderss    bool
 	OutputWebSocket           bool
+	ResponseHeadersInStdout   bool
 	ResponseInStdout          bool
 	Base64ResponseInStdout    bool
 	chainInStdout             bool
@@ -305,7 +305,6 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "display response body word count"),
 		flagSet.BoolVar(&options.ExtractTitle, "title", false, "display page title"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
-		flagSet.BoolVarP(&options.OutputResponseHeaderss, "response-headers", "headers", false, "display response headers"),
 		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
 		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "display server using websocket"),
@@ -385,6 +384,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in csv format"),
 		flagSet.StringVarP(&options.CSVOutputEncoding, "csv-output-encoding", "csvo", "", "define output encoding"),
 		flagSet.BoolVar(&options.JSONOutput, "json", false, "store output in JSONL(ines) format"),
+		flagSet.BoolVarP(&options.ResponseHeadersInStdout, "response-headers", "headers", false, "include http response headers in JSON output (-json only)"),
 		flagSet.BoolVarP(&options.ResponseInStdout, "include-response", "irr", false, "include http request/response in JSON output (-json only)"),
 		flagSet.BoolVarP(&options.Base64ResponseInStdout, "include-response-base64", "irrb", false, "include base64 encoded http request/response in JSON output (-json only)"),
 		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "include redirect http chain in JSON output (-json only)"),

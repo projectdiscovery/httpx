@@ -209,7 +209,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.StoreResponse = options.StoreResponse
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
 	scanopts.OutputServerHeader = options.OutputServerHeader
-	scanopts.OutputResponseHeaderss = options.OutputResponseHeaderss
+	scanopts.ResponseHeadersInStdout = options.ResponseHeadersInStdout
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.ResponseInStdout
 	scanopts.Base64ResponseInStdout = options.Base64ResponseInStdout
@@ -1526,7 +1526,7 @@ retry:
 		responseHeader     map[string]interface{}
 	)
 
-    if scanopts.OutputResponseHeaderss {
+    if scanopts.ResponseHeadersInStdout {
        responseHeader = normalizeHeaders(resp.Headers)
     }
 
@@ -1652,10 +1652,6 @@ retry:
 
 	var technologies []string
 	if scanopts.TechDetect {
-
-	    //b, _ := json.Marshal(normalizeHeaders(resp.Headers))
-	    //fmt.Println(string(b))
-
 		matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
 		for match := range matches {
 			technologies = append(technologies, match)
