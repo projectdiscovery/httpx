@@ -49,6 +49,7 @@ type ScanOptions struct {
 	OutputContentLength       bool
 	StoreResponse             bool
 	OutputServerHeader        bool
+	OutputResponseHeaderss    bool
 	OutputWebSocket           bool
 	OutputWithNoColor         bool
 	OutputMethod              bool
@@ -101,6 +102,7 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		OutputContentLength:       s.OutputContentLength,
 		StoreResponse:             s.StoreResponse,
 		OutputServerHeader:        s.OutputServerHeader,
+		OutputResponseHeaderss:    s.OutputResponseHeaderss,
 		OutputWebSocket:           s.OutputWebSocket,
 		OutputWithNoColor:         s.OutputWithNoColor,
 		OutputMethod:              s.OutputMethod,
@@ -191,6 +193,7 @@ type Options struct {
 	Verbose                   bool
 	NoColor                   bool
 	OutputServerHeader        bool
+	OutputResponseHeaderss    bool
 	OutputWebSocket           bool
 	ResponseInStdout          bool
 	Base64ResponseInStdout    bool
@@ -302,6 +305,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "display response body word count"),
 		flagSet.BoolVar(&options.ExtractTitle, "title", false, "display page title"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
+		flagSet.BoolVarP(&options.OutputResponseHeaderss, "response-headers", "headers", false, "display response headers"),
 		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
 		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "display server using websocket"),

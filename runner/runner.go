@@ -209,6 +209,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.StoreResponse = options.StoreResponse
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
 	scanopts.OutputServerHeader = options.OutputServerHeader
+	scanopts.OutputResponseHeaderss = options.OutputResponseHeaderss
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.ResponseInStdout
 	scanopts.Base64ResponseInStdout = options.Base64ResponseInStdout
@@ -1519,11 +1520,15 @@ retry:
 	}
 
 	var (
-		serverResponseRaw string
-		request           string
-		rawResponseHeader string
-		responseHeader    map[string]interface{}
+		serverResponseRaw  string
+		request            string
+		rawResponseHeaders string
+		responseHeader     map[string]interface{}
 	)
+
+    if scanopts.OutputResponseHeaderss {
+       responseHeader = normalizeHeaders(resp.Headers)
+    }
 
 	respData := string(resp.Data)
 	if r.options.NoDecode {
@@ -1534,12 +1539,12 @@ retry:
 		serverResponseRaw = string(respData)
 		request = string(requestDump)
 		responseHeader = normalizeHeaders(resp.Headers)
-		rawResponseHeader = resp.RawHeaders
+		rawResponseHeaders = resp.RawHeaders
 	} else if scanopts.Base64ResponseInStdout {
 		serverResponseRaw = stringz.Base64([]byte(respData))
 		request = stringz.Base64(requestDump)
 		responseHeader = normalizeHeaders(resp.Headers)
-		rawResponseHeader = stringz.Base64([]byte(resp.RawHeaders))
+		rawResponseHeaders = stringz.Base64([]byte(resp.RawHeaders))
 	}
 
 	// check for virtual host
@@ -1647,6 +1652,10 @@ retry:
 
 	var technologies []string
 	if scanopts.TechDetect {
+
+	    //b, _ := json.Marshal(normalizeHeaders(resp.Headers))
+	    //fmt.Println(string(b))
+
 		matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
 		for match := range matches {
 			technologies = append(technologies, match)
@@ -1882,8 +1891,8 @@ retry:
 	result := Result{
 		Timestamp:          time.Now(),
 		Request:            request,
-		ResponseHeader:     responseHeader,
-		RawHeader:          rawResponseHeader,
+		ResponseHeaders:     responseHeader,
+		RawHeader:          rawResponseHeaders,
 		Scheme:             parsed.Scheme,
 		Port:               finalPort,
 		Path:               finalPath,
