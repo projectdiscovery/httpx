@@ -26,7 +26,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
-	dsl "github.com/projectdiscovery/dsl"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/errorpageclassifier"
@@ -744,42 +743,16 @@ func (r *Runner) RunEnumeration() {
 
 			// apply matchers and filters
 			if r.options.OutputFilterCondition != "" || r.options.OutputMatchCondition != "" {
-				rawMap, err := ResultToMap(resp)
-				if err != nil {
-					gologger.Warning().Msgf("Could not decode response: %s\n", err)
-					continue
-				}
-				dslVars, err := dslVariables()
-				if err != nil {
-					gologger.Warning().Msgf("Could not retrieve dsl variables: %s\n", err)
-					continue
-				}
-				flatMap := make(map[string]interface{})
-
-				for _, v := range dslVars {
-					flatMap[v] = rawMap[v]
-				}
-
 				if r.options.OutputMatchCondition != "" {
-					res, err := dsl.EvalExpr(r.options.OutputMatchCondition, flatMap)
-					if err != nil {
-						gologger.Error().Msgf("Could not evaluate match condition: %s\n", err)
+					matched := evalDslExpr(resp, r.options.OutputMatchCondition)
+					if !matched {
 						continue
-					} else {
-						if res == false {
-							continue
-						}
 					}
 				}
 				if r.options.OutputFilterCondition != "" {
-					res, err := dsl.EvalExpr(r.options.OutputFilterCondition, flatMap)
-					if err != nil {
-						gologger.Error().Msgf("Could not evaluate filter condition: %s\n", err)
+					matched := evalDslExpr(resp, r.options.OutputFilterCondition)
+					if matched {
 						continue
-					} else {
-						if res == true {
-							continue
-						}
 					}
 				}
 			}
