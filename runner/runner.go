@@ -1492,8 +1492,7 @@ retry:
 			resBody = r.hp.Sanitize(resBody, true, true)
 		} else {
 			resBody = strings.ReplaceAll(resBody, "\n", "\\n")
-			re := regexp.MustCompile(`\s+`)
-			resBody = re.ReplaceAllString(resBody, " ")
+			resBody = httputilz.NormalizeSpaces(resBody)
 		}
 		if len(resBody) > r.options.ResponseBodyPreviewSize {
 			resBody = resBody[:r.options.ResponseBodyPreviewSize]

@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/fastdialer/fastdialer/ja3/impersonate"
+	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/utils/generic"
@@ -397,8 +397,7 @@ func (httpx *HTTPX) Sanitize(respStr string, trimLine, normalizeSpaces bool) str
 		respStr = strings.Replace(respStr, "\n", "", -1)
 	}
 	if normalizeSpaces {
-		re := regexp.MustCompile(`\s+`)
-		respStr = re.ReplaceAllString(respStr, " ")
+		respStr = httputilz.NormalizeSpaces(respStr)
 	}
 	return respStr
 }
