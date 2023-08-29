@@ -147,7 +147,7 @@ FILTERS:
    -fcdn, -filter-cdn string[]         filter host with specified cdn provider (google, leaseweb, stackpath, cloudfront, fastly)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
    -fdc, -filter-condition string      filter response with dsl expression condition
-   -strip                              stripes all tags in response. supported formats: html,xml (default html)
+   -strip                              strips all tags in response. supported formats: html,xml (default html)
 
 RATE-LIMIT:
    -t, -threads int              number of threads to use (default 50)
