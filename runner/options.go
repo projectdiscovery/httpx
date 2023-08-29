@@ -350,7 +350,7 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", nil, fmt.Sprintf("filter host with specified cdn provider (%s)", cdncheck.DefaultCDNProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
 		flagSet.StringVarP(&options.OutputFilterCondition, "filter-condition", "fdc", "", "filter response with dsl expression condition"),
-		flagSet.DynamicVar(&options.StripFilter, "strip", "html", "stripes all tags in response. supported formats: html,xml"),
+		flagSet.DynamicVar(&options.StripFilter, "strip", "html", "strips all tags in response. supported formats: html,xml"),
 	)
 
 	flagSet.CreateGroup("rate-limit", "Rate-Limit",
