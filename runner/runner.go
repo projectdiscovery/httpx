@@ -1795,7 +1795,6 @@ retry:
 		}
 		data := append([]byte(fullURL), append([]byte("\n\n"), reqRaw...)...)
 		if scanopts.StoreChain && resp.HasChain() {
-			resp.GetChain()
 			data = append(data, append([]byte("\n"), []byte(resp.GetChain())...)...)
 		}
 		data = append(data, append([]byte("\n"), respRaw...)...)
