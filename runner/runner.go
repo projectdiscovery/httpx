@@ -1804,12 +1804,6 @@ retry:
 		if writeErr != nil {
 			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
 		}
-		if scanopts.StoreChain && resp.HasChain() {
-			//writeErr := os.WriteFile(responsePath, []byte(resp.GetChain()), 0644)
-			if writeErr != nil {
-				gologger.Warning().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
-			}
-		}
 	}
 
 	parsed, err := r.parseURL(fullURL)
