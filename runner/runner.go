@@ -1899,7 +1899,7 @@ retry:
 		ExtractRegex:       extractRegex,
 		StoredResponsePath: responsePath,
 		ScreenshotBytes:    screenshotBytes,
-		ScreenshotPath:     screenshotPath,
+		ScreenshotPath:     filepath.Join(hostFilename, screenshotResponseFile),
 		HeadlessBody:       headlessBody,
 		KnowledgeBase: map[string]interface{}{
 			"PageType": r.errorPageClassifier.Classify(respData),
