@@ -75,6 +75,27 @@ func New(options *Options) (*HTTPX, error) {
 		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
 			// add custom cookies if necessary
 			httpx.setCustomCookies(redirectedRequest)
+
+			//Add redirect policy which takes HSTS into account.
+			//Since the net/http/client doesn't take it into account
+			//it is possible to modify it here.
+			//If during redirect the scheme switches from HTTPS to HTTP
+			//but the Strict-Transport-Security header is present the request
+			//would go to the specified location. This could mean that it is not
+			//followed the same way as a browser. There exist some cases in the wild.
+			if httpx.Options.RespectHSTS {
+				location := redirectedRequest.Response.Header.Get("Location")
+				hsts := redirectedRequest.Response.Header.Get("Strict-Transport-Security")
+				url, err := redirectedRequest.URL.Parse(location)
+				if err != nil {
+				} else {
+					if url.Scheme == "http" && hsts != "" {
+						url.Scheme = "https"
+					}
+				}
+				redirectedRequest.URL = url
+			}
+
 			if len(previousRequests) >= options.MaxRedirects {
 				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
