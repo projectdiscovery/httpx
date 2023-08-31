@@ -75,6 +75,17 @@ func New(options *Options) (*HTTPX, error) {
 		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
 			// add custom cookies if necessary
 			httpx.setCustomCookies(redirectedRequest)
+
+			location := redirectedRequest.Response.Header.Get("Location")
+			hsts := redirectedRequest.Response.Header.Get("Strict-Transport-Security")
+			url, err := redirectedRequest.URL.Parse(location)
+			if err != nil {
+			} else {
+				if url.Scheme == "http" && hsts != "" {
+					url.Scheme = "https"
+				}
+			}
+			redirectedRequest.URL = url
 			if len(previousRequests) >= options.MaxRedirects {
 				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
