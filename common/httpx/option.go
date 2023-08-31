@@ -24,6 +24,7 @@ type Options struct {
 	VHostSimilarityRatio int
 	FollowRedirects      bool
 	FollowHostRedirects  bool
+	RespectHSTS          bool
 	MaxRedirects         int
 	Unsafe               bool
 	TLSGrab              bool

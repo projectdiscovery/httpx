@@ -106,6 +106,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.RetryMax = options.Retries
 	httpxOptions.FollowRedirects = options.FollowRedirects
 	httpxOptions.FollowHostRedirects = options.FollowHostRedirects
+	httpxOptions.RespectHSTS = options.RespectHSTS
 	httpxOptions.MaxRedirects = options.MaxRedirects
 	httpxOptions.HTTPProxy = options.HTTPProxy
 	httpxOptions.Unsafe = options.Unsafe
