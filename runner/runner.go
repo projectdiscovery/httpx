@@ -1519,10 +1519,10 @@ retry:
 	}
 
 	var (
-		serverResponseRaw  string
-		request            string
-		rawResponseHeaders string
-		responseHeaders    map[string]interface{}
+		serverResponseRaw string
+		request           string
+		rawResponseHeader string
+		responseHeader    map[string]interface{}
 	)
 
 	respData := string(resp.Data)
@@ -1533,13 +1533,13 @@ retry:
 	if scanopts.ResponseInStdout || r.options.OutputMatchCondition != "" || r.options.OutputFilterCondition != "" {
 		serverResponseRaw = string(respData)
 		request = string(requestDump)
-		responseHeaders = normalizeHeaders(resp.Headers)
-		rawResponseHeaders = resp.RawHeaders
+		responseHeader = normalizeHeaders(resp.Headers)
+		rawResponseHeader = resp.RawHeaders
 	} else if scanopts.Base64ResponseInStdout {
 		serverResponseRaw = stringz.Base64([]byte(respData))
 		request = stringz.Base64(requestDump)
-		responseHeaders = normalizeHeaders(resp.Headers)
-		rawResponseHeaders = stringz.Base64([]byte(resp.RawHeaders))
+		responseHeader = normalizeHeaders(resp.Headers)
+		rawResponseHeader = stringz.Base64([]byte(resp.RawHeaders))
 	}
 
 	// check for virtual host
@@ -1882,8 +1882,8 @@ retry:
 	result := Result{
 		Timestamp:          time.Now(),
 		Request:            request,
-		ResponseHeaders:    responseHeaders,
-		RawHeaders:         rawResponseHeaders,
+		ResponseHeader:     responseHeader,
+		RawHeader:          rawResponseHeader,
 		Scheme:             parsed.Scheme,
 		Port:               finalPort,
 		Path:               finalPath,
