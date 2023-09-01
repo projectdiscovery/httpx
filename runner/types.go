@@ -53,7 +53,7 @@ type Result struct {
 	FaviconPath        string                 `json:"favicon_path,omitempty" csv:"favicon_path"`
 	FinalURL           string                 `json:"final_url,omitempty" csv:"final_url"`
 	ResponseHeaders    map[string]interface{} `json:"headers,omitempty" csv:"headers"`
-	RawHeader          string                 `json:"raw_header,omitempty" csv:"raw_header"`
+	RawHeaders         string                 `json:"raw_headers,omitempty" csv:"raw_headers"`
 	Request            string                 `json:"request,omitempty" csv:"request"`
 	ResponseTime       string                 `json:"time,omitempty" csv:"time"`
 	Jarm               string                 `json:"jarm,omitempty" csv:"jarm"`

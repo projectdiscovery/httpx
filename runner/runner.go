@@ -1523,11 +1523,11 @@ retry:
 		serverResponseRaw  string
 		request            string
 		rawResponseHeaders string
-		responseHeader     map[string]interface{}
+		responseHeaders    map[string]interface{}
 	)
 
     if scanopts.ResponseHeadersInStdout {
-       responseHeader = normalizeHeaders(resp.Headers)
+       responseHeaders = normalizeHeaders(resp.Headers)
     }
 
 	respData := string(resp.Data)
@@ -1538,12 +1538,12 @@ retry:
 	if scanopts.ResponseInStdout || r.options.OutputMatchCondition != "" || r.options.OutputFilterCondition != "" {
 		serverResponseRaw = string(respData)
 		request = string(requestDump)
-		responseHeader = normalizeHeaders(resp.Headers)
+		responseHeaders = normalizeHeaders(resp.Headers)
 		rawResponseHeaders = resp.RawHeaders
 	} else if scanopts.Base64ResponseInStdout {
 		serverResponseRaw = stringz.Base64([]byte(respData))
 		request = stringz.Base64(requestDump)
-		responseHeader = normalizeHeaders(resp.Headers)
+		responseHeaders = normalizeHeaders(resp.Headers)
 		rawResponseHeaders = stringz.Base64([]byte(resp.RawHeaders))
 	}
 
@@ -1887,8 +1887,8 @@ retry:
 	result := Result{
 		Timestamp:          time.Now(),
 		Request:            request,
-		ResponseHeaders:    responseHeader,
-		RawHeader:          rawResponseHeaders,
+		ResponseHeaders:    responseHeaders,
+		RawHeaders:         rawResponseHeaders,
 		Scheme:             parsed.Scheme,
 		Port:               finalPort,
 		Path:               finalPath,
