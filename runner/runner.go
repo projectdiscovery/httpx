@@ -676,14 +676,14 @@ func (r *Runner) RunEnumeration() {
 			default: // unknown encoding
 				gologger.Fatal().Msgf("unknown csv output encoding: %s\n", r.options.CSVOutputEncoding)
 			}
-			header := Result{}.CSVHeader()
+			headers := Result{}.CSVHeader()
 			if !r.options.OutputAll && !jsonAndCsv {
-				gologger.Silent().Msgf("%s\n", header)
+				gologger.Silent().Msgf("%s\n", headers)
 			}
 
 			if csvFile != nil {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
-				csvFile.WriteString(header + "\n")
+				csvFile.WriteString(headers + "\n")
 			}
 		}
 		if r.options.StoreResponseDir != "" {
