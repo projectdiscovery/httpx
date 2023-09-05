@@ -1793,6 +1793,8 @@ retry:
 		}
 		data := reqRaw
 		data = append(data, respRaw...)
+		data = append(data, []byte("\n\n\n")...)
+		data = append(data, []byte(fullURL)...)
 		_ = fileutil.CreateFolder(responseBaseDir)
 		writeErr := os.WriteFile(responsePath, data, 0644)
 		if writeErr != nil {
