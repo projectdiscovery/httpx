@@ -111,7 +111,7 @@ PROBES:
    -ip                   display host ip
    -cname                display host cname
    -asn                  display host asn information
-   -cdn                  display cdn in use
+   -cdn                  display cdn/waf in use
    -probe                display probe status
 
 HEADLESS:
@@ -222,7 +222,7 @@ OPTIMIZATIONS:
    -nf, -no-fallback                  display both probed protocol (HTTPS and HTTP)
    -nfs, -no-fallback-scheme          probe with protocol scheme specified in input 
    -maxhr, -max-host-error int        max error count per host before skipping remaining path/s (default 30)
-   -ec, -exclude-cdn                  skip full port scans for CDNs (only checks for 80,443)
+   -ec, -exclude-cdn                  skip full port scans for CDN/WAF (only checks for 80,443)
    -retries int                       number of retries
    -timeout int                       timeout in seconds (default 5)
    -delay duration                    duration between each http request (eg: 200ms, 1s) (default -1ns)
