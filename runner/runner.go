@@ -1791,8 +1791,10 @@ retry:
 		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
 			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
 		}
-		data := append([]byte(fullURL), append([]byte("\n\n"), reqRaw...)...)
-		data = append(data, append([]byte("\n"), respRaw...)...)
+		data := reqRaw
+		data = append(data, respRaw...)
+		data = append(data, []byte("\n\n\n")...)
+		data = append(data, []byte(fullURL)...)
 		_ = fileutil.CreateFolder(responseBaseDir)
 		writeErr := os.WriteFile(responsePath, data, 0644)
 		if writeErr != nil {
