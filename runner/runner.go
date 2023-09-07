@@ -1486,22 +1486,23 @@ retry:
 		builder.WriteRune(']')
 	}
 
+	var bodyPreview string
 	if r.options.ResponseBodyPreviewSize > 0 && resp != nil {
-		resBody := string(resp.Data)
+		bodyPreview = string(resp.Data)
 		if stringsutil.EqualFoldAny(r.options.StripFilter, "html", "xml") {
-			resBody = r.hp.Sanitize(resBody, true, true)
+			bodyPreview = r.hp.Sanitize(bodyPreview, true, true)
 		} else {
-			resBody = strings.ReplaceAll(resBody, "\n", "\\n")
-			resBody = httputilz.NormalizeSpaces(resBody)
+			bodyPreview = strings.ReplaceAll(bodyPreview, "\n", "\\n")
+			bodyPreview = httputilz.NormalizeSpaces(bodyPreview)
 		}
-		if len(resBody) > r.options.ResponseBodyPreviewSize {
-			resBody = resBody[:r.options.ResponseBodyPreviewSize]
+		if len(bodyPreview) > r.options.ResponseBodyPreviewSize {
+			bodyPreview = bodyPreview[:r.options.ResponseBodyPreviewSize]
 		}
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Blue(resBody).String())
+			builder.WriteString(aurora.Blue(bodyPreview).String())
 		} else {
-			builder.WriteString(resBody)
+			builder.WriteString(bodyPreview)
 		}
 		builder.WriteRune(']')
 	}
@@ -1894,6 +1895,7 @@ retry:
 		VHost:              isvhost,
 		WebServer:          serverHeader,
 		ResponseBody:       serverResponseRaw,
+		BodyPreview:        bodyPreview,
 		WebSocket:          isWebSocket,
 		TLSData:            resp.TLSData,
 		CSPData:            resp.CSPData,
