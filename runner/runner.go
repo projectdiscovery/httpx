@@ -1934,6 +1934,7 @@ func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		}
 		if URL.IsAbs() {
 			req.SetURL(URL)
+			req.Host = URL.Host
 			faviconPath = ""
 		} else {
 			faviconPath = URL.String()
