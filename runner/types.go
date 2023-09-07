@@ -134,24 +134,7 @@ func resultToMap(resp Result) (map[string]any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error decoding: %v", err)
 	}
-	return flatten(m), nil
-}
-
-// mapsutil.Flatten w/o separator
-func flatten(m map[string]any) map[string]any {
-	o := make(map[string]any)
-	for k, v := range m {
-		switch child := v.(type) {
-		case map[string]any:
-			nm := flatten(child)
-			for nk, nv := range nm {
-				o[nk] = nv
-			}
-		default:
-			o[k] = v
-		}
-	}
-	return o
+	return m, nil
 }
 
 var (
