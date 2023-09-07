@@ -50,6 +50,7 @@ type Result struct {
 	Error              string                 `json:"error,omitempty" csv:"error"`
 	WebServer          string                 `json:"webserver,omitempty" csv:"webserver"`
 	ResponseBody       string                 `json:"body,omitempty" csv:"body"`
+	BodyPreview        string                 `json:"body_preview,omitempty" csv:"body_preview"`
 	ContentType        string                 `json:"content_type,omitempty" csv:"content_type"`
 	Method             string                 `json:"method,omitempty" csv:"method"`
 	Host               string                 `json:"host,omitempty" csv:"host"`

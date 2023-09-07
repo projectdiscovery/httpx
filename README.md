@@ -104,6 +104,7 @@ PROBES:
    -lc, -line-count      display response body line count
    -wc, -word-count      display response body word count
    -title                display page title
+   -bp, -body-preview    display first N characters of response body (default 100)
    -server, -web-server  display server name
    -td, -tech-detect     display technology in use based on wappalyzer dataset
    -method               display http request method
@@ -146,6 +147,7 @@ FILTERS:
    -fcdn, -filter-cdn string[]         filter host with specified cdn provider (google, leaseweb, stackpath, cloudfront, fastly)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
    -fdc, -filter-condition string      filter response with dsl expression condition
+   -strip                              strips all tags in response. supported formats: html,xml (default html)
 
 RATE-LIMIT:
    -t, -threads int              number of threads to use (default 50)
@@ -554,6 +556,16 @@ Screenshots are stored in the output/screenshot directory by default. To specify
 
 ```console
 httpx -screenshot -srd /path/to/custom/directory -u https://example.com
+```
+
+### Body Preview & Strip HTML
+Body preview shows first N characters of response. And strip html tags in response
+```console
+httpx -u https://example.com -silent -bp -strip
+https://example.com [ Example Domain This domain is for use in illustrative examples in documents. You may use this domai]
+
+httpx -u https://example.com -silent -bp=200 -strip=html
+https://example.com [ Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information...]
 ```
 
 #### ⏳ Performance Considerations
