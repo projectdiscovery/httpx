@@ -1626,7 +1626,7 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
-    var onlyHost = ""
+    var onlyHost string
     onlyHost, _, err = net.SplitHostPort(URL.Host)
     if err != nil {
         onlyHost = URL.Host
