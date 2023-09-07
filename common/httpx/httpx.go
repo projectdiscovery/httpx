@@ -16,6 +16,7 @@ import (
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/fastdialer/fastdialer/ja3/impersonate"
+	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/utils/generic"
@@ -388,4 +389,15 @@ func (httpx *HTTPX) setCustomCookies(req *http.Request) {
 			req.AddCookie(cookie)
 		}
 	}
+}
+
+func (httpx *HTTPX) Sanitize(respStr string, trimLine, normalizeSpaces bool) string {
+	respStr = httpx.htmlPolicy.Sanitize(respStr)
+	if trimLine {
+		respStr = strings.Replace(respStr, "\n", "", -1)
+	}
+	if normalizeSpaces {
+		respStr = httputilz.NormalizeSpaces(respStr)
+	}
+	return respStr
 }

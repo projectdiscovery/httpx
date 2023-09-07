@@ -26,7 +26,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
-	dsl "github.com/projectdiscovery/dsl"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/errorpageclassifier"
@@ -742,42 +741,16 @@ func (r *Runner) RunEnumeration() {
 
 			// apply matchers and filters
 			if r.options.OutputFilterCondition != "" || r.options.OutputMatchCondition != "" {
-				rawMap, err := ResultToMap(resp)
-				if err != nil {
-					gologger.Warning().Msgf("Could not decode response: %s\n", err)
-					continue
-				}
-				dslVars, err := dslVariables()
-				if err != nil {
-					gologger.Warning().Msgf("Could not retrieve dsl variables: %s\n", err)
-					continue
-				}
-				flatMap := make(map[string]interface{})
-
-				for _, v := range dslVars {
-					flatMap[v] = rawMap[v]
-				}
-
 				if r.options.OutputMatchCondition != "" {
-					res, err := dsl.EvalExpr(r.options.OutputMatchCondition, flatMap)
-					if err != nil {
-						gologger.Error().Msgf("Could not evaluate match condition: %s\n", err)
+					matched := evalDslExpr(resp, r.options.OutputMatchCondition)
+					if !matched {
 						continue
-					} else {
-						if res == false {
-							continue
-						}
 					}
 				}
 				if r.options.OutputFilterCondition != "" {
-					res, err := dsl.EvalExpr(r.options.OutputFilterCondition, flatMap)
-					if err != nil {
-						gologger.Error().Msgf("Could not evaluate filter condition: %s\n", err)
+					matched := evalDslExpr(resp, r.options.OutputFilterCondition)
+					if matched {
 						continue
-					} else {
-						if res == true {
-							continue
-						}
 					}
 				}
 			}
@@ -1513,6 +1486,28 @@ retry:
 		builder.WriteRune(']')
 	}
 
+	var bodyPreview string
+	if r.options.ResponseBodyPreviewSize > 0 && resp != nil {
+		bodyPreview = string(resp.Data)
+		if stringsutil.EqualFoldAny(r.options.StripFilter, "html", "xml") {
+			bodyPreview = r.hp.Sanitize(bodyPreview, true, true)
+		} else {
+			bodyPreview = strings.ReplaceAll(bodyPreview, "\n", "\\n")
+			bodyPreview = httputilz.NormalizeSpaces(bodyPreview)
+		}
+		if len(bodyPreview) > r.options.ResponseBodyPreviewSize {
+			bodyPreview = bodyPreview[:r.options.ResponseBodyPreviewSize]
+		}
+		bodyPreview = strings.TrimSpace(bodyPreview)
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Blue(bodyPreview).String())
+		} else {
+			builder.WriteString(bodyPreview)
+		}
+		builder.WriteRune(']')
+	}
+
 	serverHeader := resp.GetHeader("Server")
 	if scanopts.OutputServerHeader {
 		builder.WriteString(fmt.Sprintf(" [%s]", serverHeader))
@@ -1823,8 +1818,10 @@ retry:
 		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
 			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
 		}
-		data := append([]byte(fullURL), append([]byte("\n\n"), reqRaw...)...)
-		data = append(data, append([]byte("\n"), respRaw...)...)
+		data := reqRaw
+		data = append(data, respRaw...)
+		data = append(data, []byte("\n\n\n")...)
+		data = append(data, []byte(fullURL)...)
 		_ = fileutil.CreateFolder(responseBaseDir)
 		writeErr := os.WriteFile(responsePath, data, 0644)
 		if writeErr != nil {
@@ -1906,6 +1903,7 @@ retry:
 		VHost:              isvhost,
 		WebServer:          serverHeader,
 		ResponseBody:       serverResponseRaw,
+		BodyPreview:        bodyPreview,
 		WebSocket:          isWebSocket,
 		TLSData:            resp.TLSData,
 		CSPData:            resp.CSPData,
@@ -1931,7 +1929,7 @@ retry:
 		ExtractRegex:       extractRegex,
 		StoredResponsePath: responsePath,
 		ScreenshotBytes:    screenshotBytes,
-		ScreenshotPath:     screenshotPath,
+		ScreenshotPath:     filepath.Join(hostFilename, screenshotResponseFile),
 		HeadlessBody:       headlessBody,
 		KnowledgeBase: map[string]interface{}{
 			"PageType": r.errorPageClassifier.Classify(respData),
@@ -1964,6 +1962,7 @@ func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		}
 		if URL.IsAbs() {
 			req.SetURL(URL)
+			req.Host = URL.Host
 			faviconPath = ""
 		} else {
 			faviconPath = URL.String()
