@@ -1498,6 +1498,7 @@ retry:
 		if len(bodyPreview) > r.options.ResponseBodyPreviewSize {
 			bodyPreview = bodyPreview[:r.options.ResponseBodyPreviewSize]
 		}
+		bodyPreview = strings.TrimSpace(bodyPreview)
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Blue(bodyPreview).String())

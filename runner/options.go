@@ -473,6 +473,10 @@ func ParseOptions() *Options {
 		options.ShowStatistics = true
 	}
 
+	if options.ResponseBodyPreviewSize > 0 && options.StripFilter == "" {
+		options.StripFilter = "html"
+	}
+
 	// Read the inputs and configure the logging
 	options.configureOutput()
 
