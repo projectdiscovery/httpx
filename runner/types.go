@@ -58,8 +58,8 @@ type Result struct {
 	FavIconMMH3        string                 `json:"favicon,omitempty" csv:"favicon"`
 	FaviconPath        string                 `json:"favicon_path,omitempty" csv:"favicon_path"`
 	FinalURL           string                 `json:"final_url,omitempty" csv:"final_url"`
-	ResponseHeader     map[string]interface{} `json:"header,omitempty" csv:"header"`
-	RawHeader          string                 `json:"raw_header,omitempty" csv:"raw_header"`
+	ResponseHeaders    map[string]interface{} `json:"header,omitempty" csv:"header"`
+	RawHeaders         string                 `json:"raw_header,omitempty" csv:"raw_header"`
 	Request            string                 `json:"request,omitempty" csv:"request"`
 	ResponseTime       string                 `json:"time,omitempty" csv:"time"`
 	Jarm               string                 `json:"jarm,omitempty" csv:"jarm"`
@@ -89,7 +89,7 @@ type Result struct {
 // function to get dsl variables from result struct
 func dslVariables() ([]string, error) {
 	fakeResult := Result{}
-	fieldsToIgnore := []string{"Hashes", "ResponseHeader", "Err", "KnowledgeBase"}
+	fieldsToIgnore := []string{"Hashes", "ResponseHeaders", "Err", "KnowledgeBase"}
 	if err := faker.FakeData(&fakeResult, options.WithFieldsToIgnore(fieldsToIgnore...)); err != nil {
 		return nil, err
 	}
