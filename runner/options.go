@@ -229,6 +229,7 @@ type Options struct {
 	Allow                     customlist.CustomList
 	MaxResponseBodySizeToSave int
 	MaxResponseBodySizeToRead int
+	ResponseBodyPreviewSize   int
 	OutputExtractRegexs       goflags.StringSlice
 	OutputExtractPresets      goflags.StringSlice
 	RateLimit                 int
@@ -270,6 +271,7 @@ type Options struct {
 	ListDSLVariable           bool
 	OutputFilterCondition     string
 	OutputMatchCondition      string
+	StripFilter               string
 	//The OnResult callback function is invoked for each result. It is important to check for errors in the result before using Result.Err.
 	OnResult           OnResultCallback
 	DisableUpdateCheck bool
@@ -308,6 +310,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, "display response body line count"),
 		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "display response body word count"),
 		flagSet.BoolVar(&options.ExtractTitle, "title", false, "display page title"),
+		flagSet.DynamicVarP(&options.ResponseBodyPreviewSize, "body-preview", "bp", 100, "display first N characters of response body"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
 		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
@@ -356,6 +359,7 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", nil, fmt.Sprintf("filter host with specified cdn provider (%s)", cdncheck.DefaultCDNProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
 		flagSet.StringVarP(&options.OutputFilterCondition, "filter-condition", "fdc", "", "filter response with dsl expression condition"),
+		flagSet.DynamicVar(&options.StripFilter, "strip", "html", "strips all tags in response. supported formats: html,xml"),
 	)
 
 	flagSet.CreateGroup("rate-limit", "Rate-Limit",
@@ -477,6 +481,10 @@ func ParseOptions() *Options {
 
 	if options.StatsInterval != 0 {
 		options.ShowStatistics = true
+	}
+
+	if options.ResponseBodyPreviewSize > 0 && options.StripFilter == "" {
+		options.StripFilter = "html"
 	}
 
 	// Read the inputs and configure the logging
