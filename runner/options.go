@@ -182,6 +182,7 @@ type Options struct {
 	Location                  bool
 	ContentLength             bool
 	FollowRedirects           bool
+	RespectHSTS               bool
 	StoreResponse             bool
 	JSONOutput                bool
 	CSVOutput                 bool
@@ -405,6 +406,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.FollowRedirects, "follow-redirects", "fr", false, "follow http redirects"),
 		flagSet.IntVarP(&options.MaxRedirects, "max-redirects", "maxr", 10, "max number of redirects to follow per host"),
 		flagSet.BoolVarP(&options.FollowHostRedirects, "follow-host-redirects", "fhr", false, "follow redirects on the same host"),
+		flagSet.BoolVarP(&options.RespectHSTS, "respect-hsts", "rhsts", false, "respect HSTS response headers for redirect requests"),
 		flagSet.BoolVar(&options.VHostInput, "vhost-input", false, "get a list of vhosts as input"),
 		flagSet.StringVar(&options.Methods, "x", "", "request methods to probe, use 'all' to probe all HTTP methods"),
 		flagSet.StringVar(&options.RequestBody, "body", "", "post body to include in http request"),

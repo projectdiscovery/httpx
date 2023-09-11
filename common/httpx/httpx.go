@@ -66,6 +66,14 @@ func New(options *Options) (*HTTPX, error) {
 	retryablehttpOptions.Timeout = httpx.Options.Timeout
 	retryablehttpOptions.RetryMax = httpx.Options.RetryMax
 
+	handleHSTS := func(req *http.Request) {
+		if req.Response.Header.Get("Strict-Transport-Security") == "" {
+			return
+		}
+
+		req.URL.Scheme = "https"
+	}
+
 	var redirectFunc = func(_ *http.Request, _ []*http.Request) error {
 		// Tell the http client to not follow redirect
 		return http.ErrUseLastResponse
@@ -76,10 +84,16 @@ func New(options *Options) (*HTTPX, error) {
 		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
 			// add custom cookies if necessary
 			httpx.setCustomCookies(redirectedRequest)
+
 			if len(previousRequests) >= options.MaxRedirects {
 				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
 			}
+
+			if options.RespectHSTS {
+				handleHSTS(redirectedRequest)
+			}
+
 			return nil
 		}
 	}
@@ -104,6 +118,11 @@ func New(options *Options) (*HTTPX, error) {
 				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
 			}
+
+			if options.RespectHSTS {
+				handleHSTS(redirectedRequest)
+			}
+
 			return nil
 		}
 	}

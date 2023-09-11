@@ -196,6 +196,7 @@ CONFIGURATIONS:
    -fr, -follow-redirects        follow http redirects
    -maxr, -max-redirects int     max number of redirects to follow per host (default 10)
    -fhr, -follow-host-redirects  follow redirects on the same host
+   -rhsts, -respect-hsts         respect HSTS response headers for redirect requests
    -vhost-input                  get a list of vhosts as input
    -x string                     request methods to probe, use 'all' to probe all HTTP methods
    -body string                  post body to include in http request
