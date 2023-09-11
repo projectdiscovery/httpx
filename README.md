@@ -176,8 +176,8 @@ OUTPUT:
    -csv                                store output in csv format
    -csvo, -csv-output-encoding string  define output encoding
    -json                               store output in JSONL(ines) format
-   -irh, -include-response-header     include http response headers in JSON output (-json only)
-   -irr, -include-response             include http request/response in JSON output (-json only)
+   -irh, -include-response-header      include http response (headers) in JSON output (-json only)
+   -irr, -include-response             include http request/response (headers + body) in JSON output (-json only)
    -irrb, -include-response-base64     include base64 encoded http request/response in JSON output (-json only)
    -include-chain                      include redirect http chain in JSON output (-json only)
    -store-chain                        include http redirect chain in responses (-sr only)
