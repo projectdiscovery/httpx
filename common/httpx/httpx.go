@@ -85,13 +85,13 @@ func New(options *Options) (*HTTPX, error) {
 			// add custom cookies if necessary
 			httpx.setCustomCookies(redirectedRequest)
 
-			if options.RespectHSTS {
-				handleHSTS(redirectedRequest)
-			}
-
 			if len(previousRequests) >= options.MaxRedirects {
 				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
+			}
+
+			if options.RespectHSTS {
+				handleHSTS(redirectedRequest)
 			}
 
 			return nil
@@ -118,6 +118,11 @@ func New(options *Options) (*HTTPX, error) {
 				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
 			}
+
+			if options.RespectHSTS {
+				handleHSTS(redirectedRequest)
+			}
+
 			return nil
 		}
 	}
