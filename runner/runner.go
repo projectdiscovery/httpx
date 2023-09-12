@@ -587,9 +587,11 @@ func (r *Runner) RunEnumeration() {
 			gologger.Fatal().Msgf("Could not create output response directory '%s': %s\n", r.options.StoreResponseDir, err)
 		}
 		// screenshot folder
-		screenshotFolder := filepath.Join(r.options.StoreResponseDir, "screenshot")
-		if err := os.MkdirAll(screenshotFolder, os.ModePerm); err != nil {
-			gologger.Fatal().Msgf("Could not create output screenshot directory '%s': %s\n", r.options.StoreResponseDir, err)
+		if r.options.Screenshot {
+			screenshotFolder := filepath.Join(r.options.StoreResponseDir, "screenshot")
+			if err := os.MkdirAll(screenshotFolder, os.ModePerm); err != nil {
+				gologger.Fatal().Msgf("Could not create output screenshot directory '%s': %s\n", r.options.StoreResponseDir, err)
+			}
 		}
 	}
 
@@ -736,8 +738,8 @@ func (r *Runner) RunEnumeration() {
 				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
 				_, _ = indexFile.WriteString(indexData)
 			}
-			if indexScreenshotFile != nil && resp.ScreenshotPath != "" {
-				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.ScreenshotPath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
+			if indexScreenshotFile != nil && resp.ScreenshotPathRel != "" {
+				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.ScreenshotPathRel, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
 				_, _ = indexScreenshotFile.WriteString(indexData)
 			}
 
@@ -1522,9 +1524,9 @@ retry:
 		responseHeaders    map[string]interface{}
 	)
 
-    if scanopts.ResponseHeadersInStdout {
-       responseHeaders = normalizeHeaders(resp.Headers)
-    }
+	if scanopts.ResponseHeadersInStdout {
+		responseHeaders = normalizeHeaders(resp.Headers)
+	}
 
 	respData := string(resp.Data)
 	if r.options.NoDecode {
@@ -1809,7 +1811,7 @@ retry:
 	responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
 	screenshotBaseDir := filepath.Join(domainScreenshotBaseDir, hostFilename)
 
-	var responsePath, screenshotPath string
+	var responsePath, screenshotPath, screenshotPathRel string
 	// store response
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
@@ -1874,6 +1876,7 @@ retry:
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
 			screenshotPath = fileutilz.AbsPathOrDefault(filepath.Join(screenshotBaseDir, screenshotResponseFile))
+			screenshotPathRel = filepath.Join(hostFilename, screenshotResponseFile)
 			_ = fileutil.CreateFolder(screenshotBaseDir)
 			err := os.WriteFile(screenshotPath, screenshotBytes, 0644)
 			if err != nil {
@@ -1930,7 +1933,8 @@ retry:
 		ExtractRegex:       extractRegex,
 		StoredResponsePath: responsePath,
 		ScreenshotBytes:    screenshotBytes,
-		ScreenshotPath:     filepath.Join(hostFilename, screenshotResponseFile),
+		ScreenshotPath:     screenshotPath,
+		ScreenshotPathRel:  screenshotPathRel,
 		HeadlessBody:       headlessBody,
 		KnowledgeBase: map[string]interface{}{
 			"PageType": r.errorPageClassifier.Classify(respData),
