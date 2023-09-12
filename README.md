@@ -127,13 +127,13 @@ MATCHERS:
    -mfc, -match-favicon string[]      match response with specified favicon hash (-mfc 1494302000)
    -ms, -match-string string          match response with specified string (-ms admin)
    -mr, -match-regex string           match response with specified regex (-mr admin)
-   -mcdn, -match-cdn string[]         match host with specified cdn provider (incapsula, oracle, google, azure, cloudflare, cloudfront, fastly, akamai, sucuri, leaseweb)
+   -mcdn, -match-cdn string[]         match host with specified cdn provider (cloudfront, fastly, google, leaseweb, stackpath)
    -mrt, -match-response-time string  match response with specified response time in seconds (-mrt '< 1')
    -mdc, -match-condition string      match response with dsl expression condition
 
 EXTRACTOR:
    -er, -extract-regex string[]   display response content with matched regex
-   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (url,ipv4,mail)
+   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (mail,url,ipv4)
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
@@ -141,10 +141,10 @@ FILTERS:
    -fl, -filter-length string          filter response with specified content length (-fl 23,33)
    -flc, -filter-line-count string     filter response body with specified line count (-flc 423,532)
    -fwc, -filter-word-count string     filter response body with specified word count (-fwc 423,532)
-   -ffc, -filter-favicon string[]      filter response with specified favicon hash (-mfc 1494302000)
+   -ffc, -filter-favicon string[]      filter response with specified favicon hash (-ffc 1494302000)
    -fs, -filter-string string          filter response with specified string (-fs admin)
    -fe, -filter-regex string           filter response with specified regex (-fe admin)
-   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (google, leaseweb, stackpath, cloudfront, fastly)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (cloudfront, fastly, google, leaseweb, stackpath)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
    -fdc, -filter-condition string      filter response with dsl expression condition
    -strip                              strips all tags in response. supported formats: html,xml (default html)
@@ -185,6 +185,7 @@ OUTPUT:
    -store-chain                        include http redirect chain in responses (-sr only)
 
 CONFIGURATIONS:
+   -config string                path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
    -r, -resolvers string[]       list of custom resolver (file or comma separated)
    -allow string[]               allowed list of IP/CIDR's to process (file or comma separated)
    -deny string[]                denied list of IP/CIDR's to process (file or comma separated)
@@ -206,7 +207,7 @@ CONFIGURATIONS:
    -ldp, -leave-default-ports    leave default http/https ports in host header (eg. http://host:80 - https://host:443
    -ztls                         use ztls library with autofallback to standard one for tls13
    -no-decode                    avoid decoding body
-   -tlsi, -tls-impersonate  enable random tls client (ja3) impersonation (experimental)
+   -tlsi, -tls-impersonate       enable experimental client hello (ja3) tls randomization
    -no-stdin                     Disable Stdin processing
 
 DEBUG:
@@ -228,8 +229,8 @@ OPTIMIZATIONS:
    -maxhr, -max-host-error int        max error count per host before skipping remaining path/s (default 30)
    -ec, -exclude-cdn                  skip full port scans for CDN/WAF (only checks for 80,443)
    -retries int                       number of retries
-   -timeout int                       timeout in seconds (default 5)
-   -delay duration                    duration between each http request (eg: 200ms, 1s) (default -1ns)
+   -timeout int                       timeout in seconds (default 10)
+   -delay value                       duration between each http request (eg: 200ms, 1s) (default -1ns)
    -rsts, -response-size-to-save int  max response size to save in bytes (default 2147483647)
    -rstr, -response-size-to-read int  max response size to read in bytes (default 2147483647)
 ```
@@ -560,14 +561,17 @@ Screenshots are stored in the output/screenshot directory by default. To specify
 httpx -screenshot -srd /path/to/custom/directory -u https://example.com
 ```
 
-### Body Preview & Strip HTML
-Body preview shows first N characters of response. And strip html tags in response
-```console
-httpx -u https://example.com -silent -bp -strip
-https://example.com [ Example Domain This domain is for use in illustrative examples in documents. You may use this domai]
+### Body Preview
+Body preview shows first N characters of response. And strip html tags in response.
 
-httpx -u https://example.com -silent -bp=200 -strip=html
-https://example.com [ Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information...]
+```console
+httpx -u https://example.com -silent -body-preview
+https://example.com [Example Domain This domain is for use in illustrative examples in documents. You may use this domai]
+```
+
+```console
+httpx -u https://example.com -silent -body-preview=200 -strip=html
+https://example.com [Example Domain This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. More information...]
 ```
 
 #### ⏳ Performance Considerations
