@@ -177,7 +177,7 @@ OUTPUT:
    -srd, -store-response-dir string    store http response to custom directory
    -csv                                store output in csv format
    -csvo, -csv-output-encoding string  define output encoding
-   -json                               store output in JSONL(ines) format
+   -j, -json                           store output in JSONL(ines) format
    -irh, -include-response-header      include http response (headers) in JSON output (-json only)
    -irr, -include-response             include http request/response (headers + body) in JSON output (-json only)
    -irrb, -include-response-base64     include base64 encoded http request/response in JSON output (-json only)
