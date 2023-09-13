@@ -47,7 +47,7 @@ require (
 	github.com/projectdiscovery/fastdialer v0.0.35
 	github.com/projectdiscovery/ratelimit v0.0.9
 	github.com/projectdiscovery/tlsx v1.1.1
-	github.com/projectdiscovery/utils v0.0.48
+	github.com/projectdiscovery/utils v0.0.54
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230205235340-d51ce4775101
 	go.uber.org/multierr v1.11.0
