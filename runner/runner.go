@@ -586,12 +586,13 @@ func (r *Runner) RunEnumeration() {
 		if err := os.MkdirAll(responseFolder, os.ModePerm); err != nil {
 			gologger.Fatal().Msgf("Could not create output response directory '%s': %s\n", r.options.StoreResponseDir, err)
 		}
-		// screenshot folder
-		if r.options.Screenshot {
-			screenshotFolder := filepath.Join(r.options.StoreResponseDir, "screenshot")
-			if err := os.MkdirAll(screenshotFolder, os.ModePerm); err != nil {
-				gologger.Fatal().Msgf("Could not create output screenshot directory '%s': %s\n", r.options.StoreResponseDir, err)
-			}
+	}
+
+	// screenshot folder
+	if r.options.Screenshot {
+		screenshotFolder := filepath.Join(r.options.StoreResponseDir, "screenshot")
+		if err := os.MkdirAll(screenshotFolder, os.ModePerm); err != nil {
+			gologger.Fatal().Msgf("Could not create output screenshot directory '%s': %s\n", r.options.StoreResponseDir, err)
 		}
 	}
 
