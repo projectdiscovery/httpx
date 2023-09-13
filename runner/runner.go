@@ -1621,11 +1621,11 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
-    var onlyHost string
-    onlyHost, _, err = net.SplitHostPort(URL.Host)
-    if err != nil {
-        onlyHost = URL.Host
-    }
+	var onlyHost string
+	onlyHost, _, err = net.SplitHostPort(URL.Host)
+	if err != nil {
+		onlyHost = URL.Host
+	}
 	ips, cnames, err := getDNSData(hp, onlyHost)
 	if err != nil {
 		ips = append(ips, ip)
