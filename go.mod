@@ -16,7 +16,7 @@ require (
 	github.com/projectdiscovery/clistats v0.0.19
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
-	github.com/projectdiscovery/goflags v0.1.14-0.20230809193030-a634ac4b5c5d
+	github.com/projectdiscovery/goflags v0.1.20
 	github.com/projectdiscovery/gologger v1.1.11
 	github.com/projectdiscovery/hmap v0.0.13
 	github.com/projectdiscovery/mapcidr v1.1.2
