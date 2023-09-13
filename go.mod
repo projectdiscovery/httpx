@@ -18,10 +18,10 @@ require (
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.20
 	github.com/projectdiscovery/gologger v1.1.11
-	github.com/projectdiscovery/hmap v0.0.13
+	github.com/projectdiscovery/hmap v0.0.16
 	github.com/projectdiscovery/mapcidr v1.1.2
 	github.com/projectdiscovery/rawhttp v0.1.18
-	github.com/projectdiscovery/retryablehttp-go v1.0.19
+	github.com/projectdiscovery/retryablehttp-go v1.0.26
 	github.com/projectdiscovery/wappalyzergo v0.0.109
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
@@ -44,12 +44,12 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.4
 	github.com/projectdiscovery/dsl v0.0.21
-	github.com/projectdiscovery/fastdialer v0.0.35
+	github.com/projectdiscovery/fastdialer v0.0.37
 	github.com/projectdiscovery/ratelimit v0.0.9
 	github.com/projectdiscovery/tlsx v1.1.1
 	github.com/projectdiscovery/utils v0.0.54
 	github.com/stretchr/testify v1.8.4
-	github.com/zmap/zcrypto v0.0.0-20230205235340-d51ce4775101
+	github.com/zmap/zcrypto v0.0.0-20230422215203-9a665e1e9968
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20230810033253-352e893a4cad
 )
@@ -61,7 +61,7 @@ require (
 	github.com/Mzack9999/go-http-digest-auth-client v0.6.1-0.20220414142836-eb8883508809 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/alecthomas/chroma v0.10.0 // indirect
-	github.com/andybalholm/brotli v1.0.4 // indirect
+	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
@@ -69,13 +69,14 @@ require (
 	github.com/charmbracelet/glamour v0.6.0 // indirect
 	github.com/cheggaaa/pb/v3 v3.1.4 // indirect
 	github.com/cloudflare/cfssl v1.6.4 // indirect
+	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/cnf/structhash v0.0.0-20201127153200-e1b16c1ebc08 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/dlclark/regexp2 v1.8.1 // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/fatih/color v1.15.0 // indirect
-	github.com/gaukas/godicttls v0.0.3 // indirect
+	github.com/gaukas/godicttls v0.0.4 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/certificate-transparency-go v1.1.4 // indirect
@@ -85,7 +86,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kataras/jwt v0.1.8 // indirect
-	github.com/klauspost/compress v1.15.15 // indirect
+	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/kljensen/snowball v0.8.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
@@ -107,8 +108,9 @@ require (
 	github.com/projectdiscovery/freeport v0.0.5 // indirect
 	github.com/projectdiscovery/gostruct v0.0.1 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.6 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.30 // indirect
-	github.com/refraction-networking/utls v1.3.2 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.35 // indirect
+	github.com/quic-go/quic-go v0.37.4 // indirect
+	github.com/refraction-networking/utls v1.5.2 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/sashabaranov/go-openai v1.14.2 // indirect
