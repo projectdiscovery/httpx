@@ -116,8 +116,10 @@ PROBES:
    -probe                display probe status
 
 HEADLESS:
-   -ss, -screenshot  enable saving screenshot of the page using headless browser
-   -system-chrome    enable using local installed chrome for screenshot
+   -ss, -screenshot                 enable saving screenshot of the page using headless browser
+   -system-chrome                   enable using local installed chrome for screenshot
+   -esb, -exclude-screenshot-bytes  enable excluding screenshot bytes from json output
+   -ehb, -exclude-headless-body     enable excluding headless header from json output
 
 MATCHERS:
    -mc, -match-code string            match response with specified status code (-mc 200,302)
@@ -133,7 +135,7 @@ MATCHERS:
 
 EXTRACTOR:
    -er, -extract-regex string[]   display response content with matched regex
-   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (mail,url,ipv4)
+   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (ipv4,mail,url)
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
