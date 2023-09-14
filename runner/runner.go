@@ -246,6 +246,8 @@ func New(options *Options) (*Runner, error) {
 		runner.browser = browser
 	}
 	scanopts.Screenshot = options.Screenshot
+	scanopts.NoScreenshotBytes = options.NoScreenshotBytes
+	scanopts.NoHeadlessBody = options.NoHeadlessBody
 	scanopts.UseInstalledChrome = options.UseInstalledChrome
 
 	if options.OutputExtractRegexs != nil {
@@ -1888,6 +1890,12 @@ retry:
 			if err != nil {
 				gologger.Error().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
 			}
+		}
+		if scanopts.NoScreenshotBytes {
+			screenshotBytes = []byte{}
+		}
+		if scanopts.NoHeadlessBody {
+			headlessBody = ""
 		}
 	}
 
