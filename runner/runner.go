@@ -209,6 +209,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.StoreResponse = options.StoreResponse
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
 	scanopts.OutputServerHeader = options.OutputServerHeader
+	scanopts.ResponseHeadersInStdout = options.ResponseHeadersInStdout
 	scanopts.OutputWithNoColor = options.NoColor
 	scanopts.ResponseInStdout = options.ResponseInStdout
 	scanopts.Base64ResponseInStdout = options.Base64ResponseInStdout
@@ -587,7 +588,10 @@ func (r *Runner) RunEnumeration() {
 		if err := os.MkdirAll(responseFolder, os.ModePerm); err != nil {
 			gologger.Fatal().Msgf("Could not create output response directory '%s': %s\n", r.options.StoreResponseDir, err)
 		}
-		// screenshot folder
+	}
+
+	// screenshot folder
+	if r.options.Screenshot {
 		screenshotFolder := filepath.Join(r.options.StoreResponseDir, "screenshot")
 		if err := os.MkdirAll(screenshotFolder, os.ModePerm); err != nil {
 			gologger.Fatal().Msgf("Could not create output screenshot directory '%s': %s\n", r.options.StoreResponseDir, err)
@@ -677,14 +681,14 @@ func (r *Runner) RunEnumeration() {
 			default: // unknown encoding
 				gologger.Fatal().Msgf("unknown csv output encoding: %s\n", r.options.CSVOutputEncoding)
 			}
-			header := Result{}.CSVHeader()
+			headers := Result{}.CSVHeader()
 			if !r.options.OutputAll && !jsonAndCsv {
-				gologger.Silent().Msgf("%s\n", header)
+				gologger.Silent().Msgf("%s\n", headers)
 			}
 
 			if csvFile != nil {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
-				csvFile.WriteString(header + "\n")
+				csvFile.WriteString(headers + "\n")
 			}
 		}
 		if r.options.StoreResponseDir != "" {
@@ -737,8 +741,8 @@ func (r *Runner) RunEnumeration() {
 				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
 				_, _ = indexFile.WriteString(indexData)
 			}
-			if indexScreenshotFile != nil && resp.ScreenshotPath != "" {
-				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.ScreenshotPath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
+			if indexScreenshotFile != nil && resp.ScreenshotPathRel != "" {
+				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.ScreenshotPathRel, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
 				_, _ = indexScreenshotFile.WriteString(indexData)
 			}
 
@@ -1489,17 +1493,43 @@ retry:
 		builder.WriteRune(']')
 	}
 
+	var bodyPreview string
+	if r.options.ResponseBodyPreviewSize > 0 && resp != nil {
+		bodyPreview = string(resp.Data)
+		if stringsutil.EqualFoldAny(r.options.StripFilter, "html", "xml") {
+			bodyPreview = r.hp.Sanitize(bodyPreview, true, true)
+		} else {
+			bodyPreview = strings.ReplaceAll(bodyPreview, "\n", "\\n")
+			bodyPreview = httputilz.NormalizeSpaces(bodyPreview)
+		}
+		if len(bodyPreview) > r.options.ResponseBodyPreviewSize {
+			bodyPreview = bodyPreview[:r.options.ResponseBodyPreviewSize]
+		}
+		bodyPreview = strings.TrimSpace(bodyPreview)
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Blue(bodyPreview).String())
+		} else {
+			builder.WriteString(bodyPreview)
+		}
+		builder.WriteRune(']')
+	}
+
 	serverHeader := resp.GetHeader("Server")
 	if scanopts.OutputServerHeader {
 		builder.WriteString(fmt.Sprintf(" [%s]", serverHeader))
 	}
 
 	var (
-		serverResponseRaw string
-		request           string
-		rawResponseHeader string
-		responseHeader    map[string]interface{}
+		serverResponseRaw  string
+		request            string
+		rawResponseHeaders string
+		responseHeaders    map[string]interface{}
 	)
+
+	if scanopts.ResponseHeadersInStdout {
+		responseHeaders = normalizeHeaders(resp.Headers)
+	}
 
 	respData := string(resp.Data)
 	if r.options.NoDecode {
@@ -1509,13 +1539,13 @@ retry:
 	if scanopts.ResponseInStdout || r.options.OutputMatchCondition != "" || r.options.OutputFilterCondition != "" {
 		serverResponseRaw = string(respData)
 		request = string(requestDump)
-		responseHeader = normalizeHeaders(resp.Headers)
-		rawResponseHeader = resp.RawHeaders
+		responseHeaders = normalizeHeaders(resp.Headers)
+		rawResponseHeaders = resp.RawHeaders
 	} else if scanopts.Base64ResponseInStdout {
 		serverResponseRaw = stringz.Base64([]byte(respData))
 		request = stringz.Base64(requestDump)
-		responseHeader = normalizeHeaders(resp.Headers)
-		rawResponseHeader = stringz.Base64([]byte(resp.RawHeaders))
+		responseHeaders = normalizeHeaders(resp.Headers)
+		rawResponseHeaders = stringz.Base64([]byte(resp.RawHeaders))
 	}
 
 	// check for virtual host
@@ -1602,7 +1632,12 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", ip))
 	}
 
-	ips, cnames, err := getDNSData(hp, URL.Host)
+	var onlyHost string
+	onlyHost, _, err = net.SplitHostPort(URL.Host)
+	if err != nil {
+		onlyHost = URL.Host
+	}
+	ips, cnames, err := getDNSData(hp, onlyHost)
 	if err != nil {
 		ips = append(ips, ip)
 	}
@@ -1784,7 +1819,7 @@ retry:
 	responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
 	screenshotBaseDir := filepath.Join(domainScreenshotBaseDir, hostFilename)
 
-	var responsePath, screenshotPath string
+	var responsePath, screenshotPath, screenshotPathRel string
 	// store response
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
@@ -1794,15 +1829,20 @@ retry:
 		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
 			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
 		}
-		data := append([]byte(fullURL), append([]byte("\n\n"), reqRaw...)...)
-		if scanopts.StoreChain && resp.HasChain() {
-			data = append(data, append([]byte("\n"), []byte(resp.GetChain())...)...)
-		}
-		data = append(data, append([]byte("\n"), respRaw...)...)
+		data := reqRaw
+		data = append(data, respRaw...)
+		data = append(data, []byte("\n\n\n")...)
+		data = append(data, []byte(fullURL)...)
 		_ = fileutil.CreateFolder(responseBaseDir)
 		writeErr := os.WriteFile(responsePath, data, 0644)
 		if writeErr != nil {
 			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
+		}
+		if scanopts.StoreChain && resp.HasChain() {
+			writeErr := os.WriteFile(responsePath, []byte(resp.GetChain()), 0644)
+			if writeErr != nil {
+				gologger.Warning().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
+			}
 		}
 	}
 
@@ -1844,6 +1884,7 @@ retry:
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
 			screenshotPath = fileutilz.AbsPathOrDefault(filepath.Join(screenshotBaseDir, screenshotResponseFile))
+			screenshotPathRel = filepath.Join(hostFilename, screenshotResponseFile)
 			_ = fileutil.CreateFolder(screenshotBaseDir)
 			err := os.WriteFile(screenshotPath, screenshotBytes, 0644)
 			if err != nil {
@@ -1861,8 +1902,8 @@ retry:
 	result := Result{
 		Timestamp:          time.Now(),
 		Request:            request,
-		ResponseHeader:     responseHeader,
-		RawHeader:          rawResponseHeader,
+		ResponseHeaders:    responseHeaders,
+		RawHeaders:         rawResponseHeaders,
 		Scheme:             parsed.Scheme,
 		Port:               finalPort,
 		Path:               finalPath,
@@ -1880,6 +1921,7 @@ retry:
 		VHost:              isvhost,
 		WebServer:          serverHeader,
 		ResponseBody:       serverResponseRaw,
+		BodyPreview:        bodyPreview,
 		WebSocket:          isWebSocket,
 		TLSData:            resp.TLSData,
 		CSPData:            resp.CSPData,
@@ -1906,6 +1948,7 @@ retry:
 		StoredResponsePath: responsePath,
 		ScreenshotBytes:    screenshotBytes,
 		ScreenshotPath:     screenshotPath,
+		ScreenshotPathRel:  screenshotPathRel,
 		HeadlessBody:       headlessBody,
 		KnowledgeBase: map[string]interface{}{
 			"PageType": r.errorPageClassifier.Classify(respData),
@@ -1938,6 +1981,7 @@ func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		}
 		if URL.IsAbs() {
 			req.SetURL(URL)
+			req.Host = URL.Host
 			faviconPath = ""
 		} else {
 			faviconPath = URL.String()
