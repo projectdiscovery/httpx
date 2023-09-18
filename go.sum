@@ -223,8 +223,8 @@ github.com/projectdiscovery/rawhttp v0.1.18 h1:wTs6CePrjcIz5/SrxkluOrCGOk3F9Ddt3
 github.com/projectdiscovery/rawhttp v0.1.18/go.mod h1:nwTySMnfI7qFMQEC9PHdklXGWED8FDcEOnA8DGZqu/A=
 github.com/projectdiscovery/retryabledns v1.0.35 h1:lPX8f7exDaiNJc/4Rc44xQfFK9BpA8ZLtpQ+te2ymLU=
 github.com/projectdiscovery/retryabledns v1.0.35/go.mod h1:V4nRoHJzK2UmlGgKMRduLBkgNNMXJXmJchB5Wui8s4c=
-github.com/projectdiscovery/retryablehttp-go v1.0.26 h1:eZYNRRvj7lv05+XrsQU61o1sYTcPwKbmSfiOJfUOArg=
-github.com/projectdiscovery/retryablehttp-go v1.0.26/go.mod h1:lCvCUZs1MK5gLi2yUT6Lw/ciVj8Wr2SnNeIJGXxWKHo=
+github.com/projectdiscovery/retryablehttp-go v1.0.27 h1:06UEBf5bxtSr8DFcj7B7ln1rySiUlMZb0ib8QRkfBxI=
+github.com/projectdiscovery/retryablehttp-go v1.0.27/go.mod h1:Lh55kA8fEJlmy4n6mTfEopU+MuBXBayPRtQGwVYrTnY=
 github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZAja8BH3LqqJXMA=
 github.com/projectdiscovery/tlsx v1.1.4 h1:jXRvichO/ZfhYERch1CbNS1PRbS2KgSBj7JoWslEpIw=
 github.com/projectdiscovery/tlsx v1.1.4/go.mod h1:crzMlxOokVQDwGVm51JPZi1ZAgzxhNl1KVRmbff6pkI=
