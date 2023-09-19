@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"image"
 	"io"
 	"net"
 	"net/http"
@@ -25,6 +26,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/corona10/goimagehash"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
@@ -1877,6 +1879,7 @@ retry:
 		screenshotBytes []byte
 		headlessBody    string
 	)
+	var pHash uint64
 	if scanopts.Screenshot {
 		var err error
 		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, r.hp.Options.Timeout)
@@ -1890,6 +1893,12 @@ retry:
 			if err != nil {
 				gologger.Error().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
 			}
+
+			pHash, err = calculatePerceptionHash(screenshotBytes)
+			if err != nil {
+				gologger.Warning().Msgf("%v: %s", err, fullURL)
+			}
+
 		}
 		if scanopts.NoScreenshotBytes {
 			screenshotBytes = []byte{}
@@ -1952,9 +1961,26 @@ retry:
 		HeadlessBody:       headlessBody,
 		KnowledgeBase: map[string]interface{}{
 			"PageType": r.errorPageClassifier.Classify(respData),
+			"pHash":    pHash,
 		},
 	}
 	return result
+}
+
+func calculatePerceptionHash(screenshotBytes []byte) (uint64, error) {
+	reader := bytes.NewReader(screenshotBytes)
+	img, _, err := image.Decode(reader)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to decode screenshot")
+
+	}
+
+	pHash, err := goimagehash.PerceptionHash(img)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to calculate perceptual hash")
+	}
+
+	return pHash.GetHash(), nil
 }
 
 func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp *httpx.Response) (string, string, error) {
