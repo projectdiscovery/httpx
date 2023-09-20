@@ -185,6 +185,7 @@ OUTPUT:
    -irrb, -include-response-base64     include base64 encoded http request/response in JSON output (-json only)
    -include-chain                      include redirect http chain in JSON output (-json only)
    -store-chain                        include http redirect chain in responses (-sr only)
+   -svrc, -store-vision-recon-cluster  include visual recon clusters (-ss and -sr only)
 
 CONFIGURATIONS:
    -config string                path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
