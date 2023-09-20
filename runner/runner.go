@@ -1830,6 +1830,9 @@ retry:
 			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
 		}
 		data := reqRaw
+		if scanopts.StoreChain && resp.HasChain() {
+			data = append(data, append([]byte("\n"), []byte(resp.GetChain())...)...)
+		}
 		data = append(data, respRaw...)
 		data = append(data, []byte("\n\n\n")...)
 		data = append(data, []byte(fullURL)...)
@@ -1837,12 +1840,6 @@ retry:
 		writeErr := os.WriteFile(responsePath, data, 0644)
 		if writeErr != nil {
 			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
-		}
-		if scanopts.StoreChain && resp.HasChain() {
-			writeErr := os.WriteFile(responsePath, []byte(resp.GetChain()), 0644)
-			if writeErr != nil {
-				gologger.Warning().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
-			}
 		}
 	}
 
