@@ -36,6 +36,7 @@ require github.com/spaolacci/murmur3 v1.1.0
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
 	github.com/PuerkitoBio/goquery v1.8.1
+	github.com/corona10/goimagehash v1.1.0
 	github.com/go-faker/faker/v4 v4.1.1
 	github.com/go-rod/rod v0.114.0
 	github.com/hdm/jarm-go v0.0.7
@@ -43,7 +44,7 @@ require (
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.4
-	github.com/projectdiscovery/dsl v0.0.22
+	github.com/projectdiscovery/dsl v0.0.23
 	github.com/projectdiscovery/fastdialer v0.0.37
 	github.com/projectdiscovery/ratelimit v0.0.9
 	github.com/projectdiscovery/tlsx v1.1.4
@@ -71,7 +72,6 @@ require (
 	github.com/cloudflare/cfssl v1.6.4 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/cnf/structhash v0.0.0-20201127153200-e1b16c1ebc08 // indirect
-	github.com/corona10/goimagehash v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/dlclark/regexp2 v1.8.1 // indirect
