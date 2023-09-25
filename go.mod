@@ -21,7 +21,7 @@ require (
 	github.com/projectdiscovery/hmap v0.0.19
 	github.com/projectdiscovery/mapcidr v1.1.2
 	github.com/projectdiscovery/rawhttp v0.1.18
-	github.com/projectdiscovery/retryablehttp-go v1.0.27
+	github.com/projectdiscovery/retryablehttp-go v1.0.28
 	github.com/projectdiscovery/wappalyzergo v0.0.109
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
@@ -36,6 +36,7 @@ require github.com/spaolacci/murmur3 v1.1.0
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
 	github.com/PuerkitoBio/goquery v1.8.1
+	github.com/corona10/goimagehash v1.1.0
 	github.com/go-faker/faker/v4 v4.1.1
 	github.com/go-rod/rod v0.114.0
 	github.com/hdm/jarm-go v0.0.7
@@ -71,7 +72,6 @@ require (
 	github.com/cloudflare/cfssl v1.6.4 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/cnf/structhash v0.0.0-20201127153200-e1b16c1ebc08 // indirect
-	github.com/corona10/goimagehash v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/dlclark/regexp2 v1.8.1 // indirect
