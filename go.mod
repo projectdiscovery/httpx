@@ -21,7 +21,7 @@ require (
 	github.com/projectdiscovery/hmap v0.0.20
 	github.com/projectdiscovery/mapcidr v1.1.10
 	github.com/projectdiscovery/rawhttp v0.1.20
-	github.com/projectdiscovery/retryablehttp-go v1.0.28
+	github.com/projectdiscovery/retryablehttp-go v1.0.29
 	github.com/projectdiscovery/wappalyzergo v0.0.109
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
