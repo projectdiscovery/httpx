@@ -19,7 +19,7 @@ require (
 	github.com/projectdiscovery/goflags v0.1.22
 	github.com/projectdiscovery/gologger v1.1.11
 	github.com/projectdiscovery/hmap v0.0.20
-	github.com/projectdiscovery/mapcidr v1.1.9
+	github.com/projectdiscovery/mapcidr v1.1.10
 	github.com/projectdiscovery/rawhttp v0.1.20
 	github.com/projectdiscovery/retryablehttp-go v1.0.28
 	github.com/projectdiscovery/wappalyzergo v0.0.109
