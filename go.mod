@@ -18,9 +18,9 @@ require (
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.22
 	github.com/projectdiscovery/gologger v1.1.11
-	github.com/projectdiscovery/hmap v0.0.20
+	github.com/projectdiscovery/hmap v0.0.21
 	github.com/projectdiscovery/mapcidr v1.1.10
-	github.com/projectdiscovery/rawhttp v0.1.20
+	github.com/projectdiscovery/rawhttp v0.1.21
 	github.com/projectdiscovery/retryablehttp-go v1.0.29
 	github.com/projectdiscovery/wappalyzergo v0.0.109
 	github.com/remeh/sizedwaitgroup v1.0.0
@@ -48,7 +48,7 @@ require (
 	github.com/projectdiscovery/fastdialer v0.0.38
 	github.com/projectdiscovery/ratelimit v0.0.9
 	github.com/projectdiscovery/tlsx v1.1.5
-	github.com/projectdiscovery/utils v0.0.56
+	github.com/projectdiscovery/utils v0.0.57
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230422215203-9a665e1e9968
 	go.uber.org/multierr v1.11.0
@@ -111,7 +111,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.5 // indirect
 	github.com/projectdiscovery/gostruct v0.0.1 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.6 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.36 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.37 // indirect
 	github.com/quic-go/quic-go v0.37.4 // indirect
 	github.com/refraction-networking/utls v1.5.3 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
