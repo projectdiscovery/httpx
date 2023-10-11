@@ -18,7 +18,7 @@ require (
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.22
 	github.com/projectdiscovery/gologger v1.1.11
-	github.com/projectdiscovery/hmap v0.0.21
+	github.com/projectdiscovery/hmap v0.0.22
 	github.com/projectdiscovery/mapcidr v1.1.10
 	github.com/projectdiscovery/rawhttp v0.1.21
 	github.com/projectdiscovery/retryablehttp-go v1.0.29
@@ -45,7 +45,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.5
 	github.com/projectdiscovery/dsl v0.0.23
-	github.com/projectdiscovery/fastdialer v0.0.38
+	github.com/projectdiscovery/fastdialer v0.0.39
 	github.com/projectdiscovery/ratelimit v0.0.9
 	github.com/projectdiscovery/tlsx v1.1.5
 	github.com/projectdiscovery/utils v0.0.57
@@ -111,7 +111,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.5 // indirect
 	github.com/projectdiscovery/gostruct v0.0.1 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.6 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.37 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.38 // indirect
 	github.com/quic-go/quic-go v0.37.4 // indirect
 	github.com/refraction-networking/utls v1.5.3 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
