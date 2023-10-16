@@ -21,13 +21,13 @@ require (
 	github.com/projectdiscovery/hmap v0.0.22
 	github.com/projectdiscovery/mapcidr v1.1.10
 	github.com/projectdiscovery/rawhttp v0.1.21
-	github.com/projectdiscovery/retryablehttp-go v1.0.29
+	github.com/projectdiscovery/retryablehttp-go v1.0.31
 	github.com/projectdiscovery/wappalyzergo v0.0.109
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
 	go.etcd.io/bbolt v1.3.7 // indirect
-	golang.org/x/net v0.15.0
-	golang.org/x/sys v0.12.0 // indirect
+	golang.org/x/net v0.17.0
+	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.13.0
 )
 
@@ -145,7 +145,7 @@ require (
 	github.com/yuin/goldmark-emoji v1.0.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	github.com/zmap/rc2 v0.0.0-20190804163417-abaa70531248 // indirect
-	golang.org/x/crypto v0.13.0 // indirect
+	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/oauth2 v0.11.0 // indirect
 	golang.org/x/tools v0.13.0 // indirect
