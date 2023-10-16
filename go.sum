@@ -201,8 +201,8 @@ github.com/projectdiscovery/cdncheck v1.0.9 h1:BS15gzj9gb5AVSKqTDzPamfSgStu7nJQO
 github.com/projectdiscovery/cdncheck v1.0.9/go.mod h1:18SSl1w7rMj53CGeRIZTbDoa286a6xZIxGbaiEo4Fxs=
 github.com/projectdiscovery/clistats v0.0.19 h1:SA/qRHbmS9VEbVEPzX/ka01hZDYATL9ZjAnDatybhLw=
 github.com/projectdiscovery/clistats v0.0.19/go.mod h1:NQDAW/O7cK9xBIgk46kJjwGRkjSg5JkB8E4DvuxXr+c=
-github.com/projectdiscovery/dsl v0.0.23 h1:EOtxePni7nczwPzs8T9kl3KSCD/T8uWI1XReH54ZuGs=
-github.com/projectdiscovery/dsl v0.0.23/go.mod h1:H+vNGZKrswFoTF4wgKMFgEQpgg3jXHYQafehz193GTg=
+github.com/projectdiscovery/dsl v0.0.26 h1:zSirh38+KIaBtak2Vi8LVpN5Aj1ZuwpARnQ69Ja5fSs=
+github.com/projectdiscovery/dsl v0.0.26/go.mod h1:XCsu0FtORqnjRElNTYrewzTw4LPlBtPu/j4T2Hel2UU=
 github.com/projectdiscovery/fastdialer v0.0.39 h1:ng0EMzI/eT3oIYZgx1q6cCR/4dyOEdCq4/qg1YfV5GU=
 github.com/projectdiscovery/fastdialer v0.0.39/go.mod h1:Bu1y41oAYPnuX09/RT42bgLZRomD8yfkHnbeRAu+zc8=
 github.com/projectdiscovery/fdmax v0.0.4 h1:K9tIl5MUZrEMzjvwn/G4drsHms2aufTn1xUdeVcmhmc=
@@ -219,8 +219,8 @@ github.com/projectdiscovery/gostruct v0.0.1 h1:1KvR6Pn4mDbQqoLEQzhRfHpbreLno2R9x
 github.com/projectdiscovery/gostruct v0.0.1/go.mod h1:H86peL4HKwMXcQQtEa6lmC8FuD9XFt6gkNR0B/Mu5PE=
 github.com/projectdiscovery/hmap v0.0.22 h1:iBddf2s45zTF+fNIw2WdQVJT2nJKI6p8Ie2c/eEOw2I=
 github.com/projectdiscovery/hmap v0.0.22/go.mod h1:0oVrzemluM43mi8ZKCQMfZvlOPrk0Vn2eiiyyZDILk8=
-github.com/projectdiscovery/mapcidr v1.1.10 h1:5TjaMJ/Tyz2hYaoRZDPfzAtuE91z8HiQhrH2X+1grys=
-github.com/projectdiscovery/mapcidr v1.1.10/go.mod h1:Q1KH2VLTmvWoGJJI5k+H2XKW1PBy4kdMQQQ9KEHgC6Q=
+github.com/projectdiscovery/mapcidr v1.1.11 h1:CVOwq2YoyeKzqEU/a1hv1hPUHDdTCyy7Ej82gD8gKPU=
+github.com/projectdiscovery/mapcidr v1.1.11/go.mod h1:i6vt5jApyht30bEErJkmXAvUDJEyO0XschRY7Il+XAo=
 github.com/projectdiscovery/networkpolicy v0.0.6 h1:yDvm0XCrS9HeemRrBS+J+22surzVczM94W5nHiOy/1o=
 github.com/projectdiscovery/networkpolicy v0.0.6/go.mod h1:8HJQ/33Pi7v3a3MRWIQGXzpj+zHw2d60TysEL4qdoQk=
 github.com/projectdiscovery/ratelimit v0.0.9 h1:28t2xDHUnyss1irzqPG3Oxz5hkRjl+3Q2I/aes7nau8=
