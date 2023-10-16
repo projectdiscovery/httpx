@@ -77,6 +77,7 @@ type ScanOptions struct {
 	OutputExtractRegex        string
 	extractRegexps            map[string]*regexp.Regexp
 	ExcludeCDN                bool
+	ExcludePrivateHosts       bool
 	HostMaxErrors             int
 	ProbeAllIPS               bool
 	Favicon                   bool
@@ -241,6 +242,7 @@ type Options struct {
 	Resume                    bool
 	resumeCfg                 *ResumeCfg
 	ExcludeCDN                bool
+	ExcludePrivateHosts       bool
 	HostMaxErrors             int
 	Stream                    bool
 	SkipDedupe                bool
@@ -450,6 +452,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.NoFallbackScheme, "no-fallback-scheme", "nfs", false, "probe with protocol scheme specified in input "),
 		flagSet.IntVarP(&options.HostMaxErrors, "max-host-error", "maxhr", 30, "max error count per host before skipping remaining path/s"),
 		flagSet.BoolVarP(&options.ExcludeCDN, "exclude-cdn", "ec", false, "skip full port scans for CDN/WAF (only checks for 80,443)"),
+		flagSet.BoolVarP(&options.ExcludePrivateHosts, "exclude-private-hosts", "eph", false, "skip any hosts which have a private ip address"),
 		flagSet.IntVar(&options.Retries, "retries", 0, "number of retries"),
 		flagSet.IntVar(&options.Timeout, "timeout", 10, "timeout in seconds"),
 		flagSet.DurationVar(&options.Delay, "delay", -1, "duration between each http request (eg: 200ms, 1s)"),
