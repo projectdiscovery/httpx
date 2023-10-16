@@ -19,7 +19,7 @@ require (
 	github.com/projectdiscovery/goflags v0.1.22
 	github.com/projectdiscovery/gologger v1.1.11
 	github.com/projectdiscovery/hmap v0.0.22
-	github.com/projectdiscovery/mapcidr v1.1.10
+	github.com/projectdiscovery/mapcidr v1.1.11
 	github.com/projectdiscovery/rawhttp v0.1.21
 	github.com/projectdiscovery/retryablehttp-go v1.0.29
 	github.com/projectdiscovery/wappalyzergo v0.0.109
@@ -44,7 +44,7 @@ require (
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.5
-	github.com/projectdiscovery/dsl v0.0.23
+	github.com/projectdiscovery/dsl v0.0.26
 	github.com/projectdiscovery/fastdialer v0.0.39
 	github.com/projectdiscovery/ratelimit v0.0.9
 	github.com/projectdiscovery/tlsx v1.1.5
