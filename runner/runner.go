@@ -2168,7 +2168,7 @@ func (r *Runner) skipPrivateHosts(host string) bool {
 		if ip == nil {
 			continue //skip any bad ip addresses
 		}
-		if ip.IsPrivate() {
+		if ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
 			return true
 		}
 	}
