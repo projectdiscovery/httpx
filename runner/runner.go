@@ -1246,7 +1246,7 @@ retry:
 
 	if r.skipPrivateHosts(URL.Host) {
 		gologger.Debug().Msgf("Skipping private host %s\n", URL.Host)
-		return Result{URL: target.Host, Input: origInput, Err: errors.New("target has a private ip address and will not connect")}
+		return Result{URL: target.Host, Input: origInput, Err: errors.New("target has a private ip and will only connect within same local network")}
 	}
 
 	// check if the combination host:port should be skipped if belonging to a cdn
