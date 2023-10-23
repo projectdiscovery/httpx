@@ -46,7 +46,7 @@ require (
 	github.com/projectdiscovery/asnmap v1.0.5
 	github.com/projectdiscovery/dsl v0.0.26
 	github.com/projectdiscovery/fastdialer v0.0.39
-	github.com/projectdiscovery/ratelimit v0.0.9
+	github.com/projectdiscovery/ratelimit v0.0.13
 	github.com/projectdiscovery/tlsx v1.1.5
 	github.com/projectdiscovery/utils v0.0.58
 	github.com/stretchr/testify v1.8.4
