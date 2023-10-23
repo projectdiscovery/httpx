@@ -45,7 +45,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.5
 	github.com/projectdiscovery/dsl v0.0.26
-	github.com/projectdiscovery/fastdialer v0.0.39
+	github.com/projectdiscovery/fastdialer v0.0.41
 	github.com/projectdiscovery/ratelimit v0.0.9
 	github.com/projectdiscovery/tlsx v1.1.5
 	github.com/projectdiscovery/utils v0.0.58
@@ -111,9 +111,9 @@ require (
 	github.com/projectdiscovery/freeport v0.0.5 // indirect
 	github.com/projectdiscovery/gostruct v0.0.1 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.6 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.38 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.39 // indirect
 	github.com/quic-go/quic-go v0.37.4 // indirect
-	github.com/refraction-networking/utls v1.5.3 // indirect
+	github.com/refraction-networking/utls v1.5.4 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/sashabaranov/go-openai v1.14.2 // indirect
