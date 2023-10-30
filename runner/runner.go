@@ -1244,7 +1244,7 @@ retry:
 		}
 	}
 
-	if r.skipPrivateHosts(URL.Host) {
+	if r.skipPrivateHosts(URL.Hostname()) {
 		gologger.Debug().Msgf("Skipping private host %s\n", URL.Host)
 		return Result{URL: target.Host, Input: origInput, Err: errors.New("target has a private ip and will only connect within same local network")}
 	}
@@ -2147,13 +2147,13 @@ func (r *Runner) skipPrivateHosts(host string) bool {
 	if !r.options.ExcludePrivateHosts {
 		return false
 	}
-	// use the dealer to pre-resolve the target
 	dnsData, err := r.hp.Dialer.GetDNSData(host)
+
 	// if we get an error the target cannot be resolved, so we return false so that the program logic continues as usual and handles the errors accordingly
 	if err != nil {
 		return false
 	}
-
+	gologger.Debug().Msgf("%v, %v", dnsData.A, dnsData.AAAA)
 	if len(dnsData.A) == 0 && len(dnsData.AAAA) == 0 {
 		return false
 	}
