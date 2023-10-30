@@ -72,6 +72,7 @@ type ScanOptions struct {
 	NoFallbackScheme          bool
 	TechDetect                bool
 	StoreChain                bool
+	StoreVisionReconClusters  bool
 	MaxResponseBodySizeToSave int
 	MaxResponseBodySizeToRead int
 	OutputExtractRegex        string
@@ -228,6 +229,7 @@ type Options struct {
 	StatsInterval             int
 	RandomAgent               bool
 	StoreChain                bool
+	StoreVisionReconClusters  bool
 	Deny                      customlist.CustomList
 	Allow                     customlist.CustomList
 	MaxResponseBodySizeToSave int
@@ -402,6 +404,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.Base64ResponseInStdout, "include-response-base64", "irrb", false, "include base64 encoded http request/response in JSON output (-json only)"),
 		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "include redirect http chain in JSON output (-json only)"),
 		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
+		flagSet.BoolVarP(&options.StoreVisionReconClusters, "store-vision-recon-cluster", "svrc", false, "include visual recon clusters (-ss and -sr only)"),
 	)
 
 	flagSet.CreateGroup("configs", "Configurations",

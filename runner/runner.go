@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"image"
 	"io"
 	"net"
 	"net/http"
@@ -25,6 +26,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/corona10/goimagehash"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
@@ -80,6 +82,19 @@ type Runner struct {
 	HostErrorsCache     gcache.Cache[string, int]
 	browser             *Browser
 	errorPageClassifier *errorpageclassifier.ErrorPageClassifier
+	pHashClusters       []pHashCluster
+}
+
+// picked based on try-fail but it seems to close to one it's used https://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html#c1992
+var hammingDistanceThreshold int = 22
+
+type pHashCluster struct {
+	BasePHash uint64     `json:"base_phash,omitempty" csv:"base_phash"`
+	Hashes    []pHashUrl `json:"hashes,omitempty" csv:"hashes"`
+}
+type pHashUrl struct {
+	PHash uint64 `json:"phash,omitempty" csv:"phash"`
+	Url   string `json:"url,omitempty" csv:"url"`
 }
 
 // New creates a new client for running enumeration process.
@@ -235,6 +250,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.NoFallbackScheme = options.NoFallbackScheme
 	scanopts.TechDetect = options.TechDetect
 	scanopts.StoreChain = options.StoreChain
+	scanopts.StoreVisionReconClusters = options.StoreVisionReconClusters
 	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
 	scanopts.extractRegexps = make(map[string]*regexp.Regexp)
@@ -879,6 +895,27 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
+			if r.scanopts.StoreVisionReconClusters {
+				foundCluster := false
+				pHash, _ := resp.KnowledgeBase["pHash"].(uint64)
+				for i, cluster := range r.pHashClusters {
+					distance, _ := goimagehash.NewImageHash(pHash, goimagehash.PHash).Distance(goimagehash.NewImageHash(cluster.BasePHash, goimagehash.PHash))
+					if distance <= hammingDistanceThreshold {
+						r.pHashClusters[i].Hashes = append(r.pHashClusters[i].Hashes, pHashUrl{PHash: pHash, Url: resp.URL})
+						foundCluster = true
+						break
+					}
+				}
+
+				if !foundCluster {
+					newCluster := pHashCluster{
+						BasePHash: pHash,
+						Hashes:    []pHashUrl{{PHash: pHash, Url: resp.URL}},
+					}
+					r.pHashClusters = append(r.pHashClusters, newCluster)
+				}
+			}
+
 			if !jsonOrCsv || jsonAndCsv || r.options.OutputAll {
 				gologger.Silent().Msgf("%s\n", resp.str)
 			}
@@ -1014,6 +1051,24 @@ func (r *Runner) RunEnumeration() {
 	close(output)
 
 	wgoutput.Wait()
+
+	if r.scanopts.StoreVisionReconClusters {
+		visionReconClusters := filepath.Join(r.options.StoreResponseDir, "vision_recon_clusters.json")
+		clusterReportJSON, err := json.Marshal(r.pHashClusters)
+		if err != nil {
+			gologger.Fatal().Msgf("Failed to marshal report to JSON: %v", err)
+		}
+		file, err := os.Create(visionReconClusters)
+		if err != nil {
+			gologger.Fatal().Msgf("Failed to create JSON file: %v", err)
+		}
+		defer file.Close()
+
+		_, err = file.Write(clusterReportJSON)
+		if err != nil {
+			gologger.Fatal().Msgf("Failed to write to JSON file: %v", err)
+		}
+	}
 }
 
 func logFilteredErrorPage(url string) {
@@ -1830,6 +1885,9 @@ retry:
 			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
 		}
 		data := reqRaw
+		if scanopts.StoreChain && resp.HasChain() {
+			data = append(data, append([]byte("\n"), []byte(resp.GetChain())...)...)
+		}
 		data = append(data, respRaw...)
 		data = append(data, []byte("\n\n\n")...)
 		data = append(data, []byte(fullURL)...)
@@ -1837,12 +1895,6 @@ retry:
 		writeErr := os.WriteFile(responsePath, data, 0644)
 		if writeErr != nil {
 			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
-		}
-		if scanopts.StoreChain && resp.HasChain() {
-			writeErr := os.WriteFile(responsePath, []byte(resp.GetChain()), 0644)
-			if writeErr != nil {
-				gologger.Warning().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
-			}
 		}
 	}
 
@@ -1877,6 +1929,7 @@ retry:
 		screenshotBytes []byte
 		headlessBody    string
 	)
+	var pHash uint64
 	if scanopts.Screenshot {
 		var err error
 		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, r.hp.Options.Timeout)
@@ -1890,6 +1943,12 @@ retry:
 			if err != nil {
 				gologger.Error().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
 			}
+
+			pHash, err = calculatePerceptionHash(screenshotBytes)
+			if err != nil {
+				gologger.Warning().Msgf("%v: %s", err, fullURL)
+			}
+
 		}
 		if scanopts.NoScreenshotBytes {
 			screenshotBytes = []byte{}
@@ -1952,9 +2011,26 @@ retry:
 		HeadlessBody:       headlessBody,
 		KnowledgeBase: map[string]interface{}{
 			"PageType": r.errorPageClassifier.Classify(respData),
+			"pHash":    pHash,
 		},
 	}
 	return result
+}
+
+func calculatePerceptionHash(screenshotBytes []byte) (uint64, error) {
+	reader := bytes.NewReader(screenshotBytes)
+	img, _, err := image.Decode(reader)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to decode screenshot")
+
+	}
+
+	pHash, err := goimagehash.PerceptionHash(img)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to calculate perceptual hash")
+	}
+
+	return pHash.GetHash(), nil
 }
 
 func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp *httpx.Response) (string, string, error) {
