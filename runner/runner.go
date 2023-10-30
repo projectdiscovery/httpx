@@ -2153,7 +2153,6 @@ func (r *Runner) skipPrivateHosts(host string) bool {
 	if err != nil {
 		return false
 	}
-	gologger.Debug().Msgf("%v, %v", dnsData.A, dnsData.AAAA)
 	if len(dnsData.A) == 0 && len(dnsData.AAAA) == 0 {
 		return false
 	}
