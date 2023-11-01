@@ -155,8 +155,8 @@ github.com/microcosm-cc/bluemonday v1.0.25/go.mod h1:ZIOjCQp1OrzBBPIJmfX4qDYFuhU
 github.com/miekg/dns v1.1.35/go.mod h1:KNUDUusw/aVsxyTYZM1oqvCicbwhgbNgztCETuNZ7xM=
 github.com/miekg/dns v1.1.56 h1:5imZaSeoRNvpM9SzWNhEcP9QliKiz20/dA2QabIGVnE=
 github.com/miekg/dns v1.1.56/go.mod h1:cRm6Oo2C8TY9ZS/TqsSrseAcncm74lfK5G+ikN2SWWY=
-github.com/minio/selfupdate v0.6.0 h1:i76PgT0K5xO9+hjzKcacQtO7+MjJ4JKA8Ak8XQ9DDwU=
-github.com/minio/selfupdate v0.6.0/go.mod h1:bO02GTIPCMQFTEvE5h4DjYB58bCoZ35XLeBf0buTDdM=
+github.com/minio/selfupdate v0.6.1-0.20230907112617-f11e74f84ca7 h1:yRZGarbxsRytL6EGgbqK2mCY+Lk5MWKQYKJT2gEglhc=
+github.com/minio/selfupdate v0.6.1-0.20230907112617-f11e74f84ca7/go.mod h1:bO02GTIPCMQFTEvE5h4DjYB58bCoZ35XLeBf0buTDdM=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
 github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
@@ -175,7 +175,7 @@ github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 h1:zYyBkD/k9seD2A7fsi6
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646/go.mod h1:jpp1/29i3P1S/RLdc7JQKbRpFeM1dOBd8T9ki5s+AY8=
 github.com/nwaples/rardecode v1.1.3 h1:cWCaZwfM5H7nAD6PyEdcVnczzV8i/JtotnyW/dD9lEc=
 github.com/nwaples/rardecode v1.1.3/go.mod h1:5DzqNKiOdpKKBH87u8VlvAnPZMXcGRhxWkRpHbbfGS0=
-github.com/nxadm/tail v1.4.8 h1:nPr65rt6Y5JFSKQO7qToXr7pePgD6Gwiw05lkbyAQTE=
+github.com/nxadm/tail v1.4.11 h1:8feyoE3OzPrcshW5/MJ4sGESc5cqmGkGCWlco4l0bqY=
 github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N7AbDhec=
 github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
@@ -217,8 +217,8 @@ github.com/projectdiscovery/gologger v1.1.11 h1:8vsz9oJlDT9euw6xlj7F7dZ6RWItVIqV
 github.com/projectdiscovery/gologger v1.1.11/go.mod h1:UR2bgXl7zraOxYGnUwuO917hifWrwMJ0feKnVqMQkzY=
 github.com/projectdiscovery/gostruct v0.0.1 h1:1KvR6Pn4mDbQqoLEQzhRfHpbreLno2R9xqRCCt5tgmU=
 github.com/projectdiscovery/gostruct v0.0.1/go.mod h1:H86peL4HKwMXcQQtEa6lmC8FuD9XFt6gkNR0B/Mu5PE=
-github.com/projectdiscovery/hmap v0.0.22 h1:iBddf2s45zTF+fNIw2WdQVJT2nJKI6p8Ie2c/eEOw2I=
-github.com/projectdiscovery/hmap v0.0.22/go.mod h1:0oVrzemluM43mi8ZKCQMfZvlOPrk0Vn2eiiyyZDILk8=
+github.com/projectdiscovery/hmap v0.0.23 h1:tV/5gQuabE2nqDMS55vrd3HQYdwTuRJAm49nGu3DVl4=
+github.com/projectdiscovery/hmap v0.0.23/go.mod h1:DYt1/UjEPA4vw6sk3PY8UB34ZnvXrDC3PQ+LBpkNlOA=
 github.com/projectdiscovery/mapcidr v1.1.12 h1:hVgTpEAeLhYixDPdcDXaL2MXK3q+3rFdxAoCgbPLxIc=
 github.com/projectdiscovery/mapcidr v1.1.12/go.mod h1:hIRTgZEnI7+moVgeipU6A5yv3o+VrUw0tE/3GJw3Y2Y=
 github.com/projectdiscovery/networkpolicy v0.0.6 h1:yDvm0XCrS9HeemRrBS+J+22surzVczM94W5nHiOy/1o=
@@ -234,8 +234,8 @@ github.com/projectdiscovery/retryablehttp-go v1.0.31/go.mod h1:pFBFbxnb7fupJbl99
 github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZAja8BH3LqqJXMA=
 github.com/projectdiscovery/tlsx v1.1.5 h1:S8KV2ckcjW3hDBa/REmDdsZfHwYJ9eKoZ7rtgETkwkM=
 github.com/projectdiscovery/tlsx v1.1.5/go.mod h1:0a0TdWb3fYeVpuPsJuf5AGtwZIKwkY0kxdO9lojU6S4=
-github.com/projectdiscovery/utils v0.0.58 h1:kk2AkSO84QZc9rDRI8jWA2Iia4uzb4sUcfh4h0xA20I=
-github.com/projectdiscovery/utils v0.0.58/go.mod h1:rsR5Kzjrb+/Yp7JSnEblLk4LfU4zH5Z7wQn8RzaGSdY=
+github.com/projectdiscovery/utils v0.0.61-0.20231101202412-3b40c4fc4e04 h1:xy1S7EioR7jg0gwr86ImS//5KIyPOJ0gUIFSqzbncKw=
+github.com/projectdiscovery/utils v0.0.61-0.20231101202412-3b40c4fc4e04/go.mod h1:OlVIbW6zMV7FMbBlZTMN8Mhb4zWrpAECqh9QuFNwRXA=
 github.com/projectdiscovery/wappalyzergo v0.0.109 h1:BERfwTRn1dvB1tbhyc5m67R8VkC9zbVuPsEq4VEm07k=
 github.com/projectdiscovery/wappalyzergo v0.0.109/go.mod h1:4Z3DKhi75zIPMuA+qSDDWxZvnhL4qTLmDx4dxNMu7MA=
 github.com/quic-go/quic-go v0.37.4 h1:ke8B73yMCWGq9MfrCCAw0Uzdm7GaViC3i39dsIdDlH4=
