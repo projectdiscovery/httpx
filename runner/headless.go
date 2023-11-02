@@ -36,7 +36,7 @@ func NewBrowser(proxy string, useLocal bool) (*Browser, error) {
 	pids := processutil.FindProcesses(processutil.IsChromeProcess)
 
 	chromeLauncher := launcher.New().
-		Leakless(false).
+		Leakless(true).
 		Set("disable-gpu", "true").
 		Set("ignore-certificate-errors", "true").
 		Set("ignore-certificate-errors", "1").
