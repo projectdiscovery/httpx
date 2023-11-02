@@ -736,6 +736,9 @@ func (r *Runner) RunEnumeration() {
 
 		for resp := range output {
 
+			if r.options.SniName != "" {
+				resp.SNI = r.options.SniName
+			}
 			// call the callback function if any
 			// be careful and check for result.Err
 			if r.options.OnResult != nil {
