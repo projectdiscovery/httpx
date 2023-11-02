@@ -23,8 +23,9 @@ func MustDisableSandbox() bool {
 type Browser struct {
 	tempDir string
 	engine  *rod.Browser
-	// TODO: remove chrome pid kill code in favor of Leakless(true) if there is no complaints
-	// about zombie chrome processes ref: https://github.com/projectdiscovery/httpx/pull/1426
+	// TODO: Remove the Chrome PID kill code in favor of using Leakless(true).
+	// This change will be made if there are no complaints about zombie Chrome processes.
+	// Reference: https://github.com/projectdiscovery/httpx/pull/1426
 	// pids    map[int32]struct{}
 }
 
