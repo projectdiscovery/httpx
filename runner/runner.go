@@ -128,6 +128,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.UnsafeURI = options.RequestURI
 	httpxOptions.CdnCheck = options.OutputCDN
 	httpxOptions.ExcludeCdn = options.ExcludeCDN
+	httpxOptions.ExcludePrivateHosts = options.ExcludePrivateHosts
 	if options.CustomHeaders.Has("User-Agent:") {
 		httpxOptions.RandomAgent = false
 	} else {
@@ -293,6 +294,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	scanopts.ExcludeCDN = options.ExcludeCDN
+	scanopts.ExcludePrivateHosts = options.ExcludePrivateHosts
 	scanopts.HostMaxErrors = options.HostMaxErrors
 	scanopts.ProbeAllIPS = options.ProbeAllIPS
 	scanopts.Favicon = options.Favicon
@@ -1300,6 +1302,11 @@ retry:
 		}
 	}
 
+	if r.skipPrivateHosts(URL.Hostname()) {
+		gologger.Debug().Msgf("Skipping private host %s\n", URL.Host)
+		return Result{URL: target.Host, Input: origInput, Err: errors.New("target has a private ip and will only connect within same local network")}
+	}
+
 	// check if the combination host:port should be skipped if belonging to a cdn
 	if r.skipCDNPort(URL.Host, URL.Port()) {
 		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port())
@@ -2211,6 +2218,38 @@ func (r *Runner) skipCDNPort(host string, port string) bool {
 		return true
 	}
 
+	return false
+}
+
+func (r *Runner) skipPrivateHosts(host string) bool {
+	// if the option is not enabled we don't skip
+	if !r.options.ExcludePrivateHosts {
+		return false
+	}
+	dnsData, err := r.hp.Dialer.GetDNSData(host)
+
+	// if we get an error the target cannot be resolved, so we return false so that the program logic continues as usual and handles the errors accordingly
+	if err != nil {
+		return false
+	}
+	if len(dnsData.A) == 0 && len(dnsData.AAAA) == 0 {
+		return false
+	}
+
+	var ipsToCheck []string
+	ipsToCheck = make([]string, 0, len(dnsData.A)+len(dnsData.AAAA))
+	ipsToCheck = append(ipsToCheck, dnsData.A...)
+	ipsToCheck = append(ipsToCheck, dnsData.AAAA...)
+
+	for _, ipAddr := range ipsToCheck {
+		ip := net.ParseIP(ipAddr)
+		if ip == nil {
+			continue //skip any bad ip addresses
+		}
+		if ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+			return true
+		}
+	}
 	return false
 }
 
