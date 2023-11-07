@@ -975,7 +975,8 @@ func (r *Runner) RunEnumeration() {
 			templateMap := template.FuncMap{
 				"safeURL": func(u string) template.URL {
 					if osutil.IsWindows() {
-						u = fmt.Sprintf("file:///%s", u)
+						u = filepath.ToSlash(u)
+						// u = fmt.Sprintf("file:///%s", u)
 					}
 					return template.URL(u)
 				},
