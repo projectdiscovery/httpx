@@ -35,7 +35,7 @@ func ExtractTitle(r *Response) (title string) {
 
 	// remove unwanted chars
 	title = strings.TrimSpace(strings.Trim(title, cutset))
-	title = stringsutil.ReplaceAll(title, "\n", "\r")
+	title = stringsutil.ReplaceAll(title, "", "\n", "\t", "\v", "\f", "\r")
 
 	return title
 }
