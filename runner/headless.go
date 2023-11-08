@@ -102,7 +102,7 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration) ([]byte,
 		return nil, "", err
 	}
 
-	page.Timeout(timeout).WaitNavigation(proto.PageLifecycleEventNameFirstMeaningfulPaint)()
+	page.Timeout(5 * time.Second).WaitNavigation(proto.PageLifecycleEventNameFirstMeaningfulPaint)()
 
 	if err := page.WaitLoad(); err != nil {
 		return nil, "", err
