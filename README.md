@@ -231,6 +231,7 @@ OPTIMIZATIONS:
    -nfs, -no-fallback-scheme          probe with protocol scheme specified in input 
    -maxhr, -max-host-error int        max error count per host before skipping remaining path/s (default 30)
    -ec, -exclude-cdn                  skip full port scans for CDN/WAF (only checks for 80,443)
+   -eph, -exclude-private-hosts       skip any hosts which have a private ip address
    -retries int                       number of retries
    -timeout int                       timeout in seconds (default 10)
    -delay value                       duration between each http request (eg: 200ms, 1s) (default -1ns)
