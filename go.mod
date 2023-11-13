@@ -20,8 +20,8 @@ require (
 	github.com/projectdiscovery/gologger v1.1.11
 	github.com/projectdiscovery/hmap v0.0.24
 	github.com/projectdiscovery/mapcidr v1.1.15
-	github.com/projectdiscovery/rawhttp v0.1.21
-	github.com/projectdiscovery/retryablehttp-go v1.0.31
+	github.com/projectdiscovery/rawhttp v0.1.25
+	github.com/projectdiscovery/retryablehttp-go v1.0.34
 	github.com/projectdiscovery/wappalyzergo v0.0.109
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
