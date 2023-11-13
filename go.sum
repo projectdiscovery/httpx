@@ -208,8 +208,8 @@ github.com/projectdiscovery/cdncheck v1.0.9 h1:BS15gzj9gb5AVSKqTDzPamfSgStu7nJQO
 github.com/projectdiscovery/cdncheck v1.0.9/go.mod h1:18SSl1w7rMj53CGeRIZTbDoa286a6xZIxGbaiEo4Fxs=
 github.com/projectdiscovery/clistats v0.0.19 h1:SA/qRHbmS9VEbVEPzX/ka01hZDYATL9ZjAnDatybhLw=
 github.com/projectdiscovery/clistats v0.0.19/go.mod h1:NQDAW/O7cK9xBIgk46kJjwGRkjSg5JkB8E4DvuxXr+c=
-github.com/projectdiscovery/dsl v0.0.29 h1:6ne4vWL06vk0sb6lI3iTcDw2leoWa9WUkBCE+h9o2ao=
-github.com/projectdiscovery/dsl v0.0.29/go.mod h1:ocF2NbK8nUQPexa5kF/1dBUG56lpsM8S/91gmqOgvmA=
+github.com/projectdiscovery/dsl v0.0.30 h1:lPTv1lEzzn/ywy7aeg7lQP5vdGSXafiS5iWw2oG0GnU=
+github.com/projectdiscovery/dsl v0.0.30/go.mod h1:aBtTal5SmApzUnYMRqPoa7uvOCAqJtCVpOp0NJBtDH0=
 github.com/projectdiscovery/fastdialer v0.0.44 h1:QnOA5Zai8VXGkjxCXsPruMg2wSWc2IAyGxXxlxGbyOM=
 github.com/projectdiscovery/fastdialer v0.0.44/go.mod h1:3xGGRN7WTrhqdTI3yg4qTb1gColQHk/ErpPjtIyeF6g=
 github.com/projectdiscovery/fdmax v0.0.4 h1:K9tIl5MUZrEMzjvwn/G4drsHms2aufTn1xUdeVcmhmc=
@@ -222,8 +222,8 @@ github.com/projectdiscovery/goflags v0.1.26 h1:o3bFCN5CIYJoLUl/uyKHjXZKkITaBrGPV
 github.com/projectdiscovery/goflags v0.1.26/go.mod h1:SgLaQOTHspoYYCyhJEmWQZxbeAFGUfMKyultrRsAFYo=
 github.com/projectdiscovery/gologger v1.1.11 h1:8vsz9oJlDT9euw6xlj7F7dZ6RWItVIqVwn4Mr6uzky8=
 github.com/projectdiscovery/gologger v1.1.11/go.mod h1:UR2bgXl7zraOxYGnUwuO917hifWrwMJ0feKnVqMQkzY=
-github.com/projectdiscovery/gostruct v0.0.1 h1:1KvR6Pn4mDbQqoLEQzhRfHpbreLno2R9xqRCCt5tgmU=
-github.com/projectdiscovery/gostruct v0.0.1/go.mod h1:H86peL4HKwMXcQQtEa6lmC8FuD9XFt6gkNR0B/Mu5PE=
+github.com/projectdiscovery/gostruct v0.0.2 h1:s8gP8ApugGM4go1pA+sVlPDXaWqNP5BBDDSv7VEdG1M=
+github.com/projectdiscovery/gostruct v0.0.2/go.mod h1:H86peL4HKwMXcQQtEa6lmC8FuD9XFt6gkNR0B/Mu5PE=
 github.com/projectdiscovery/hmap v0.0.24 h1:aPyHltkfOUmVu9LcT2WguHf0nV5IbGlyo8fjbU64YEk=
 github.com/projectdiscovery/hmap v0.0.24/go.mod h1:NDjO7SdmdCUznX43xUvlIINOFX4B/t6yCiUGGGXBuHk=
 github.com/projectdiscovery/mapcidr v1.1.15 h1:rYAgxLvMyxPU0JunE/Y3uSK1n/TcNJHK839d6YM0ms4=
