@@ -273,6 +273,8 @@ type Options struct {
 	UseInstalledChrome bool
 	TlsImpersonate     bool
 	DisableStdin       bool
+	// HeadlessOptionalArguments specifies optional arguments to pass to Chrome
+	HeadlessOptionalArguments goflags.StringSlice
 }
 
 // ParseOptions parses the command line options for application
@@ -315,6 +317,7 @@ func ParseOptions() *Options {
 	flagSet.CreateGroup("headless", "Headless",
 		flagSet.BoolVarP(&options.Screenshot, "screenshot", "ss", false, "enable saving screenshot of the page using headless browser"),
 		flagSet.BoolVar(&options.UseInstalledChrome, "system-chrome", false, "enable using local installed chrome for screenshot"),
+		flagSet.StringSliceVarP(&options.HeadlessOptionalArguments, "headless-options", "ho", nil, "start headless chrome with additional options", goflags.FileCommaSeparatedStringSliceOptions),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",
@@ -617,6 +620,32 @@ func (options *Options) ValidateOptions() error {
 	}
 
 	return nil
+}
+
+// redundant with katana
+func (options *Options) ParseHeadlessOptionalArguments() map[string]string {
+	var (
+		lastKey           string
+		optionalArguments = make(map[string]string)
+	)
+	for _, v := range options.HeadlessOptionalArguments {
+		if v == "" {
+			continue
+		}
+		if argParts := strings.SplitN(v, "=", 2); len(argParts) >= 2 {
+			key := strings.TrimSpace(argParts[0])
+			value := strings.TrimSpace(argParts[1])
+			if key != "" && value != "" {
+				optionalArguments[key] = value
+				lastKey = key
+			}
+		} else if !strings.HasPrefix(v, "--") {
+			optionalArguments[lastKey] += "," + v
+		} else {
+			optionalArguments[v] = ""
+		}
+	}
+	return optionalArguments
 }
 
 // configureOutput configures the output on the screen
