@@ -16,6 +16,7 @@ import (
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/fastdialer/fastdialer/ja3/impersonate"
+	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/utils/generic"
@@ -65,6 +66,14 @@ func New(options *Options) (*HTTPX, error) {
 	retryablehttpOptions.Timeout = httpx.Options.Timeout
 	retryablehttpOptions.RetryMax = httpx.Options.RetryMax
 
+	handleHSTS := func(req *http.Request) {
+		if req.Response.Header.Get("Strict-Transport-Security") == "" {
+			return
+		}
+
+		req.URL.Scheme = "https"
+	}
+
 	var redirectFunc = func(_ *http.Request, _ []*http.Request) error {
 		// Tell the http client to not follow redirect
 		return http.ErrUseLastResponse
@@ -75,10 +84,16 @@ func New(options *Options) (*HTTPX, error) {
 		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
 			// add custom cookies if necessary
 			httpx.setCustomCookies(redirectedRequest)
+
 			if len(previousRequests) >= options.MaxRedirects {
 				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
 			}
+
+			if options.RespectHSTS {
+				handleHSTS(redirectedRequest)
+			}
+
 			return nil
 		}
 	}
@@ -103,6 +118,11 @@ func New(options *Options) (*HTTPX, error) {
 				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
 			}
+
+			if options.RespectHSTS {
+				handleHSTS(redirectedRequest)
+			}
+
 			return nil
 		}
 	}
@@ -388,4 +408,15 @@ func (httpx *HTTPX) setCustomCookies(req *http.Request) {
 			req.AddCookie(cookie)
 		}
 	}
+}
+
+func (httpx *HTTPX) Sanitize(respStr string, trimLine, normalizeSpaces bool) string {
+	respStr = httpx.htmlPolicy.Sanitize(respStr)
+	if trimLine {
+		respStr = strings.Replace(respStr, "\n", "", -1)
+	}
+	if normalizeSpaces {
+		respStr = httputilz.NormalizeSpaces(respStr)
+	}
+	return respStr
 }

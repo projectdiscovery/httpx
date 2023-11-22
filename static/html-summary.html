@@ -60,7 +60,7 @@
                     <ul style="list-style-type: none; padding-left: 0">
                         <li>
                             <strong>Host:</strong>
-                            <a style="text-decoration: none; color: blue">{{.URL}}</a>
+                            <a href="{{.URL}}" style="text-decoration: none; color: blue">{{.URL}}</a>
                         </li>
                         {{if $ExtractTitle}}
                         <li>
@@ -119,8 +119,8 @@
                     </ul>
                 </td>
                 <td style="padding: 10px; border: 1px solid black">
-                    <a href="{{.ScreenshotPath | safeURL}}" target="_blank">
-                        <img src="{{.ScreenshotPath | safeURL}}" alt="Screenshot" style="width: 400px; height: 300px" />
+                    <a href="{{.ScreenshotPathRel | safeURL}}">
+                        <img src="{{.ScreenshotPathRel | safeURL}}" alt="Screenshot" style="width: 400px; height: 300px" />
                     </a>
                 </td>
             </tr>
