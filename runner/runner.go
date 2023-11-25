@@ -1147,7 +1147,6 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
-							scanopts.TLSProbe = false
 							for _, tt := range result.TLSData.SubjectAN {
 								if !r.testAndSet(tt) {
 									continue
@@ -1200,7 +1199,6 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
-							scanopts.TLSProbe = false
 							for _, tt := range result.TLSData.SubjectAN {
 								if !r.testAndSet(tt) {
 									continue
