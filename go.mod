@@ -44,11 +44,11 @@ require (
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.6
-	github.com/projectdiscovery/dsl v0.0.31
+	github.com/projectdiscovery/dsl v0.0.32
 	github.com/projectdiscovery/fastdialer v0.0.45
 	github.com/projectdiscovery/ratelimit v0.0.16
 	github.com/projectdiscovery/tlsx v1.1.5
-	github.com/projectdiscovery/utils v0.0.63
+	github.com/projectdiscovery/utils v0.0.64
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230422215203-9a665e1e9968
 	go.uber.org/multierr v1.11.0
