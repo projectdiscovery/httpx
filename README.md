@@ -118,6 +118,7 @@ PROBES:
 HEADLESS:
    -ss, -screenshot                 enable saving screenshot of the page using headless browser
    -system-chrome                   enable using local installed chrome for screenshot
+   -ho, -headless-options string[]  start headless chrome with additional options
    -esb, -exclude-screenshot-bytes  enable excluding screenshot bytes from json output
    -ehb, -exclude-headless-body     enable excluding headless header from json output
 

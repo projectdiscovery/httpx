@@ -256,7 +256,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
 	scanopts.extractRegexps = make(map[string]*regexp.Regexp)
 	if options.Screenshot {
-		browser, err := NewBrowser(options.HTTPProxy, options.UseInstalledChrome)
+		browser, err := NewBrowser(options.HTTPProxy, options.UseInstalledChrome, options.ParseHeadlessOptionalArguments())
 		if err != nil {
 			return nil, err
 		}
@@ -984,7 +984,7 @@ func (r *Runner) RunEnumeration() {
 			templateMap := template.FuncMap{
 				"safeURL": func(u string) template.URL {
 					if osutil.IsWindows() {
-						u = fmt.Sprintf("file:///%s", u)
+						u = filepath.ToSlash(u)
 					}
 					return template.URL(u)
 				},
