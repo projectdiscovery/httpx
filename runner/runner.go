@@ -256,7 +256,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
 	scanopts.extractRegexps = make(map[string]*regexp.Regexp)
 	if options.Screenshot {
-		browser, err := NewBrowser(options.HTTPProxy, options.UseInstalledChrome)
+		browser, err := NewBrowser(options.HTTPProxy, options.UseInstalledChrome, options.ParseHeadlessOptionalArguments())
 		if err != nil {
 			return nil, err
 		}
