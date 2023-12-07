@@ -39,6 +39,7 @@ type Result struct {
 	Hashes             map[string]interface{} `json:"hash,omitempty" csv:"hash"`
 	ExtractRegex       []string               `json:"extract_regex,omitempty" csv:"extract_regex"`
 	CDNName            string                 `json:"cdn_name,omitempty" csv:"cdn_name"`
+	SNI                string                 `json:"sni,omitempty" csv:"sni"`
 	Port               string                 `json:"port,omitempty" csv:"port"`
 	Raw                string                 `json:"-" csv:"-"`
 	URL                string                 `json:"url,omitempty" csv:"url"`
@@ -50,6 +51,7 @@ type Result struct {
 	Error              string                 `json:"error,omitempty" csv:"error"`
 	WebServer          string                 `json:"webserver,omitempty" csv:"webserver"`
 	ResponseBody       string                 `json:"body,omitempty" csv:"body"`
+	BodyPreview        string                 `json:"body_preview,omitempty" csv:"body_preview"`
 	ContentType        string                 `json:"content_type,omitempty" csv:"content_type"`
 	Method             string                 `json:"method,omitempty" csv:"method"`
 	Host               string                 `json:"host,omitempty" csv:"host"`
@@ -57,8 +59,8 @@ type Result struct {
 	FavIconMMH3        string                 `json:"favicon,omitempty" csv:"favicon"`
 	FaviconPath        string                 `json:"favicon_path,omitempty" csv:"favicon_path"`
 	FinalURL           string                 `json:"final_url,omitempty" csv:"final_url"`
-	ResponseHeader     map[string]interface{} `json:"header,omitempty" csv:"header"`
-	RawHeader          string                 `json:"raw_header,omitempty" csv:"raw_header"`
+	ResponseHeaders    map[string]interface{} `json:"header,omitempty" csv:"header"`
+	RawHeaders         string                 `json:"raw_header,omitempty" csv:"raw_header"`
 	Request            string                 `json:"request,omitempty" csv:"request"`
 	ResponseTime       string                 `json:"time,omitempty" csv:"time"`
 	Jarm               string                 `json:"jarm,omitempty" csv:"jarm"`
@@ -82,13 +84,14 @@ type Result struct {
 	ScreenshotBytes    []byte                 `json:"screenshot_bytes,omitempty" csv:"screenshot_bytes"`
 	StoredResponsePath string                 `json:"stored_response_path,omitempty" csv:"stored_response_path"`
 	ScreenshotPath     string                 `json:"screenshot_path,omitempty" csv:"screenshot_path"`
+	ScreenshotPathRel  string                 `json:"screenshot_path_rel,omitempty" csv:"screenshot_path_rel"`
 	KnowledgeBase      map[string]interface{} `json:"knowledgebase,omitempty" csv:"knowledgebase"`
 }
 
 // function to get dsl variables from result struct
 func dslVariables() ([]string, error) {
 	fakeResult := Result{}
-	fieldsToIgnore := []string{"Hashes", "ResponseHeader", "Err", "KnowledgeBase"}
+	fieldsToIgnore := []string{"Hashes", "ResponseHeaders", "Err", "KnowledgeBase"}
 	if err := faker.FakeData(&fakeResult, options.WithFieldsToIgnore(fieldsToIgnore...)); err != nil {
 		return nil, err
 	}
@@ -133,24 +136,7 @@ func resultToMap(resp Result) (map[string]any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error decoding: %v", err)
 	}
-	return flatten(m), nil
-}
-
-// mapsutil.Flatten w/o separator
-func flatten(m map[string]any) map[string]any {
-	o := make(map[string]any)
-	for k, v := range m {
-		switch child := v.(type) {
-		case map[string]any:
-			nm := flatten(child)
-			for nk, nv := range nm {
-				o[nk] = nv
-			}
-		default:
-			o[k] = v
-		}
-	}
-	return o
+	return m, nil
 }
 
 var (

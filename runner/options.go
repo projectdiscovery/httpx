@@ -52,6 +52,7 @@ type ScanOptions struct {
 	OutputWebSocket           bool
 	OutputWithNoColor         bool
 	OutputMethod              bool
+	ResponseHeadersInStdout   bool
 	ResponseInStdout          bool
 	Base64ResponseInStdout    bool
 	ChainInStdout             bool
@@ -71,11 +72,13 @@ type ScanOptions struct {
 	NoFallbackScheme          bool
 	TechDetect                bool
 	StoreChain                bool
+	StoreVisionReconClusters  bool
 	MaxResponseBodySizeToSave int
 	MaxResponseBodySizeToRead int
 	OutputExtractRegex        string
 	extractRegexps            map[string]*regexp.Regexp
 	ExcludeCDN                bool
+	ExcludePrivateHosts       bool
 	HostMaxErrors             int
 	ProbeAllIPS               bool
 	Favicon                   bool
@@ -85,7 +88,9 @@ type ScanOptions struct {
 	Hashes                    string
 	Screenshot                bool
 	UseInstalledChrome        bool
-	DisableStdini             bool
+	DisableStdin              bool
+	NoScreenshotBytes         bool
+	NoHeadlessBody            bool
 }
 
 func (s *ScanOptions) Clone() *ScanOptions {
@@ -104,6 +109,7 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		OutputWebSocket:           s.OutputWebSocket,
 		OutputWithNoColor:         s.OutputWithNoColor,
 		OutputMethod:              s.OutputMethod,
+		ResponseHeadersInStdout:   s.ResponseHeadersInStdout,
 		ResponseInStdout:          s.ResponseInStdout,
 		Base64ResponseInStdout:    s.Base64ResponseInStdout,
 		ChainInStdout:             s.ChainInStdout,
@@ -134,6 +140,8 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		Hashes:                    s.Hashes,
 		Screenshot:                s.Screenshot,
 		UseInstalledChrome:        s.UseInstalledChrome,
+		NoScreenshotBytes:         s.NoScreenshotBytes,
+		NoHeadlessBody:            s.NoHeadlessBody,
 	}
 }
 
@@ -182,6 +190,7 @@ type Options struct {
 	Location                  bool
 	ContentLength             bool
 	FollowRedirects           bool
+	RespectHSTS               bool
 	StoreResponse             bool
 	JSONOutput                bool
 	CSVOutput                 bool
@@ -192,6 +201,7 @@ type Options struct {
 	NoColor                   bool
 	OutputServerHeader        bool
 	OutputWebSocket           bool
+	ResponseHeadersInStdout   bool
 	ResponseInStdout          bool
 	Base64ResponseInStdout    bool
 	chainInStdout             bool
@@ -220,10 +230,12 @@ type Options struct {
 	StatsInterval             int
 	RandomAgent               bool
 	StoreChain                bool
+	StoreVisionReconClusters  bool
 	Deny                      customlist.CustomList
 	Allow                     customlist.CustomList
 	MaxResponseBodySizeToSave int
 	MaxResponseBodySizeToRead int
+	ResponseBodyPreviewSize   int
 	OutputExtractRegexs       goflags.StringSlice
 	OutputExtractPresets      goflags.StringSlice
 	RateLimit                 int
@@ -232,6 +244,7 @@ type Options struct {
 	Resume                    bool
 	resumeCfg                 *ResumeCfg
 	ExcludeCDN                bool
+	ExcludePrivateHosts       bool
 	HostMaxErrors             int
 	Stream                    bool
 	SkipDedupe                bool
@@ -265,6 +278,7 @@ type Options struct {
 	ListDSLVariable           bool
 	OutputFilterCondition     string
 	OutputMatchCondition      string
+	StripFilter               string
 	//The OnResult callback function is invoked for each result. It is important to check for errors in the result before using Result.Err.
 	OnResult           OnResultCallback
 	DisableUpdateCheck bool
@@ -273,6 +287,8 @@ type Options struct {
 	UseInstalledChrome bool
 	TlsImpersonate     bool
 	DisableStdin       bool
+	NoScreenshotBytes  bool
+	NoHeadlessBody     bool
 }
 
 // ParseOptions parses the command line options for application
@@ -301,6 +317,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, "display response body line count"),
 		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "display response body word count"),
 		flagSet.BoolVar(&options.ExtractTitle, "title", false, "display page title"),
+		flagSet.DynamicVarP(&options.ResponseBodyPreviewSize, "body-preview", "bp", 100, "display first N characters of response body"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
 		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
@@ -308,13 +325,15 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
 		flagSet.BoolVar(&options.OutputCName, "cname", false, "display host cname"),
 		flagSet.BoolVar(&options.Asn, "asn", false, "display host asn information"),
-		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "display cdn in use"),
+		flagSet.BoolVar(&options.OutputCDN, "cdn", false, "display cdn/waf in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),
 	)
 
 	flagSet.CreateGroup("headless", "Headless",
 		flagSet.BoolVarP(&options.Screenshot, "screenshot", "ss", false, "enable saving screenshot of the page using headless browser"),
 		flagSet.BoolVar(&options.UseInstalledChrome, "system-chrome", false, "enable using local installed chrome for screenshot"),
+		flagSet.BoolVarP(&options.NoScreenshotBytes, "exclude-screenshot-bytes", "esb", false, "enable excluding screenshot bytes from json output"),
+		flagSet.BoolVarP(&options.NoHeadlessBody, "exclude-headless-body", "ehb", false, "enable excluding headless header from json output"),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",
@@ -347,6 +366,7 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", nil, fmt.Sprintf("filter host with specified cdn provider (%s)", cdncheck.DefaultCDNProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
 		flagSet.StringVarP(&options.OutputFilterCondition, "filter-condition", "fdc", "", "filter response with dsl expression condition"),
+		flagSet.DynamicVar(&options.StripFilter, "strip", "html", "strips all tags in response. supported formats: html,xml"),
 	)
 
 	flagSet.CreateGroup("rate-limit", "Rate-Limit",
@@ -380,11 +400,13 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in csv format"),
 		flagSet.StringVarP(&options.CSVOutputEncoding, "csv-output-encoding", "csvo", "", "define output encoding"),
-		flagSet.BoolVar(&options.JSONOutput, "json", false, "store output in JSONL(ines) format"),
-		flagSet.BoolVarP(&options.ResponseInStdout, "include-response", "irr", false, "include http request/response in JSON output (-json only)"),
+		flagSet.BoolVarP(&options.JSONOutput, "json", "j", false, "store output in JSONL(ines) format"),
+		flagSet.BoolVarP(&options.ResponseHeadersInStdout, "include-response-header", "irh", false, "include http response (headers) in JSON output (-json only)"),
+		flagSet.BoolVarP(&options.ResponseInStdout, "include-response", "irr", false, "include http request/response (headers + body) in JSON output (-json only)"),
 		flagSet.BoolVarP(&options.Base64ResponseInStdout, "include-response-base64", "irrb", false, "include base64 encoded http request/response in JSON output (-json only)"),
 		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "include redirect http chain in JSON output (-json only)"),
 		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
+		flagSet.BoolVarP(&options.StoreVisionReconClusters, "store-vision-recon-cluster", "svrc", false, "include visual recon clusters (-ss and -sr only)"),
 	)
 
 	flagSet.CreateGroup("configs", "Configurations",
@@ -401,6 +423,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.FollowRedirects, "follow-redirects", "fr", false, "follow http redirects"),
 		flagSet.IntVarP(&options.MaxRedirects, "max-redirects", "maxr", 10, "max number of redirects to follow per host"),
 		flagSet.BoolVarP(&options.FollowHostRedirects, "follow-host-redirects", "fhr", false, "follow redirects on the same host"),
+		flagSet.BoolVarP(&options.RespectHSTS, "respect-hsts", "rhsts", false, "respect HSTS response headers for redirect requests"),
 		flagSet.BoolVar(&options.VHostInput, "vhost-input", false, "get a list of vhosts as input"),
 		flagSet.StringVar(&options.Methods, "x", "", "request methods to probe, use 'all' to probe all HTTP methods"),
 		flagSet.StringVar(&options.RequestBody, "body", "", "post body to include in http request"),
@@ -431,7 +454,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.NoFallback, "no-fallback", "nf", false, "display both probed protocol (HTTPS and HTTP)"),
 		flagSet.BoolVarP(&options.NoFallbackScheme, "no-fallback-scheme", "nfs", false, "probe with protocol scheme specified in input "),
 		flagSet.IntVarP(&options.HostMaxErrors, "max-host-error", "maxhr", 30, "max error count per host before skipping remaining path/s"),
-		flagSet.BoolVarP(&options.ExcludeCDN, "exclude-cdn", "ec", false, "skip full port scans for CDNs (only checks for 80,443)"),
+		flagSet.BoolVarP(&options.ExcludeCDN, "exclude-cdn", "ec", false, "skip full port scans for CDN/WAF (only checks for 80,443)"),
+		flagSet.BoolVarP(&options.ExcludePrivateHosts, "exclude-private-hosts", "eph", false, "skip any hosts which have a private ip address"),
 		flagSet.IntVar(&options.Retries, "retries", 0, "number of retries"),
 		flagSet.IntVar(&options.Timeout, "timeout", 10, "timeout in seconds"),
 		flagSet.DurationVar(&options.Delay, "delay", -1, "duration between each http request (eg: 200ms, 1s)"),
@@ -467,6 +491,10 @@ func ParseOptions() *Options {
 
 	if options.StatsInterval != 0 {
 		options.ShowStatistics = true
+	}
+
+	if options.ResponseBodyPreviewSize > 0 && options.StripFilter == "" {
+		options.StripFilter = "html"
 	}
 
 	// Read the inputs and configure the logging
