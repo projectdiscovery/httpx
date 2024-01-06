@@ -256,7 +256,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
 	scanopts.extractRegexps = make(map[string]*regexp.Regexp)
 	if options.Screenshot {
-		browser, err := NewBrowser(options.HTTPProxy, options.UseInstalledChrome)
+		browser, err := NewBrowser(options.HTTPProxy, options.UseInstalledChrome, options.ParseHeadlessOptionalArguments())
 		if err != nil {
 			return nil, err
 		}
@@ -711,7 +711,11 @@ func (r *Runner) RunEnumeration() {
 		}
 		if r.options.StoreResponseDir != "" {
 			var err error
-			indexPath := filepath.Join(r.options.StoreResponseDir, "response", "index.txt")
+			responseDirPath := filepath.Join(r.options.StoreResponseDir, "response")
+			if err := os.MkdirAll(responseDirPath, 0755); err != nil {
+				gologger.Fatal().Msgf("Could not create response directory '%s': %s\n", responseDirPath, err)
+			}
+			indexPath := filepath.Join(responseDirPath, "index.txt")
 			if r.options.Resume {
 				indexFile, err = os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 			} else {
