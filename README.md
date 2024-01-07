@@ -233,7 +233,7 @@ OPTIMIZATIONS:
    -nf, -no-fallback                  display both probed protocol (HTTPS and HTTP)
    -nfs, -no-fallback-scheme          probe with protocol scheme specified in input 
    -maxhr, -max-host-error int        max error count per host before skipping remaining path/s (default 30)
-   -e, -exclude string[]              exclude host matching specified filter (comma separated)
+   -e, -exclude string[]              exclude host matching specified filter ('cdn', 'private-ips', cidr, ip, regex)
    -retries int                       number of retries
    -timeout int                       timeout in seconds (default 10)
    -delay value                       duration between each http request (eg: 200ms, 1s) (default -1ns)
