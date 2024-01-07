@@ -8,14 +8,13 @@ import (
 
 // Options contains configuration options for the client
 type Options struct {
-	RandomAgent         bool
-	DefaultUserAgent    string
-	HTTPProxy           string
-	SocksProxy          string
-	Threads             int
-	CdnCheck            bool
-	ExcludeCdn          bool
-	ExcludePrivateHosts bool
+	RandomAgent      bool
+	DefaultUserAgent string
+	HTTPProxy        string
+	SocksProxy       string
+	Threads          int
+	CdnCheck         bool
+	ExcludeCdn       bool
 	// Timeout is the maximum time to wait for the request
 	Timeout time.Duration
 	// RetryMax is the maximum number of retries
@@ -49,15 +48,14 @@ type Options struct {
 
 // DefaultOptions contains the default options
 var DefaultOptions = Options{
-	RandomAgent:         true,
-	Threads:             25,
-	Timeout:             30 * time.Second,
-	RetryMax:            5,
-	MaxRedirects:        10,
-	Unsafe:              false,
-	CdnCheck:            true,
-	ExcludeCdn:          false,
-	ExcludePrivateHosts: false,
+	RandomAgent:  true,
+	Threads:      25,
+	Timeout:      30 * time.Second,
+	RetryMax:     5,
+	MaxRedirects: 10,
+	Unsafe:       false,
+	CdnCheck:     true,
+	ExcludeCdn:   false,
 	// VHOSTs options
 	VHostIgnoreStatusCode:    false,
 	VHostIgnoreContentLength: true,
