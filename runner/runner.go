@@ -34,6 +34,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
+	"github.com/projectdiscovery/networkpolicy"
 	errorutil "github.com/projectdiscovery/utils/errors"
 	osutil "github.com/projectdiscovery/utils/os"
 
@@ -77,11 +78,8 @@ type Runner struct {
 	wappalyzer          *wappalyzer.Wappalyze
 	scanopts            ScanOptions
 	hm                  *hybrid.HybridMap
-	excludeHosts        map[string]struct{}
 	excludePorts        map[string]struct{}
-	excludeRegexes      map[string]struct{}
 	excludeCdn          bool
-	excludePrivateHosts bool
 	stats               clistats.StatisticsClient
 	ratelimiter         ratelimit.Limiter
 	HostErrorsCache     gcache.Cache[string, int]
@@ -119,30 +117,25 @@ func New(options *Options) (*Runner, error) {
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
 	}
 
-	runner.excludeHosts = make(map[string]struct{})
 	runner.excludePorts = make(map[string]struct{})
-	runner.excludeRegexes = make(map[string]struct{})
 	for _, exclude := range options.Exclude {
 		switch {
 		case exclude == "cdn":
 			runner.excludeCdn = true
 		case exclude == "private-ips":
-			runner.excludePrivateHosts = true
+			options.Deny = append(options.Deny, networkpolicy.DefaultIPv4Denylist...)
+			options.Deny = append(options.Deny, networkpolicy.DefaultIPv4DenylistRanges...)
+			options.Deny = append(options.Deny, networkpolicy.DefaultIPv6Denylist...)
+			options.Deny = append(options.Deny, networkpolicy.DefaultIPv6DenylistRanges...)
 		case iputil.IsCIDR(exclude):
-			ips := expandCIDRInputValue(exclude)
-			runner.addHosts(ips)
+			options.Deny = append(options.Deny, exclude)
 		case asn.IsASN(exclude):
 			ips := expandASNInputValue(exclude)
-			runner.addHosts(ips)
+			options.Deny = append(options.Deny, ips...)
 		case iputil.IsPort(exclude):
 			runner.excludePorts[exclude] = struct{}{}
-		case isValidRegex(exclude):
-			runner.excludeRegexes[exclude] = struct{}{}
 		default:
-			URL := strings.TrimSpace(exclude)
-			if urlx, err := urlutil.Parse(URL); err == nil {
-				runner.excludeHosts[urlx.Host] = struct{}{}
-			}
+			options.Deny = append(options.Deny, exclude)
 		}
 	}
 
@@ -160,7 +153,6 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.UnsafeURI = options.RequestURI
 	httpxOptions.CdnCheck = options.OutputCDN
 	httpxOptions.ExcludeCdn = runner.excludeCdn
-	httpxOptions.ExcludePrivateHosts = runner.excludePrivateHosts
 	if options.CustomHeaders.Has("User-Agent:") {
 		httpxOptions.RandomAgent = false
 	} else {
@@ -326,7 +318,6 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	scanopts.ExcludeCDN = runner.excludeCdn
-	scanopts.ExcludePrivateHosts = runner.excludePrivateHosts
 	scanopts.HostMaxErrors = options.HostMaxErrors
 	scanopts.ProbeAllIPS = options.ProbeAllIPS
 	scanopts.Favicon = options.Favicon
@@ -388,17 +379,6 @@ func expandASNInputValue(value string) []string {
 		ips = append(ips, expandCIDRInputValue(cidr.String())...)
 	}
 	return ips
-}
-
-func (r *Runner) addHosts(hosts []string) {
-	for _, host := range hosts {
-		r.excludeHosts[host] = struct{}{}
-	}
-}
-
-func isValidRegex(pattern string) bool {
-	_, err := regexp.Compile(pattern)
-	return err == nil
 }
 
 func (r *Runner) prepareInputPaths() {
@@ -2088,36 +2068,14 @@ retry:
 }
 
 func (r *Runner) skip(URL *urlutil.URL, target httpx.Target, origInput string) (bool, Result) {
-	if r.skipPrivateHosts(URL.Hostname()) {
-		gologger.Debug().Msgf("Skipping private host %s\n", URL.Host)
-		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("target has a private ip and will only connect within same local network")}
-	}
-
 	if r.skipCDNPort(URL.Host, URL.Port()) {
 		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port())
 		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("cdn target only allows ports 80 and 443")}
 	}
 
-	if _, ok := r.excludeHosts[URL.Host]; ok {
-		gologger.Debug().Msgf("Skipping excluded host %s\n", URL.Host)
-		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("host is in the exclude list")}
-	}
-
 	if _, ok := r.excludePorts[URL.Port()]; ok {
 		gologger.Debug().Msgf("Skipping excluded port: %s:%s\n", URL.Hostname(), URL.Port())
 		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("port is in the exclude list")}
-	}
-
-	for regex := range r.excludeRegexes {
-		matched, err := regexp.MatchString(regex, URL.String())
-		if err != nil {
-			gologger.Debug().Msgf("Error matching regex: %s\n", err)
-			continue
-		}
-		if matched {
-			gologger.Debug().Msgf("Skipping URL matching exclude regex: %s\n", URL.String())
-			return true, Result{URL: target.Host, Input: origInput, Err: errors.New("url matches an exclude regex")}
-		}
 	}
 
 	return false, Result{}
@@ -2310,42 +2268,10 @@ func (r *Runner) skipCDNPort(host string, port string) bool {
 	}
 
 	// If the target is part of the CDN ips range - only ports 80 and 443 are allowed
-	if isCdnIP && port != "80" && port != "443" {
+	if isCdnIP && port != "" && port != "80" && port != "443" {
 		return true
 	}
 
-	return false
-}
-
-func (r *Runner) skipPrivateHosts(host string) bool {
-	// if the option is not enabled we don't skip
-	if !r.scanopts.ExcludePrivateHosts {
-		return false
-	}
-	dnsData, err := r.hp.Dialer.GetDNSData(host)
-
-	// if we get an error the target cannot be resolved, so we return false so that the program logic continues as usual and handles the errors accordingly
-	if err != nil {
-		return false
-	}
-	if len(dnsData.A) == 0 && len(dnsData.AAAA) == 0 {
-		return false
-	}
-
-	var ipsToCheck []string
-	ipsToCheck = make([]string, 0, len(dnsData.A)+len(dnsData.AAAA))
-	ipsToCheck = append(ipsToCheck, dnsData.A...)
-	ipsToCheck = append(ipsToCheck, dnsData.AAAA...)
-
-	for _, ipAddr := range ipsToCheck {
-		ip := net.ParseIP(ipAddr)
-		if ip == nil {
-			continue //skip any bad ip addresses
-		}
-		if ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-			return true
-		}
-	}
 	return false
 }
 
