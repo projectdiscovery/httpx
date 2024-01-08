@@ -46,7 +46,7 @@ require (
 	github.com/projectdiscovery/asnmap v1.0.6
 	github.com/projectdiscovery/dsl v0.0.37
 	github.com/projectdiscovery/fastdialer v0.0.51
-	github.com/projectdiscovery/networkpolicy v0.0.6
+	github.com/projectdiscovery/networkpolicy v0.0.7
 	github.com/projectdiscovery/ratelimit v0.0.23
 	github.com/projectdiscovery/tlsx v1.1.5
 	github.com/projectdiscovery/utils v0.0.70
