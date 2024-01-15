@@ -78,7 +78,6 @@ type ScanOptions struct {
 	OutputExtractRegex        string
 	extractRegexps            map[string]*regexp.Regexp
 	ExcludeCDN                bool
-	ExcludePrivateHosts       bool
 	HostMaxErrors             int
 	ProbeAllIPS               bool
 	Favicon                   bool
@@ -245,8 +244,7 @@ type Options struct {
 	Probe                     bool
 	Resume                    bool
 	resumeCfg                 *ResumeCfg
-	ExcludeCDN                bool
-	ExcludePrivateHosts       bool
+	Exclude                   goflags.StringSlice
 	HostMaxErrors             int
 	Stream                    bool
 	SkipDedupe                bool
@@ -292,6 +290,8 @@ type Options struct {
 	NoScreenshotBytes  bool
 	NoHeadlessBody     bool
 	ScreenshotTimeout  int
+	// HeadlessOptionalArguments specifies optional arguments to pass to Chrome
+	HeadlessOptionalArguments goflags.StringSlice
 }
 
 // ParseOptions parses the command line options for application
@@ -335,6 +335,7 @@ func ParseOptions() *Options {
 	flagSet.CreateGroup("headless", "Headless",
 		flagSet.BoolVarP(&options.Screenshot, "screenshot", "ss", false, "enable saving screenshot of the page using headless browser"),
 		flagSet.BoolVar(&options.UseInstalledChrome, "system-chrome", false, "enable using local installed chrome for screenshot"),
+		flagSet.StringSliceVarP(&options.HeadlessOptionalArguments, "headless-options", "ho", nil, "start headless chrome with additional options", goflags.FileCommaSeparatedStringSliceOptions),
 		flagSet.BoolVarP(&options.NoScreenshotBytes, "exclude-screenshot-bytes", "esb", false, "enable excluding screenshot bytes from json output"),
 		flagSet.BoolVarP(&options.NoHeadlessBody, "exclude-headless-body", "ehb", false, "enable excluding headless header from json output"),
 		flagSet.IntVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10, "set timeout for screenshot"),
@@ -458,8 +459,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.NoFallback, "no-fallback", "nf", false, "display both probed protocol (HTTPS and HTTP)"),
 		flagSet.BoolVarP(&options.NoFallbackScheme, "no-fallback-scheme", "nfs", false, "probe with protocol scheme specified in input "),
 		flagSet.IntVarP(&options.HostMaxErrors, "max-host-error", "maxhr", 30, "max error count per host before skipping remaining path/s"),
-		flagSet.BoolVarP(&options.ExcludeCDN, "exclude-cdn", "ec", false, "skip full port scans for CDN/WAF (only checks for 80,443)"),
-		flagSet.BoolVarP(&options.ExcludePrivateHosts, "exclude-private-hosts", "eph", false, "skip any hosts which have a private ip address"),
+		flagSet.StringSliceVarP(&options.Exclude, "exclude", "e", nil, "exclude host matching specified filter ('cdn', 'private-ips', cidr, ip, regex)", goflags.CommaSeparatedStringSliceOptions),
 		flagSet.IntVar(&options.Retries, "retries", 0, "number of retries"),
 		flagSet.IntVar(&options.Timeout, "timeout", 10, "timeout in seconds"),
 		flagSet.DurationVar(&options.Delay, "delay", -1, "duration between each http request (eg: 200ms, 1s)"),
@@ -649,6 +649,32 @@ func (options *Options) ValidateOptions() error {
 	}
 
 	return nil
+}
+
+// redundant with katana
+func (options *Options) ParseHeadlessOptionalArguments() map[string]string {
+	var (
+		lastKey           string
+		optionalArguments = make(map[string]string)
+	)
+	for _, v := range options.HeadlessOptionalArguments {
+		if v == "" {
+			continue
+		}
+		if argParts := strings.SplitN(v, "=", 2); len(argParts) >= 2 {
+			key := strings.TrimSpace(argParts[0])
+			value := strings.TrimSpace(argParts[1])
+			if key != "" && value != "" {
+				optionalArguments[key] = value
+				lastKey = key
+			}
+		} else if !strings.HasPrefix(v, "--") {
+			optionalArguments[lastKey] += "," + v
+		} else {
+			optionalArguments[v] = ""
+		}
+	}
+	return optionalArguments
 }
 
 // configureOutput configures the output on the screen

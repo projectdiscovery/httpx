@@ -34,6 +34,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
+	"github.com/projectdiscovery/networkpolicy"
 	errorutil "github.com/projectdiscovery/utils/errors"
 	osutil "github.com/projectdiscovery/utils/os"
 
@@ -77,6 +78,8 @@ type Runner struct {
 	wappalyzer          *wappalyzer.Wappalyze
 	scanopts            ScanOptions
 	hm                  *hybrid.HybridMap
+	excludePorts        map[string]struct{}
+	excludeCdn          bool
 	stats               clistats.StatisticsClient
 	ratelimiter         ratelimit.Limiter
 	HostErrorsCache     gcache.Cache[string, int]
@@ -114,6 +117,28 @@ func New(options *Options) (*Runner, error) {
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
 	}
 
+	runner.excludePorts = make(map[string]struct{})
+	for _, exclude := range options.Exclude {
+		switch {
+		case exclude == "cdn":
+			runner.excludeCdn = true
+		case exclude == "private-ips":
+			options.Deny = append(options.Deny, networkpolicy.DefaultIPv4Denylist...)
+			options.Deny = append(options.Deny, networkpolicy.DefaultIPv4DenylistRanges...)
+			options.Deny = append(options.Deny, networkpolicy.DefaultIPv6Denylist...)
+			options.Deny = append(options.Deny, networkpolicy.DefaultIPv6DenylistRanges...)
+		case iputil.IsCIDR(exclude):
+			options.Deny = append(options.Deny, exclude)
+		case asn.IsASN(exclude):
+			ips := expandASNInputValue(exclude)
+			options.Deny = append(options.Deny, ips...)
+		case iputil.IsPort(exclude):
+			runner.excludePorts[exclude] = struct{}{}
+		default:
+			options.Deny = append(options.Deny, exclude)
+		}
+	}
+
 	httpxOptions := httpx.DefaultOptions
 	// Enables automatically tlsgrab if tlsprobe is requested
 	httpxOptions.TLSGrab = options.TLSGrab || options.TLSProbe
@@ -127,8 +152,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.UnsafeURI = options.RequestURI
 	httpxOptions.CdnCheck = options.OutputCDN
-	httpxOptions.ExcludeCdn = options.ExcludeCDN
-	httpxOptions.ExcludePrivateHosts = options.ExcludePrivateHosts
+	httpxOptions.ExcludeCdn = runner.excludeCdn
 	if options.CustomHeaders.Has("User-Agent:") {
 		httpxOptions.RandomAgent = false
 	} else {
@@ -256,7 +280,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
 	scanopts.extractRegexps = make(map[string]*regexp.Regexp)
 	if options.Screenshot {
-		browser, err := NewBrowser(options.HTTPProxy, options.UseInstalledChrome)
+		browser, err := NewBrowser(options.HTTPProxy, options.UseInstalledChrome, options.ParseHeadlessOptionalArguments())
 		if err != nil {
 			return nil, err
 		}
@@ -294,8 +318,7 @@ func New(options *Options) (*Runner, error) {
 		scanopts.OutputMethod = true
 	}
 
-	scanopts.ExcludeCDN = options.ExcludeCDN
-	scanopts.ExcludePrivateHosts = options.ExcludePrivateHosts
+	scanopts.ExcludeCDN = runner.excludeCdn
 	scanopts.HostMaxErrors = options.HostMaxErrors
 	scanopts.ProbeAllIPS = options.ProbeAllIPS
 	scanopts.Favicon = options.Favicon
@@ -339,6 +362,24 @@ func New(options *Options) (*Runner, error) {
 	runner.errorPageClassifier = errorpageclassifier.New()
 
 	return runner, nil
+}
+
+func expandCIDRInputValue(value string) []string {
+	var ips []string
+	ipsCh, _ := mapcidr.IPAddressesAsStream(value)
+	for ip := range ipsCh {
+		ips = append(ips, ip)
+	}
+	return ips
+}
+
+func expandASNInputValue(value string) []string {
+	var ips []string
+	cidrs, _ := asn.GetCIDRsForASNNum(value)
+	for _, cidr := range cidrs {
+		ips = append(ips, expandCIDRInputValue(cidr.String())...)
+	}
+	return ips
 }
 
 func (r *Runner) prepareInputPaths() {
@@ -712,7 +753,11 @@ func (r *Runner) RunEnumeration() {
 		}
 		if r.options.StoreResponseDir != "" {
 			var err error
-			indexPath := filepath.Join(r.options.StoreResponseDir, "response", "index.txt")
+			responseDirPath := filepath.Join(r.options.StoreResponseDir, "response")
+			if err := os.MkdirAll(responseDirPath, 0755); err != nil {
+				gologger.Fatal().Msgf("Could not create response directory '%s': %s\n", responseDirPath, err)
+			}
+			indexPath := filepath.Join(responseDirPath, "index.txt")
 			if r.options.Resume {
 				indexFile, err = os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 			} else {
@@ -1303,15 +1348,10 @@ retry:
 		}
 	}
 
-	if r.skipPrivateHosts(URL.Hostname()) {
-		gologger.Debug().Msgf("Skipping private host %s\n", URL.Host)
-		return Result{URL: target.Host, Input: origInput, Err: errors.New("target has a private ip and will only connect within same local network")}
-	}
-
 	// check if the combination host:port should be skipped if belonging to a cdn
-	if r.skipCDNPort(URL.Host, URL.Port()) {
-		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port())
-		return Result{URL: target.Host, Input: origInput, Err: errors.New("cdn target only allows ports 80 and 443")}
+	skip, reason := r.skip(URL, target, origInput)
+	if skip {
+		return reason
 	}
 
 	URL.Scheme = protocol
@@ -1625,7 +1665,7 @@ retry:
 	}
 
 	// web socket
-	isWebSocket := resp.StatusCode == 101
+	isWebSocket := isWebSocket(resp)
 	if scanopts.OutputWebSocket && isWebSocket {
 		builder.WriteString(" [websocket]")
 	}
@@ -2028,6 +2068,20 @@ retry:
 	return result
 }
 
+func (r *Runner) skip(URL *urlutil.URL, target httpx.Target, origInput string) (bool, Result) {
+	if r.skipCDNPort(URL.Host, URL.Port()) {
+		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port())
+		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("cdn target only allows ports 80 and 443")}
+	}
+
+	if _, ok := r.excludePorts[URL.Port()]; ok {
+		gologger.Debug().Msgf("Skipping excluded port: %s:%s\n", URL.Hostname(), URL.Port())
+		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("port is in the exclude list")}
+	}
+
+	return false, Result{}
+}
+
 func calculatePerceptionHash(screenshotBytes []byte) (uint64, error) {
 	reader := bytes.NewReader(screenshotBytes)
 	img, _, err := image.Decode(reader)
@@ -2192,7 +2246,7 @@ func (r Result) CSVRow(scanopts *ScanOptions) string { //nolint
 
 func (r *Runner) skipCDNPort(host string, port string) bool {
 	// if the option is not enabled we don't skip
-	if !r.options.ExcludeCDN {
+	if !r.scanopts.ExcludeCDN {
 		return false
 	}
 	// uses the dealer to pre-resolve the target
@@ -2215,42 +2269,10 @@ func (r *Runner) skipCDNPort(host string, port string) bool {
 	}
 
 	// If the target is part of the CDN ips range - only ports 80 and 443 are allowed
-	if isCdnIP && port != "80" && port != "443" {
+	if isCdnIP && port != "" && port != "80" && port != "443" {
 		return true
 	}
 
-	return false
-}
-
-func (r *Runner) skipPrivateHosts(host string) bool {
-	// if the option is not enabled we don't skip
-	if !r.options.ExcludePrivateHosts {
-		return false
-	}
-	dnsData, err := r.hp.Dialer.GetDNSData(host)
-
-	// if we get an error the target cannot be resolved, so we return false so that the program logic continues as usual and handles the errors accordingly
-	if err != nil {
-		return false
-	}
-	if len(dnsData.A) == 0 && len(dnsData.AAAA) == 0 {
-		return false
-	}
-
-	var ipsToCheck []string
-	ipsToCheck = make([]string, 0, len(dnsData.A)+len(dnsData.AAAA))
-	ipsToCheck = append(ipsToCheck, dnsData.A...)
-	ipsToCheck = append(ipsToCheck, dnsData.AAAA...)
-
-	for _, ipAddr := range ipsToCheck {
-		ip := net.ParseIP(ipAddr)
-		if ip == nil {
-			continue //skip any bad ip addresses
-		}
-		if ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-			return true
-		}
-	}
 	return false
 }
 
@@ -2281,4 +2303,28 @@ func normalizeHeaders(headers map[string][]string) map[string]interface{} {
 		normalized[strings.ReplaceAll(strings.ToLower(k), "-", "_")] = strings.Join(v, ", ")
 	}
 	return normalized
+}
+
+func isWebSocket(resp *httpx.Response) bool {
+	if resp.StatusCode == 101 {
+		return true
+	}
+	// TODO: improve this checks
+	// Check for specific headers that indicate WebSocket support
+	keyHeaders := []string{`^Sec-WebSocket-Accept:\s+.+`, `^Upgrade:\s+websocket`, `^Connection:\s+upgrade`}
+	for _, header := range keyHeaders {
+		re := regexp.MustCompile(header)
+		if re.MatchString(resp.RawHeaders) {
+			return true
+		}
+	}
+	// Check for specific data that indicates WebSocket support
+	keyData := []string{`{"socket":true,"socketUrl":"(?:wss?|ws)://.*"}`, `{"sid":"[^"]*","upgrades":\["websocket"\].*}`}
+	for _, data := range keyData {
+		re := regexp.MustCompile(data)
+		if re.Match(resp.RawData) {
+			return true
+		}
+	}
+	return false
 }
