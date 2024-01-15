@@ -27,7 +27,7 @@ require (
 	github.com/rs/xid v1.5.0
 	go.etcd.io/bbolt v1.3.7 // indirect
 	golang.org/x/net v0.17.0
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0
 )
 
@@ -49,7 +49,7 @@ require (
 	github.com/projectdiscovery/networkpolicy v0.0.7
 	github.com/projectdiscovery/ratelimit v0.0.23
 	github.com/projectdiscovery/tlsx v1.1.5
-	github.com/projectdiscovery/utils v0.0.72
+	github.com/projectdiscovery/utils v0.0.73
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230422215203-9a665e1e9968
 	go.uber.org/multierr v1.11.0
