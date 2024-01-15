@@ -43,7 +43,13 @@ type HTTPX struct {
 func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
 	fastdialerOpts := fastdialer.DefaultOptions
-	fastdialerOpts.EnableFallback = true
+
+	// if the user specified any custom resolver disables system resolvers and syscall lookup fallback
+	if len(options.Resolvers) > 0 {
+		fastdialerOpts.ResolversFile = false
+		fastdialerOpts.EnableFallback = false
+	}
+
 	fastdialerOpts.Deny = options.Deny
 	fastdialerOpts.Allow = options.Allow
 	fastdialerOpts.WithDialerHistory = true
