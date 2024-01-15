@@ -44,8 +44,8 @@ func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
 	fastdialerOpts := fastdialer.DefaultOptions
 
-	// HTTPX should only rely on system resolvers if resolvers are not explicitly specified.
-	if len(options.Resolvers) != 0 {
+	// if the user specified any custom resolver disables system resolvers and syscall lookup fallback
+	if len(options.Resolvers) > 0 {
 		fastdialerOpts.ResolversFile = false
 		fastdialerOpts.EnableFallback = false
 	}
