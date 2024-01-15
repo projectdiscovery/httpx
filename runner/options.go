@@ -90,6 +90,7 @@ type ScanOptions struct {
 	DisableStdin              bool
 	NoScreenshotBytes         bool
 	NoHeadlessBody            bool
+	ScreenshotTimeout         int
 }
 
 func (s *ScanOptions) Clone() *ScanOptions {
@@ -141,6 +142,7 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		UseInstalledChrome:        s.UseInstalledChrome,
 		NoScreenshotBytes:         s.NoScreenshotBytes,
 		NoHeadlessBody:            s.NoHeadlessBody,
+		ScreenshotTimeout:         s.ScreenshotTimeout,
 	}
 }
 
@@ -285,10 +287,11 @@ type Options struct {
 	UseInstalledChrome bool
 	TlsImpersonate     bool
 	DisableStdin       bool
+	NoScreenshotBytes  bool
+	NoHeadlessBody     bool
+	ScreenshotTimeout  int
 	// HeadlessOptionalArguments specifies optional arguments to pass to Chrome
 	HeadlessOptionalArguments goflags.StringSlice
-	NoScreenshotBytes         bool
-	NoHeadlessBody            bool
 }
 
 // ParseOptions parses the command line options for application
@@ -335,6 +338,7 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.HeadlessOptionalArguments, "headless-options", "ho", nil, "start headless chrome with additional options", goflags.FileCommaSeparatedStringSliceOptions),
 		flagSet.BoolVarP(&options.NoScreenshotBytes, "exclude-screenshot-bytes", "esb", false, "enable excluding screenshot bytes from json output"),
 		flagSet.BoolVarP(&options.NoHeadlessBody, "exclude-headless-body", "ehb", false, "enable excluding headless header from json output"),
+		flagSet.IntVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10, "set timeout for screenshot in seconds"),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",

@@ -290,6 +290,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.NoScreenshotBytes = options.NoScreenshotBytes
 	scanopts.NoHeadlessBody = options.NoHeadlessBody
 	scanopts.UseInstalledChrome = options.UseInstalledChrome
+	scanopts.ScreenshotTimeout = options.ScreenshotTimeout
 
 	if options.OutputExtractRegexs != nil {
 		for _, regex := range options.OutputExtractRegexs {
@@ -1980,7 +1981,7 @@ retry:
 	var pHash uint64
 	if scanopts.Screenshot {
 		var err error
-		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, r.hp.Options.Timeout)
+		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, time.Duration(scanopts.ScreenshotTimeout)*time.Second)
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {

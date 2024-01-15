@@ -123,6 +123,7 @@ HEADLESS:
    -ho, -headless-options string[]  start headless chrome with additional options
    -esb, -exclude-screenshot-bytes  enable excluding screenshot bytes from json output
    -ehb, -exclude-headless-body     enable excluding headless header from json output
+   -st, -screenshot-timeout int     set timeout for screenshot in seconds (default 10)
 
 MATCHERS:
    -mc, -match-code string            match response with specified status code (-mc 200,302)
@@ -138,7 +139,7 @@ MATCHERS:
 
 EXTRACTOR:
    -er, -extract-regex string[]   display response content with matched regex
-   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (ipv4,mail,url)
+   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (url,ipv4,mail)
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
