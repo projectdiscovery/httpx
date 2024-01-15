@@ -1664,7 +1664,7 @@ retry:
 	}
 
 	// web socket
-	isWebSocket := resp.StatusCode == 101
+	isWebSocket := isWebSocket(resp)
 	if scanopts.OutputWebSocket && isWebSocket {
 		builder.WriteString(" [websocket]")
 	}
@@ -2302,4 +2302,28 @@ func normalizeHeaders(headers map[string][]string) map[string]interface{} {
 		normalized[strings.ReplaceAll(strings.ToLower(k), "-", "_")] = strings.Join(v, ", ")
 	}
 	return normalized
+}
+
+func isWebSocket(resp *httpx.Response) bool {
+	if resp.StatusCode == 101 {
+		return true
+	}
+	// TODO: improve this checks
+	// Check for specific headers that indicate WebSocket support
+	keyHeaders := []string{`^Sec-WebSocket-Accept:\s+.+`, `^Upgrade:\s+websocket`, `^Connection:\s+upgrade`}
+	for _, header := range keyHeaders {
+		re := regexp.MustCompile(header)
+		if re.MatchString(resp.RawHeaders) {
+			return true
+		}
+	}
+	// Check for specific data that indicates WebSocket support
+	keyData := []string{`{"socket":true,"socketUrl":"(?:wss?|ws)://.*"}`, `{"sid":"[^"]*","upgrades":\["websocket"\].*}`}
+	for _, data := range keyData {
+		re := regexp.MustCompile(data)
+		if re.Match(resp.RawData) {
+			return true
+		}
+	}
+	return false
 }
