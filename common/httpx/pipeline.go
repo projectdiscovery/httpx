@@ -18,7 +18,7 @@ func (h *HTTPX) SupportPipeline(protocol, method, host string, port int) bool {
 			port = 443
 		}
 	}
-	if port > 0 {
+	if _, _, err := net.SplitHostPort(host); err != nil && port > 0 {
 		addr = fmt.Sprintf("%s:%d", host, port)
 	}
 	// dummy method while awaiting for full rawhttp implementation

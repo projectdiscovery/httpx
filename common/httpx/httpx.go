@@ -43,7 +43,13 @@ type HTTPX struct {
 func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
 	fastdialerOpts := fastdialer.DefaultOptions
-	fastdialerOpts.EnableFallback = true
+
+	// if the user specified any custom resolver disables system resolvers and syscall lookup fallback
+	if len(options.Resolvers) > 0 {
+		fastdialerOpts.ResolversFile = false
+		fastdialerOpts.EnableFallback = false
+	}
+
 	fastdialerOpts.Deny = options.Deny
 	fastdialerOpts.Allow = options.Allow
 	fastdialerOpts.WithDialerHistory = true
@@ -105,8 +111,8 @@ func New(options *Options) (*HTTPX, error) {
 			httpx.setCustomCookies(redirectedRequest)
 
 			// Check if we get a redirect to a different host
-			var newHost = redirectedRequest.URL.Host
-			var oldHost = previousRequests[0].Host
+			var newHost = redirectedRequest.URL.Hostname()
+			var oldHost = previousRequests[0].URL.Hostname()
 			if oldHost == "" {
 				oldHost = previousRequests[0].URL.Host
 			}
