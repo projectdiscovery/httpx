@@ -111,8 +111,8 @@ func New(options *Options) (*HTTPX, error) {
 			httpx.setCustomCookies(redirectedRequest)
 
 			// Check if we get a redirect to a different host
-			var newHost = redirectedRequest.URL.Host
-			var oldHost = previousRequests[0].Host
+			var newHost = redirectedRequest.URL.Hostname()
+			var oldHost = previousRequests[0].URL.Hostname()
 			if oldHost == "" {
 				oldHost = previousRequests[0].URL.Host
 			}
