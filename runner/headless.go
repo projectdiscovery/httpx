@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
+	"github.com/go-rod/rod/lib/launcher/flags"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/pkg/errors"
 	fileutil "github.com/projectdiscovery/utils/file"
@@ -29,7 +30,7 @@ type Browser struct {
 	// pids    map[int32]struct{}
 }
 
-func NewBrowser(proxy string, useLocal bool) (*Browser, error) {
+func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*Browser, error) {
 	dataStore, err := os.MkdirTemp("", "nuclei-*")
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create temporary directory")
@@ -74,6 +75,11 @@ func NewBrowser(proxy string, useLocal bool) (*Browser, error) {
 	if proxy != "" {
 		chromeLauncher = chromeLauncher.Proxy(proxy)
 	}
+
+	for k, v := range optionalArgs {
+		chromeLauncher.Set(flags.Flag(k), v)
+	}
+
 	launcherURL, err := chromeLauncher.Launch()
 	if err != nil {
 		return nil, err
