@@ -1285,6 +1285,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 		case asn.IsASN(target):
 			cidrIps, err := asn.GetIPAddressesAsStream(target)
 			if err != nil {
+				gologger.Warning().Msgf("Could not get ASN targets for '%s': %s\n", target, err)
 				return
 			}
 			for ip := range cidrIps {
