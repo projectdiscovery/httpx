@@ -21,7 +21,7 @@ require (
 	github.com/projectdiscovery/hmap v0.0.34
 	github.com/projectdiscovery/mapcidr v1.1.16
 	github.com/projectdiscovery/rawhttp v0.1.31
-	github.com/projectdiscovery/retryablehttp-go v1.0.43
+	github.com/projectdiscovery/retryablehttp-go v1.0.44
 	github.com/projectdiscovery/wappalyzergo v0.0.109
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
@@ -49,7 +49,7 @@ require (
 	github.com/projectdiscovery/networkpolicy v0.0.7
 	github.com/projectdiscovery/ratelimit v0.0.23
 	github.com/projectdiscovery/tlsx v1.1.5
-	github.com/projectdiscovery/utils v0.0.73
+	github.com/projectdiscovery/utils v0.0.74-0.20240115220656-48fef326de18
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230422215203-9a665e1e9968
 	go.uber.org/multierr v1.11.0
