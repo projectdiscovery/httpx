@@ -2267,11 +2267,11 @@ func (r *Runner) skipCDNPort(host string, port string) bool {
 		return false
 	}
 
-	if sliceutil.Contains(r.options.Exclude, "cdn") && isCdnIP {
+	if isCdnIP && sliceutil.Contains(r.options.CustomPorts, port) {
 		return true
 	}
 	// If the target is part of the CDN ips range - only ports 80 and 443 are allowed
-	if isCdnIP && port != "" && port != "80" && port != "443" {
+	if isCdnIP && port != "80" && port != "443" {
 		return true
 	}
 
