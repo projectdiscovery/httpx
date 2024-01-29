@@ -48,7 +48,7 @@ require (
 	github.com/projectdiscovery/fastdialer v0.0.55
 	github.com/projectdiscovery/networkpolicy v0.0.7
 	github.com/projectdiscovery/ratelimit v0.0.23
-	github.com/projectdiscovery/tlsx v1.1.5
+	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/utils v0.0.74-0.20240115220656-48fef326de18
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230422215203-9a665e1e9968
