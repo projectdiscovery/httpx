@@ -49,7 +49,7 @@ require (
 	github.com/projectdiscovery/networkpolicy v0.0.7
 	github.com/projectdiscovery/ratelimit v0.0.23
 	github.com/projectdiscovery/tlsx v1.1.6
-	github.com/projectdiscovery/utils v0.0.74
+	github.com/projectdiscovery/utils v0.0.76
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230422215203-9a665e1e9968
 	go.uber.org/multierr v1.11.0
