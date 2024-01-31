@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/akrylysov/pogreb v0.10.1 // indirect
-	github.com/corpix/uarand v0.2.0
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/julienschmidt/httprouter v1.3.0
@@ -49,6 +48,7 @@ require (
 	github.com/projectdiscovery/networkpolicy v0.0.7
 	github.com/projectdiscovery/ratelimit v0.0.23
 	github.com/projectdiscovery/tlsx v1.1.6
+	github.com/projectdiscovery/useragent v0.0.33
 	github.com/projectdiscovery/utils v0.0.76
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230422215203-9a665e1e9968
@@ -112,7 +112,6 @@ require (
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/retryabledns v1.0.53 // indirect
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
-	github.com/projectdiscovery/useragent v0.0.33 // indirect
 	github.com/quic-go/quic-go v0.37.7 // indirect
 	github.com/refraction-networking/utls v1.5.4 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
