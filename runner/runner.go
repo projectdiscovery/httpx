@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -2267,7 +2268,7 @@ func (r *Runner) skipCDNPort(host string, port string) bool {
 		return false
 	}
 
-	if isCdnIP && sliceutil.Contains(r.options.CustomPorts, port) {
+	if isCdnIP && slices.Contains(r.options.CustomPorts, port) {
 		return true
 	}
 	// If the target is part of the CDN ips range - only ports 80 and 443 are allowed
