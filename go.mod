@@ -46,7 +46,7 @@ require (
 	github.com/projectdiscovery/dsl v0.0.41
 	github.com/projectdiscovery/fastdialer v0.0.57
 	github.com/projectdiscovery/networkpolicy v0.0.7
-	github.com/projectdiscovery/ratelimit v0.0.26
+	github.com/projectdiscovery/ratelimit v0.0.27
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.35
 	github.com/projectdiscovery/utils v0.0.76
