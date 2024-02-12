@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/corpix/uarand"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
@@ -19,6 +18,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
+	"github.com/projectdiscovery/useragent"
 	"github.com/projectdiscovery/utils/generic"
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	stringsutil "github.com/projectdiscovery/utils/strings"
@@ -404,7 +404,8 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 		}
 	}
 	if h.Options.RandomAgent {
-		r.Header.Set("User-Agent", uarand.GetRandom()) //nolint
+		userAgent := useragent.PickRandom()
+		r.Header.Set("User-Agent", userAgent.Raw) //nolint
 	}
 }
 

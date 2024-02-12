@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -2068,7 +2069,7 @@ retry:
 }
 
 func (r *Runner) skip(URL *urlutil.URL, target httpx.Target, origInput string) (bool, Result) {
-	if r.skipCDNPort(URL.Host, URL.Port()) {
+	if r.skipCDNPort(URL.Hostname(), URL.Port()) {
 		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port())
 		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("cdn target only allows ports 80 and 443")}
 	}
@@ -2267,8 +2268,11 @@ func (r *Runner) skipCDNPort(host string, port string) bool {
 		return false
 	}
 
+	if isCdnIP && slices.Contains(r.options.CustomPorts, port) {
+		return true
+	}
 	// If the target is part of the CDN ips range - only ports 80 and 443 are allowed
-	if isCdnIP && port != "" && port != "80" && port != "443" {
+	if isCdnIP && port != "80" && port != "443" {
 		return true
 	}
 

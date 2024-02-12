@@ -4,24 +4,23 @@ go 1.21
 
 require (
 	github.com/akrylysov/pogreb v0.10.1 // indirect
-	github.com/corpix/uarand v0.2.0
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/microcosm-cc/bluemonday v1.0.25
+	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/miekg/dns v1.1.56 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/cdncheck v1.0.9
 	github.com/projectdiscovery/clistats v0.0.20
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
-	github.com/projectdiscovery/goflags v0.1.36
+	github.com/projectdiscovery/goflags v0.1.39
 	github.com/projectdiscovery/gologger v1.1.12
-	github.com/projectdiscovery/hmap v0.0.35
+	github.com/projectdiscovery/hmap v0.0.37
 	github.com/projectdiscovery/mapcidr v1.1.16
-	github.com/projectdiscovery/rawhttp v0.1.31
-	github.com/projectdiscovery/retryablehttp-go v1.0.44
+	github.com/projectdiscovery/rawhttp v0.1.37
+	github.com/projectdiscovery/retryablehttp-go v1.0.47
 	github.com/projectdiscovery/wappalyzergo v0.0.109
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
@@ -44,12 +43,13 @@ require (
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.6
-	github.com/projectdiscovery/dsl v0.0.40
-	github.com/projectdiscovery/fastdialer v0.0.55
+	github.com/projectdiscovery/dsl v0.0.41
+	github.com/projectdiscovery/fastdialer v0.0.58
 	github.com/projectdiscovery/networkpolicy v0.0.7
-	github.com/projectdiscovery/ratelimit v0.0.23
-	github.com/projectdiscovery/tlsx v1.1.5
-	github.com/projectdiscovery/utils v0.0.74-0.20240115220656-48fef326de18
+	github.com/projectdiscovery/ratelimit v0.0.27
+	github.com/projectdiscovery/tlsx v1.1.6
+	github.com/projectdiscovery/useragent v0.0.37
+	github.com/projectdiscovery/utils v0.0.77
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230422215203-9a665e1e9968
 	go.uber.org/multierr v1.11.0
@@ -64,7 +64,7 @@ require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/alecthomas/chroma v0.10.0 // indirect
 	github.com/andybalholm/brotli v1.0.6 // indirect
-	github.com/andybalholm/cascadia v1.3.1 // indirect
+	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
@@ -110,7 +110,8 @@ require (
 	github.com/projectdiscovery/blackrock v0.0.1 // indirect
 	github.com/projectdiscovery/freeport v0.0.5 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.52 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.55 // indirect
+	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
 	github.com/quic-go/quic-go v0.37.7 // indirect
 	github.com/refraction-networking/utls v1.5.4 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
