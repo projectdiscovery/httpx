@@ -16,6 +16,7 @@ import (
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/fastdialer/fastdialer/ja3/impersonate"
 	"github.com/projectdiscovery/httpx/common/httputilz"
+	"github.com/projectdiscovery/networkpolicy"
 	"github.com/projectdiscovery/rawhttp"
 	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/useragent"
@@ -37,6 +38,7 @@ type HTTPX struct {
 	CustomHeaders map[string]string
 	cdn           *cdncheck.Client
 	Dialer        *fastdialer.Dialer
+	NetworkPolicy *networkpolicy.NetworkPolicy
 }
 
 // New httpx instance
@@ -50,8 +52,8 @@ func New(options *Options) (*HTTPX, error) {
 		fastdialerOpts.EnableFallback = false
 	}
 
-	fastdialerOpts.Deny = options.Deny
-	fastdialerOpts.Allow = options.Allow
+	httpx.NetworkPolicy = options.NetworkPolicy
+	fastdialerOpts.WithNetworkPolicyOptions = options.NetworkPolicy.Options
 	fastdialerOpts.WithDialerHistory = true
 	fastdialerOpts.WithZTLS = options.ZTLS
 	if len(options.Resolvers) > 0 {

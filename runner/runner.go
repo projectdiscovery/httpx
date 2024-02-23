@@ -79,7 +79,6 @@ type Runner struct {
 	wappalyzer          *wappalyzer.Wappalyze
 	scanopts            ScanOptions
 	hm                  *hybrid.HybridMap
-	excludePorts        map[string]struct{}
 	excludeCdn          bool
 	stats               clistats.StatisticsClient
 	ratelimiter         ratelimit.Limiter
@@ -118,29 +117,34 @@ func New(options *Options) (*Runner, error) {
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
 	}
 
-	runner.excludePorts = make(map[string]struct{})
+	var npOptions networkpolicy.Options
 	for _, exclude := range options.Exclude {
 		switch {
 		case exclude == "cdn":
+			//implement cdn check in netoworkpolicy pkg??
 			runner.excludeCdn = true
+			continue
 		case exclude == "private-ips":
-			options.Deny = append(options.Deny, networkpolicy.DefaultIPv4Denylist...)
-			options.Deny = append(options.Deny, networkpolicy.DefaultIPv4DenylistRanges...)
-			options.Deny = append(options.Deny, networkpolicy.DefaultIPv6Denylist...)
-			options.Deny = append(options.Deny, networkpolicy.DefaultIPv6DenylistRanges...)
+			npOptions.DenyList = append(npOptions.DenyList, networkpolicy.DefaultIPv4Denylist...)
+			npOptions.DenyList = append(npOptions.DenyList, networkpolicy.DefaultIPv4DenylistRanges...)
+			npOptions.DenyList = append(npOptions.DenyList, networkpolicy.DefaultIPv6Denylist...)
+			npOptions.DenyList = append(npOptions.DenyList, networkpolicy.DefaultIPv6DenylistRanges...)
 		case iputil.IsCIDR(exclude):
-			options.Deny = append(options.Deny, exclude)
+			npOptions.DenyList = append(npOptions.DenyList, exclude)
 		case asn.IsASN(exclude):
+			// update this to use networkpolicy pkg once https://github.com/projectdiscovery/networkpolicy/pull/55 is merged
 			ips := expandASNInputValue(exclude)
-			options.Deny = append(options.Deny, ips...)
+			npOptions.DenyList = append(npOptions.DenyList, ips...)
 		case iputil.IsPort(exclude):
-			runner.excludePorts[exclude] = struct{}{}
+			port, _ := strconv.Atoi(exclude)
+			npOptions.DenyPortList = append(npOptions.DenyPortList, port)
 		default:
-			options.Deny = append(options.Deny, exclude)
+			npOptions.DenyList = append(npOptions.DenyList, exclude)
 		}
 	}
 
 	httpxOptions := httpx.DefaultOptions
+	httpxOptions.NetworkPolicy, _ = networkpolicy.New(npOptions)
 	// Enables automatically tlsgrab if tlsprobe is requested
 	httpxOptions.TLSGrab = options.TLSGrab || options.TLSProbe
 	httpxOptions.Timeout = time.Duration(options.Timeout) * time.Second
@@ -159,8 +163,6 @@ func New(options *Options) (*Runner, error) {
 	} else {
 		httpxOptions.RandomAgent = options.RandomAgent
 	}
-	httpxOptions.Deny = options.Deny
-	httpxOptions.Allow = options.Allow
 	httpxOptions.ZTLS = options.ZTLS
 	httpxOptions.MaxResponseBodySizeToSave = int64(options.MaxResponseBodySizeToSave)
 	httpxOptions.MaxResponseBodySizeToRead = int64(options.MaxResponseBodySizeToRead)
@@ -2074,9 +2076,9 @@ func (r *Runner) skip(URL *urlutil.URL, target httpx.Target, origInput string) (
 		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("cdn target only allows ports 80 and 443")}
 	}
 
-	if _, ok := r.excludePorts[URL.Port()]; ok {
-		gologger.Debug().Msgf("Skipping excluded port: %s:%s\n", URL.Hostname(), URL.Port())
-		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("port is in the exclude list")}
+	if !r.hp.NetworkPolicy.Validate(URL.Host) {
+		gologger.Debug().Msgf("Skipping target due to network policy: %s\n", URL.Hostname())
+		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("target host is not allowed by network policy")}
 	}
 
 	return false, Result{}
