@@ -52,8 +52,10 @@ func New(options *Options) (*HTTPX, error) {
 		fastdialerOpts.EnableFallback = false
 	}
 
-	httpx.NetworkPolicy = options.NetworkPolicy
-	fastdialerOpts.WithNetworkPolicyOptions = options.NetworkPolicy.Options
+	if options.NetworkPolicy != nil {
+		httpx.NetworkPolicy = options.NetworkPolicy
+		fastdialerOpts.WithNetworkPolicyOptions = options.NetworkPolicy.Options
+	}
 	fastdialerOpts.WithDialerHistory = true
 	fastdialerOpts.WithZTLS = options.ZTLS
 	if len(options.Resolvers) > 0 {
