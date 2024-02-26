@@ -20,7 +20,7 @@ require (
 	github.com/projectdiscovery/hmap v0.0.39
 	github.com/projectdiscovery/mapcidr v1.1.16
 	github.com/projectdiscovery/rawhttp v0.1.39
-	github.com/projectdiscovery/retryablehttp-go v1.0.47
+	github.com/projectdiscovery/retryablehttp-go v1.0.49
 	github.com/projectdiscovery/wappalyzergo v0.0.109
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
@@ -49,7 +49,7 @@ require (
 	github.com/projectdiscovery/ratelimit v0.0.27
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.38
-	github.com/projectdiscovery/utils v0.0.78
+	github.com/projectdiscovery/utils v0.0.79
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230422215203-9a665e1e9968
 	go.uber.org/multierr v1.11.0
@@ -110,7 +110,7 @@ require (
 	github.com/projectdiscovery/blackrock v0.0.1 // indirect
 	github.com/projectdiscovery/freeport v0.0.5 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.55 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.56 // indirect
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
 	github.com/quic-go/quic-go v0.37.7 // indirect
 	github.com/refraction-networking/utls v1.5.4 // indirect
