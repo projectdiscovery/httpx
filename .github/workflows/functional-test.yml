@@ -28,3 +28,5 @@ jobs:
           chmod +x run.sh
           bash run.sh ${{ matrix.os }}
         working-directory: cmd/functional-test
+        env:
+          PDCP_API_KEY: "${{ secrets.PDCP_API_KEY }}"
