@@ -72,10 +72,6 @@ import (
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 )
 
-func init() {
-	asnmap.UsingAsLibrary = true
-}
-
 // Runner is a client for running the enumeration process.
 type Runner struct {
 	options             *Options
