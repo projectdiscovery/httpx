@@ -22,7 +22,7 @@ require (
 	github.com/projectdiscovery/hmap v0.0.40
 	github.com/projectdiscovery/mapcidr v1.1.16
 	github.com/projectdiscovery/rawhttp v0.1.39
-	github.com/projectdiscovery/retryablehttp-go v1.0.48
+	github.com/projectdiscovery/retryablehttp-go v1.0.49
 	github.com/projectdiscovery/wappalyzergo v0.0.109
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
@@ -46,7 +46,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/projectdiscovery/asnmap v1.0.6
 	github.com/projectdiscovery/dsl v0.0.41
-	github.com/projectdiscovery/fastdialer v0.0.59
+	github.com/projectdiscovery/fastdialer v0.0.60
 	github.com/projectdiscovery/networkpolicy v0.0.7
 	github.com/projectdiscovery/ratelimit v0.0.27
 	github.com/projectdiscovery/tlsx v1.1.6
