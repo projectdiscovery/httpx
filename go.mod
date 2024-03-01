@@ -2,60 +2,54 @@ module github.com/projectdiscovery/httpx
 
 go 1.21
 
-replace github.com/projectdiscovery/asnmap v1.0.6 => github.com/projectdiscovery/asnmap v1.0.2-0.20240226223956-a41995ab9075
-
 require (
+	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
+	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/akrylysov/pogreb v0.10.1 // indirect
+	github.com/corona10/goimagehash v1.1.0
+	github.com/go-faker/faker/v4 v4.1.1
+	github.com/go-rod/rod v0.114.0
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
+	github.com/hdm/jarm-go v0.0.7
+	github.com/jaytaylor/html2text v0.0.0-20230321000545-74c2419ad056
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/logrusorgru/aurora v2.0.3+incompatible
+	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/miekg/dns v1.1.56 // indirect
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1
+	github.com/projectdiscovery/asnmap v1.1.0
 	github.com/projectdiscovery/cdncheck v1.0.9
 	github.com/projectdiscovery/clistats v0.0.20
+	github.com/projectdiscovery/dsl v0.0.41
+	github.com/projectdiscovery/fastdialer v0.0.60
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.41
 	github.com/projectdiscovery/gologger v1.1.12
 	github.com/projectdiscovery/hmap v0.0.40
 	github.com/projectdiscovery/mapcidr v1.1.16
-	github.com/projectdiscovery/rawhttp v0.1.39
-	github.com/projectdiscovery/retryablehttp-go v1.0.49
-	github.com/projectdiscovery/wappalyzergo v0.0.109
-	github.com/remeh/sizedwaitgroup v1.0.0
-	github.com/rs/xid v1.5.0
-	go.etcd.io/bbolt v1.3.7 // indirect
-	golang.org/x/net v0.17.0
-	golang.org/x/sys v0.16.0 // indirect
-	golang.org/x/text v0.14.0
-)
-
-require github.com/spaolacci/murmur3 v1.1.0
-
-require (
-	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
-	github.com/PuerkitoBio/goquery v1.8.1
-	github.com/corona10/goimagehash v1.1.0
-	github.com/go-faker/faker/v4 v4.1.1
-	github.com/go-rod/rod v0.114.0
-	github.com/hdm/jarm-go v0.0.7
-	github.com/jaytaylor/html2text v0.0.0-20230321000545-74c2419ad056
-	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
-	github.com/mitchellh/mapstructure v1.5.0
-	github.com/projectdiscovery/asnmap v1.0.6
-	github.com/projectdiscovery/dsl v0.0.41
-	github.com/projectdiscovery/fastdialer v0.0.60
 	github.com/projectdiscovery/networkpolicy v0.0.7
 	github.com/projectdiscovery/ratelimit v0.0.27
+	github.com/projectdiscovery/rawhttp v0.1.39
+	github.com/projectdiscovery/retryablehttp-go v1.0.49
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.38
 	github.com/projectdiscovery/utils v0.0.81
+	github.com/projectdiscovery/wappalyzergo v0.0.109
+	github.com/remeh/sizedwaitgroup v1.0.0
+	github.com/rs/xid v1.5.0
+	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230422215203-9a665e1e9968
+	go.etcd.io/bbolt v1.3.7 // indirect
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20230810033253-352e893a4cad
+	golang.org/x/net v0.17.0
+	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/text v0.14.0
 )
 
 require (
