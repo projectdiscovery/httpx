@@ -30,6 +30,9 @@ jobs:
       - name: Test
         run: go test ./...
         working-directory: .
+        env:
+          PDCP_API_KEY: "${{ secrets.PDCP_API_KEY }}"
+          
 
       - name: Running example
         run: go run .
@@ -39,6 +42,7 @@ jobs:
         if: runner.os == 'Linux' || runner.os == 'macOS'
         env:
           GH_ACTION: true
+          PDCP_API_KEY: "${{ secrets.PDCP_API_KEY }}"
         run: bash run.sh
         working-directory: integration_tests/
       
@@ -47,6 +51,7 @@ jobs:
         env:
           GH_ACTION: true
           MSYS_NO_PATHCONV: true
+          PDCP_API_KEY: "${{ secrets.PDCP_API_KEY }}"
         run: bash run.sh
         working-directory: integration_tests/
         

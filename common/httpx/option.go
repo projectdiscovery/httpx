@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/projectdiscovery/networkpolicy"
 )
 
 // Options contains configuration options for the client
@@ -35,8 +37,6 @@ type Options struct {
 	VHostIgnoreNumberOfWords  bool
 	VHostIgnoreNumberOfLines  bool
 	VHostStripHTML            bool
-	Allow                     []string
-	Deny                      []string
 	MaxResponseBodySizeToSave int64
 	MaxResponseBodySizeToRead int64
 	UnsafeURI                 string
@@ -44,6 +44,7 @@ type Options struct {
 	customCookies             []*http.Cookie
 	SniName                   string
 	TlsImpersonate            bool
+	NetworkPolicy             *networkpolicy.NetworkPolicy
 }
 
 // DefaultOptions contains the default options
