@@ -1589,8 +1589,11 @@ retry:
 		}
 		builder.WriteRune(']')
 	}
+	title := nil
+	if httpx.CanHaveTitleTag(resp.GetHeaderPart("Content-Type", ";")) {
+		title = httpx.ExtractTitle(resp)
+	}
 
-	title := httpx.ExtractTitle(resp)
 	if scanopts.OutputTitle {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {

@@ -40,6 +40,25 @@ func ExtractTitle(r *Response) (title string) {
 	return title
 }
 
+func CanHaveTitleTag(mimeType string) bool {
+    mimeTypes := []string{
+        "text/html",
+        "application/xhtml+xml",
+        "application/xml",
+        "application/rss+xml",
+        "application/atom+xml",
+        "application/xhtml+xml",
+        "application/vnd.wap.xhtml+xml",
+    }
+
+    for _, mt := range mimeTypes {
+        if strings.EqualFold(mt, mimeType) {
+            return true
+        }
+    }
+    return false
+}
+
 func getTitleWithDom(r *Response) (*html.Node, error) {
 	var title *html.Node
 	var crawler func(*html.Node)
