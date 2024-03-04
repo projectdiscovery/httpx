@@ -106,7 +106,7 @@ func New(options *Options) (*Runner, error) {
 		options: options,
 	}
 	var err error
-	if options.TechDetect {
+	if options.TechDetect != "false" {
 		runner.wappalyzer, err = wappalyzer.New()
 	}
 	if err != nil {
@@ -1756,7 +1756,7 @@ retry:
 	}
 
 	isCDN, cdnName, err := hp.CdnCheck(ip)
-	if scanopts.OutputCDN && isCDN && err == nil {
+	if scanopts.OutputCDN == "true" && isCDN && err == nil {
 		builder.WriteString(fmt.Sprintf(" [%s]", cdnName))
 	}
 
@@ -1765,24 +1765,24 @@ retry:
 	}
 
 	var technologies []string
-	if scanopts.TechDetect {
+	if scanopts.TechDetect != "false" {
 		matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
 		for match := range matches {
 			technologies = append(technologies, match)
 		}
+	}
 
-		if len(technologies) > 0 {
-			sort.Strings(technologies)
-			technologies := strings.Join(technologies, ",")
+	if scanopts.TechDetect == "true" && len(technologies) > 0 {
+		sort.Strings(technologies)
+		technologies := strings.Join(technologies, ",")
 
-			builder.WriteString(" [")
-			if !scanopts.OutputWithNoColor {
-				builder.WriteString(aurora.Magenta(technologies).String())
-			} else {
-				builder.WriteString(technologies)
-			}
-			builder.WriteRune(']')
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(technologies).String())
+		} else {
+			builder.WriteString(technologies)
 		}
+		builder.WriteRune(']')
 	}
 
 	var extractRegex []string
