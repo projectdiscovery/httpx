@@ -1831,10 +1831,6 @@ retry:
 		}
 	}
 
-	// adding default hashing for json output format
-	if r.options.JSONOutput && len(scanopts.Hashes) == 0 {
-		scanopts.Hashes = "md5,mmh3,sha256,simhash"
-	}
 	hashesMap := make(map[string]interface{})
 	if scanopts.Hashes != "" {
 		hs := strings.Split(scanopts.Hashes, ",")
