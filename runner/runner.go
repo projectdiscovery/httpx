@@ -2195,8 +2195,7 @@ func (r Result) CSVHeader() string { //nolint
 	ty := reflect.TypeOf(r)
 	for i := 0; i < ty.NumField(); i++ {
 		tag := ty.Field(i).Tag.Get("csv")
-
-		if ignored := tag == ""; ignored {
+		if ignored := (tag == "" || tag == "-"); ignored {
 			continue
 		}
 
@@ -2222,7 +2221,7 @@ func (r Result) CSVRow(scanopts *ScanOptions) string { //nolint
 	for i := 0; i < elem.NumField(); i++ {
 		value := elem.Field(i)
 		tag := elem.Type().Field(i).Tag.Get(`csv`)
-		if ignored := tag == ""; ignored {
+		if ignored := (tag == "" || tag == "-"); ignored {
 			continue
 		}
 
