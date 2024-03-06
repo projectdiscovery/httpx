@@ -242,6 +242,8 @@ github.com/projectdiscovery/mapcidr v1.1.16 h1:rjj1w5D6hbTsUQXYClLcGdfBEy9bryclg
 github.com/projectdiscovery/mapcidr v1.1.16/go.mod h1:rGqpBhStdwOQ2uS62QM9qPsybwMwIhT7CTd2bxoHs8Q=
 github.com/projectdiscovery/networkpolicy v0.0.7 h1:AwHqBRXBqDQgnWzBMuoJtHBNEYBw+NFp/4qIK688x7o=
 github.com/projectdiscovery/networkpolicy v0.0.7/go.mod h1:CK0CnFoLF1Nou6mY7P4WODSAxhPN8g8g7XpapgEP8tI=
+github.com/projectdiscovery/networkpolicy v0.0.8 h1:XvfBaBwSDNTesSfNQP9VLk3HX9I7x7gHm028TJ5XwI8=
+github.com/projectdiscovery/networkpolicy v0.0.8/go.mod h1:xnjNqhemxUPxU+UD5Jgsc3+K8IVmcqT1SJeo6UzMtkI=
 github.com/projectdiscovery/ratelimit v0.0.27 h1:McTgnl8CtaEPmPtb9JG7EfgaQ1Rhu0pHa0Kf5Kld6Xs=
 github.com/projectdiscovery/ratelimit v0.0.27/go.mod h1:5suG3x1d5+UV4xe2RBE/QCvQkz8CaxPvdwztjab3GzM=
 github.com/projectdiscovery/rawhttp v0.1.39 h1:UYtDx5J9wqn7OFte66viag7cL757z1HU94jCya3V70s=
@@ -258,6 +260,8 @@ github.com/projectdiscovery/useragent v0.0.38 h1:E9NB3tG2bOHizF4+1o/wlC3qOndqlQM
 github.com/projectdiscovery/useragent v0.0.38/go.mod h1:uWkTlXQRG8B31OkCZCDOZlFeUqlJhiDKlrONjCDJojY=
 github.com/projectdiscovery/utils v0.0.81 h1:Cqz6uFncCKWRLqpVHWlnHXaRE3whzH32yZJa/1zOEzU=
 github.com/projectdiscovery/utils v0.0.81/go.mod h1:pTGvF08EXa07e2OM+tu8IcnxTeAT34bzAhSW/Efcens=
+github.com/projectdiscovery/utils v0.0.82 h1:U//02floCSFxJluN7MP+rJSwI4Px7o454JL7ukERArI=
+github.com/projectdiscovery/utils v0.0.82/go.mod h1:AbmIvy0TTlsfXxPDEMaNPVrxmqDmYiCnbGqh0TTthE4=
 github.com/projectdiscovery/wappalyzergo v0.0.109 h1:BERfwTRn1dvB1tbhyc5m67R8VkC9zbVuPsEq4VEm07k=
 github.com/projectdiscovery/wappalyzergo v0.0.109/go.mod h1:4Z3DKhi75zIPMuA+qSDDWxZvnhL4qTLmDx4dxNMu7MA=
 github.com/quic-go/quic-go v0.37.7 h1:AgKsQLZ1+YCwZd2GYhBUsJDYZwEkA5gENtAjb+MxONU=
@@ -304,6 +308,8 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
+github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
+github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/syndtr/goleveldb v1.0.0 h1:fBdIW9lB4Iz0n9khmH8w27SJ3QEJ7+IgjPEwGSZiFdE=
 github.com/syndtr/goleveldb v1.0.0/go.mod h1:ZVVdQEZoIme9iO1Ch2Jdy24qqXrMMOU6lpPAyBWyWuQ=
 github.com/tidwall/assert v0.1.0 h1:aWcKyRBUAdLoVebxo95N7+YZVTFF/ASTr7BN4sLP6XI=
