@@ -187,7 +187,7 @@ func New(options *Options) (*HTTPX, error) {
 
 	httpx.htmlPolicy = bluemonday.NewPolicy()
 	httpx.CustomHeaders = httpx.Options.CustomHeaders
-	if options.CdnCheck || options.ExcludeCdn {
+	if options.CdnCheck != "false" || options.ExcludeCdn {
 		httpx.cdn = cdncheck.New()
 	}
 

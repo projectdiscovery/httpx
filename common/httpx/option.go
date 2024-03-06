@@ -15,7 +15,7 @@ type Options struct {
 	HTTPProxy        string
 	SocksProxy       string
 	Threads          int
-	CdnCheck         bool
+	CdnCheck         string
 	ExcludeCdn       bool
 	// Timeout is the maximum time to wait for the request
 	Timeout time.Duration
@@ -55,7 +55,7 @@ var DefaultOptions = Options{
 	RetryMax:     5,
 	MaxRedirects: 10,
 	Unsafe:       false,
-	CdnCheck:     true,
+	CdnCheck:     "true",
 	ExcludeCdn:   false,
 	// VHOSTs options
 	VHostIgnoreStatusCode:    false,
