@@ -9,6 +9,7 @@ import (
 
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	"golang.org/x/net/html"
+	"slices"
 )
 
 var (
