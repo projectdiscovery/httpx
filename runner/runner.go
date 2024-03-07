@@ -1589,12 +1589,13 @@ retry:
 		}
 		builder.WriteRune(']')
 	}
-	title := nil
+
+	var title string
 	if httpx.CanHaveTitleTag(resp.GetHeaderPart("Content-Type", ";")) {
 		title = httpx.ExtractTitle(resp)
 	}
 
-	if scanopts.OutputTitle {
+	if scanopts.OutputTitle && title != "" {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Cyan(title).String())
