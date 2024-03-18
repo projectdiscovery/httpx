@@ -258,8 +258,8 @@ github.com/projectdiscovery/useragent v0.0.38 h1:E9NB3tG2bOHizF4+1o/wlC3qOndqlQM
 github.com/projectdiscovery/useragent v0.0.38/go.mod h1:uWkTlXQRG8B31OkCZCDOZlFeUqlJhiDKlrONjCDJojY=
 github.com/projectdiscovery/utils v0.0.83 h1:r7OBAuEwe4lyEwTITbCEZytoxvjk/s0Xra2NT+K4fm4=
 github.com/projectdiscovery/utils v0.0.83/go.mod h1:2XFoaGD5NPUp6liTRHC2tGmMQnIhQSXscpP3zfAG7iE=
-github.com/projectdiscovery/wappalyzergo v0.0.113 h1:aoGOY3iGXX6U1RC2TAVEd/s65BESNYYIqpthZvcsZIk=
-github.com/projectdiscovery/wappalyzergo v0.0.113/go.mod h1:hc/o+fgM8KtdpFesjfBTmHTwsR+yBd+4kYZW/DGy/x8=
+github.com/projectdiscovery/wappalyzergo v0.0.114 h1:NwvsBKJrJwlZ4S5J141A+Ve7qf+d9MF8FESdpiglb4Y=
+github.com/projectdiscovery/wappalyzergo v0.0.114/go.mod h1:hc/o+fgM8KtdpFesjfBTmHTwsR+yBd+4kYZW/DGy/x8=
 github.com/quic-go/quic-go v0.37.7 h1:AgKsQLZ1+YCwZd2GYhBUsJDYZwEkA5gENtAjb+MxONU=
 github.com/quic-go/quic-go v0.37.7/go.mod h1:YsbH1r4mSHPJcLF4k4zruUkLBqctEMBDR6VPvcYjIsU=
 github.com/refraction-networking/utls v1.5.4 h1:9k6EO2b8TaOGsQ7Pl7p9w6PUhx18/ZCeT0WNTZ7Uw4o=
