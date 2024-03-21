@@ -73,7 +73,7 @@ type Result struct {
 	Words              int                    `json:"words" csv:"words"`
 	Lines              int                    `json:"lines" csv:"lines"`
 	StatusCode         int                    `json:"status_code,omitempty" csv:"status_code"`
-	ContentLength      int                    `json:"content_length,omitempty" csv:"content_length"`
+	ContentLength      int                    `json:"content_length" csv:"content_length"`
 	Failed             bool                   `json:"failed" csv:"failed"`
 	VHost              bool                   `json:"vhost,omitempty" csv:"vhost"`
 	WebSocket          bool                   `json:"websocket,omitempty" csv:"websocket"`

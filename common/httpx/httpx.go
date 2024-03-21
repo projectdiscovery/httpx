@@ -288,10 +288,12 @@ get_response:
 
 	// fill metrics
 	resp.StatusCode = httpresp.StatusCode
-	// number of words
-	resp.Words = len(strings.Split(respbodystr, " "))
-	// number of lines
-	resp.Lines = len(strings.Split(respbodystr, "\n"))
+	if respbodystr != "" {
+		// number of words
+		resp.Words = len(strings.Split(respbodystr, " "))
+		// number of lines
+		resp.Lines = len(strings.Split(strings.TrimSpace(respbodystr), "\n"))
+	}
 
 	if !h.Options.Unsafe && h.Options.TLSGrab {
 		if h.Options.ZTLS {
