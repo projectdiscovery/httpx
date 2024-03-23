@@ -89,6 +89,10 @@ func TestRunner_cidr_targets(t *testing.T) {
 }
 
 func TestRunner_asn_targets(t *testing.T) {
+	if os.Getenv("PDCP_API_KEY") == "" {
+		return
+	}
+
 	options := &Options{}
 	r, err := New(options)
 	require.Nil(t, err, "could not create httpx runner")
@@ -131,10 +135,12 @@ func TestRunner_countTargetFromRawTarget(t *testing.T) {
 	got = r.countTargetFromRawTarget(input)
 	require.Equal(t, expected, got, "got wrong output")
 
-	input = "AS14421"
-	expected = 256
-	got = r.countTargetFromRawTarget(input)
-	require.Equal(t, expected, got, "got wrong output")
+	if os.Getenv("PDCP_API_KEY") != "" {
+		input = "AS14421"
+		expected = 256
+		got = r.countTargetFromRawTarget(input)
+		require.Equal(t, expected, got, "got wrong output")
+	}
 
 	input = "173.0.84.0/24"
 	expected = 256

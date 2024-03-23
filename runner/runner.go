@@ -1590,8 +1590,12 @@ retry:
 		builder.WriteRune(']')
 	}
 
-	title := httpx.ExtractTitle(resp)
-	if scanopts.OutputTitle {
+	var title string
+	if httpx.CanHaveTitleTag(resp.GetHeaderPart("Content-Type", ";")) {
+		title = httpx.ExtractTitle(resp)
+	}
+
+	if scanopts.OutputTitle && title != "" {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Cyan(title).String())
