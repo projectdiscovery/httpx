@@ -34,7 +34,7 @@ require (
 	github.com/projectdiscovery/networkpolicy v0.0.8
 	github.com/projectdiscovery/ratelimit v0.0.27
 	github.com/projectdiscovery/rawhttp v0.1.40
-	github.com/projectdiscovery/retryablehttp-go v1.0.52
+	github.com/projectdiscovery/retryablehttp-go v1.0.53
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.38
 	github.com/projectdiscovery/utils v0.0.84
