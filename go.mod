@@ -37,7 +37,7 @@ require (
 	github.com/projectdiscovery/retryablehttp-go v1.0.54
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.38
-	github.com/projectdiscovery/utils v0.0.86
+	github.com/projectdiscovery/utils v0.0.88
 	github.com/projectdiscovery/wappalyzergo v0.0.115
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
@@ -81,6 +81,7 @@ require (
 	github.com/google/certificate-transparency-go v1.1.4 // indirect
 	github.com/google/go-github/v30 v30.1.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/uuid v1.3.1 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -111,7 +112,7 @@ require (
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
 	github.com/projectdiscovery/retryabledns v1.0.58 // indirect
 	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
-	github.com/quic-go/quic-go v0.37.7 // indirect
+	github.com/quic-go/quic-go v0.42.0 // indirect
 	github.com/refraction-networking/utls v1.5.4 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
@@ -142,6 +143,7 @@ require (
 	github.com/yuin/goldmark v1.5.4 // indirect
 	github.com/yuin/goldmark-emoji v1.0.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
+	github.com/zcalusic/sysinfo v1.0.2 // indirect
 	github.com/zmap/rc2 v0.0.0-20190804163417-abaa70531248 // indirect
 	golang.org/x/crypto v0.19.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
