@@ -230,8 +230,8 @@ github.com/projectdiscovery/freeport v0.0.5 h1:jnd3Oqsl4S8n0KuFkE5Hm8WGDP24ITBvm
 github.com/projectdiscovery/freeport v0.0.5/go.mod h1:PY0bxSJ34HVy67LHIeF3uIutiCSDwOqKD8ruBkdiCwE=
 github.com/projectdiscovery/goconfig v0.0.1 h1:36m3QjohZvemqh9bkJAakaHsm9iEZ2AcQSS18+0QX/s=
 github.com/projectdiscovery/goconfig v0.0.1/go.mod h1:CPO25zR+mzTtyBrsygqsHse0sp/4vB/PjaHi9upXlDw=
-github.com/projectdiscovery/goflags v0.1.45 h1:quDCIWRsULQHmDI1UvXptEn9cSRCeiHWT3mxB6bpxnA=
-github.com/projectdiscovery/goflags v0.1.45/go.mod h1:JBwA9GYq/7m0a9PTsfRIoPqoB4/+r59MFTVJMDhN0Ic=
+github.com/projectdiscovery/goflags v0.1.46 h1:JlYvFxJcimKJGWYbygiFBN052MWrbls/kKiwOKpLzEE=
+github.com/projectdiscovery/goflags v0.1.46/go.mod h1:X7A6ELNgczyOyEy2gyNC/tJTuhtwQk6ZLyzsnDVlZkw=
 github.com/projectdiscovery/gologger v1.1.12 h1:uX/QkQdip4PubJjjG0+uk5DtyAi1ANPJUvpmimXqv4A=
 github.com/projectdiscovery/gologger v1.1.12/go.mod h1:DI8nywPLERS5mo8QEA9E7gd5HZ3Je14SjJBH3F5/kLw=
 github.com/projectdiscovery/gostruct v0.0.2 h1:s8gP8ApugGM4go1pA+sVlPDXaWqNP5BBDDSv7VEdG1M=
@@ -256,8 +256,8 @@ github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZA
 github.com/projectdiscovery/stringsutil v0.0.2/go.mod h1:EJ3w6bC5fBYjVou6ryzodQq37D5c6qbAYQpGmAy+DC0=
 github.com/projectdiscovery/tlsx v1.1.6 h1:iw2zwKbd2+kRQ8J1G4dLmS0CLyemd/tKz1UzcNsC77A=
 github.com/projectdiscovery/tlsx v1.1.6/go.mod h1:s7SRRFdrwIZBK/RXXZi4CR/CubqFSvp8h5Bk1srEZIo=
-github.com/projectdiscovery/useragent v0.0.38 h1:E9NB3tG2bOHizF4+1o/wlC3qOndqlQMmhjkriK2Ms/E=
-github.com/projectdiscovery/useragent v0.0.38/go.mod h1:uWkTlXQRG8B31OkCZCDOZlFeUqlJhiDKlrONjCDJojY=
+github.com/projectdiscovery/useragent v0.0.45 h1:zFB8ztox2iWYEGWXW19Lj2p1BO6ElRD74rnVgkFuzJw=
+github.com/projectdiscovery/useragent v0.0.45/go.mod h1:FYMyc6w7004hpHR/FtiqzHat+f41+Ap3QPwJuA//WDM=
 github.com/projectdiscovery/utils v0.0.88 h1:oYfCXM+8VHNLyH/H6cOibkuDUwHUAOBAMRNPFX6NPrs=
 github.com/projectdiscovery/utils v0.0.88/go.mod h1:lAWzFdGXtJRPKdhUu1Z46d8B8JbASTk1Z69WY6H/3kA=
 github.com/projectdiscovery/wappalyzergo v0.0.115 h1:Xe916MBsliAWwogLHZN0qTrjyCy56PHuGUkdl0DTchk=
