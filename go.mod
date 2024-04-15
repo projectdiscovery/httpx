@@ -37,7 +37,7 @@ require (
 	github.com/projectdiscovery/retryablehttp-go v1.0.55
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.45
-	github.com/projectdiscovery/utils v0.0.88
+	github.com/projectdiscovery/utils v0.0.89
 	github.com/projectdiscovery/wappalyzergo v0.0.115
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
