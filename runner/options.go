@@ -420,7 +420,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.chainInStdout, "include-chain", false, "include redirect http chain in JSON output (-json only)"),
 		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
 		flagSet.BoolVarP(&options.StoreVisionReconClusters, "store-vision-recon-cluster", "svrc", false, "include visual recon clusters (-ss and -sr only)"),
-		flagSet.StringVarP(&options.Protocol, "protocol", "pr", "auto", "protocol to use (auto, http11)"),
+		flagSet.StringVarP(&options.Protocol, "protocol", "pr", "", "protocol to use (unknown, http11)"),
 	)
 
 	flagSet.CreateGroup("configs", "Configurations",
@@ -672,7 +672,7 @@ func (options *Options) ValidateOptions() error {
 		options.OutputCDN = "true"
 	}
 
-	if !stringsutil.EqualFoldAny(options.Protocol, string(httpx.AUTO), string(httpx.HTTP11)) {
+	if !stringsutil.EqualFoldAny(options.Protocol, string(httpx.UNKNOWN), string(httpx.HTTP11)) {
 		return fmt.Errorf("invalid protocol: %s", options.Protocol)
 	}
 
