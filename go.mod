@@ -27,7 +27,7 @@ require (
 	github.com/projectdiscovery/fastdialer v0.0.66
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
-	github.com/projectdiscovery/goflags v0.1.46
+	github.com/projectdiscovery/goflags v0.1.47
 	github.com/projectdiscovery/gologger v1.1.12
 	github.com/projectdiscovery/hmap v0.0.41
 	github.com/projectdiscovery/mapcidr v1.1.34
@@ -36,7 +36,7 @@ require (
 	github.com/projectdiscovery/rawhttp v0.1.45
 	github.com/projectdiscovery/retryablehttp-go v1.0.55
 	github.com/projectdiscovery/tlsx v1.1.6
-	github.com/projectdiscovery/useragent v0.0.45
+	github.com/projectdiscovery/useragent v0.0.46
 	github.com/projectdiscovery/utils v0.0.89
 	github.com/projectdiscovery/wappalyzergo v0.0.115
 	github.com/remeh/sizedwaitgroup v1.0.0
