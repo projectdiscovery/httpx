@@ -23,7 +23,7 @@ require (
 	github.com/projectdiscovery/asnmap v1.1.0
 	github.com/projectdiscovery/cdncheck v1.0.9
 	github.com/projectdiscovery/clistats v0.0.20
-	github.com/projectdiscovery/dsl v0.0.51
+	github.com/projectdiscovery/dsl v0.0.52
 	github.com/projectdiscovery/fastdialer v0.0.66
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
