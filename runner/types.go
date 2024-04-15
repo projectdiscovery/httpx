@@ -66,6 +66,7 @@ type Result struct {
 	Jarm               string                 `json:"jarm,omitempty" csv:"jarm"`
 	ChainStatusCodes   []int                  `json:"chain_status_codes,omitempty" csv:"chain_status_codes"`
 	A                  []string               `json:"a,omitempty" csv:"a"`
+	AAAA               []string               `json:"aaaa,omitempty" csv:"aaaa"`
 	CNAMEs             []string               `json:"cname,omitempty" csv:"cname"`
 	Technologies       []string               `json:"tech,omitempty" csv:"tech"`
 	Extracts           map[string][]string    `json:"extracts,omitempty" csv:"extracts"`

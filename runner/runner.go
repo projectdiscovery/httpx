@@ -1749,9 +1749,19 @@ retry:
 	if err != nil {
 		onlyHost = URL.Host
 	}
-	ips, cnames, err := getDNSData(hp, onlyHost)
+	allIps, cnames, err := getDNSData(hp, onlyHost)
 	if err != nil {
-		ips = append(ips, ip)
+		allIps = append(allIps, ip)
+	}
+
+	var ips4, ips6 []string
+	for _, ip := range allIps {
+		switch {
+		case iputil.IsIPv4(ip):
+			ips4 = append(ips4, ip)
+		case iputil.IsIPv6(ip):
+			ips6 = append(ips6, ip)
+		}
 	}
 
 	if scanopts.OutputCName && len(cnames) > 0 {
@@ -2041,7 +2051,8 @@ retry:
 		HTTP2:              http2,
 		Method:             method,
 		Host:               ip,
-		A:                  ips,
+		A:                  ips4,
+		AAAA:               ips6,
 		CNAMEs:             cnames,
 		CDN:                isCDN,
 		CDNName:            cdnName,
@@ -2110,7 +2121,7 @@ func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 	// search in the response of the requested path for element and rel shortcut/mask/apple-touch icon
 	// link with .ico extension (which will be prioritized if available)
 	// if not, any of link from other icons can be requested
-	potentialURLs, err := extractPotentialFavIconsURLs(req, currentResp)
+	potentialURLs, err := extractPotentialFavIconsURLs(currentResp)
 	if err != nil {
 		return "", "", err
 	}
@@ -2152,7 +2163,7 @@ func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, error) {
 	return fmt.Sprintf("%d", hashNum), nil
 }
 
-func extractPotentialFavIconsURLs(req *retryablehttp.Request, resp *httpx.Response) ([]string, error) {
+func extractPotentialFavIconsURLs(resp *httpx.Response) ([]string, error) {
 	var potentialURLs []string
 	document, err := goquery.NewDocumentFromReader(bytes.NewReader(resp.Data))
 	if err != nil {
