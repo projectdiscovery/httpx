@@ -44,6 +44,7 @@ type OnResultCallback func(Result)
 type ScanOptions struct {
 	Methods                   []string
 	StoreResponseDirectory    string
+	StoreHeaderDirectory      string
 	RequestURI                string
 	RequestBody               string
 	VHost                     bool
@@ -52,6 +53,7 @@ type ScanOptions struct {
 	OutputLocation            bool
 	OutputContentLength       bool
 	StoreResponse             bool
+	StoreHeader               bool
 	OutputServerHeader        bool
 	OutputWebSocket           bool
 	OutputWithNoColor         bool
@@ -101,6 +103,7 @@ func (s *ScanOptions) Clone() *ScanOptions {
 	return &ScanOptions{
 		Methods:                   s.Methods,
 		StoreResponseDirectory:    s.StoreResponseDirectory,
+		StoreHeaderDirectory:      s.StoreHeaderDirectory,
 		RequestURI:                s.RequestURI,
 		RequestBody:               s.RequestBody,
 		VHost:                     s.VHost,
@@ -109,6 +112,7 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		OutputLocation:            s.OutputLocation,
 		OutputContentLength:       s.OutputContentLength,
 		StoreResponse:             s.StoreResponse,
+		StoreHeader:               s.StoreHeader,
 		OutputServerHeader:        s.OutputServerHeader,
 		OutputWebSocket:           s.OutputWebSocket,
 		OutputWithNoColor:         s.OutputWithNoColor,
@@ -161,6 +165,8 @@ type Options struct {
 	Output                    string
 	OutputAll                 bool
 	StoreResponseDir          string
+	StoreHeaderDir            string
+	StoreHeader               bool
 	HTTPProxy                 string
 	SocksProxy                string
 	InputFile                 string
@@ -408,6 +414,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.OutputAll, "output-all", "oa", false, "filename to write output results in all formats"),
 		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
 		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
+		flagSet.BoolVarP(&options.StoreHeader, "store-header", "sh", false, "store http request/response(headers only) to output directory"),
+		flagSet.StringVarP(&options.StoreHeaderDir, "store-header-dir", "shd", "", "store http request/response(headers only) to custom directory"),
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in csv format"),
 		flagSet.StringVarP(&options.CSVOutputEncoding, "csv-output-encoding", "csvo", "", "define output encoding"),
 		flagSet.BoolVarP(&options.JSONOutput, "json", "j", false, "store output in JSONL(ines) format"),
@@ -655,6 +663,16 @@ func (options *Options) ValidateOptions() error {
 	if options.StoreResponseDir != "" && !options.StoreResponse {
 		gologger.Debug().Msgf("Store response directory specified, enabling \"sr\" flag automatically\n")
 		options.StoreResponse = true
+	}
+
+	if options.StoreHeader && options.StoreHeaderDir == "" {
+		gologger.Debug().Msgf("Store header directory not specified, using \"%s\"\n", DefaultOutputDirectory)
+		options.StoreHeaderDir = DefaultOutputDirectory
+	}
+
+	if options.StoreHeaderDir != "" && !options.StoreHeader {
+		gologger.Debug().Msgf("Store header directory specified, enabling \"sh\" flag automatically\n")
+		options.StoreHeader = true
 	}
 
 	if options.Hashes != "" {

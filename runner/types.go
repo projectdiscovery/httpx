@@ -83,6 +83,7 @@ type Result struct {
 	HeadlessBody       string                 `json:"headless_body,omitempty" csv:"headless_body"`
 	ScreenshotBytes    []byte                 `json:"screenshot_bytes,omitempty" csv:"screenshot_bytes"`
 	StoredResponsePath string                 `json:"stored_response_path,omitempty" csv:"stored_response_path"`
+	StoredHeaderPath   string                 `json:"stored_header_path,omitempty" csv:"stored_header_path"`
 	ScreenshotPath     string                 `json:"screenshot_path,omitempty" csv:"screenshot_path"`
 	ScreenshotPathRel  string                 `json:"screenshot_path_rel,omitempty" csv:"screenshot_path_rel"`
 	KnowledgeBase      map[string]interface{} `json:"knowledgebase,omitempty" csv:"knowledgebase"`
