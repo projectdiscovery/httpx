@@ -112,7 +112,7 @@ func New(options *Options) (*Runner, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
 	}
-	// gotta look
+
 	if options.StoreResponseDir != "" || options.StoreHeaderDir != "" {
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "response", "index.txt"))
 		os.RemoveAll(filepath.Join(options.StoreHeaderDir, "header", "index.txt"))
@@ -788,7 +788,6 @@ func (r *Runner) RunEnumeration() {
 			defer indexFile.Close() //nolint
 		}
 
-		// gotta look
 		if r.options.StoreHeaderDir != "" {
 			var err error
 			headerDirPath := filepath.Join(r.options.StoreHeaderDir, "header")
