@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -152,6 +153,12 @@ func New(options *Options) (*HTTPX, error) {
 		DisableKeepAlives: true,
 	}
 
+	if httpx.Options.Protocol == "http11" {
+		// disable http2
+		os.Setenv("GODEBUG", "http2client=0")
+		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
+	}
+
 	if httpx.Options.SniName != "" {
 		transport.TLSClientConfig.ServerName = httpx.Options.SniName
 	}
@@ -288,10 +295,12 @@ get_response:
 
 	// fill metrics
 	resp.StatusCode = httpresp.StatusCode
-	// number of words
-	resp.Words = len(strings.Split(respbodystr, " "))
-	// number of lines
-	resp.Lines = len(strings.Split(respbodystr, "\n"))
+	if respbodystr != "" {
+		// number of words
+		resp.Words = len(strings.Split(respbodystr, " "))
+		// number of lines
+		resp.Lines = len(strings.Split(strings.TrimSpace(respbodystr), "\n"))
+	}
 
 	if !h.Options.Unsafe && h.Options.TLSGrab {
 		if h.Options.ZTLS {

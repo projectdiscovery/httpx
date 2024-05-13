@@ -66,6 +66,7 @@ type Result struct {
 	Jarm               string                 `json:"jarm,omitempty" csv:"jarm"`
 	ChainStatusCodes   []int                  `json:"chain_status_codes,omitempty" csv:"chain_status_codes"`
 	A                  []string               `json:"a,omitempty" csv:"a"`
+	AAAA               []string               `json:"aaaa,omitempty" csv:"aaaa"`
 	CNAMEs             []string               `json:"cname,omitempty" csv:"cname"`
 	Technologies       []string               `json:"tech,omitempty" csv:"tech"`
 	Extracts           map[string][]string    `json:"extracts,omitempty" csv:"extracts"`
@@ -73,7 +74,7 @@ type Result struct {
 	Words              int                    `json:"words" csv:"words"`
 	Lines              int                    `json:"lines" csv:"lines"`
 	StatusCode         int                    `json:"status_code,omitempty" csv:"status_code"`
-	ContentLength      int                    `json:"content_length,omitempty" csv:"content_length"`
+	ContentLength      int                    `json:"content_length" csv:"content_length"`
 	Failed             bool                   `json:"failed" csv:"failed"`
 	VHost              bool                   `json:"vhost,omitempty" csv:"vhost"`
 	WebSocket          bool                   `json:"websocket,omitempty" csv:"websocket"`
