@@ -108,13 +108,13 @@ PROBES:
    -title                display page title
    -bp, -body-preview    display first N characters of response body (default 100)
    -server, -web-server  display server name
-   -td, -tech-detect     display technology in use based on wappalyzer dataset
+   -td, -tech-detect     display technology in use based on wappalyzer dataset (default true)
    -method               display http request method
    -websocket            display server using websocket
    -ip                   display host ip
    -cname                display host cname
    -asn                  display host asn information
-   -cdn                  display cdn/waf in use
+   -cdn                  display cdn/waf in use (default true)
    -probe                display probe status
 
 HEADLESS:
@@ -133,13 +133,13 @@ MATCHERS:
    -mfc, -match-favicon string[]      match response with specified favicon hash (-mfc 1494302000)
    -ms, -match-string string          match response with specified string (-ms admin)
    -mr, -match-regex string           match response with specified regex (-mr admin)
-   -mcdn, -match-cdn string[]         match host with specified cdn provider (cloudfront, fastly, google, leaseweb, stackpath)
+   -mcdn, -match-cdn string[]         match host with specified cdn provider (stackpath, cloudfront, fastly, google, leaseweb)
    -mrt, -match-response-time string  match response with specified response time in seconds (-mrt '< 1')
    -mdc, -match-condition string      match response with dsl expression condition
 
 EXTRACTOR:
    -er, -extract-regex string[]   display response content with matched regex
-   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (url,ipv4,mail)
+   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (ipv4,mail,url)
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
@@ -150,7 +150,7 @@ FILTERS:
    -ffc, -filter-favicon string[]      filter response with specified favicon hash (-ffc 1494302000)
    -fs, -filter-string string          filter response with specified string (-fs admin)
    -fe, -filter-regex string           filter response with specified regex (-fe admin)
-   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (cloudfront, fastly, google, leaseweb, stackpath)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (stackpath, cloudfront, fastly, google, leaseweb)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
    -fdc, -filter-condition string      filter response with dsl expression condition
    -strip                              strips all tags in response. supported formats: html,xml (default html)
@@ -181,6 +181,8 @@ OUTPUT:
    -oa, -output-all                    filename to write output results in all formats
    -sr, -store-response                store http response to output directory
    -srd, -store-response-dir string    store http response to custom directory
+   -sh, -store-header                  store http request/response(headers only) to output directory
+   -shd, -store-header-dir string      store http request/response(headers only) to custom directory
    -csv                                store output in csv format
    -csvo, -csv-output-encoding string  define output encoding
    -j, -json                           store output in JSONL(ines) format
@@ -190,9 +192,11 @@ OUTPUT:
    -include-chain                      include redirect http chain in JSON output (-json only)
    -store-chain                        include http redirect chain in responses (-sr only)
    -svrc, -store-vision-recon-cluster  include visual recon clusters (-ss and -sr only)
+   -pr, -protocol string               protocol to use (unknown, http11)
 
 CONFIGURATIONS:
    -config string                path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
+   -auth                         configure projectdiscovery cloud (pdcp) api key (default true)
    -r, -resolvers string[]       list of custom resolver (file or comma separated)
    -allow string[]               allowed list of IP/CIDR's to process (file or comma separated)
    -deny string[]                denied list of IP/CIDR's to process (file or comma separated)
@@ -232,7 +236,7 @@ DEBUG:
 
 OPTIMIZATIONS:
    -nf, -no-fallback                  display both probed protocol (HTTPS and HTTP)
-   -nfs, -no-fallback-scheme          probe with protocol scheme specified in input 
+   -nfs, -no-fallback-scheme          probe with protocol scheme specified in input
    -maxhr, -max-host-error int        max error count per host before skipping remaining path/s (default 30)
    -e, -exclude string[]              exclude host matching specified filter ('cdn', 'private-ips', cidr, ip, regex)
    -retries int                       number of retries
