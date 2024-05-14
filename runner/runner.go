@@ -1778,25 +1778,14 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", resp.Duration))
 	}
 
+	technologyDetails := make(map[string]wappalyzer.AppInfo)
 	var technologies []string
 	if scanopts.TechDetect != "false" {
-		matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
-		for match := range matches {
+		matches := r.wappalyzer.FingerprintWithInfo(resp.Headers, resp.Data)
+		for match, data := range matches {
 			technologies = append(technologies, match)
+			technologyDetails[match] = data
 		}
-	}
-
-	if scanopts.TechDetect == "true" && len(technologies) > 0 {
-		sort.Strings(technologies)
-		technologies := strings.Join(technologies, ",")
-
-		builder.WriteString(" [")
-		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Magenta(technologies).String())
-		} else {
-			builder.WriteString(technologies)
-		}
-		builder.WriteRune(']')
 	}
 
 	var extractRegex []string
@@ -2012,6 +2001,15 @@ retry:
 				gologger.Warning().Msgf("%v: %s", err, fullURL)
 			}
 
+			// As we now have headless body, we can also use it for detecting
+			// more technologies in the response. This is a quick trick to get
+			// more detected technologies.
+			moreMatches := r.wappalyzer.FingerprintWithInfo(resp.Headers, []byte(headlessBody))
+			for match, data := range moreMatches {
+				technologies = append(technologies, match)
+				technologyDetails[match] = data
+			}
+			technologies = sliceutil.Dedupe(technologies)
 		}
 		if scanopts.NoScreenshotBytes {
 			screenshotBytes = []byte{}
@@ -2020,6 +2018,21 @@ retry:
 			headlessBody = ""
 		}
 	}
+
+	if scanopts.TechDetect == "true" && len(technologies) > 0 {
+		sort.Strings(technologies)
+		technologies := strings.Join(technologies, ",")
+
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(technologies).String())
+		} else {
+			builder.WriteString(technologies)
+		}
+		builder.WriteRune(']')
+	}
+
+	// We now have headless body. We can use it for tech detection
 
 	result := Result{
 		Timestamp:          time.Now(),
@@ -2077,6 +2090,7 @@ retry:
 			"PageType": r.errorPageClassifier.Classify(respData),
 			"pHash":    pHash,
 		},
+		TechnologyDetails: technologyDetails,
 	}
 	return result
 }

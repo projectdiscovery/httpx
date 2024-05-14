@@ -14,6 +14,7 @@ import (
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 	mapsutil "github.com/projectdiscovery/utils/maps"
+	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 
 	"github.com/projectdiscovery/httpx/common/httpx"
 )
@@ -87,6 +88,8 @@ type Result struct {
 	ScreenshotPath     string                 `json:"screenshot_path,omitempty" csv:"screenshot_path"`
 	ScreenshotPathRel  string                 `json:"screenshot_path_rel,omitempty" csv:"screenshot_path_rel"`
 	KnowledgeBase      map[string]interface{} `json:"knowledgebase,omitempty" csv:"knowledgebase"`
+
+	TechnologyDetails map[string]wappalyzer.AppInfo `json:"-" csv:"-"`
 }
 
 // function to get dsl variables from result struct
