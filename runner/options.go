@@ -76,7 +76,7 @@ type ScanOptions struct {
 	PreferHTTPS               bool
 	NoFallback                bool
 	NoFallbackScheme          bool
-	TechDetect                string
+	TechDetect                bool
 	StoreChain                bool
 	StoreVisionReconClusters  bool
 	MaxResponseBodySizeToSave int
@@ -231,7 +231,7 @@ type Options struct {
 	OutputResponseTime        bool
 	NoFallback                bool
 	NoFallbackScheme          bool
-	TechDetect                string
+	TechDetect                bool
 	TLSGrab                   bool
 	protocol                  string
 	ShowStatistics            bool
@@ -330,7 +330,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.ExtractTitle, "title", false, "display page title"),
 		flagSet.DynamicVarP(&options.ResponseBodyPreviewSize, "body-preview", "bp", 100, "display first N characters of response body"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
-		flagSet.DynamicVarP(&options.TechDetect, "tech-detect", "td", "true", "display technology in use based on wappalyzer dataset"),
+		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
 		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
