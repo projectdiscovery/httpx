@@ -74,7 +74,7 @@ func (h *httpxLibraryWithStream) Execute() error {
 		RateLimit:  150,
 		Retries:    2,
 		Timeout:    10,
-		TechDetect: "true",
+		TechDetect: true,
 		Stream:     true,
 		SkipDedupe: true,
 		OnResult: func(r runner.Result) {
