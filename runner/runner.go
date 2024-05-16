@@ -106,7 +106,7 @@ func New(options *Options) (*Runner, error) {
 		options: options,
 	}
 	var err error
-	if options.TechDetect != "false" {
+	if options.TechDetect {
 		runner.wappalyzer, err = wappalyzer.New()
 	}
 	if err != nil {
@@ -1780,7 +1780,7 @@ retry:
 
 	technologyDetails := make(map[string]wappalyzer.AppInfo)
 	var technologies []string
-	if scanopts.TechDetect != "false" {
+	if scanopts.TechDetect {
 		matches := r.wappalyzer.FingerprintWithInfo(resp.Headers, resp.Data)
 		for match, data := range matches {
 			technologies = append(technologies, match)
@@ -2019,7 +2019,7 @@ retry:
 		}
 	}
 
-	if scanopts.TechDetect == "true" && len(technologies) > 0 {
+	if scanopts.TechDetect && len(technologies) > 0 {
 		sort.Strings(technologies)
 		technologies := strings.Join(technologies, ",")
 
