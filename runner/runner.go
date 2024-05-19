@@ -106,7 +106,7 @@ func New(options *Options) (*Runner, error) {
 		options: options,
 	}
 	var err error
-	if options.TechDetect != "false" {
+	if options.TechDetect {
 		runner.wappalyzer, err = wappalyzer.New()
 	}
 	if err != nil {
@@ -1590,8 +1590,12 @@ retry:
 		builder.WriteRune(']')
 	}
 
-	title := httpx.ExtractTitle(resp)
-	if scanopts.OutputTitle {
+	var title string
+	if httpx.CanHaveTitleTag(resp.GetHeaderPart("Content-Type", ";")) {
+		title = httpx.ExtractTitle(resp)
+	}
+
+	if scanopts.OutputTitle && title != "" {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Cyan(title).String())
@@ -1745,9 +1749,19 @@ retry:
 	if err != nil {
 		onlyHost = URL.Host
 	}
-	ips, cnames, err := getDNSData(hp, onlyHost)
+	allIps, cnames, err := getDNSData(hp, onlyHost)
 	if err != nil {
-		ips = append(ips, ip)
+		allIps = append(allIps, ip)
+	}
+
+	var ips4, ips6 []string
+	for _, ip := range allIps {
+		switch {
+		case iputil.IsIPv4(ip):
+			ips4 = append(ips4, ip)
+		case iputil.IsIPv6(ip):
+			ips6 = append(ips6, ip)
+		}
 	}
 
 	if scanopts.OutputCName && len(cnames) > 0 {
@@ -1764,25 +1778,14 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", resp.Duration))
 	}
 
+	technologyDetails := make(map[string]wappalyzer.AppInfo)
 	var technologies []string
-	if scanopts.TechDetect != "false" {
-		matches := r.wappalyzer.Fingerprint(resp.Headers, resp.Data)
-		for match := range matches {
+	if scanopts.TechDetect {
+		matches := r.wappalyzer.FingerprintWithInfo(resp.Headers, resp.Data)
+		for match, data := range matches {
 			technologies = append(technologies, match)
+			technologyDetails[match] = data
 		}
-	}
-
-	if scanopts.TechDetect == "true" && len(technologies) > 0 {
-		sort.Strings(technologies)
-		technologies := strings.Join(technologies, ",")
-
-		builder.WriteString(" [")
-		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Magenta(technologies).String())
-		} else {
-			builder.WriteString(technologies)
-		}
-		builder.WriteRune(']')
 	}
 
 	var extractRegex []string
@@ -1998,6 +2001,15 @@ retry:
 				gologger.Warning().Msgf("%v: %s", err, fullURL)
 			}
 
+			// As we now have headless body, we can also use it for detecting
+			// more technologies in the response. This is a quick trick to get
+			// more detected technologies.
+			moreMatches := r.wappalyzer.FingerprintWithInfo(resp.Headers, []byte(headlessBody))
+			for match, data := range moreMatches {
+				technologies = append(technologies, match)
+				technologyDetails[match] = data
+			}
+			technologies = sliceutil.Dedupe(technologies)
 		}
 		if scanopts.NoScreenshotBytes {
 			screenshotBytes = []byte{}
@@ -2006,6 +2018,21 @@ retry:
 			headlessBody = ""
 		}
 	}
+
+	if scanopts.TechDetect && len(technologies) > 0 {
+		sort.Strings(technologies)
+		technologies := strings.Join(technologies, ",")
+
+		builder.WriteString(" [")
+		if !scanopts.OutputWithNoColor {
+			builder.WriteString(aurora.Magenta(technologies).String())
+		} else {
+			builder.WriteString(technologies)
+		}
+		builder.WriteRune(']')
+	}
+
+	// We now have headless body. We can use it for tech detection
 
 	result := Result{
 		Timestamp:          time.Now(),
@@ -2037,7 +2064,8 @@ retry:
 		HTTP2:              http2,
 		Method:             method,
 		Host:               ip,
-		A:                  ips,
+		A:                  ips4,
+		AAAA:               ips6,
 		CNAMEs:             cnames,
 		CDN:                isCDN,
 		CDNName:            cdnName,
@@ -2062,6 +2090,7 @@ retry:
 			"PageType": r.errorPageClassifier.Classify(respData),
 			"pHash":    pHash,
 		},
+		TechnologyDetails: technologyDetails,
 	}
 	return result
 }
@@ -2106,7 +2135,7 @@ func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 	// search in the response of the requested path for element and rel shortcut/mask/apple-touch icon
 	// link with .ico extension (which will be prioritized if available)
 	// if not, any of link from other icons can be requested
-	potentialURLs, err := extractPotentialFavIconsURLs(req, currentResp)
+	potentialURLs, err := extractPotentialFavIconsURLs(currentResp)
 	if err != nil {
 		return "", "", err
 	}
@@ -2148,7 +2177,7 @@ func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, error) {
 	return fmt.Sprintf("%d", hashNum), nil
 }
 
-func extractPotentialFavIconsURLs(req *retryablehttp.Request, resp *httpx.Response) ([]string, error) {
+func extractPotentialFavIconsURLs(resp *httpx.Response) ([]string, error) {
 	var potentialURLs []string
 	document, err := goquery.NewDocumentFromReader(bytes.NewReader(resp.Data))
 	if err != nil {

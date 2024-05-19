@@ -45,6 +45,7 @@ type Options struct {
 	SniName                   string
 	TlsImpersonate            bool
 	NetworkPolicy             *networkpolicy.NetworkPolicy
+	Protocol                  Proto
 }
 
 // DefaultOptions contains the default options

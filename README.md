@@ -114,7 +114,7 @@ PROBES:
    -ip                   display host ip
    -cname                display host cname
    -asn                  display host asn information
-   -cdn                  display cdn/waf in use
+   -cdn                  display cdn/waf in use (default true)
    -probe                display probe status
 
 HEADLESS:
@@ -139,7 +139,7 @@ MATCHERS:
 
 EXTRACTOR:
    -er, -extract-regex string[]   display response content with matched regex
-   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (url,ipv4,mail)
+   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (mail,url,ipv4)
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
@@ -190,9 +190,11 @@ OUTPUT:
    -include-chain                      include redirect http chain in JSON output (-json only)
    -store-chain                        include http redirect chain in responses (-sr only)
    -svrc, -store-vision-recon-cluster  include visual recon clusters (-ss and -sr only)
+   -pr, -protocol string               protocol to use (unknown, http11)
 
 CONFIGURATIONS:
    -config string                path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
+   -auth                         configure projectdiscovery cloud (pdcp) api key (default true)
    -r, -resolvers string[]       list of custom resolver (file or comma separated)
    -allow string[]               allowed list of IP/CIDR's to process (file or comma separated)
    -deny string[]                denied list of IP/CIDR's to process (file or comma separated)
