@@ -2004,12 +2004,14 @@ retry:
 			// As we now have headless body, we can also use it for detecting
 			// more technologies in the response. This is a quick trick to get
 			// more detected technologies.
-			moreMatches := r.wappalyzer.FingerprintWithInfo(resp.Headers, []byte(headlessBody))
-			for match, data := range moreMatches {
-				technologies = append(technologies, match)
-				technologyDetails[match] = data
+			if r.options.TechDetect {
+				moreMatches := r.wappalyzer.FingerprintWithInfo(resp.Headers, []byte(headlessBody))
+				for match, data := range moreMatches {
+					technologies = append(technologies, match)
+					technologyDetails[match] = data
+				}
+				technologies = sliceutil.Dedupe(technologies)
 			}
-			technologies = sliceutil.Dedupe(technologies)
 		}
 		if scanopts.NoScreenshotBytes {
 			screenshotBytes = []byte{}
