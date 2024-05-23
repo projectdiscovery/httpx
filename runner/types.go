@@ -88,6 +88,7 @@ type Result struct {
 	ScreenshotPath     string                 `json:"screenshot_path,omitempty" csv:"screenshot_path"`
 	ScreenshotPathRel  string                 `json:"screenshot_path_rel,omitempty" csv:"screenshot_path_rel"`
 	KnowledgeBase      map[string]interface{} `json:"knowledgebase,omitempty" csv:"knowledgebase"`
+	Resolvers          []string               `json:"resolvers,omitempty" csv:"resolvers"`
 
 	TechnologyDetails map[string]wappalyzer.AppInfo `json:"-" csv:"-"`
 }
