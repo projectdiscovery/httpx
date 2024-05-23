@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/projectdiscovery/httpx/common/slice"
+	mapsutil "github.com/projectdiscovery/utils/maps"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 )
 
@@ -49,7 +49,7 @@ func (h *HTTPX) CSPGrab(r *Response) *CSPData {
 	}
 
 	if len(domains) > 0 {
-		return &CSPData{Domains: slice.ToSlice(domains)}
+		return &CSPData{Domains: mapsutil.GetKeys(domains)}
 	}
 	return nil
 }

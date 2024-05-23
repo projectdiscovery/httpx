@@ -90,7 +90,10 @@ type Result struct {
 	KnowledgeBase      map[string]interface{} `json:"knowledgebase,omitempty" csv:"knowledgebase"`
 	Resolvers          []string               `json:"resolvers,omitempty" csv:"resolvers"`
 
+	// Internal Fields
 	TechnologyDetails map[string]wappalyzer.AppInfo `json:"-" csv:"-"`
+	RequestRaw        []byte                        `json:"-" csv:"-"`
+	Response          *httpx.Response               `json:"-" csv:"-"`
 }
 
 // function to get dsl variables from result struct
