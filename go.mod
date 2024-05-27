@@ -32,7 +32,7 @@ require (
 	github.com/projectdiscovery/hmap v0.0.42
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.8
-	github.com/projectdiscovery/ratelimit v0.0.40
+	github.com/projectdiscovery/ratelimit v0.0.43
 	github.com/projectdiscovery/rawhttp v0.1.50
 	github.com/projectdiscovery/retryablehttp-go v1.0.61
 	github.com/projectdiscovery/tlsx v1.1.6
@@ -150,6 +150,7 @@ require (
 	golang.org/x/oauth2 v0.11.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/term v0.20.0 // indirect
+	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.13.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
