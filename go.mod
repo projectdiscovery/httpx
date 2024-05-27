@@ -24,7 +24,7 @@ require (
 	github.com/projectdiscovery/cdncheck v1.0.9
 	github.com/projectdiscovery/clistats v0.0.20
 	github.com/projectdiscovery/dsl v0.1.0
-	github.com/projectdiscovery/fastdialer v0.0.71
+	github.com/projectdiscovery/fastdialer v0.1.0
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.53
@@ -37,7 +37,7 @@ require (
 	github.com/projectdiscovery/retryablehttp-go v1.0.61
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.53
-	github.com/projectdiscovery/utils v0.0.94
+	github.com/projectdiscovery/utils v0.1.0
 	github.com/projectdiscovery/wappalyzergo v0.1.1
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
@@ -110,7 +110,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.5 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.59 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.60 // indirect
 	github.com/quic-go/quic-go v0.42.0 // indirect
 	github.com/refraction-networking/utls v1.5.4 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
