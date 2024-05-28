@@ -1308,7 +1308,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 				results <- httpx.Target{Host: target}
 				return
 			}
-			ips, _, err := getDNSData(hp, URL.Host)
+			ips, _, _, err := getDNSData(hp, URL.Host)
 			if err != nil || len(ips) == 0 {
 				results <- httpx.Target{Host: target}
 				return
@@ -1749,7 +1749,7 @@ retry:
 	if err != nil {
 		onlyHost = URL.Host
 	}
-	allIps, cnames, err := getDNSData(hp, onlyHost)
+	allIps, cnames, resolvers, err := getDNSData(hp, onlyHost)
 	if err != nil {
 		allIps = append(allIps, ip)
 	}
@@ -2004,12 +2004,14 @@ retry:
 			// As we now have headless body, we can also use it for detecting
 			// more technologies in the response. This is a quick trick to get
 			// more detected technologies.
-			moreMatches := r.wappalyzer.FingerprintWithInfo(resp.Headers, []byte(headlessBody))
-			for match, data := range moreMatches {
-				technologies = append(technologies, match)
-				technologyDetails[match] = data
+			if r.options.TechDetect {
+				moreMatches := r.wappalyzer.FingerprintWithInfo(resp.Headers, []byte(headlessBody))
+				for match, data := range moreMatches {
+					technologies = append(technologies, match)
+					technologyDetails[match] = data
+				}
+				technologies = sliceutil.Dedupe(technologies)
 			}
-			technologies = sliceutil.Dedupe(technologies)
 		}
 		if scanopts.NoScreenshotBytes {
 			screenshotBytes = []byte{}
@@ -2091,6 +2093,7 @@ retry:
 			"pHash":    pHash,
 		},
 		TechnologyDetails: technologyDetails,
+		Resolvers:         resolvers,
 	}
 	return result
 }
@@ -2314,15 +2317,16 @@ func (r *Runner) parseURL(url string) (*urlutil.URL, error) {
 	return urlx, err
 }
 
-func getDNSData(hp *httpx.HTTPX, hostname string) (ips, cnames []string, err error) {
+func getDNSData(hp *httpx.HTTPX, hostname string) (ips, cnames, resolvers []string, err error) {
 	dnsData, err := hp.Dialer.GetDNSData(hostname)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	ips = make([]string, 0, len(dnsData.A)+len(dnsData.AAAA))
 	ips = append(ips, dnsData.A...)
 	ips = append(ips, dnsData.AAAA...)
 	cnames = dnsData.CNAME
+	resolvers = append(resolvers, dnsData.Resolver...)
 	return
 }
 

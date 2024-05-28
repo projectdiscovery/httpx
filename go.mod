@@ -23,22 +23,22 @@ require (
 	github.com/projectdiscovery/asnmap v1.1.0
 	github.com/projectdiscovery/cdncheck v1.0.9
 	github.com/projectdiscovery/clistats v0.0.20
-	github.com/projectdiscovery/dsl v0.0.56
-	github.com/projectdiscovery/fastdialer v0.0.71
+	github.com/projectdiscovery/dsl v0.1.0
+	github.com/projectdiscovery/fastdialer v0.1.0
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
-	github.com/projectdiscovery/goflags v0.1.52
+	github.com/projectdiscovery/goflags v0.1.53
 	github.com/projectdiscovery/gologger v1.1.12
-	github.com/projectdiscovery/hmap v0.0.42
+	github.com/projectdiscovery/hmap v0.0.44
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.8
-	github.com/projectdiscovery/ratelimit v0.0.40
-	github.com/projectdiscovery/rawhttp v0.1.49
-	github.com/projectdiscovery/retryablehttp-go v1.0.59
+	github.com/projectdiscovery/ratelimit v0.0.43
+	github.com/projectdiscovery/rawhttp v0.1.50
+	github.com/projectdiscovery/retryablehttp-go v1.0.61
 	github.com/projectdiscovery/tlsx v1.1.6
-	github.com/projectdiscovery/useragent v0.0.48
-	github.com/projectdiscovery/utils v0.0.92
-	github.com/projectdiscovery/wappalyzergo v0.1.0
+	github.com/projectdiscovery/useragent v0.0.53
+	github.com/projectdiscovery/utils v0.1.0
+	github.com/projectdiscovery/wappalyzergo v0.1.1
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
@@ -110,8 +110,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.5 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.59 // indirect
-	github.com/projectdiscovery/stringsutil v0.0.2 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.60 // indirect
 	github.com/quic-go/quic-go v0.42.0 // indirect
 	github.com/refraction-networking/utls v1.5.4 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
@@ -150,6 +149,7 @@ require (
 	golang.org/x/oauth2 v0.11.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/term v0.20.0 // indirect
+	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.13.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
