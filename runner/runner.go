@@ -106,7 +106,7 @@ func New(options *Options) (*Runner, error) {
 		options: options,
 	}
 	var err error
-	if options.TechDetect {
+	if options.TechDetect != "false" {
 		runner.wappalyzer, err = wappalyzer.New()
 	}
 	if err != nil {
@@ -1780,7 +1780,7 @@ retry:
 
 	technologyDetails := make(map[string]wappalyzer.AppInfo)
 	var technologies []string
-	if scanopts.TechDetect {
+	if scanopts.TechDetect != "false" {
 		matches := r.wappalyzer.FingerprintWithInfo(resp.Headers, resp.Data)
 		for match, data := range matches {
 			technologies = append(technologies, match)
@@ -2004,7 +2004,7 @@ retry:
 			// As we now have headless body, we can also use it for detecting
 			// more technologies in the response. This is a quick trick to get
 			// more detected technologies.
-			if r.options.TechDetect {
+			if r.options.TechDetect != "false" {
 				moreMatches := r.wappalyzer.FingerprintWithInfo(resp.Headers, []byte(headlessBody))
 				for match, data := range moreMatches {
 					technologies = append(technologies, match)
@@ -2020,8 +2020,7 @@ retry:
 			headlessBody = ""
 		}
 	}
-
-	if scanopts.TechDetect && len(technologies) > 0 {
+	if scanopts.TechDetect == "true" && len(technologies) > 0 {
 		sort.Strings(technologies)
 		technologies := strings.Join(technologies, ",")
 
