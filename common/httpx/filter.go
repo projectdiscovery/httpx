@@ -2,7 +2,8 @@ package httpx
 
 import (
 	"regexp"
-	"strings"
+
+	stringsutil "github.com/projectdiscovery/utils/strings"
 )
 
 // Filter defines a generic filter interface to apply to responses
@@ -17,13 +18,7 @@ type FilterString struct {
 
 // Filter a response with strings filtering
 func (f FilterString) Filter(response *Response) (bool, error) {
-	for _, keyword := range f.Keywords {
-		if strings.Contains(response.Raw, keyword) {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return stringsutil.ContainsAnyI(response.Raw, f.Keywords...), nil
 }
 
 // FilterRegex defines a filter of type regex
