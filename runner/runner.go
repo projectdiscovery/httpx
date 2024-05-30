@@ -157,6 +157,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.UnsafeURI = options.RequestURI
 	httpxOptions.CdnCheck = options.OutputCDN
 	httpxOptions.ExcludeCdn = runner.excludeCdn
+	httpxOptions.ExtractFqdn = options.ExtractFqdn
 	if options.CustomHeaders.Has("User-Agent:") {
 		httpxOptions.RandomAgent = false
 	} else {
@@ -874,11 +875,7 @@ func (r *Runner) RunEnumeration() {
 			if r.options.OnResult != nil {
 				r.options.OnResult(resp)
 			}
-			// Set body domains and fqdns
-			if r.options.ExtractFqdn && resp.CSPData != nil {
-				resp.BodyDomains = resp.CSPData.Domains
-				resp.BodyFqdns = resp.CSPData.Fqdns
-			}
+
 			// store responses or chain in directory
 			URL, _ := urlutil.Parse(resp.URL)
 			domainFile := resp.Method + ":" + URL.EscapedString()

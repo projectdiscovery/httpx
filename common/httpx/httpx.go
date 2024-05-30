@@ -311,7 +311,9 @@ get_response:
 		}
 	}
 
-	resp.CSPData = h.CSPGrab(&resp)
+	if h.Options.ExtractFqdn {
+		resp.CSPData = h.CSPGrab(&resp)
+	}
 
 	// build the redirect flow by reverse cycling the response<-request chain
 	if !h.Options.Unsafe {

@@ -17,6 +17,7 @@ type Options struct {
 	Threads          int
 	CdnCheck         string
 	ExcludeCdn       bool
+	ExtractFqdn      bool
 	// Timeout is the maximum time to wait for the request
 	Timeout time.Duration
 	// RetryMax is the maximum number of retries
