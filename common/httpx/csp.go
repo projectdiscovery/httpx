@@ -91,9 +91,18 @@ func extractDomain(str string) string {
 }
 
 func removeWildcards(domain string) string {
+	if stringsutil.HasPrefixAny(domain, "'", "\"") {
+		domain = domain[1:]
+	}
+	if stringsutil.HasSuffixAny(domain, "'", "\"") {
+		domain = domain[:len(domain)-1]
+	}
+	if strings.Contains(domain, "://") {
+		domain = strings.Split(domain, "://")[1]
+	}
 	parts := []string{}
 	for _, part := range strings.Split(domain, ".") {
-		if part != "*" {
+		if !strings.Contains(part, "*") {
 			parts = append(parts, part)
 		}
 	}
