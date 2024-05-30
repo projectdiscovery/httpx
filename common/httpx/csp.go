@@ -66,7 +66,9 @@ func parsePotentialDomains(fqdns, domains map[string]struct{}, data string) {
 		if isPotentialDomain(t) {
 			if dn, err := publicsuffix.Parse(extractDomain(t)); err == nil {
 				domains[dn.SLD+"."+dn.TLD] = struct{}{}
-				fqdns[dn.String()] = struct{}{}
+				if dn.TRD != "" {
+					fqdns[dn.String()] = struct{}{}
+				}
 			}
 		}
 	}
