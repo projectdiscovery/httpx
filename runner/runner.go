@@ -1262,7 +1262,9 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 						}
 						if scanopts.CSPProbe && result.CSPData != nil {
 							scanopts.CSPProbe = false
-							for _, tt := range result.CSPData.Domains {
+							domains := result.CSPData.Domains
+							domains = append(domains, result.CSPData.Fqdns...)
+							for _, tt := range domains {
 								if !r.testAndSet(tt) {
 									continue
 								}
