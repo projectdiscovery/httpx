@@ -221,6 +221,7 @@ type Options struct {
 	OutputContentType         bool
 	OutputIP                  bool
 	OutputCName               bool
+	ExtractFqdn               bool
 	Unsafe                    bool
 	Debug                     bool
 	DebugRequests             bool
@@ -335,6 +336,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
 		flagSet.BoolVar(&options.OutputCName, "cname", false, "display host cname"),
+		flagSet.BoolVarP(&options.ExtractFqdn, "efqdn", "extract-fqdn", false, "get domain and subdomains from response body and header in jsonl/csv output"),
 		flagSet.BoolVar(&options.Asn, "asn", false, "display host asn information"),
 		flagSet.DynamicVar(&options.OutputCDN, "cdn", "true", "display cdn/waf in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),

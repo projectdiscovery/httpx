@@ -21,7 +21,7 @@ var CSPHeaders = []string{
 
 // CSPData contains the Content-Security-Policy domain list
 type CSPData struct {
-	Fqdns   []string `json:"fqdns,omitempty"`
+	Fqdns   []string `json:"fqdn,omitempty"`
 	Domains []string `json:"domains,omitempty"`
 }
 

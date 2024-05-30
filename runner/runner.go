@@ -874,7 +874,11 @@ func (r *Runner) RunEnumeration() {
 			if r.options.OnResult != nil {
 				r.options.OnResult(resp)
 			}
-
+			// Set body domains and fqdns
+			if r.options.ExtractFqdn && resp.CSPData != nil {
+				resp.BodyDomains = resp.CSPData.Domains
+				resp.BodyFqdns = resp.CSPData.Fqdns
+			}
 			// store responses or chain in directory
 			URL, _ := urlutil.Parse(resp.URL)
 			domainFile := resp.Method + ":" + URL.EscapedString()

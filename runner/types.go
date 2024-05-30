@@ -36,6 +36,8 @@ type Result struct {
 	ASN                *AsnResponse           `json:"asn,omitempty" csv:"asn"`
 	Err                error                  `json:"-" csv:"-"`
 	CSPData            *httpx.CSPData         `json:"csp,omitempty" csv:"csp"`
+	BodyFqdns          []string               `json:"body_fqdn,omitempty" csv:"body_fqdn"`
+	BodyDomains        []string               `json:"body_domains,omitempty" csv:"body_domains"`
 	TLSData            *clients.Response      `json:"tls,omitempty" csv:"tls"`
 	Hashes             map[string]interface{} `json:"hash,omitempty" csv:"hash"`
 	ExtractRegex       []string               `json:"extract_regex,omitempty" csv:"extract_regex"`
