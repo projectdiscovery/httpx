@@ -42,7 +42,6 @@ func (r *Response) GetHeader(name string) string {
 	if ok {
 		return strings.Join(v, " ")
 	}
-
 	return ""
 }
 

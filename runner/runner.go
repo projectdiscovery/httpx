@@ -157,6 +157,7 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.UnsafeURI = options.RequestURI
 	httpxOptions.CdnCheck = options.OutputCDN
 	httpxOptions.ExcludeCdn = runner.excludeCdn
+	httpxOptions.ExtractFqdn = options.ExtractFqdn
 	if options.CustomHeaders.Has("User-Agent:") {
 		httpxOptions.RandomAgent = false
 	} else {
@@ -1258,7 +1259,9 @@ func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.
 						}
 						if scanopts.CSPProbe && result.CSPData != nil {
 							scanopts.CSPProbe = false
-							for _, tt := range result.CSPData.Domains {
+							domains := result.CSPData.Domains
+							domains = append(domains, result.CSPData.Fqdns...)
+							for _, tt := range domains {
 								if !r.testAndSet(tt) {
 									continue
 								}
