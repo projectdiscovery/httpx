@@ -38,7 +38,7 @@ require (
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.53
 	github.com/projectdiscovery/utils v0.1.0
-	github.com/projectdiscovery/wappalyzergo v0.1.1
+	github.com/projectdiscovery/wappalyzergo v0.1.3
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
@@ -51,6 +51,8 @@ require (
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.15.0
 )
+
+require github.com/weppos/publicsuffix-go v0.30.1-0.20230422193905-8fecedd899db
 
 require (
 	aead.dev/minisign v0.2.0 // indirect
@@ -131,7 +133,6 @@ require (
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
-	github.com/weppos/publicsuffix-go v0.30.1-0.20230422193905-8fecedd899db // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/yl2chen/cidranger v1.0.2 // indirect
 	github.com/ysmood/fetchup v0.2.3 // indirect
