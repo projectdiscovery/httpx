@@ -24,12 +24,12 @@ require (
 	github.com/projectdiscovery/cdncheck v1.0.9
 	github.com/projectdiscovery/clistats v0.0.20
 	github.com/projectdiscovery/dsl v0.1.0
-	github.com/projectdiscovery/fastdialer v0.1.0
+	github.com/projectdiscovery/fastdialer v0.1.2
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.53
 	github.com/projectdiscovery/gologger v1.1.12
-	github.com/projectdiscovery/hmap v0.0.44
+	github.com/projectdiscovery/hmap v0.0.45
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.8
 	github.com/projectdiscovery/ratelimit v0.0.44
