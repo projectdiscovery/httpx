@@ -34,10 +34,10 @@ require (
 	github.com/projectdiscovery/networkpolicy v0.0.8
 	github.com/projectdiscovery/ratelimit v0.0.44
 	github.com/projectdiscovery/rawhttp v0.1.50
-	github.com/projectdiscovery/retryablehttp-go v1.0.61
+	github.com/projectdiscovery/retryablehttp-go v1.0.62
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.53
-	github.com/projectdiscovery/utils v0.1.0
+	github.com/projectdiscovery/utils v0.1.1
 	github.com/projectdiscovery/wappalyzergo v0.1.3
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
