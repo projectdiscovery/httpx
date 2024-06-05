@@ -2070,6 +2070,7 @@ retry:
 		WebSocket:        isWebSocket,
 		TLSData:          resp.TLSData,
 		CSPData:          resp.CSPData,
+		BodyDomain:       resp.BodyDomains,
 		Pipeline:         pipeline,
 		HTTP2:            http2,
 		Method:           method,

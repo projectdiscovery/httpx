@@ -21,6 +21,7 @@ type Response struct {
 	Lines         int
 	TLSData       *clients.Response
 	CSPData       *CSPData
+	BodyDomains   *BodyDomain
 	HTTP2         bool
 	Pipeline      bool
 	Duration      time.Duration

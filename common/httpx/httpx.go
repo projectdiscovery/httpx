@@ -313,6 +313,7 @@ get_response:
 
 	if h.Options.ExtractFqdn {
 		resp.CSPData = h.CSPGrab(&resp)
+		resp.BodyDomains = h.BodyDomainGrab(&resp)
 	}
 
 	// build the redirect flow by reverse cycling the response<-request chain
