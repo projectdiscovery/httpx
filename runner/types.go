@@ -74,7 +74,7 @@ type Result struct {
 	Chain              []httpx.ChainItem      `json:"chain,omitempty" csv:"chain"`
 	Words              int                    `json:"words" csv:"words"`
 	Lines              int                    `json:"lines" csv:"lines"`
-	StatusCode         int                    `json:"status_code,omitempty" csv:"status_code"`
+	StatusCode         int                    `json:"status_code" csv:"status_code"`
 	ContentLength      int                    `json:"content_length" csv:"content_length"`
 	Failed             bool                   `json:"failed" csv:"failed"`
 	VHost              bool                   `json:"vhost,omitempty" csv:"vhost"`
