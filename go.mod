@@ -24,7 +24,7 @@ require (
 	github.com/projectdiscovery/cdncheck v1.0.9
 	github.com/projectdiscovery/clistats v0.0.20
 	github.com/projectdiscovery/dsl v0.1.2
-	github.com/projectdiscovery/fastdialer v0.1.2
+	github.com/projectdiscovery/fastdialer v0.1.3
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.54
