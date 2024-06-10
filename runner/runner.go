@@ -1759,10 +1759,13 @@ retry:
 	if target.CustomIP != "" {
 		ip = target.CustomIP
 	} else {
-		// hp.Dialer.GetDialedIP would return only the last dialed one
-		ip = hp.Dialer.GetDialedIP(URL.Host)
-		if ip == "" {
-			if onlyHost, _, err := net.SplitHostPort(URL.Host); err == nil {
+		onlyHost, _, err := net.SplitHostPort(URL.Host)
+		if iputil.IsIP(onlyHost) && err == nil {
+			ip = URL.Host
+		} else {
+			// hp.Dialer.GetDialedIP would return only the last dialed one
+			ip = hp.Dialer.GetDialedIP(URL.Host)
+			if ip == "" {
 				ip = hp.Dialer.GetDialedIP(onlyHost)
 			}
 		}
