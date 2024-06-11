@@ -833,10 +833,19 @@ func (r *Runner) RunEnumeration() {
 			if len(r.options.filterWordsCount) > 0 && sliceutil.Contains(r.options.filterWordsCount, resp.Words) {
 				continue
 			}
-			if r.options.filterRegex != nil && r.options.filterRegex.MatchString(resp.Raw) {
-				continue
+			if r.options.filterRegexes != nil {
+				shouldContinue := false
+				for _, filterRegex := range r.options.filterRegexes {
+					if filterRegex.MatchString(resp.Raw) {
+						shouldContinue = true
+						break
+					}
+				}
+				if shouldContinue {
+					continue
+				}
 			}
-			if r.options.OutputFilterString != "" && stringsutil.ContainsAnyI(resp.Raw, r.options.OutputFilterString) {
+			if len(r.options.OutputFilterString) > 0 && stringsutil.EqualFoldAny(resp.Raw, r.options.OutputFilterString...) {
 				continue
 			}
 			if len(r.options.OutputFilterFavicon) > 0 && stringsutil.EqualFoldAny(resp.FavIconMMH3, r.options.OutputFilterFavicon...) {
@@ -848,10 +857,19 @@ func (r *Runner) RunEnumeration() {
 			if len(r.options.matchContentLength) > 0 && !sliceutil.Contains(r.options.matchContentLength, resp.ContentLength) {
 				continue
 			}
-			if r.options.matchRegex != nil && !r.options.matchRegex.MatchString(resp.Raw) {
-				continue
+			if r.options.matchRegexes != nil {
+				shouldContinue := false
+				for _, matchRegex := range r.options.matchRegexes {
+					if !matchRegex.MatchString(resp.Raw) {
+						shouldContinue = true
+						break
+					}
+				}
+				if shouldContinue {
+					continue
+				}
 			}
-			if r.options.OutputMatchString != "" && !stringsutil.ContainsAnyI(resp.Raw, r.options.OutputMatchString) {
+			if len(r.options.OutputMatchString) > 0 && !stringsutil.ContainsAnyI(resp.Raw, r.options.OutputMatchString...) {
 				continue
 			}
 			if len(r.options.OutputMatchFavicon) > 0 && !stringsutil.EqualFoldAny(resp.FavIconMMH3, r.options.OutputMatchFavicon...) {
