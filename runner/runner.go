@@ -1759,9 +1759,8 @@ retry:
 	if target.CustomIP != "" {
 		ip = target.CustomIP
 	} else {
-		onlyHost, _, err := net.SplitHostPort(URL.Host)
-		if iputil.IsIP(onlyHost) && err == nil {
-			ip = URL.Host
+		if onlyHost, _, err := net.SplitHostPort(URL.Host); err == nil && iputil.IsIP(onlyHost) {
+			ip = onlyHost
 		} else {
 			// hp.Dialer.GetDialedIP would return only the last dialed one
 			ip = hp.Dialer.GetDialedIP(URL.Host)
