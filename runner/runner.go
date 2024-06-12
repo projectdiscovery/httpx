@@ -22,6 +22,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/exp/maps"
@@ -692,12 +693,12 @@ func (r *Runner) RunEnumeration() {
 	}
 
 	// output routine
-	wgoutput, _ := syncutil.New(syncutil.WithSize(2))
-	wgoutput.Add()
+	var wgoutput sync.WaitGroup
 
 	output := make(chan Result)
 	nextStep := make(chan Result)
 
+	wgoutput.Add(1)
 	go func(output chan Result, nextSteps ...chan Result) {
 		defer wgoutput.Done()
 
@@ -1077,7 +1078,7 @@ func (r *Runner) RunEnumeration() {
 	// HTML Summary
 	// - needs output of previous routine
 	// - separate goroutine due to incapability of go templates to render from file
-	wgoutput.Add()
+	wgoutput.Add(1)
 	go func(output chan Result) {
 		defer wgoutput.Done()
 
@@ -1241,7 +1242,7 @@ func (r *Runner) Process(t string, wg *syncutil.AdaptiveWaitGroup, protocol stri
 }
 
 func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result) {
-
+	// attempts to set the workpool size to the number of threads
 	if r.options.Threads > 0 && wg.Size != r.options.Threads {
 		if err := wg.Resize(context.Background(), r.options.Threads); err != nil {
 			gologger.Error().Msgf("Could not resize workpool: %s\n", err)
