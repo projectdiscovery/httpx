@@ -1243,7 +1243,9 @@ func (r *Runner) Process(t string, wg *syncutil.AdaptiveWaitGroup, protocol stri
 func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result) {
 
 	if r.options.Threads > 0 && wg.Size != r.options.Threads {
-		wg.Resize(context.TODO(), r.options.Threads)
+		if err := wg.Resize(context.Background(), r.options.Threads); err != nil {
+			gologger.Error().Msgf("Could not resize workpool: %s\n", err)
+		}
 	}
 
 	protocols := []string{protocol}
