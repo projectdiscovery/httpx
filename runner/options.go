@@ -23,11 +23,11 @@ import (
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httpx"
-	"github.com/projectdiscovery/httpx/common/slice"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/utils/auth/pdcp"
 	"github.com/projectdiscovery/utils/env"
 	fileutil "github.com/projectdiscovery/utils/file"
+	sliceutil "github.com/projectdiscovery/utils/slice"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	updateutils "github.com/projectdiscovery/utils/update"
 )
@@ -78,7 +78,7 @@ type ScanOptions struct {
 	PreferHTTPS               bool
 	NoFallback                bool
 	NoFallbackScheme          bool
-	TechDetect                string
+	TechDetect                bool
 	StoreChain                bool
 	StoreVisionReconClusters  bool
 	MaxResponseBodySizeToSave int
@@ -227,6 +227,7 @@ type Options struct {
 	OutputContentType         bool
 	OutputIP                  bool
 	OutputCName               bool
+	ExtractFqdn               bool
 	Unsafe                    bool
 	Debug                     bool
 	DebugRequests             bool
@@ -237,7 +238,7 @@ type Options struct {
 	OutputResponseTime        bool
 	NoFallback                bool
 	NoFallbackScheme          bool
-	TechDetect                string
+	TechDetect                bool
 	TLSGrab                   bool
 	protocol                  string
 	ShowStatistics            bool
@@ -336,11 +337,12 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.ExtractTitle, "title", false, "display page title"),
 		flagSet.DynamicVarP(&options.ResponseBodyPreviewSize, "body-preview", "bp", 100, "display first N characters of response body"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
-		flagSet.DynamicVarP(&options.TechDetect, "tech-detect", "td", "true", "display technology in use based on wappalyzer dataset"),
+		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
 		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
 		flagSet.BoolVar(&options.OutputCName, "cname", false, "display host cname"),
+		flagSet.BoolVarP(&options.ExtractFqdn, "efqdn", "extract-fqdn", false, "get domain and subdomains from response body and header in jsonl/csv output"),
 		flagSet.BoolVar(&options.Asn, "asn", false, "display host asn information"),
 		flagSet.DynamicVar(&options.OutputCDN, "cdn", "true", "display cdn/waf in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),
@@ -681,7 +683,7 @@ func (options *Options) ValidateOptions() error {
 
 	if options.Hashes != "" {
 		for _, hashType := range strings.Split(options.Hashes, ",") {
-			if !slice.StringSliceContains([]string{"md5", "sha1", "sha256", "sha512", "mmh3", "simhash"}, strings.ToLower(hashType)) {
+			if !sliceutil.Contains([]string{"md5", "sha1", "sha256", "sha512", "mmh3", "simhash"}, strings.ToLower(hashType)) {
 				gologger.Error().Msgf("Unsupported hash type: %s\n", hashType)
 			}
 		}

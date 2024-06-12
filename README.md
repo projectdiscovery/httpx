@@ -139,7 +139,7 @@ MATCHERS:
 
 EXTRACTOR:
    -er, -extract-regex string[]   display response content with matched regex
-   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (ipv4,mail,url)
+   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (mail,ipv4,url)
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)

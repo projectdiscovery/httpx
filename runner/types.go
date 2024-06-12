@@ -14,6 +14,7 @@ import (
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 	mapsutil "github.com/projectdiscovery/utils/maps"
+	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 
 	"github.com/projectdiscovery/httpx/common/httpx"
 )
@@ -73,7 +74,7 @@ type Result struct {
 	Chain              []httpx.ChainItem      `json:"chain,omitempty" csv:"chain"`
 	Words              int                    `json:"words" csv:"words"`
 	Lines              int                    `json:"lines" csv:"lines"`
-	StatusCode         int                    `json:"status_code,omitempty" csv:"status_code"`
+	StatusCode         int                    `json:"status_code" csv:"status_code"`
 	ContentLength      int                    `json:"content_length" csv:"content_length"`
 	Failed             bool                   `json:"failed" csv:"failed"`
 	VHost              bool                   `json:"vhost,omitempty" csv:"vhost"`
@@ -88,6 +89,12 @@ type Result struct {
 	ScreenshotPath     string                 `json:"screenshot_path,omitempty" csv:"screenshot_path"`
 	ScreenshotPathRel  string                 `json:"screenshot_path_rel,omitempty" csv:"screenshot_path_rel"`
 	KnowledgeBase      map[string]interface{} `json:"knowledgebase,omitempty" csv:"knowledgebase"`
+	Resolvers          []string               `json:"resolvers,omitempty" csv:"resolvers"`
+
+	// Internal Fields
+	TechnologyDetails map[string]wappalyzer.AppInfo `json:"-" csv:"-"`
+	RequestRaw        []byte                        `json:"-" csv:"-"`
+	Response          *httpx.Response               `json:"-" csv:"-"`
 }
 
 // function to get dsl variables from result struct
