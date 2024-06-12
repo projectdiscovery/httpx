@@ -34,6 +34,7 @@ import (
 
 const (
 	two                    = 2
+	defaultThreads         = 50
 	DefaultResumeFile      = "resume.cfg"
 	DefaultOutputDirectory = "output"
 )
@@ -386,7 +387,7 @@ func ParseOptions() *Options {
 	)
 
 	flagSet.CreateGroup("rate-limit", "Rate-Limit",
-		flagSet.IntVarP(&options.Threads, "threads", "t", 50, "number of threads to use"),
+		flagSet.IntVarP(&options.Threads, "threads", "t", defaultThreads, "number of threads to use"),
 		flagSet.IntVarP(&options.RateLimit, "rate-limit", "rl", 150, "maximum requests to send per second"),
 		flagSet.IntVarP(&options.RateLimitMinute, "rate-limit-minute", "rlm", 0, "maximum number of requests to send per minute"),
 	)
@@ -678,6 +679,11 @@ func (options *Options) ValidateOptions() error {
 
 	if !stringsutil.EqualFoldAny(options.Protocol, string(httpx.UNKNOWN), string(httpx.HTTP11)) {
 		return fmt.Errorf("invalid protocol: %s", options.Protocol)
+	}
+
+	if options.Threads == 0 {
+		gologger.Info().Msgf("Threads automatically set to %d", defaultThreads)
+		options.Threads = defaultThreads
 	}
 
 	return nil
