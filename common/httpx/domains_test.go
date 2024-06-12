@@ -18,7 +18,7 @@ func TestBodyGrabDoamins(t *testing.T) {
 		Raw: rawResponse,
 	}
 	bd := ht.BodyDomainGrab(resposne)
-	
+
 	expectedDomains := []string{
 		"custom.transaction",
 		"drupal.org",
@@ -43,7 +43,7 @@ func TestBodyGrabDoamins(t *testing.T) {
 		"youtube.com",
 	}
 
-	exFqdns := []string{
+	expectedFqdns := []string{
 		"cdn.optimizely.com",
 		"consent.trustarc.com",
 		"docs.hackerone.com",
@@ -66,6 +66,6 @@ func TestBodyGrabDoamins(t *testing.T) {
 		require.Equal(t, 21, len(bd.Domains))
 		require.Equal(t, 14, len(bd.Fqdns))
 		require.Equal(t, expectedDomains, bd.Domains)
-		require.Equal(t, exFqdns, bd.Fqdns)
+		require.Equal(t, expectedFqdns, bd.Fqdns)
 	})
 }
