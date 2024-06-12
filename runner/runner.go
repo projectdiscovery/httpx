@@ -2023,18 +2023,15 @@ retry:
 	domainFile := method + ":" + URL.EscapedString()
 	hash := hashes.Sha1([]byte(domainFile))
 	domainResponseFile := fmt.Sprintf("%s.txt", hash)
-	screenshotResponseFile := fmt.Sprintf("%s.png", hash)
 	hostFilename := strings.ReplaceAll(URL.Host, ":", "_")
 
 	domainResponseBaseDir := filepath.Join(scanopts.StoreResponseDirectory, "response")
 	domainHeaderBaseDir := filepath.Join(scanopts.StoreHeaderDirectory, "header")
-	domainScreenshotBaseDir := filepath.Join(scanopts.StoreResponseDirectory, "screenshot")
 
 	headerBaseDir := filepath.Join(domainHeaderBaseDir, hostFilename)
 	responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
-	screenshotBaseDir := filepath.Join(domainScreenshotBaseDir, hostFilename)
 
-	var responsePath, headerResponsePath, screenshotPath, screenshotPathRel string
+	var responsePath, headerResponsePath string
 	// store response
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
@@ -2204,7 +2201,7 @@ retry:
 		Words:            resp.Words,
 		ASN:              asnResponse,
 		ExtractRegex:     extractRegex,
-		StoredHeaderPath:   headerResponsePath,
+		StoredHeaderPath: headerResponsePath,
 		ScreenshotBytes:  screenshotBytes,
 		HeadlessBody:     headlessBody,
 		KnowledgeBase: map[string]interface{}{
