@@ -194,31 +194,32 @@ OUTPUT:
    -pr, -protocol string               protocol to use (unknown, http11)
 
 CONFIGURATIONS:
-   -config string                path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
-   -auth                         configure projectdiscovery cloud (pdcp) api key (default true)
-   -r, -resolvers string[]       list of custom resolver (file or comma separated)
-   -allow string[]               allowed list of IP/CIDR's to process (file or comma separated)
-   -deny string[]                denied list of IP/CIDR's to process (file or comma separated)
-   -sni, -sni-name string        custom TLS SNI name
-   -random-agent                 enable Random User-Agent to use (default true)
-   -H, -header string[]          custom http headers to send with request
-   -http-proxy, -proxy string    http proxy to use (eg http://127.0.0.1:8080)
-   -unsafe                       send raw requests skipping golang normalization
-   -resume                       resume scan using resume.cfg
-   -fr, -follow-redirects        follow http redirects
-   -maxr, -max-redirects int     max number of redirects to follow per host (default 10)
-   -fhr, -follow-host-redirects  follow redirects on the same host
-   -rhsts, -respect-hsts         respect HSTS response headers for redirect requests
-   -vhost-input                  get a list of vhosts as input
-   -x string                     request methods to probe, use 'all' to probe all HTTP methods
-   -body string                  post body to include in http request
-   -s, -stream                   stream mode - start elaborating input targets without sorting
-   -sd, -skip-dedupe             disable dedupe input items (only used with stream mode)
-   -ldp, -leave-default-ports    leave default http/https ports in host header (eg. http://host:80 - https://host:443
-   -ztls                         use ztls library with autofallback to standard one for tls13
-   -no-decode                    avoid decoding body
-   -tlsi, -tls-impersonate       enable experimental client hello (ja3) tls randomization
-   -no-stdin                     Disable Stdin processing
+   -config string                   path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
+   -auth                            configure projectdiscovery cloud (pdcp) api key (default true)
+   -r, -resolvers string[]          list of custom resolver (file or comma separated)
+   -allow string[]                  allowed list of IP/CIDR's to process (file or comma separated)
+   -deny string[]                   denied list of IP/CIDR's to process (file or comma separated)
+   -sni, -sni-name string           custom TLS SNI name
+   -random-agent                    enable Random User-Agent to use (default true)
+   -H, -header string[]             custom http headers to send with request
+   -http-proxy, -proxy string       http proxy to use (eg http://127.0.0.1:8080)
+   -unsafe                          send raw requests skipping golang normalization
+   -resume                          resume scan using resume.cfg
+   -fr, -follow-redirects           follow http redirects
+   -maxr, -max-redirects int        max number of redirects to follow per host (default 10)
+   -fhr, -follow-host-redirects     follow redirects on the same host
+   -rhsts, -respect-hsts            respect HSTS response headers for redirect requests
+   -vhost-input                     get a list of vhosts as input
+   -x string                        request methods to probe, use 'all' to probe all HTTP methods
+   -body string                     post body to include in http request
+   -s, -stream                      stream mode - start elaborating input targets without sorting
+   -sd, -skip-dedupe                disable dedupe input items (only used with stream mode)
+   -ldp, -leave-default-ports       leave default http/https ports in host header (eg. http://host:80 - https://host:443
+   -ztls                            use ztls library with autofallback to standard one for tls13
+   -no-decode                       avoid decoding body
+   -tlsi, -tls-impersonate          enable experimental client hello (ja3) tls randomization
+   -no-stdin                        Disable Stdin processing
+   -hae, -http-api-endpoint string  experimental http api endpoint
 
 DEBUG:
    -health-check, -hc        run diagnostic check up

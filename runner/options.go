@@ -607,24 +607,22 @@ func (options *Options) ValidateOptions() error {
 	if options.filterContentLength, err = stringz.StringToSliceInt(options.OutputFilterContentLength); err != nil {
 		return errors.Wrap(err, "Invalid value for filter content length option")
 	}
-	if len(options.OutputFilterRegex) > 0 {
-		for _, filterRegexStr := range options.OutputFilterRegex {
-			filterRegex, err := regexp.Compile(filterRegexStr)
-			if err != nil {
-				return errors.Wrap(err, "Invalid value for regex filter option")
-			}
-			options.filterRegexes = append(options.filterRegexes, filterRegex)
+	for _, filterRegexStr := range options.OutputFilterRegex {
+		filterRegex, err := regexp.Compile(filterRegexStr)
+		if err != nil {
+			return errors.Wrap(err, "Invalid value for regex filter option")
 		}
+		options.filterRegexes = append(options.filterRegexes, filterRegex)
 	}
-	if len(options.OutputMatchRegex) > 0 {
-		for _, matchRegexStr := range options.OutputMatchRegex {
-			matchRegex, err := regexp.Compile(matchRegexStr)
-			if err != nil {
-				return errors.Wrap(err, "Invalid value for match regex option")
-			}
-			options.matchRegexes = append(options.matchRegexes, matchRegex)
+
+	for _, matchRegexStr := range options.OutputMatchRegex {
+		matchRegex, err := regexp.Compile(matchRegexStr)
+		if err != nil {
+			return errors.Wrap(err, "Invalid value for match regex option")
 		}
+		options.matchRegexes = append(options.matchRegexes, matchRegex)
 	}
+
 	if options.matchLinesCount, err = stringz.StringToSliceInt(options.OutputMatchLinesCount); err != nil {
 		return errors.Wrap(err, "Invalid value for match lines count option")
 	}
