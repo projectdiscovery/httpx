@@ -95,27 +95,28 @@ INPUT:
    -u, -target string[]  input target host(s) to probe
 
 PROBES:
-   -sc, -status-code     display response status-code
-   -cl, -content-length  display response content-length
-   -ct, -content-type    display response content-type
-   -location             display response redirect location
-   -favicon              display mmh3 hash for '/favicon.ico' file
-   -hash string          display response body hash (supported: md5,mmh3,simhash,sha1,sha256,sha512)
-   -jarm                 display jarm fingerprint hash
-   -rt, -response-time   display response time
-   -lc, -line-count      display response body line count
-   -wc, -word-count      display response body word count
-   -title                display page title
-   -bp, -body-preview    display first N characters of response body (default 100)
-   -server, -web-server  display server name
-   -td, -tech-detect     display technology in use based on wappalyzer dataset
-   -method               display http request method
-   -websocket            display server using websocket
-   -ip                   display host ip
-   -cname                display host cname
-   -asn                  display host asn information
-   -cdn                  display cdn/waf in use (default true)
-   -probe                display probe status
+   -sc, -status-code      display response status-code
+   -cl, -content-length   display response content-length
+   -ct, -content-type     display response content-type
+   -location              display response redirect location
+   -favicon               display mmh3 hash for '/favicon.ico' file
+   -hash string           display response body hash (supported: md5,mmh3,simhash,sha1,sha256,sha512)
+   -jarm                  display jarm fingerprint hash
+   -rt, -response-time    display response time
+   -lc, -line-count       display response body line count
+   -wc, -word-count       display response body word count
+   -title                 display page title
+   -bp, -body-preview     display first N characters of response body (default 100)
+   -server, -web-server   display server name
+   -td, -tech-detect      display technology in use based on wappalyzer dataset
+   -method                display http request method
+   -websocket             display server using websocket
+   -ip                    display host ip
+   -cname                 display host cname
+   -extract-fqdn, -efqdn  get domain and subdomains from response body and header in jsonl/csv output
+   -asn                   display host asn information
+   -cdn                   display cdn/waf in use (default true)
+   -probe                 display probe status
 
 HEADLESS:
    -ss, -screenshot                 enable saving screenshot of the page using headless browser
@@ -131,15 +132,15 @@ MATCHERS:
    -mlc, -match-line-count string     match response body with specified line count (-mlc 423,532)
    -mwc, -match-word-count string     match response body with specified word count (-mwc 43,55)
    -mfc, -match-favicon string[]      match response with specified favicon hash (-mfc 1494302000)
-   -ms, -match-string string          match response with specified string (-ms admin)
-   -mr, -match-regex string           match response with specified regex (-mr admin)
+   -ms, -match-string string[]        match response with specified string (-ms admin)
+   -mr, -match-regex string[]         match response with specified regex (-mr admin)
    -mcdn, -match-cdn string[]         match host with specified cdn provider (cloudfront, fastly, google, leaseweb, stackpath)
    -mrt, -match-response-time string  match response with specified response time in seconds (-mrt '< 1')
    -mdc, -match-condition string      match response with dsl expression condition
 
 EXTRACTOR:
    -er, -extract-regex string[]   display response content with matched regex
-   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (mail,url,ipv4)
+   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (url,ipv4,mail)
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
@@ -148,8 +149,8 @@ FILTERS:
    -flc, -filter-line-count string     filter response body with specified line count (-flc 423,532)
    -fwc, -filter-word-count string     filter response body with specified word count (-fwc 423,532)
    -ffc, -filter-favicon string[]      filter response with specified favicon hash (-ffc 1494302000)
-   -fs, -filter-string string          filter response with specified string (-fs admin)
-   -fe, -filter-regex string           filter response with specified regex (-fe admin)
+   -fs, -filter-string string[]        filter response with specified string (-fs admin)
+   -fe, -filter-regex string[]         filter response with specified regex (-fe admin)
    -fcdn, -filter-cdn string[]         filter host with specified cdn provider (cloudfront, fastly, google, leaseweb, stackpath)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
    -fdc, -filter-condition string      filter response with dsl expression condition
@@ -193,31 +194,32 @@ OUTPUT:
    -pr, -protocol string               protocol to use (unknown, http11)
 
 CONFIGURATIONS:
-   -config string                path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
-   -auth                         configure projectdiscovery cloud (pdcp) api key (default true)
-   -r, -resolvers string[]       list of custom resolver (file or comma separated)
-   -allow string[]               allowed list of IP/CIDR's to process (file or comma separated)
-   -deny string[]                denied list of IP/CIDR's to process (file or comma separated)
-   -sni, -sni-name string        custom TLS SNI name
-   -random-agent                 enable Random User-Agent to use (default true)
-   -H, -header string[]          custom http headers to send with request
-   -http-proxy, -proxy string    http proxy to use (eg http://127.0.0.1:8080)
-   -unsafe                       send raw requests skipping golang normalization
-   -resume                       resume scan using resume.cfg
-   -fr, -follow-redirects        follow http redirects
-   -maxr, -max-redirects int     max number of redirects to follow per host (default 10)
-   -fhr, -follow-host-redirects  follow redirects on the same host
-   -rhsts, -respect-hsts         respect HSTS response headers for redirect requests
-   -vhost-input                  get a list of vhosts as input
-   -x string                     request methods to probe, use 'all' to probe all HTTP methods
-   -body string                  post body to include in http request
-   -s, -stream                   stream mode - start elaborating input targets without sorting
-   -sd, -skip-dedupe             disable dedupe input items (only used with stream mode)
-   -ldp, -leave-default-ports    leave default http/https ports in host header (eg. http://host:80 - https://host:443
-   -ztls                         use ztls library with autofallback to standard one for tls13
-   -no-decode                    avoid decoding body
-   -tlsi, -tls-impersonate       enable experimental client hello (ja3) tls randomization
-   -no-stdin                     Disable Stdin processing
+   -config string                   path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
+   -auth                            configure projectdiscovery cloud (pdcp) api key (default true)
+   -r, -resolvers string[]          list of custom resolver (file or comma separated)
+   -allow string[]                  allowed list of IP/CIDR's to process (file or comma separated)
+   -deny string[]                   denied list of IP/CIDR's to process (file or comma separated)
+   -sni, -sni-name string           custom TLS SNI name
+   -random-agent                    enable Random User-Agent to use (default true)
+   -H, -header string[]             custom http headers to send with request
+   -http-proxy, -proxy string       http proxy to use (eg http://127.0.0.1:8080)
+   -unsafe                          send raw requests skipping golang normalization
+   -resume                          resume scan using resume.cfg
+   -fr, -follow-redirects           follow http redirects
+   -maxr, -max-redirects int        max number of redirects to follow per host (default 10)
+   -fhr, -follow-host-redirects     follow redirects on the same host
+   -rhsts, -respect-hsts            respect HSTS response headers for redirect requests
+   -vhost-input                     get a list of vhosts as input
+   -x string                        request methods to probe, use 'all' to probe all HTTP methods
+   -body string                     post body to include in http request
+   -s, -stream                      stream mode - start elaborating input targets without sorting
+   -sd, -skip-dedupe                disable dedupe input items (only used with stream mode)
+   -ldp, -leave-default-ports       leave default http/https ports in host header (eg. http://host:80 - https://host:443
+   -ztls                            use ztls library with autofallback to standard one for tls13
+   -no-decode                       avoid decoding body
+   -tlsi, -tls-impersonate          enable experimental client hello (ja3) tls randomization
+   -no-stdin                        Disable Stdin processing
+   -hae, -http-api-endpoint string  experimental http api endpoint
 
 DEBUG:
    -health-check, -hc        run diagnostic check up
