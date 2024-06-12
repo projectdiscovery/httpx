@@ -112,9 +112,8 @@ func New(options *Options) (*Runner, error) {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
 	}
 
-	if options.StoreResponseDir != "" || options.StoreHeaderDir != "" {
+	if options.StoreResponseDir != "" {
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "response", "index.txt"))
-		os.RemoveAll(filepath.Join(options.StoreHeaderDir, "header", "index.txt"))
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
 	}
 
@@ -253,8 +252,6 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputContentLength = options.ContentLength
 	scanopts.StoreResponse = options.StoreResponse
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
-	scanopts.StoreHeader = options.StoreHeader
-	scanopts.StoreHeaderDirectory = options.StoreHeaderDir
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.ResponseHeadersInStdout = options.ResponseHeadersInStdout
 	scanopts.OutputWithNoColor = options.NoColor
@@ -657,18 +654,6 @@ func (r *Runner) RunEnumeration() {
 		}
 	}
 
-	if r.options.StoreHeader && !fileutil.FolderExists(r.options.StoreHeaderDir) {
-		// main folder
-		if err := os.MkdirAll(r.options.StoreHeaderDir, os.ModePerm); err != nil {
-			gologger.Fatal().Msgf("Could not create output directory '%s': %s\n", r.options.StoreHeaderDir, err)
-		}
-		// header folder
-		headerFolder := filepath.Join(r.options.StoreHeaderDir, "header")
-		if err := os.MkdirAll(headerFolder, os.ModePerm); err != nil {
-			gologger.Fatal().Msgf("Could not create output header directory '%s': %s\n", r.options.StoreHeaderDir, err)
-		}
-	}
-
 	// screenshot folder
 	if r.options.Screenshot {
 		screenshotFolder := filepath.Join(r.options.StoreResponseDir, "screenshot")
@@ -711,7 +696,7 @@ func (r *Runner) RunEnumeration() {
 			}
 		}()
 
-		var plainFile, jsonFile, csvFile, indexFile, indexHeaderFile, indexScreenshotFile *os.File
+		var plainFile, jsonFile, csvFile, indexFile, indexScreenshotFile *os.File
 
 		if r.options.Output != "" && r.options.OutputAll {
 			plainFile = openOrCreateFile(r.options.Resume, r.options.Output)
@@ -788,24 +773,6 @@ func (r *Runner) RunEnumeration() {
 			defer indexFile.Close() //nolint
 		}
 
-		if r.options.StoreHeaderDir != "" {
-			var err error
-			headerDirPath := filepath.Join(r.options.StoreHeaderDir, "header")
-			if err := os.MkdirAll(headerDirPath, 0755); err != nil {
-				gologger.Fatal().Msgf("Could not create response directory '%s': %s\n", headerDirPath, err)
-			}
-			indexPath := filepath.Join(headerDirPath, "index.txt")
-			if r.options.Resume {
-				indexHeaderFile, err = os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-			} else {
-				indexHeaderFile, err = os.Create(indexPath)
-			}
-			if err != nil {
-				gologger.Fatal().Msgf("Could not open/create index file '%s': %s\n", r.options.Output, err)
-			}
-			defer indexHeaderFile.Close() //nolint
-		}
-
 		if r.options.Screenshot {
 			var err error
 			indexScreenshotPath := filepath.Join(r.options.StoreResponseDir, "screenshot", "index_screenshot.txt")
@@ -839,10 +806,6 @@ func (r *Runner) RunEnumeration() {
 			if indexFile != nil {
 				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
 				_, _ = indexFile.WriteString(indexData)
-			}
-			if indexHeaderFile != nil {
-				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredHeaderPath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
-				_, _ = indexHeaderFile.WriteString(indexData)
 			}
 
 			if indexScreenshotFile != nil && resp.ScreenshotPathRel != "" {
@@ -940,6 +903,10 @@ func (r *Runner) RunEnumeration() {
 			var responsePath, screenshotPath, screenshotPathRel string
 			// store response
 			if r.scanopts.StoreResponse || r.scanopts.StoreChain {
+				if r.scanopts.OmitBody {
+					resp.Raw = strings.Replace(resp.Raw, resp.ResponseBody, "", -1)
+				}
+
 				responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
 				// URL.EscapedString returns that can be used as filename
 				respRaw := resp.Raw
@@ -2026,14 +1993,14 @@ retry:
 	hostFilename := strings.ReplaceAll(URL.Host, ":", "_")
 
 	domainResponseBaseDir := filepath.Join(scanopts.StoreResponseDirectory, "response")
-	domainHeaderBaseDir := filepath.Join(scanopts.StoreHeaderDirectory, "header")
-
-	headerBaseDir := filepath.Join(domainHeaderBaseDir, hostFilename)
 	responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
 
-	var responsePath, headerResponsePath string
+	var responsePath string
 	// store response
 	if scanopts.StoreResponse || scanopts.StoreChain {
+		if r.options.OmitBody {
+			resp.Raw = strings.Replace(resp.Raw, string(resp.Data), "", -1)
+		}
 		responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
 		// URL.EscapedString returns that can be used as filename
 		respRaw := resp.Raw
@@ -2052,29 +2019,6 @@ retry:
 		writeErr := os.WriteFile(responsePath, data, 0644)
 		if writeErr != nil {
 			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
-		}
-	}
-
-	// Store Header
-	if scanopts.StoreHeader || scanopts.StoreChain {
-		headerResponsePath = fileutilz.AbsPathOrDefault(filepath.Join(headerBaseDir, domainResponseFile))
-		// URL.EscapedString returns that can be used as filename
-		respRaw := resp.RawHeaders
-		reqRaw := requestDump
-		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
-			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
-		}
-		data := reqRaw
-		if scanopts.StoreChain && resp.HasChain() {
-			data = append(data, append([]byte("\n"), []byte(resp.GetChain())...)...)
-		}
-		data = append(data, respRaw...)
-		data = append(data, []byte("\n\n\n")...)
-		data = append(data, []byte(fullURL)...)
-		_ = fileutil.CreateFolder(headerBaseDir)
-		writeErr := os.WriteFile(headerResponsePath, data, 0644)
-		if writeErr != nil {
-			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", headerResponsePath, writeErr)
 		}
 	}
 
@@ -2201,7 +2145,6 @@ retry:
 		Words:            resp.Words,
 		ASN:              asnResponse,
 		ExtractRegex:     extractRegex,
-		StoredHeaderPath: headerResponsePath,
 		ScreenshotBytes:  screenshotBytes,
 		HeadlessBody:     headlessBody,
 		KnowledgeBase: map[string]interface{}{
