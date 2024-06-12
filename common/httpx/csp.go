@@ -64,7 +64,7 @@ func parsePotentialDomains(fqdns, domains map[string]struct{}, data string) {
 	// we extracts only potential domains
 	for _, t := range tokens {
 		if isPotentialDomain(t) {
-			if dn, err := publicsuffix.Parse(extractDomain(removeWildcards(t))); err == nil {
+			if dn, err := publicsuffix.Parse(extractDomain(t)); err == nil {
 				domains[dn.SLD+"."+dn.TLD] = struct{}{}
 				if dn.TRD != "" {
 					fqdns[dn.String()] = struct{}{}
@@ -79,6 +79,7 @@ func isPotentialDomain(s string) bool {
 }
 
 func extractDomain(str string) string {
+	str = removeWildcards(str)
 	u := str
 	if !strings.Contains(str, "://") {
 		u = "https://" + str
@@ -87,7 +88,7 @@ func extractDomain(str string) string {
 	if err != nil {
 		return str
 	}
-	return parsedURL.Host
+	return parsedURL.Hostname()
 }
 
 func removeWildcards(domain string) string {

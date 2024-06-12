@@ -34,7 +34,7 @@ func (h *HTTPX) BodyDomainGrab(r *Response) *BodyDomain {
 	}
 
 	for d := range uniqueDomains {
-		if dn, err := publicsuffix.Parse(extractDomain(removeWildcards(d))); err == nil {
+		if dn, err := publicsuffix.Parse(extractDomain(d)); err == nil {
 			domains[dn.SLD+"."+dn.TLD] = struct{}{}
 			if dn.TRD != "" {
 				fqdns[dn.String()] = struct{}{}
