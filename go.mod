@@ -39,7 +39,6 @@ require (
 	github.com/projectdiscovery/useragent v0.0.54
 	github.com/projectdiscovery/utils v0.1.1
 	github.com/projectdiscovery/wappalyzergo v0.1.4
-	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.9.0
