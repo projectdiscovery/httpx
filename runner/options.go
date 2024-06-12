@@ -55,6 +55,7 @@ type ScanOptions struct {
 	OutputLocation            bool
 	OutputContentLength       bool
 	StoreResponse             bool
+	OmitBody                  bool
 	OutputServerHeader        bool
 	OutputWebSocket           bool
 	OutputWithNoColor         bool
@@ -112,6 +113,7 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		OutputLocation:            s.OutputLocation,
 		OutputContentLength:       s.OutputContentLength,
 		StoreResponse:             s.StoreResponse,
+		OmitBody:                  s.OmitBody,
 		OutputServerHeader:        s.OutputServerHeader,
 		OutputWebSocket:           s.OutputWebSocket,
 		OutputWithNoColor:         s.OutputWithNoColor,
@@ -164,6 +166,7 @@ type Options struct {
 	Output                    string
 	OutputAll                 bool
 	StoreResponseDir          string
+	OmitBody                  bool
 	HTTPProxy                 string
 	SocksProxy                string
 	InputFile                 string
@@ -415,6 +418,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.OutputAll, "output-all", "oa", false, "filename to write output results in all formats"),
 		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
 		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
+		flagSet.BoolVarP(&options.OmitBody, "omit-body", "ob", false, "omit response body in output"),
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in csv format"),
 		flagSet.StringVarP(&options.CSVOutputEncoding, "csv-output-encoding", "csvo", "", "define output encoding"),
 		flagSet.BoolVarP(&options.JSONOutput, "json", "j", false, "store output in JSONL(ines) format"),

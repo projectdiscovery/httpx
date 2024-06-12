@@ -113,6 +113,7 @@ func New(options *Options) (*Runner, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
 	}
+
 	if options.StoreResponseDir != "" {
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "response", "index.txt"))
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
@@ -784,6 +785,7 @@ func (r *Runner) RunEnumeration() {
 			}
 			defer indexFile.Close() //nolint
 		}
+
 		if r.options.Screenshot {
 			var err error
 			indexScreenshotPath := filepath.Join(r.options.StoreResponseDir, "screenshot", "index_screenshot.txt")
@@ -812,6 +814,16 @@ func (r *Runner) RunEnumeration() {
 			}
 			if resp.str == "" {
 				continue
+			}
+
+			if indexFile != nil {
+				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
+				_, _ = indexFile.WriteString(indexData)
+			}
+
+			if indexScreenshotFile != nil && resp.ScreenshotPathRel != "" {
+				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.ScreenshotPathRel, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
+				_, _ = indexScreenshotFile.WriteString(indexData)
 			}
 
 			// apply matchers and filters
@@ -922,6 +934,10 @@ func (r *Runner) RunEnumeration() {
 			var responsePath, screenshotPath, screenshotPathRel string
 			// store response
 			if r.scanopts.StoreResponse || r.scanopts.StoreChain {
+				if r.scanopts.OmitBody {
+					resp.Raw = strings.Replace(resp.Raw, resp.ResponseBody, "", -1)
+				}
+
 				responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
 				// URL.EscapedString returns that can be used as filename
 				respRaw := resp.Raw
@@ -2006,6 +2022,42 @@ retry:
 			builder.WriteString(fmt.Sprint(resp.Words))
 		}
 		builder.WriteRune(']')
+	}
+
+	// store responses or chain in directory
+	domainFile := method + ":" + URL.EscapedString()
+	hash := hashes.Sha1([]byte(domainFile))
+	domainResponseFile := fmt.Sprintf("%s.txt", hash)
+	hostFilename := strings.ReplaceAll(URL.Host, ":", "_")
+
+	domainResponseBaseDir := filepath.Join(scanopts.StoreResponseDirectory, "response")
+	responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
+
+	var responsePath string
+	// store response
+	if scanopts.StoreResponse || scanopts.StoreChain {
+		if r.options.OmitBody {
+			resp.Raw = strings.Replace(resp.Raw, string(resp.Data), "", -1)
+		}
+		responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
+		// URL.EscapedString returns that can be used as filename
+		respRaw := resp.Raw
+		reqRaw := requestDump
+		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
+			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
+		}
+		data := reqRaw
+		if scanopts.StoreChain && resp.HasChain() {
+			data = append(data, append([]byte("\n"), []byte(resp.GetChain())...)...)
+		}
+		data = append(data, respRaw...)
+		data = append(data, []byte("\n\n\n")...)
+		data = append(data, []byte(fullURL)...)
+		_ = fileutil.CreateFolder(responseBaseDir)
+		writeErr := os.WriteFile(responsePath, data, 0644)
+		if writeErr != nil {
+			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
+		}
 	}
 
 	parsed, err := r.parseURL(fullURL)

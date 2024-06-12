@@ -134,7 +134,7 @@ MATCHERS:
    -mfc, -match-favicon string[]      match response with specified favicon hash (-mfc 1494302000)
    -ms, -match-string string[]        match response with specified string (-ms admin)
    -mr, -match-regex string[]         match response with specified regex (-mr admin)
-   -mcdn, -match-cdn string[]         match host with specified cdn provider (cloudfront, fastly, google, leaseweb, stackpath)
+   -mcdn, -match-cdn string[]         match host with specified cdn provider (leaseweb, stackpath, cloudfront, fastly, google)
    -mrt, -match-response-time string  match response with specified response time in seconds (-mrt '< 1')
    -mdc, -match-condition string      match response with dsl expression condition
 
@@ -151,7 +151,7 @@ FILTERS:
    -ffc, -filter-favicon string[]      filter response with specified favicon hash (-ffc 1494302000)
    -fs, -filter-string string[]        filter response with specified string (-fs admin)
    -fe, -filter-regex string[]         filter response with specified regex (-fe admin)
-   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (cloudfront, fastly, google, leaseweb, stackpath)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (leaseweb, stackpath, cloudfront, fastly, google)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
    -fdc, -filter-condition string      filter response with dsl expression condition
    -strip                              strips all tags in response. supported formats: html,xml (default html)
@@ -182,6 +182,7 @@ OUTPUT:
    -oa, -output-all                    filename to write output results in all formats
    -sr, -store-response                store http response to output directory
    -srd, -store-response-dir string    store http response to custom directory
+   -ob, -omit-body                     omit response body in output
    -csv                                store output in csv format
    -csvo, -csv-output-encoding string  define output encoding
    -j, -json                           store output in JSONL(ines) format
@@ -236,7 +237,7 @@ DEBUG:
 
 OPTIMIZATIONS:
    -nf, -no-fallback                  display both probed protocol (HTTPS and HTTP)
-   -nfs, -no-fallback-scheme          probe with protocol scheme specified in input 
+   -nfs, -no-fallback-scheme          probe with protocol scheme specified in input
    -maxhr, -max-host-error int        max error count per host before skipping remaining path/s (default 30)
    -e, -exclude string[]              exclude host matching specified filter ('cdn', 'private-ips', cidr, ip, regex)
    -retries int                       number of retries
