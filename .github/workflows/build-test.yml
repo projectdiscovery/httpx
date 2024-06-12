@@ -34,9 +34,12 @@ jobs:
           PDCP_API_KEY: "${{ secrets.PDCP_API_KEY }}"
           
 
-      - name: Running example
+      - name: Testing Example - Simple
         run: go run .
-        working-directory: examples/
+        working-directory: examples/simple/
+      - name: Testing Example - Speed Control
+        run: go run .
+        working-directory: examples/speed_control/
 
       - name: Integration Tests Linux, macOS
         if: runner.os == 'Linux' || runner.os == 'macOS'
