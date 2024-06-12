@@ -34,6 +34,7 @@ import (
 
 const (
 	two                    = 2
+	defaultThreads         = 50
 	DefaultResumeFile      = "resume.cfg"
 	DefaultOutputDirectory = "output"
 )
@@ -182,16 +183,16 @@ type Options struct {
 	InputRawRequest           string
 	rawRequest                string
 	RequestBody               string
-	OutputFilterString        string
-	OutputMatchString         string
-	OutputFilterRegex         string
-	OutputMatchRegex          string
+	OutputFilterString        goflags.StringSlice
+	OutputMatchString         goflags.StringSlice
+	OutputFilterRegex         goflags.StringSlice
+	OutputMatchRegex          goflags.StringSlice
 	Retries                   int
 	Threads                   int
 	Timeout                   int
 	Delay                     time.Duration
-	filterRegex               *regexp.Regexp
-	matchRegex                *regexp.Regexp
+	filterRegexes             []*regexp.Regexp
+	matchRegexes              []*regexp.Regexp
 	VHost                     bool
 	VHostInput                bool
 	Smuggling                 bool
@@ -298,6 +299,7 @@ type Options struct {
 	UseInstalledChrome bool
 	TlsImpersonate     bool
 	DisableStdin       bool
+	HttpApiEndpoint    string
 	NoScreenshotBytes  bool
 	NoHeadlessBody     bool
 	ScreenshotTimeout  int
@@ -360,8 +362,8 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "match response body with specified line count (-mlc 423,532)"),
 		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-word-count", "mwc", "", "match response body with specified word count (-mwc 43,55)"),
 		flagSet.StringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", nil, "match response with specified favicon hash (-mfc 1494302000)", goflags.NormalizedStringSliceOptions),
-		flagSet.StringVarP(&options.OutputMatchString, "match-string", "ms", "", "match response with specified string (-ms admin)"),
-		flagSet.StringVarP(&options.OutputMatchRegex, "match-regex", "mr", "", "match response with specified regex (-mr admin)"),
+		flagSet.StringSliceVarP(&options.OutputMatchString, "match-string", "ms", nil, "match response with specified string (-ms admin)", goflags.NormalizedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.OutputMatchRegex, "match-regex", "mr", nil, "match response with specified regex (-mr admin)", goflags.NormalizedStringSliceOptions),
 		flagSet.StringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", nil, fmt.Sprintf("match host with specified cdn provider (%s)", cdncheck.DefaultCDNProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputMatchResponseTime, "match-response-time", "mrt", "", "match response with specified response time in seconds (-mrt '< 1')"),
 		flagSet.StringVarP(&options.OutputMatchCondition, "match-condition", "mdc", "", "match response with dsl expression condition"),
@@ -379,8 +381,8 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "filter response body with specified line count (-flc 423,532)"),
 		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-word-count", "fwc", "", "filter response body with specified word count (-fwc 423,532)"),
 		flagSet.StringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", nil, "filter response with specified favicon hash (-ffc 1494302000)", goflags.NormalizedStringSliceOptions),
-		flagSet.StringVarP(&options.OutputFilterString, "filter-string", "fs", "", "filter response with specified string (-fs admin)"),
-		flagSet.StringVarP(&options.OutputFilterRegex, "filter-regex", "fe", "", "filter response with specified regex (-fe admin)"),
+		flagSet.StringSliceVarP(&options.OutputFilterString, "filter-string", "fs", nil, "filter response with specified string (-fs admin)", goflags.NormalizedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.OutputFilterRegex, "filter-regex", "fe", nil, "filter response with specified regex (-fe admin)", goflags.NormalizedStringSliceOptions),
 		flagSet.StringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", nil, fmt.Sprintf("filter host with specified cdn provider (%s)", cdncheck.DefaultCDNProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
 		flagSet.StringVarP(&options.OutputFilterCondition, "filter-condition", "fdc", "", "filter response with dsl expression condition"),
@@ -388,7 +390,7 @@ func ParseOptions() *Options {
 	)
 
 	flagSet.CreateGroup("rate-limit", "Rate-Limit",
-		flagSet.IntVarP(&options.Threads, "threads", "t", 50, "number of threads to use"),
+		flagSet.IntVarP(&options.Threads, "threads", "t", defaultThreads, "number of threads to use"),
 		flagSet.IntVarP(&options.RateLimit, "rate-limit", "rl", 150, "maximum requests to send per second"),
 		flagSet.IntVarP(&options.RateLimitMinute, "rate-limit-minute", "rlm", 0, "maximum number of requests to send per minute"),
 	)
@@ -455,6 +457,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.NoDecode, "no-decode", false, "avoid decoding body"),
 		flagSet.BoolVarP(&options.TlsImpersonate, "tls-impersonate", "tlsi", false, "enable experimental client hello (ja3) tls randomization"),
 		flagSet.BoolVar(&options.DisableStdin, "no-stdin", false, "Disable Stdin processing"),
+		flagSet.StringVarP(&options.HttpApiEndpoint, "http-api-endpoint", "hae", "", "experimental http api endpoint"),
 	)
 
 	flagSet.CreateGroup("debug", "Debug",
@@ -611,16 +614,22 @@ func (options *Options) ValidateOptions() error {
 	if options.filterContentLength, err = stringz.StringToSliceInt(options.OutputFilterContentLength); err != nil {
 		return errors.Wrap(err, "Invalid value for filter content length option")
 	}
-	if options.OutputFilterRegex != "" {
-		if options.filterRegex, err = regexp.Compile(options.OutputFilterRegex); err != nil {
+	for _, filterRegexStr := range options.OutputFilterRegex {
+		filterRegex, err := regexp.Compile(filterRegexStr)
+		if err != nil {
 			return errors.Wrap(err, "Invalid value for regex filter option")
 		}
+		options.filterRegexes = append(options.filterRegexes, filterRegex)
 	}
-	if options.OutputMatchRegex != "" {
-		if options.matchRegex, err = regexp.Compile(options.OutputMatchRegex); err != nil {
+
+	for _, matchRegexStr := range options.OutputMatchRegex {
+		matchRegex, err := regexp.Compile(matchRegexStr)
+		if err != nil {
 			return errors.Wrap(err, "Invalid value for match regex option")
 		}
+		options.matchRegexes = append(options.matchRegexes, matchRegex)
 	}
+
 	if options.matchLinesCount, err = stringz.StringToSliceInt(options.OutputMatchLinesCount); err != nil {
 		return errors.Wrap(err, "Invalid value for match lines count option")
 	}
@@ -680,6 +689,11 @@ func (options *Options) ValidateOptions() error {
 
 	if !stringsutil.EqualFoldAny(options.Protocol, string(httpx.UNKNOWN), string(httpx.HTTP11)) {
 		return fmt.Errorf("invalid protocol: %s", options.Protocol)
+	}
+
+	if options.Threads == 0 {
+		gologger.Info().Msgf("Threads automatically set to %d", defaultThreads)
+		options.Threads = defaultThreads
 	}
 
 	return nil
