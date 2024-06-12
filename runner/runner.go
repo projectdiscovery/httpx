@@ -52,7 +52,6 @@ import (
 	urlutil "github.com/projectdiscovery/utils/url"
 
 	"github.com/projectdiscovery/ratelimit"
-	"github.com/remeh/sizedwaitgroup"
 
 	// automatic fd max increase if running as root
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
@@ -68,6 +67,7 @@ import (
 	fileutil "github.com/projectdiscovery/utils/file"
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	iputil "github.com/projectdiscovery/utils/ip"
+	syncutil "github.com/projectdiscovery/utils/sync"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 )
 
@@ -85,6 +85,7 @@ type Runner struct {
 	browser             *Browser
 	errorPageClassifier *errorpageclassifier.ErrorPageClassifier
 	pHashClusters       []pHashCluster
+	httpApiEndpoint     *Server
 }
 
 // picked based on try-fail but it seems to close to one it's used https://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html#c1992
@@ -363,6 +364,17 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.errorPageClassifier = errorpageclassifier.New()
+
+	if options.HttpApiEndpoint != "" {
+		apiServer := NewServer(options.HttpApiEndpoint, options)
+		gologger.Info().Msgf("Listening api endpoint on: %s", options.HttpApiEndpoint)
+		runner.httpApiEndpoint = apiServer
+		go func() {
+			if err := apiServer.Start(); err != nil {
+				gologger.Error().Msgf("Failed to start API server: %s", err)
+			}
+		}()
+	}
 
 	return runner, nil
 }
@@ -680,7 +692,7 @@ func (r *Runner) RunEnumeration() {
 	}
 
 	// output routine
-	wgoutput := sizedwaitgroup.New(2)
+	wgoutput, _ := syncutil.New(syncutil.WithSize(2))
 	wgoutput.Add()
 
 	output := make(chan Result)
@@ -1109,7 +1121,7 @@ func (r *Runner) RunEnumeration() {
 		}
 	}(nextStep)
 
-	wg := sizedwaitgroup.New(r.options.Threads)
+	wg, _ := syncutil.New(syncutil.WithSize(r.options.Threads))
 
 	processItem := func(k string) error {
 		if r.options.resumeCfg != nil {
@@ -1132,10 +1144,10 @@ func (r *Runner) RunEnumeration() {
 			for _, p := range r.options.requestURIs {
 				scanopts := r.scanopts.Clone()
 				scanopts.RequestURI = p
-				r.process(k, &wg, r.hp, protocol, scanopts, output)
+				r.process(k, wg, r.hp, protocol, scanopts, output)
 			}
 		} else {
-			r.process(k, &wg, r.hp, protocol, &r.scanopts, output)
+			r.process(k, wg, r.hp, protocol, &r.scanopts, output)
 		}
 
 		return nil
@@ -1224,11 +1236,16 @@ func (r *Runner) GetScanOpts() ScanOptions {
 	return r.scanopts
 }
 
-func (r *Runner) Process(t string, wg *sizedwaitgroup.SizedWaitGroup, protocol string, scanopts *ScanOptions, output chan Result) {
+func (r *Runner) Process(t string, wg *syncutil.AdaptiveWaitGroup, protocol string, scanopts *ScanOptions, output chan Result) {
 	r.process(t, wg, r.hp, protocol, scanopts, output)
 }
 
-func (r *Runner) process(t string, wg *sizedwaitgroup.SizedWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result) {
+func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result) {
+
+	if r.options.Threads > 0 && wg.Size != r.options.Threads {
+		wg.Resize(context.TODO(), r.options.Threads)
+	}
+
 	protocols := []string{protocol}
 	if scanopts.NoFallback || protocol == httpx.HTTPandHTTPS {
 		protocols = []string{httpx.HTTPS, httpx.HTTP}

@@ -295,6 +295,7 @@ type Options struct {
 	UseInstalledChrome bool
 	TlsImpersonate     bool
 	DisableStdin       bool
+	HttpApiEndpoint    string
 	NoScreenshotBytes  bool
 	NoHeadlessBody     bool
 	ScreenshotTimeout  int
@@ -451,6 +452,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.NoDecode, "no-decode", false, "avoid decoding body"),
 		flagSet.BoolVarP(&options.TlsImpersonate, "tls-impersonate", "tlsi", false, "enable experimental client hello (ja3) tls randomization"),
 		flagSet.BoolVar(&options.DisableStdin, "no-stdin", false, "Disable Stdin processing"),
+		flagSet.StringVarP(&options.HttpApiEndpoint, "http-api-endpoint", "hae", "", "experimental http api endpoint"),
 	)
 
 	flagSet.CreateGroup("debug", "Debug",
