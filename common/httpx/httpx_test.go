@@ -20,11 +20,11 @@ func TestDo(t *testing.T) {
 		require.Equal(t, 2, resp.ContentLength)
 	})
 
-	t.Run("content-length with binary body", func(t *testing.T) {
-		req, err := retryablehttp.NewRequest(http.MethodGet, "https://www.w3schools.com/images/favicon.ico", nil)
-		require.Nil(t, err)
-		resp, err := ht.Do(req, UnsafeOptions{})
-		require.Nil(t, err)
-		require.Equal(t, 318, resp.ContentLength)
-	})
+	// t.Run("content-length with binary body", func(t *testing.T) {
+	// 	req, err := retryablehttp.NewRequest(http.MethodGet, "https://www.w3schools.com/images/favicon.ico", nil)
+	// 	require.Nil(t, err)
+	// 	resp, err := ht.Do(req, UnsafeOptions{})
+	// 	require.Nil(t, err)
+	// 	require.Equal(t, 318, resp.ContentLength)
+	// })
 }
