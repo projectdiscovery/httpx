@@ -107,7 +107,9 @@ func New(options *Options) (*Runner, error) {
 		options: options,
 	}
 	var err error
-	if options.TechDetect || options.JSONOutput || options.CSVOutput {
+	if options.Wappalyzer != nil {
+		runner.wappalyzer = options.Wappalyzer
+	} else if options.TechDetect || options.JSONOutput || options.CSVOutput {
 		runner.wappalyzer, err = wappalyzer.New()
 	}
 	if err != nil {
@@ -119,34 +121,19 @@ func New(options *Options) (*Runner, error) {
 		os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
 	}
 
-	var npOptions networkpolicy.Options
-	for _, exclude := range options.Exclude {
-		switch {
-		case exclude == "cdn":
-			//implement cdn check in netoworkpolicy pkg??
-			runner.excludeCdn = true
-			continue
-		case exclude == "private-ips":
-			npOptions.DenyList = append(npOptions.DenyList, networkpolicy.DefaultIPv4Denylist...)
-			npOptions.DenyList = append(npOptions.DenyList, networkpolicy.DefaultIPv4DenylistRanges...)
-			npOptions.DenyList = append(npOptions.DenyList, networkpolicy.DefaultIPv6Denylist...)
-			npOptions.DenyList = append(npOptions.DenyList, networkpolicy.DefaultIPv6DenylistRanges...)
-		case iputil.IsCIDR(exclude):
-			npOptions.DenyList = append(npOptions.DenyList, exclude)
-		case asn.IsASN(exclude):
-			// update this to use networkpolicy pkg once https://github.com/projectdiscovery/networkpolicy/pull/55 is merged
-			ips := expandASNInputValue(exclude)
-			npOptions.DenyList = append(npOptions.DenyList, ips...)
-		case iputil.IsPort(exclude):
-			port, _ := strconv.Atoi(exclude)
-			npOptions.DenyPortList = append(npOptions.DenyPortList, port)
-		default:
-			npOptions.DenyList = append(npOptions.DenyList, exclude)
-		}
-	}
-
 	httpxOptions := httpx.DefaultOptions
-	httpxOptions.NetworkPolicy, _ = networkpolicy.New(npOptions)
+
+	var np *networkpolicy.NetworkPolicy
+	if options.Networkpolicy != nil {
+		np = options.Networkpolicy
+	} else {
+		np, err = runner.createNetworkpolicyInstance(options)
+	}
+	if err != nil {
+		return nil, err
+	}
+	httpxOptions.NetworkPolicy = np
+
 	// Enables automatically tlsgrab if tlsprobe is requested
 	httpxOptions.TLSGrab = options.TLSGrab || options.TLSProbe
 	httpxOptions.Timeout = time.Duration(options.Timeout) * time.Second
@@ -379,6 +366,36 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	return runner, nil
+}
+
+func (runner *Runner) createNetworkpolicyInstance(options *Options) (*networkpolicy.NetworkPolicy, error) {
+	var npOptions networkpolicy.Options
+	for _, exclude := range options.Exclude {
+		switch {
+		case exclude == "cdn":
+			//implement cdn check in netoworkpolicy pkg??
+			runner.excludeCdn = true
+			continue
+		case exclude == "private-ips":
+			npOptions.DenyList = append(npOptions.DenyList, networkpolicy.DefaultIPv4Denylist...)
+			npOptions.DenyList = append(npOptions.DenyList, networkpolicy.DefaultIPv4DenylistRanges...)
+			npOptions.DenyList = append(npOptions.DenyList, networkpolicy.DefaultIPv6Denylist...)
+			npOptions.DenyList = append(npOptions.DenyList, networkpolicy.DefaultIPv6DenylistRanges...)
+		case iputil.IsCIDR(exclude):
+			npOptions.DenyList = append(npOptions.DenyList, exclude)
+		case asn.IsASN(exclude):
+			// update this to use networkpolicy pkg once https://github.com/projectdiscovery/networkpolicy/pull/55 is merged
+			ips := expandASNInputValue(exclude)
+			npOptions.DenyList = append(npOptions.DenyList, ips...)
+		case iputil.IsPort(exclude):
+			port, _ := strconv.Atoi(exclude)
+			npOptions.DenyPortList = append(npOptions.DenyPortList, port)
+		default:
+			npOptions.DenyList = append(npOptions.DenyList, exclude)
+		}
+	}
+	np, err := networkpolicy.New(npOptions)
+	return np, err
 }
 
 func expandCIDRInputValue(value string) []string {

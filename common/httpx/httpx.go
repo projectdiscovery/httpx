@@ -55,7 +55,7 @@ func New(options *Options) (*HTTPX, error) {
 
 	if options.NetworkPolicy != nil {
 		httpx.NetworkPolicy = options.NetworkPolicy
-		fastdialerOpts.WithNetworkPolicyOptions = options.NetworkPolicy.Options
+		fastdialerOpts.NetworkPolicy = options.NetworkPolicy
 	}
 	fastdialerOpts.WithDialerHistory = true
 	fastdialerOpts.WithZTLS = options.ZTLS
