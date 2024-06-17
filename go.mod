@@ -24,20 +24,20 @@ require (
 	github.com/projectdiscovery/cdncheck v1.0.9
 	github.com/projectdiscovery/clistats v0.0.20
 	github.com/projectdiscovery/dsl v0.1.2
-	github.com/projectdiscovery/fastdialer v0.1.3
+	github.com/projectdiscovery/fastdialer v0.1.5
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.54
 	github.com/projectdiscovery/gologger v1.1.12
-	github.com/projectdiscovery/hmap v0.0.46
+	github.com/projectdiscovery/hmap v0.0.47
 	github.com/projectdiscovery/mapcidr v1.1.34
-	github.com/projectdiscovery/networkpolicy v0.0.8
+	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.44
 	github.com/projectdiscovery/rawhttp v0.1.52
 	github.com/projectdiscovery/retryablehttp-go v1.0.64
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.54
-	github.com/projectdiscovery/utils v0.1.1
+	github.com/projectdiscovery/utils v0.1.4
 	github.com/projectdiscovery/wappalyzergo v0.1.4
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
@@ -65,6 +65,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/charmbracelet/glamour v0.6.0 // indirect
 	github.com/cheggaaa/pb/v3 v3.1.4 // indirect
 	github.com/cloudflare/cfssl v1.6.4 // indirect
@@ -76,6 +77,7 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5 // indirect
 	github.com/fatih/color v1.15.0 // indirect
+	github.com/gaissmai/bart v0.9.5 // indirect
 	github.com/gaukas/godicttls v0.0.4 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
@@ -112,7 +114,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.5 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.62 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.64 // indirect
 	github.com/quic-go/quic-go v0.42.0 // indirect
 	github.com/refraction-networking/utls v1.5.4 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect

@@ -24,12 +24,14 @@ import (
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/httpx/common/stringz"
+	"github.com/projectdiscovery/networkpolicy"
 	"github.com/projectdiscovery/utils/auth/pdcp"
 	"github.com/projectdiscovery/utils/env"
 	fileutil "github.com/projectdiscovery/utils/file"
 	sliceutil "github.com/projectdiscovery/utils/slice"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	updateutils "github.com/projectdiscovery/utils/update"
+	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 )
 
 const (
@@ -306,6 +308,10 @@ type Options struct {
 	// HeadlessOptionalArguments specifies optional arguments to pass to Chrome
 	HeadlessOptionalArguments goflags.StringSlice
 	Protocol                  string
+
+	// Optional pre-created objects to reduce allocations
+	Wappalyzer    *wappalyzer.Wappalyze
+	Networkpolicy *networkpolicy.NetworkPolicy
 }
 
 // ParseOptions parses the command line options for application
