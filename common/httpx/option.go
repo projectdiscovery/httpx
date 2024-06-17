@@ -51,14 +51,15 @@ type Options struct {
 
 // DefaultOptions contains the default options
 var DefaultOptions = Options{
-	RandomAgent:  true,
-	Threads:      25,
-	Timeout:      30 * time.Second,
-	RetryMax:     5,
-	MaxRedirects: 10,
-	Unsafe:       false,
-	CdnCheck:     "true",
-	ExcludeCdn:   false,
+	RandomAgent:               true,
+	Threads:                   25,
+	Timeout:                   30 * time.Second,
+	RetryMax:                  5,
+	MaxRedirects:              10,
+	Unsafe:                    false,
+	CdnCheck:                  "true",
+	ExcludeCdn:                false,
+	MaxResponseBodySizeToRead: 1024 * 1024 * 10,
 	// VHOSTs options
 	VHostIgnoreStatusCode:    false,
 	VHostIgnoreContentLength: true,
