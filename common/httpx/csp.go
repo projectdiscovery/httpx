@@ -2,7 +2,9 @@ package httpx
 
 import (
 	"bytes"
+	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -84,9 +86,10 @@ func extractDomain(str string) string {
 	if !strings.Contains(str, "://") {
 		u = "https://" + str
 	}
+	u = sanitizeURL(u)
 	parsedURL, err := url.Parse(u)
 	if err != nil {
-		return str
+		return ""
 	}
 	return parsedURL.Hostname()
 }
@@ -108,4 +111,13 @@ func removeWildcards(domain string) string {
 		}
 	}
 	return strings.Join(parts, ".")
+}
+
+var urlInvalidCharRegex = regexp.MustCompile(`[^\w-./:~]`)
+
+func sanitizeURL(u string) string {
+	// Replace invalid characters with percent-encoded equivalents
+	return urlInvalidCharRegex.ReplaceAllStringFunc(u, func(match string) string {
+		return fmt.Sprintf("%%%02X", match[0])
+	})
 }
