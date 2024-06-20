@@ -40,6 +40,7 @@ type Result struct {
 	Hashes             map[string]interface{} `json:"hash,omitempty" csv:"hash"`
 	ExtractRegex       []string               `json:"extract_regex,omitempty" csv:"extract_regex"`
 	CDNName            string                 `json:"cdn_name,omitempty" csv:"cdn_name"`
+	CDNType            string                 `json:"cdn_type,omitempty" csv:"cdn_type"`
 	SNI                string                 `json:"sni,omitempty" csv:"sni"`
 	Port               string                 `json:"port,omitempty" csv:"port"`
 	Raw                string                 `json:"-" csv:"-"`

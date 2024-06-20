@@ -133,6 +133,7 @@ func New(options *Options) (*Runner, error) {
 		return nil, err
 	}
 	httpxOptions.NetworkPolicy = np
+	httpxOptions.CDNCheckClient = options.CDNCheckClient
 
 	// Enables automatically tlsgrab if tlsprobe is requested
 	httpxOptions.TLSGrab = options.TLSGrab || options.TLSProbe
@@ -1895,7 +1896,7 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", cnames[0]))
 	}
 
-	isCDN, cdnName, err := hp.CdnCheck(ip)
+	isCDN, cdnName, cdnType, err := hp.CdnCheck(ip)
 	if scanopts.OutputCDN == "true" && isCDN && err == nil {
 		builder.WriteString(fmt.Sprintf(" [%s]", cdnName))
 	}
@@ -2188,6 +2189,7 @@ retry:
 		CNAMEs:           cnames,
 		CDN:              isCDN,
 		CDNName:          cdnName,
+		CDNType:          cdnType,
 		ResponseTime:     resp.Duration.String(),
 		Technologies:     technologies,
 		FinalURL:         finalURL,
@@ -2408,7 +2410,7 @@ func (r *Runner) skipCDNPort(host string, port string) bool {
 	// pick the first ip as target
 	hostIP := dnsData.A[0]
 
-	isCdnIP, _, err := r.hp.CdnCheck(hostIP)
+	isCdnIP, _, _, err := r.hp.CdnCheck(hostIP)
 	if err != nil {
 		return false
 	}

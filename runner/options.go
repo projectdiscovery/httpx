@@ -310,8 +310,9 @@ type Options struct {
 	Protocol                  string
 
 	// Optional pre-created objects to reduce allocations
-	Wappalyzer    *wappalyzer.Wappalyze
-	Networkpolicy *networkpolicy.NetworkPolicy
+	Wappalyzer     *wappalyzer.Wappalyze
+	Networkpolicy  *networkpolicy.NetworkPolicy
+	CDNCheckClient *cdncheck.Client
 }
 
 // ParseOptions parses the command line options for application
