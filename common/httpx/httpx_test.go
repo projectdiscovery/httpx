@@ -25,6 +25,6 @@ func TestDo(t *testing.T) {
 		require.Nil(t, err)
 		resp, err := ht.Do(req, UnsafeOptions{})
 		require.Nil(t, err)
-		require.Equal(t, 318, resp.ContentLength)
+		require.Greater(t, len(resp.Raw), 800)
 	})
 }

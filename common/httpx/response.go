@@ -10,6 +10,7 @@ import (
 
 // Response contains the response to a server
 type Response struct {
+	Input         string // input that was given
 	StatusCode    int
 	Headers       map[string][]string
 	RawData       []byte // undecoded data
@@ -21,6 +22,7 @@ type Response struct {
 	Lines         int
 	TLSData       *clients.Response
 	CSPData       *CSPData
+	BodyDomains   *BodyDomain
 	HTTP2         bool
 	Pipeline      bool
 	Duration      time.Duration

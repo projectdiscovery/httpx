@@ -2,7 +2,9 @@ package httpx
 
 import (
 	"bytes"
+	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -64,7 +66,7 @@ func parsePotentialDomains(fqdns, domains map[string]struct{}, data string) {
 	// we extracts only potential domains
 	for _, t := range tokens {
 		if isPotentialDomain(t) {
-			if dn, err := publicsuffix.Parse(extractDomain(removeWildcards(t))); err == nil {
+			if dn, err := publicsuffix.Parse(extractDomain(t)); err == nil {
 				domains[dn.SLD+"."+dn.TLD] = struct{}{}
 				if dn.TRD != "" {
 					fqdns[dn.String()] = struct{}{}
@@ -79,15 +81,17 @@ func isPotentialDomain(s string) bool {
 }
 
 func extractDomain(str string) string {
+	str = removeWildcards(str)
 	u := str
 	if !strings.Contains(str, "://") {
 		u = "https://" + str
 	}
+	u = sanitizeURL(u)
 	parsedURL, err := url.Parse(u)
 	if err != nil {
-		return str
+		return ""
 	}
-	return parsedURL.Host
+	return parsedURL.Hostname()
 }
 
 func removeWildcards(domain string) string {
@@ -107,4 +111,13 @@ func removeWildcards(domain string) string {
 		}
 	}
 	return strings.Join(parts, ".")
+}
+
+var urlInvalidCharRegex = regexp.MustCompile(`[^\w-./:~]`)
+
+func sanitizeURL(u string) string {
+	// Replace invalid characters with percent-encoded equivalents
+	return urlInvalidCharRegex.ReplaceAllStringFunc(u, func(match string) string {
+		return fmt.Sprintf("%%%02X", match[0])
+	})
 }

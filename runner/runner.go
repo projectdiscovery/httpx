@@ -2211,6 +2211,10 @@ retry:
 		RequestRaw:        requestDump,
 		Response:          resp,
 	}
+	if resp.BodyDomains != nil {
+		result.Fqdns = resp.BodyDomains.Fqdns
+		result.Domains = resp.BodyDomains.Domains
+	}
 	return result
 }
 
