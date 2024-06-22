@@ -2070,7 +2070,6 @@ retry:
 		WebSocket:        isWebSocket,
 		TLSData:          resp.TLSData,
 		CSPData:          resp.CSPData,
-		BodyDomain:       resp.BodyDomains,
 		Pipeline:         pipeline,
 		HTTP2:            http2,
 		Method:           method,
@@ -2102,6 +2101,10 @@ retry:
 		Resolvers:         resolvers,
 		RequestRaw:        requestDump,
 		Response:          resp,
+	}
+	if resp.BodyDomains != nil {
+		result.Fqdns = resp.BodyDomains.Fqdns
+		result.Domains = resp.BodyDomains.Domains
 	}
 	return result
 }
