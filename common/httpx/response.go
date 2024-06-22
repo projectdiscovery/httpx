@@ -10,6 +10,7 @@ import (
 
 // Response contains the response to a server
 type Response struct {
+	Input         string // input that was given
 	StatusCode    int
 	Headers       map[string][]string
 	RawData       []byte // undecoded data

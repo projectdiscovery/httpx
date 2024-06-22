@@ -23,7 +23,7 @@ func TestBodyGrabDoamins(t *testing.T) {
 	sort.Strings(bd.Fqdns)
 
 	t.Run("body domain grab", func(t *testing.T) {
-		require.Equal(t, 64, len(bd.Domains))
-		require.Equal(t, 23, len(bd.Fqdns))
+		require.Equal(t, 24, len(bd.Domains))
+		require.Equal(t, 16, len(bd.Fqdns))
 	})
 }

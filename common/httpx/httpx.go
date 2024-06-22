@@ -220,6 +220,7 @@ get_response:
 	}
 
 	var resp Response
+	resp.Input = req.Host
 
 	resp.Headers = httpresp.Header.Clone()
 
