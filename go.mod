@@ -21,7 +21,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/asnmap v1.1.0
-	github.com/projectdiscovery/cdncheck v1.0.9
+	github.com/projectdiscovery/cdncheck v1.1.0
 	github.com/projectdiscovery/clistats v0.0.20
 	github.com/projectdiscovery/dsl v0.1.2
 	github.com/projectdiscovery/fastdialer v0.1.5
@@ -38,7 +38,7 @@ require (
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.56
 	github.com/projectdiscovery/utils v0.1.4
-	github.com/projectdiscovery/wappalyzergo v0.1.6
+	github.com/projectdiscovery/wappalyzergo v0.1.7
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.9.0
@@ -46,12 +46,12 @@ require (
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20230810033253-352e893a4cad
-	golang.org/x/net v0.25.0
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/text v0.15.0
+	golang.org/x/net v0.26.0
+	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/text v0.16.0
 )
 
-require github.com/weppos/publicsuffix-go v0.30.1-0.20230422193905-8fecedd899db
+require github.com/weppos/publicsuffix-go v0.30.1
 
 require (
 	aead.dev/minisign v0.2.0 // indirect
@@ -118,6 +118,7 @@ require (
 	github.com/quic-go/quic-go v0.42.0 // indirect
 	github.com/refraction-networking/utls v1.5.4 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
+	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/sashabaranov/go-openai v1.14.2 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.7 // indirect
@@ -136,7 +137,6 @@ require (
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
-	github.com/yl2chen/cidranger v1.0.2 // indirect
 	github.com/ysmood/fetchup v0.2.3 // indirect
 	github.com/ysmood/goob v0.4.0 // indirect
 	github.com/ysmood/got v0.34.1 // indirect
@@ -147,13 +147,13 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zcalusic/sysinfo v1.0.2 // indirect
 	github.com/zmap/rc2 v0.0.0-20190804163417-abaa70531248 // indirect
-	golang.org/x/crypto v0.23.0 // indirect
-	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/crypto v0.24.0 // indirect
+	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/oauth2 v0.11.0 // indirect
-	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/term v0.20.0 // indirect
+	golang.org/x/sync v0.7.0 // indirect
+	golang.org/x/term v0.21.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	golang.org/x/tools v0.13.0 // indirect
+	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/djherbis/times.v1 v1.3.0 // indirect
