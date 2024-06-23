@@ -60,6 +60,7 @@ type Result struct {
 	Path               string                 `json:"path,omitempty" csv:"path"`
 	FavIconMMH3        string                 `json:"favicon,omitempty" csv:"favicon"`
 	FaviconPath        string                 `json:"favicon_path,omitempty" csv:"favicon_path"`
+	FaviconURL         string                 `json:"favicon_url,omitempty" csv:"favicon_url"`
 	FinalURL           string                 `json:"final_url,omitempty" csv:"final_url"`
 	ResponseHeaders    map[string]interface{} `json:"header,omitempty" csv:"header"`
 	RawHeaders         string                 `json:"raw_header,omitempty" csv:"raw_header"`

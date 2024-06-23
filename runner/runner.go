@@ -1948,11 +1948,11 @@ retry:
 		builder.WriteRune(']')
 	}
 
-	var faviconMMH3, faviconPath string
+	var faviconMMH3, faviconPath, faviconURL string
 	var faviconData []byte
 	if scanopts.Favicon {
 		var err error
-		faviconMMH3, faviconPath, faviconData, err = r.HandleFaviconHash(hp, req, resp.Data, true)
+		faviconMMH3, faviconPath, faviconData, faviconURL, err = r.HandleFaviconHash(hp, req, resp.Data, true)
 		if err == nil {
 			builder.WriteString(" [")
 			if !scanopts.OutputWithNoColor {
@@ -2200,6 +2200,7 @@ retry:
 		FinalURL:         finalURL,
 		FavIconMMH3:      faviconMMH3,
 		FaviconPath:      faviconPath,
+		FaviconURL:       faviconURL,
 		Hashes:           hashesMap,
 		Extracts:         extractResult,
 		Jarm:             jarmhash,
@@ -2256,11 +2257,11 @@ func calculatePerceptionHash(screenshotBytes []byte) (uint64, error) {
 	return pHash.GetHash(), nil
 }
 
-func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp []byte, defaultProbe bool) (string, string, []byte, error) {
+func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp []byte, defaultProbe bool) (string, string, []byte, string, error) {
 	// Check if current URI is ending with .ico => use current body without additional requests
 	if path.Ext(req.URL.Path) == ".ico" {
 		hash, err := r.calculateFaviconHashWithRaw(currentResp)
-		return hash, req.URL.Path, currentResp, err
+		return hash, req.URL.Path, currentResp, "", err
 	}
 
 	// search in the response of the requested path for element and rel shortcut/mask/apple-touch icon
@@ -2268,12 +2269,12 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 	// if not, any of link from other icons can be requested
 	potentialURLs, err := extractPotentialFavIconsURLs(currentResp)
 	if err != nil {
-		return "", "", nil, err
+		return "", "", nil, "", err
 	}
 
 	clone := req.Clone(context.Background())
 
-	var faviconHash, faviconURL string
+	var faviconHash, faviconPath, faviconURL string
 	var faviconData []byte
 	errCount := 0
 	if len(potentialURLs) == 0 && defaultProbe {
@@ -2298,7 +2299,7 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		}
 
 		if potentialURL != "" {
-			err = req.URL.MergePath(potentialURL, false)
+			err = clone.MergePath(potentialURL, false)
 			if err != nil {
 				continue
 			}
@@ -2312,12 +2313,13 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		if err != nil {
 			continue
 		}
-		faviconURL = potentialURL
+		faviconURL = clone.URL.String()
+		faviconPath = potentialURL
 		faviconHash = hash
 		faviconData = resp.Data
 		break
 	}
-	return faviconHash, faviconURL, faviconData, nil
+	return faviconHash, faviconPath, faviconData, faviconURL, nil
 }
 
 func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, error) {
