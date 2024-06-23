@@ -96,6 +96,7 @@ type Result struct {
 	TechnologyDetails map[string]wappalyzer.AppInfo `json:"-" csv:"-"`
 	RequestRaw        []byte                        `json:"-" csv:"-"`
 	Response          *httpx.Response               `json:"-" csv:"-"`
+	FaviconData       []byte                        `json:"-" csv:"-"`
 }
 
 // function to get dsl variables from result struct
