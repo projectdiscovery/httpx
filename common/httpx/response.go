@@ -97,7 +97,7 @@ func (r *Response) GetChainAsSlice() (chain []ChainItem) {
 
 // HasChain redirects
 func (r *Response) HasChain() bool {
-	return len(r.Chain) > 1
+	return len(r.Chain) >= 1
 }
 
 // GetChainLastURL returns the final URL
