@@ -89,6 +89,10 @@ type Runner struct {
 	httpApiEndpoint     *Server
 }
 
+func (r *Runner) HTTPX() *httpx.HTTPX {
+	return r.hp
+}
+
 // picked based on try-fail but it seems to close to one it's used https://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html#c1992
 var hammingDistanceThreshold int = 22
 
@@ -133,6 +137,7 @@ func New(options *Options) (*Runner, error) {
 		return nil, err
 	}
 	httpxOptions.NetworkPolicy = np
+	httpxOptions.CDNCheckClient = options.CDNCheckClient
 
 	// Enables automatically tlsgrab if tlsprobe is requested
 	httpxOptions.TLSGrab = options.TLSGrab || options.TLSProbe
@@ -1895,7 +1900,7 @@ retry:
 		builder.WriteString(fmt.Sprintf(" [%s]", cnames[0]))
 	}
 
-	isCDN, cdnName, err := hp.CdnCheck(ip)
+	isCDN, cdnName, cdnType, err := hp.CdnCheck(ip)
 	if scanopts.OutputCDN == "true" && isCDN && err == nil {
 		builder.WriteString(fmt.Sprintf(" [%s]", cdnName))
 	}
@@ -1943,10 +1948,11 @@ retry:
 		builder.WriteRune(']')
 	}
 
-	var faviconMMH3, faviconPath string
+	var faviconMMH3, faviconPath, faviconURL string
+	var faviconData []byte
 	if scanopts.Favicon {
 		var err error
-		faviconMMH3, faviconPath, err = r.handleFaviconHash(hp, req, resp)
+		faviconMMH3, faviconPath, faviconData, faviconURL, err = r.HandleFaviconHash(hp, req, resp.Data, true)
 		if err == nil {
 			builder.WriteString(" [")
 			if !scanopts.OutputWithNoColor {
@@ -2188,11 +2194,13 @@ retry:
 		CNAMEs:           cnames,
 		CDN:              isCDN,
 		CDNName:          cdnName,
+		CDNType:          cdnType,
 		ResponseTime:     resp.Duration.String(),
 		Technologies:     technologies,
 		FinalURL:         finalURL,
 		FavIconMMH3:      faviconMMH3,
 		FaviconPath:      faviconPath,
+		FaviconURL:       faviconURL,
 		Hashes:           hashesMap,
 		Extracts:         extractResult,
 		Jarm:             jarmhash,
@@ -2210,6 +2218,7 @@ retry:
 		Resolvers:         resolvers,
 		RequestRaw:        requestDump,
 		Response:          resp,
+		FaviconData:       faviconData,
 	}
 	if resp.BodyDomains != nil {
 		result.Fqdns = resp.BodyDomains.Fqdns
@@ -2248,11 +2257,11 @@ func calculatePerceptionHash(screenshotBytes []byte) (uint64, error) {
 	return pHash.GetHash(), nil
 }
 
-func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp *httpx.Response) (string, string, error) {
+func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp []byte, defaultProbe bool) (string, string, []byte, string, error) {
 	// Check if current URI is ending with .ico => use current body without additional requests
 	if path.Ext(req.URL.Path) == ".ico" {
-		hash, err := r.calculateFaviconHashWithRaw(currentResp.Data)
-		return hash, req.URL.Path, err
+		hash, err := r.calculateFaviconHashWithRaw(currentResp)
+		return hash, req.URL.Path, currentResp, "", err
 	}
 
 	// search in the response of the requested path for element and rel shortcut/mask/apple-touch icon
@@ -2260,36 +2269,57 @@ func (r *Runner) handleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 	// if not, any of link from other icons can be requested
 	potentialURLs, err := extractPotentialFavIconsURLs(currentResp)
 	if err != nil {
-		return "", "", err
+		return "", "", nil, "", err
 	}
 
-	faviconPath := "/favicon.ico"
-	// pick the first - we want only one request
-	if len(potentialURLs) > 0 {
-		URL, err := r.parseURL(potentialURLs[0])
+	clone := req.Clone(context.Background())
+
+	var faviconHash, faviconPath, faviconURL string
+	var faviconData []byte
+	errCount := 0
+	if len(potentialURLs) == 0 && defaultProbe {
+		potentialURLs = append(potentialURLs, "/favicon.ico")
+	}
+	// We only want upto two favicon requests, if the
+	// first one fails, we will try the second one
+	for _, potentialURL := range potentialURLs {
+		if errCount == 2 {
+			break
+		}
+		URL, err := r.parseURL(potentialURL)
 		if err != nil {
-			return "", "", err
+			continue
 		}
 		if URL.IsAbs() {
-			req.SetURL(URL)
-			req.Host = URL.Host
-			faviconPath = ""
+			clone.SetURL(URL)
+			clone.Host = URL.Host
+			potentialURL = ""
 		} else {
-			faviconPath = URL.String()
+			potentialURL = URL.String()
 		}
-	}
-	if faviconPath != "" {
-		err = req.URL.MergePath(faviconPath, false)
+
+		if potentialURL != "" {
+			err = clone.MergePath(potentialURL, false)
+			if err != nil {
+				continue
+			}
+		}
+		resp, err := hp.Do(clone, httpx.UnsafeOptions{})
 		if err != nil {
-			return "", "", errorutil.NewWithTag("favicon", "failed to add %v to url got %v", faviconPath, err)
+			errCount++
+			continue
 		}
+		hash, err := r.calculateFaviconHashWithRaw(resp.Data)
+		if err != nil {
+			continue
+		}
+		faviconURL = clone.URL.String()
+		faviconPath = potentialURL
+		faviconHash = hash
+		faviconData = resp.Data
+		break
 	}
-	resp, err := hp.Do(req, httpx.UnsafeOptions{})
-	if err != nil {
-		return "", "", errors.Wrap(err, "could not fetch favicon")
-	}
-	hash, err := r.calculateFaviconHashWithRaw(resp.Data)
-	return hash, req.URL.Path, err
+	return faviconHash, faviconPath, faviconData, faviconURL, nil
 }
 
 func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, error) {
@@ -2300,9 +2330,9 @@ func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, error) {
 	return fmt.Sprintf("%d", hashNum), nil
 }
 
-func extractPotentialFavIconsURLs(resp *httpx.Response) ([]string, error) {
+func extractPotentialFavIconsURLs(resp []byte) ([]string, error) {
 	var potentialURLs []string
-	document, err := goquery.NewDocumentFromReader(bytes.NewReader(resp.Data))
+	document, err := goquery.NewDocumentFromReader(bytes.NewReader(resp))
 	if err != nil {
 		return nil, err
 	}
@@ -2313,6 +2343,10 @@ func extractPotentialFavIconsURLs(resp *httpx.Response) ([]string, error) {
 		if okHref && isValidRel {
 			potentialURLs = append(potentialURLs, href)
 		}
+	})
+	// Sort and prefer icon with .ico extension
+	sort.Slice(potentialURLs, func(i, j int) bool {
+		return !strings.HasSuffix(potentialURLs[i], ".ico")
 	})
 	return potentialURLs, nil
 }
@@ -2412,7 +2446,7 @@ func (r *Runner) skipCDNPort(host string, port string) bool {
 	// pick the first ip as target
 	hostIP := dnsData.A[0]
 
-	isCdnIP, _, err := r.hp.CdnCheck(hostIP)
+	isCdnIP, _, _, err := r.hp.CdnCheck(hostIP)
 	if err != nil {
 		return false
 	}

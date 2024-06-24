@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/networkpolicy"
 )
 
@@ -46,6 +47,7 @@ type Options struct {
 	SniName                   string
 	TlsImpersonate            bool
 	NetworkPolicy             *networkpolicy.NetworkPolicy
+	CDNCheckClient            *cdncheck.Client
 	Protocol                  Proto
 }
 
