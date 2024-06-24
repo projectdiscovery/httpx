@@ -33,11 +33,11 @@ require (
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.44
-	github.com/projectdiscovery/rawhttp v0.1.54
+	github.com/projectdiscovery/rawhttp v0.1.55
 	github.com/projectdiscovery/retryablehttp-go v1.0.65
 	github.com/projectdiscovery/tlsx v1.1.6
-	github.com/projectdiscovery/useragent v0.0.56
-	github.com/projectdiscovery/utils v0.1.4
+	github.com/projectdiscovery/useragent v0.0.57
+	github.com/projectdiscovery/utils v0.1.5
 	github.com/projectdiscovery/wappalyzergo v0.1.8
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
