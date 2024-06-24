@@ -40,6 +40,7 @@ type Result struct {
 	Hashes             map[string]interface{} `json:"hash,omitempty" csv:"hash"`
 	ExtractRegex       []string               `json:"extract_regex,omitempty" csv:"extract_regex"`
 	CDNName            string                 `json:"cdn_name,omitempty" csv:"cdn_name"`
+	CDNType            string                 `json:"cdn_type,omitempty" csv:"cdn_type"`
 	SNI                string                 `json:"sni,omitempty" csv:"sni"`
 	Port               string                 `json:"port,omitempty" csv:"port"`
 	Raw                string                 `json:"-" csv:"-"`
@@ -59,6 +60,7 @@ type Result struct {
 	Path               string                 `json:"path,omitempty" csv:"path"`
 	FavIconMMH3        string                 `json:"favicon,omitempty" csv:"favicon"`
 	FaviconPath        string                 `json:"favicon_path,omitempty" csv:"favicon_path"`
+	FaviconURL         string                 `json:"favicon_url,omitempty" csv:"favicon_url"`
 	FinalURL           string                 `json:"final_url,omitempty" csv:"final_url"`
 	ResponseHeaders    map[string]interface{} `json:"header,omitempty" csv:"header"`
 	RawHeaders         string                 `json:"raw_header,omitempty" csv:"raw_header"`
@@ -96,6 +98,7 @@ type Result struct {
 	TechnologyDetails map[string]wappalyzer.AppInfo `json:"-" csv:"-"`
 	RequestRaw        []byte                        `json:"-" csv:"-"`
 	Response          *httpx.Response               `json:"-" csv:"-"`
+	FaviconData       []byte                        `json:"-" csv:"-"`
 }
 
 // function to get dsl variables from result struct
