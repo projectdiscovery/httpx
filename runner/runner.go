@@ -968,7 +968,7 @@ func (r *Runner) RunEnumeration() {
 					respRaw = respRaw[:r.scanopts.MaxResponseBodySizeToSave]
 				}
 				data := reqRaw
-				if r.options.StoreChain && resp.Response.HasChain() {
+				if r.options.StoreChain && resp.Response != nil && resp.Response.HasChain() {
 					data = append(data, append([]byte("\n"), []byte(resp.Response.GetChain())...)...)
 				}
 				data = append(data, respRaw...)
