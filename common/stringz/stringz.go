@@ -2,7 +2,9 @@ package stringz
 
 import (
 	"bytes"
+	"crypto/md5"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"net/url"
@@ -121,12 +123,19 @@ func murmurhash(data []byte) int32 {
 	return int32(hasher.Sum32())
 }
 
-func FaviconHash(data []byte) (int32, error) {
+// md5Hash returns the md5 hash of the data
+func md5Hash(data []byte) string {
+	hasher := md5.New()
+	hasher.Write(data)
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func FaviconHash(data []byte) (int32, string, error) {
 	if isContentTypeImage(data) {
-		return murmurhash(data), nil
+		return murmurhash(data), md5Hash(data), nil
 	}
 
-	return 0, errors.New("content type is not image")
+	return 0, "", errors.New("content type is not image")
 }
 
 func InsertInto(s string, interval int, sep rune) string {

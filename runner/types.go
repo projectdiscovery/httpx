@@ -59,6 +59,7 @@ type Result struct {
 	Host               string                 `json:"host,omitempty" csv:"host"`
 	Path               string                 `json:"path,omitempty" csv:"path"`
 	FavIconMMH3        string                 `json:"favicon,omitempty" csv:"favicon"`
+	FavIconMD5         string                 `json:"favicon_md5,omitempty" csv:"favicon"`
 	FaviconPath        string                 `json:"favicon_path,omitempty" csv:"favicon_path"`
 	FaviconURL         string                 `json:"favicon_url,omitempty" csv:"favicon_url"`
 	FinalURL           string                 `json:"final_url,omitempty" csv:"final_url"`
