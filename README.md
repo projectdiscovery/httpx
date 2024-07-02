@@ -99,7 +99,7 @@ PROBES:
    -cl, -content-length   display response content-length
    -ct, -content-type     display response content-type
    -location              display response redirect location
-   -favicon               display mmh3 hash for '/favicon.ico' file
+   -favicon               display hash for '/favicon.ico' file (supported: md5,mmh3)
    -hash string           display response body hash (supported: md5,mmh3,simhash,sha1,sha256,sha512)
    -jarm                  display jarm fingerprint hash
    -rt, -response-time    display response time
