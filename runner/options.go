@@ -90,7 +90,7 @@ type ScanOptions struct {
 	ExcludeCDN                bool
 	HostMaxErrors             int
 	ProbeAllIPS               bool
-	Favicon                   bool
+	Favicon                   string
 	LeaveDefaultPorts         bool
 	OutputLinesCount          bool
 	OutputWordsCount          bool
@@ -264,7 +264,7 @@ type Options struct {
 	SkipDedupe                bool
 	ProbeAllIPS               bool
 	Resolvers                 goflags.StringSlice
-	Favicon                   bool
+	Favicon                   string
 	OutputFilterFavicon       goflags.StringSlice
 	OutputMatchFavicon        goflags.StringSlice
 	LeaveDefaultPorts         bool
@@ -334,7 +334,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.ContentLength, "content-length", "cl", false, "display response content-length"),
 		flagSet.BoolVarP(&options.OutputContentType, "content-type", "ct", false, "display response content-type"),
 		flagSet.BoolVar(&options.Location, "location", false, "display response redirect location"),
-		flagSet.BoolVar(&options.Favicon, "favicon", false, "display mmh3 hash for '/favicon.ico' file"),
+		flagSet.StringVar(&options.Favicon, "favicon", "", "display hash for '/favicon.ico' file (supported: md5,mmh3)"),
 		flagSet.StringVar(&options.Hashes, "hash", "", "display response body hash (supported: md5,mmh3,simhash,sha1,sha256,sha512)"),
 		flagSet.BoolVar(&options.Jarm, "jarm", false, "display jarm fingerprint hash"),
 		flagSet.BoolVarP(&options.OutputResponseTime, "response-time", "rt", false, "display response time"),
@@ -662,6 +662,12 @@ func (options *Options) ValidateOptions() error {
 			}
 		} else {
 			resolvers = append(resolvers, resolver)
+		}
+	}
+
+	if options.Favicon != "" {
+		if !sliceutil.Contains([]string{"md5", "mmh3"}, strings.ToLower(options.Favicon)) {
+			return errors.Wrapf(err, "Invalid value for favicon, supported values: md5, mmh3")
 		}
 	}
 

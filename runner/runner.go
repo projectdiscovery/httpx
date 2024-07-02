@@ -895,7 +895,7 @@ func (r *Runner) RunEnumeration() {
 			if len(r.options.OutputFilterString) > 0 && stringsutil.EqualFoldAny(resp.Raw, r.options.OutputFilterString...) {
 				continue
 			}
-			if len(r.options.OutputFilterFavicon) > 0 && stringsutil.EqualFoldAny(resp.FavIconMMH3, r.options.OutputFilterFavicon...) {
+			if len(r.options.OutputFilterFavicon) > 0 && stringsutil.EqualFoldAny(resp.FavIconHash, r.options.OutputFilterFavicon...) {
 				continue
 			}
 			if len(r.options.matchStatusCode) > 0 && !sliceutil.Contains(r.options.matchStatusCode, resp.StatusCode) {
@@ -919,7 +919,7 @@ func (r *Runner) RunEnumeration() {
 			if len(r.options.OutputMatchString) > 0 && !stringsutil.ContainsAnyI(resp.Raw, r.options.OutputMatchString...) {
 				continue
 			}
-			if len(r.options.OutputMatchFavicon) > 0 && !stringsutil.EqualFoldAny(resp.FavIconMMH3, r.options.OutputMatchFavicon...) {
+			if len(r.options.OutputMatchFavicon) > 0 && !stringsutil.EqualFoldAny(resp.FavIconHash, r.options.OutputMatchFavicon...) {
 				continue
 			}
 			if len(r.options.matchLinesCount) > 0 && !sliceutil.Contains(r.options.matchLinesCount, resp.Lines) {
@@ -1948,21 +1948,22 @@ retry:
 		builder.WriteRune(']')
 	}
 
-	var faviconMMH3, faviconPath, faviconURL string
+	var faviconHash, faviconPath, faviconURL string
 	var faviconData []byte
-	if scanopts.Favicon {
+	if scanopts.Favicon != "" {
+		var hashAlgo = scanopts.Favicon
 		var err error
-		faviconMMH3, faviconPath, faviconData, faviconURL, err = r.HandleFaviconHash(hp, req, resp.Data, true)
+		faviconHash, faviconPath, faviconData, faviconURL, err = r.HandleFaviconHash(hp, req, resp.Data, true, hashAlgo)
 		if err == nil {
 			builder.WriteString(" [")
 			if !scanopts.OutputWithNoColor {
-				builder.WriteString(aurora.Magenta(faviconMMH3).String())
+				builder.WriteString(aurora.Magenta(faviconHash).String())
 			} else {
-				builder.WriteString(faviconMMH3)
+				builder.WriteString(faviconHash)
 			}
 			builder.WriteRune(']')
 		} else {
-			gologger.Warning().Msgf("could not calculate favicon hash for path %v : %s", faviconPath, err)
+			gologger.Warning().Msgf("could not calculate %s hash for path %v : %s", scanopts.Favicon, faviconPath, err)
 		}
 	}
 
@@ -2198,7 +2199,7 @@ retry:
 		ResponseTime:     resp.Duration.String(),
 		Technologies:     technologies,
 		FinalURL:         finalURL,
-		FavIconMMH3:      faviconMMH3,
+		FavIconHash:      faviconHash,
 		FaviconPath:      faviconPath,
 		FaviconURL:       faviconURL,
 		Hashes:           hashesMap,
@@ -2257,10 +2258,10 @@ func calculatePerceptionHash(screenshotBytes []byte) (uint64, error) {
 	return pHash.GetHash(), nil
 }
 
-func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp []byte, defaultProbe bool) (string, string, []byte, string, error) {
+func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp []byte, defaultProbe bool, hashAlgo string) (string, string, []byte, string, error) {
 	// Check if current URI is ending with .ico => use current body without additional requests
 	if path.Ext(req.URL.Path) == ".ico" {
-		hash, err := r.calculateFaviconHashWithRaw(currentResp)
+		hash, err := r.calculateFaviconHashWithRaw(currentResp, hashAlgo)
 		return hash, req.URL.Path, currentResp, "", err
 	}
 
@@ -2309,7 +2310,7 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 			errCount++
 			continue
 		}
-		hash, err := r.calculateFaviconHashWithRaw(resp.Data)
+		hash, err := r.calculateFaviconHashWithRaw(resp.Data, hashAlgo)
 		if err != nil {
 			continue
 		}
@@ -2322,12 +2323,12 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 	return faviconHash, faviconPath, faviconData, faviconURL, nil
 }
 
-func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, error) {
-	hashNum, err := stringz.FaviconHash(data)
+func (r *Runner) calculateFaviconHashWithRaw(data []byte, algo string) (string, error) {
+	hash, err := stringz.FaviconHash(data, strings.ToLower(algo))
 	if err != nil {
 		return "", errorutil.NewWithTag("favicon", "could not calculate favicon hash").Wrap(err)
 	}
-	return fmt.Sprintf("%d", hashNum), nil
+	return hash, nil
 }
 
 func extractPotentialFavIconsURLs(resp []byte) ([]string, error) {

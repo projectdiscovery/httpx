@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/projectdiscovery/httpx/common/hashes"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	urlutil "github.com/projectdiscovery/utils/url"
 	"github.com/spaolacci/murmur3"
@@ -121,12 +123,15 @@ func murmurhash(data []byte) int32 {
 	return int32(hasher.Sum32())
 }
 
-func FaviconHash(data []byte) (int32, error) {
+func FaviconHash(data []byte, algo string) (string, error) {
 	if isContentTypeImage(data) {
-		return murmurhash(data), nil
+		if algo == "md5" {
+			return hashes.Md5(data), nil
+		}
+		return fmt.Sprintf("%d", murmurhash(data)), nil
 	}
 
-	return 0, errors.New("content type is not image")
+	return "", errors.New("content type is not image")
 }
 
 func InsertInto(s string, interval int, sep rune) string {
