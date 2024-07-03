@@ -968,7 +968,7 @@ func (r *Runner) RunEnumeration() {
 					respRaw = respRaw[:r.scanopts.MaxResponseBodySizeToSave]
 				}
 				data := reqRaw
-				if r.options.StoreChain && resp.Response.HasChain() {
+				if r.options.StoreChain && resp.Response != nil && resp.Response.HasChain() {
 					data = append(data, append([]byte("\n"), []byte(resp.Response.GetChain())...)...)
 				}
 				data = append(data, respRaw...)
@@ -1313,7 +1313,7 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
 
-	for target := range r.targets(hp, stringz.TrimProtocol(t, scanopts.NoFallback || scanopts.NoFallbackScheme)) {
+	for target := range r.targets(hp, t) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
 			for _, method := range scanopts.Methods {
@@ -2120,7 +2120,7 @@ retry:
 	var pHash uint64
 	if scanopts.Screenshot {
 		var err error
-		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, time.Duration(scanopts.ScreenshotTimeout)*time.Second)
+		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, time.Duration(scanopts.ScreenshotTimeout)*time.Second, r.options.CustomHeaders)
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
