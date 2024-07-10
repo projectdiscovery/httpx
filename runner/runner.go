@@ -993,6 +993,9 @@ func (r *Runner) RunEnumeration() {
 
 				resp.ScreenshotPath = screenshotPath
 				resp.ScreenshotPathRel = screenshotPathRel
+				if r.scanopts.NoScreenshotBytes {
+					resp.ScreenshotBytes = []byte{}
+				}
 			}
 
 			if indexFile != nil {
@@ -2137,9 +2140,6 @@ retry:
 				}
 				technologies = sliceutil.Dedupe(technologies)
 			}
-		}
-		if scanopts.NoScreenshotBytes {
-			screenshotBytes = []byte{}
 		}
 		if scanopts.NoHeadlessBody {
 			headlessBody = ""
