@@ -892,10 +892,10 @@ func (r *Runner) RunEnumeration() {
 					continue
 				}
 			}
-			if len(r.options.OutputFilterString) > 0 && stringsutil.EqualFoldAny(resp.Raw, r.options.OutputFilterString...) {
+			if len(r.options.OutputFilterString) > 0 && stringsutil.ContainsAnyI(resp.Raw, r.options.OutputFilterString...) {
 				continue
 			}
-			if len(r.options.OutputFilterFavicon) > 0 && stringsutil.EqualFoldAny(resp.FavIconMMH3, r.options.OutputFilterFavicon...) {
+			if len(r.options.OutputFilterFavicon) > 0 && stringsutil.ContainsAnyI(resp.FavIconMMH3, r.options.OutputFilterFavicon...) {
 				continue
 			}
 			if len(r.options.matchStatusCode) > 0 && !sliceutil.Contains(r.options.matchStatusCode, resp.StatusCode) {
