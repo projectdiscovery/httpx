@@ -2204,7 +2204,7 @@ retry:
 		FaviconURL:       faviconURL,
 		Hashes:           hashesMap,
 		Extracts:         extractResult,
-		Jarm:             jarmhash,
+		JarmHash:         jarmhash,
 		Lines:            resp.Lines,
 		Words:            resp.Words,
 		ASN:              asnResponse,
