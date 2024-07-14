@@ -26,7 +26,7 @@ func RunHttpxAndGetResults(url string, debug bool, extra ...string) ([]string, e
 		return nil, err
 	}
 	parts := []string{}
-	items := strings.Split(string(data), "\n")
+	items := strings.Split(strings.TrimSpace(string(data)), "\n")
 	for _, i := range items {
 		if i != "" {
 			parts = append(parts, i)
@@ -72,7 +72,7 @@ func RunHttpxBinaryAndGetResults(target string, httpxBinary string, debug bool, 
 		return nil, err
 	}
 	parts := []string{}
-	items := strings.Split(string(data), "\n")
+	items := strings.Split(strings.TrimSpace(string(data)), "\n")
 	for _, i := range items {
 		if i != "" {
 			parts = append(parts, i)
