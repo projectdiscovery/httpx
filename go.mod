@@ -27,7 +27,7 @@ require (
 	github.com/projectdiscovery/fastdialer v0.1.7-0.20240711151717-033b71c47e85
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
-	github.com/projectdiscovery/goflags v0.1.58
+	github.com/projectdiscovery/goflags v0.1.59
 	github.com/projectdiscovery/gologger v1.1.14
 	github.com/projectdiscovery/hmap v0.0.49
 	github.com/projectdiscovery/mapcidr v1.1.34
