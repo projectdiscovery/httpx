@@ -82,6 +82,9 @@ func setupOptionalAssetUpload(opts *runner.Options) *pdcp.UploadWriter {
 		}
 		return nil
 	}
+	if opts.Screenshot {
+		gologger.Fatal().Msgf("screenshot (-ss) not supported with asset upload yet")
+	}
 	gologger.Info().Msgf("To view results on UI dashboard, visit https://cloud.projectdiscovery.io/assets upon completion")
 	h := &pdcpauth.PDCPCredHandler{}
 	creds, err := h.GetCreds()
