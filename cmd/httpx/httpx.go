@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"runtime"
 	"runtime/pprof"
 
+	"github.com/logrusorgru/aurora"
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/httpx/internal/pdcp"
 	"github.com/projectdiscovery/httpx/runner"
+	pdcpauth "github.com/projectdiscovery/utils/auth/pdcp"
 	_ "github.com/projectdiscovery/utils/pprof"
 )
 
@@ -32,6 +36,9 @@ func main() {
 			gologger.Print().Msgf("profile: memory profiling disabled, %s", options.Memprofile)
 		}()
 	}
+
+	// setup optional asset upload
+	_ = setupOptionalAssetUpload(options)
 
 	httpxRunner, err := runner.New(options)
 	if err != nil {
@@ -58,4 +65,53 @@ func main() {
 
 	httpxRunner.RunEnumeration()
 	httpxRunner.Close()
+}
+
+// setupOptionalAssetUpload is used to setup optional asset upload
+// this is optional and only initialized when explicitly enabled
+func setupOptionalAssetUpload(opts *runner.Options) *pdcp.UploadWriter {
+	var mustEnable bool
+	// enable on multiple conditions
+	if opts.AssetUpload || opts.AssetID != "" || opts.AssetName != "" || pdcp.EnableCloudUpload {
+		mustEnable = true
+	}
+	a := aurora.NewAurora(!opts.NoColor)
+	if !mustEnable {
+		if !pdcp.HideAutoSaveMsg {
+			gologger.Print().Msgf("[%s] UI Dashboard is disabled, Use -dashboard option to enable", a.BrightYellow("WRN"))
+		}
+		return nil
+	}
+	gologger.Info().Msgf("To view results on UI dashboard, visit https://cloud.projectdiscovery.io/assets upon completion")
+	h := &pdcpauth.PDCPCredHandler{}
+	creds, err := h.GetCreds()
+	if err != nil {
+		if err != pdcpauth.ErrNoCreds && !pdcp.HideAutoSaveMsg {
+			gologger.Verbose().Msgf("Could not get credentials for cloud upload: %s\n", err)
+		}
+		gologger.Error().Msgf("To view results on Cloud Dashboard, Configure API key from %v", pdcpauth.DashBoardURL)
+		return nil
+	}
+	writer, err := pdcp.NewUploadWriterCallback(context.Background(), creds)
+	if err != nil {
+		gologger.Error().Msgf("failed to setup UI dashboard: %s", err)
+		return nil
+	}
+	if writer == nil {
+		gologger.Error().Msgf("something went wrong, could not setup UI dashboard")
+	}
+	opts.OnResult = writer.GetWriterCallback()
+	opts.OnClose = func() {
+		writer.Close()
+	}
+	// add additional metadata
+	if opts.AssetID != "" {
+		// silently ignore
+		_ = writer.SetAssetID(opts.AssetID)
+	}
+	if opts.AssetName != "" {
+		// silently ignore
+		writer.SetAssetGroupName(opts.AssetName)
+	}
+	return writer
 }
