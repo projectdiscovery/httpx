@@ -45,16 +45,15 @@ var (
 // UploadWriter is a writer that uploads its output to pdcp
 // server to enable web dashboard and more
 type UploadWriter struct {
-	creds     *pdcpauth.PDCPCredentials
-	uploadURL *url.URL
-	client    *retryablehttp.Client
-	cancel    context.CancelFunc
-	done      chan struct{}
-	data      chan runner.Result
-	scanID    string
-	scanName  string
-	counter   atomic.Int32
-	closed    atomic.Bool
+	creds          *pdcpauth.PDCPCredentials
+	uploadURL      *url.URL
+	client         *retryablehttp.Client
+	done           chan struct{}
+	data           chan runner.Result
+	assetGroupID   string
+	assetGroupName string
+	counter        atomic.Int32
+	closed         atomic.Bool
 }
 
 // NewUploadWriterCallback creates a new upload writer callback
@@ -82,9 +81,6 @@ func NewUploadWriterCallback(ctx context.Context, creds *pdcpauth.PDCPCredential
 	opts.NoAdjustTimeout = true
 	opts.Timeout = time.Duration(3) * time.Minute
 	u.client = retryablehttp.NewClient(opts)
-
-	// create context
-	ctx, u.cancel = context.WithCancel(ctx)
 	// start auto commit
 	// upload every 1 minute or when buffer is full
 	go u.autoCommit(ctx)
@@ -106,13 +102,13 @@ func (u *UploadWriter) SetAssetID(id string) error {
 	if !xidRegex.MatchString(id) {
 		return fmt.Errorf("invalid asset id provided")
 	}
-	u.scanID = id
+	u.assetGroupID = id
 	return nil
 }
 
 // SetAssetGroupName sets the scan name for the upload writer
 func (u *UploadWriter) SetAssetGroupName(name string) {
-	u.scanName = name
+	u.assetGroupName = name
 }
 
 func (u *UploadWriter) autoCommit(ctx context.Context) {
@@ -121,10 +117,10 @@ func (u *UploadWriter) autoCommit(ctx context.Context) {
 		u.done <- struct{}{}
 		close(u.done)
 		// if no scanid is generated no results were uploaded
-		if u.scanID == "" {
-			gologger.Verbose().Msgf("Scan results upload to cloud skipped, no results found to upload")
+		if u.assetGroupID == "" {
+			gologger.Verbose().Msgf("UI dashboard setup skipped, no results found to upload")
 		} else {
-			gologger.Info().Msgf("%v Scan results uploaded to cloud, you can view scan results at %v", u.counter.Load(), getScanDashBoardURL(u.scanID))
+			gologger.Info().Msgf("Found %v results, View found results in dashboard : %v", u.counter.Load(), getAssetsDashBoardURL(u.assetGroupID))
 		}
 	}()
 	// temporary buffer to store the results
@@ -166,7 +162,7 @@ func (u *UploadWriter) autoCommit(ctx context.Context) {
 				gologger.Error().Msgf("Failed to marshal result: %v", err)
 				continue
 			}
-			lineBytes = append(lineBytes, '\n')
+			u.counter.Add(1)
 			line := conversion.String(lineBytes)
 			if buff.Len()+len(line) > MaxChunkSize {
 				// flush existing buffer
@@ -175,6 +171,7 @@ func (u *UploadWriter) autoCommit(ctx context.Context) {
 				}
 			} else {
 				buff.WriteString(line)
+				buff.WriteString("\n")
 			}
 		}
 	}
@@ -188,7 +185,7 @@ func (u *UploadWriter) uploadChunk(buff *bytes.Buffer) error {
 	// if successful, reset the buffer
 	buff.Reset()
 	// log in verbose mode
-	gologger.Warning().Msgf("Uploaded results chunk, you can view scan results at %v", getScanDashBoardURL(u.scanID))
+	gologger.Warning().Msgf("Uploaded results chunk, you can view assets at %v", getAssetsDashBoardURL(u.assetGroupID))
 	return nil
 }
 
@@ -213,8 +210,8 @@ func (u *UploadWriter) upload(data []byte) error {
 	if err := json.Unmarshal(bin, &uploadResp); err != nil {
 		return errorutil.NewWithErr(err).Msgf("could not unmarshal response got %v", string(bin))
 	}
-	if uploadResp.ID != "" && u.scanID == "" {
-		u.scanID = uploadResp.ID
+	if uploadResp.ID != "" && u.assetGroupID == "" {
+		u.assetGroupID = uploadResp.ID
 	}
 	return nil
 }
@@ -225,12 +222,12 @@ func (u *UploadWriter) upload(data []byte) error {
 func (u *UploadWriter) getRequest(bin []byte) (*retryablehttp.Request, error) {
 	var method, url string
 
-	if u.scanID == "" {
+	if u.assetGroupID == "" {
 		u.uploadURL.Path = uploadEndpoint
 		method = http.MethodPost
 		url = u.uploadURL.String()
 	} else {
-		u.uploadURL.Path = fmt.Sprintf(appendEndpoint, u.scanID)
+		u.uploadURL.Path = fmt.Sprintf(appendEndpoint, u.assetGroupID)
 		method = http.MethodPatch
 		url = u.uploadURL.String()
 	}
@@ -241,8 +238,8 @@ func (u *UploadWriter) getRequest(bin []byte) (*retryablehttp.Request, error) {
 	// add pdtm meta params
 	req.URL.Params.Merge(updateutils.GetpdtmParams(runner.Version))
 	// if it is upload endpoint also include name if it exists
-	if u.scanName != "" && req.URL.Path == uploadEndpoint {
-		req.URL.Params.Add("name", u.scanName)
+	if u.assetGroupName != "" && req.URL.Path == uploadEndpoint {
+		req.URL.Params.Add("name", u.assetGroupName)
 	}
 	req.URL.Update()
 
@@ -259,9 +256,8 @@ func (u *UploadWriter) getRequest(bin []byte) (*retryablehttp.Request, error) {
 func (u *UploadWriter) Close() {
 	if !u.closed.Load() {
 		// protect to avoid channel closed twice error
-		close(u.done)
+		close(u.data)
 		u.closed.Store(true)
 	}
-	u.cancel()
 	<-u.done
 }
