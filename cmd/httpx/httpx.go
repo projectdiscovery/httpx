@@ -8,7 +8,7 @@ import (
 
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/httpx/runner"
-	errorutil "github.com/projectdiscovery/utils/errors"
+	_ "github.com/projectdiscovery/utils/pprof"
 )
 
 func main() {
@@ -58,10 +58,4 @@ func main() {
 
 	httpxRunner.RunEnumeration()
 	httpxRunner.Close()
-}
-
-func init() {
-	if os.Getenv("DEBUG") != "" {
-		errorutil.ShowStackTrace = true
-	}
 }
