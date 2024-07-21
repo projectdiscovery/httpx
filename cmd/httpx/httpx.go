@@ -83,16 +83,16 @@ func setupOptionalAssetUpload(opts *runner.Options) *pdcp.UploadWriter {
 		return nil
 	}
 	if opts.Screenshot {
-		gologger.Fatal().Msgf("screenshot (-ss) not supported with asset upload yet")
+		gologger.Fatal().Msgf("Screenshot option is not supported for dashboard upload yet")
 	}
-	gologger.Info().Msgf("To view results on UI dashboard, visit https://cloud.projectdiscovery.io/assets upon completion")
+	gologger.Info().Msgf("To view results in UI dashboard, visit https://cloud.projectdiscovery.io/assets upon completion.")
 	h := &pdcpauth.PDCPCredHandler{}
 	creds, err := h.GetCreds()
 	if err != nil {
 		if err != pdcpauth.ErrNoCreds && !pdcp.HideAutoSaveMsg {
 			gologger.Verbose().Msgf("Could not get credentials for cloud upload: %s\n", err)
 		}
-		gologger.Error().Msgf("To view results on Cloud Dashboard, Configure API key from %v", pdcpauth.DashBoardURL)
+		gologger.Error().Msgf("To view results in Cloud Dashboard, Configure API key from %v", pdcpauth.DashBoardURL)
 		return nil
 	}
 	writer, err := pdcp.NewUploadWriterCallback(context.Background(), creds)

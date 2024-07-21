@@ -503,7 +503,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("cloud", "Cloud",
 		flagSet.DynamicVar(&options.PdcpAuth, "auth", "true", "configure projectdiscovery cloud (pdcp) api key"),
-		flagSet.BoolVarP(&options.AssetUpload, "dashboard", "pd", false, "upload / view output from projectdiscovery cloud (pdcp) dashboard"),
+		flagSet.BoolVarP(&options.AssetUpload, "dashboard", "pd", false, "upload / view output in projectdiscovery cloud (pdcp) UI dashboard"),
 		flagSet.StringVarP(&options.AssetID, "asset-id", "aid", "", "upload new assets to existing asset id (optional)"),
 		flagSet.StringVarP(&options.AssetName, "asset-name", "aname", "", "assets group name to set (optional)"),
 	)
