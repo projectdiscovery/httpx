@@ -92,7 +92,7 @@ func setupOptionalAssetUpload(opts *runner.Options) *pdcp.UploadWriter {
 		if err != pdcpauth.ErrNoCreds && !pdcp.HideAutoSaveMsg {
 			gologger.Verbose().Msgf("Could not get credentials for cloud upload: %s\n", err)
 		}
-		gologger.Error().Msgf("To view results in Cloud Dashboard, Configure API key from %v", pdcpauth.DashBoardURL)
+		pdcpauth.CheckNValidateCredentials("httpx")
 		return nil
 	}
 	writer, err := pdcp.NewUploadWriterCallback(context.Background(), creds)
