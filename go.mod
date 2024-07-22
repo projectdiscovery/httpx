@@ -24,7 +24,7 @@ require (
 	github.com/projectdiscovery/cdncheck v1.1.0
 	github.com/projectdiscovery/clistats v0.0.20
 	github.com/projectdiscovery/dsl v0.1.6
-	github.com/projectdiscovery/fastdialer v0.1.7-0.20240711151717-033b71c47e85
+	github.com/projectdiscovery/fastdialer v0.2.0
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.58
@@ -34,10 +34,10 @@ require (
 	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.45
 	github.com/projectdiscovery/rawhttp v0.1.55
-	github.com/projectdiscovery/retryablehttp-go v1.0.68
+	github.com/projectdiscovery/retryablehttp-go v1.0.69
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.59
-	github.com/projectdiscovery/utils v0.2.1
+	github.com/projectdiscovery/utils v0.2.2
 	github.com/projectdiscovery/wappalyzergo v0.1.8
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
@@ -78,7 +78,6 @@ require (
 	github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/gaissmai/bart v0.9.5 // indirect
-	github.com/gaukas/godicttls v0.0.4 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/certificate-transparency-go v1.1.4 // indirect
@@ -90,7 +89,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kataras/jwt v0.1.8 // indirect
-	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/kljensen/snowball v0.8.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
@@ -115,8 +114,7 @@ require (
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
 	github.com/projectdiscovery/retryabledns v1.0.67 // indirect
-	github.com/quic-go/quic-go v0.42.0 // indirect
-	github.com/refraction-networking/utls v1.5.4 // indirect
+	github.com/refraction-networking/utls v1.6.7 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
