@@ -314,6 +314,8 @@ type Options struct {
 	AssetName string
 	// AssetID
 	AssetID string
+	// AssetFileUpload
+	AssetFileUpload string
 	// OnClose adds a callback function that is invoked when httpx is closed
 	// to be exact at end of existing closures
 	OnClose func()
@@ -506,6 +508,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.AssetUpload, "dashboard", "pd", false, "upload / view output in projectdiscovery cloud (pdcp) UI dashboard"),
 		flagSet.StringVarP(&options.AssetID, "asset-id", "aid", "", "upload new assets to existing asset id (optional)"),
 		flagSet.StringVarP(&options.AssetName, "asset-name", "aname", "", "assets group name to set (optional)"),
+		flagSet.StringVarP(&options.AssetFileUpload, "dashboard-upload", "pdu", "", "upload httpx output file (jsonl) in projectdiscovery cloud (pdcp) UI dashboard (only used with list input)"),
 	)
 
 	_ = flagSet.Parse()

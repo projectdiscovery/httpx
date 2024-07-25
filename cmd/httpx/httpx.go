@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"os/signal"
 	"runtime"
@@ -35,6 +36,27 @@ func main() {
 			runtime.MemProfileRate = old
 			gologger.Print().Msgf("profile: memory profiling disabled, %s", options.Memprofile)
 		}()
+	}
+
+	// validation for local results file upload
+	if options.AssetFileUpload != "" {
+		_ = setupOptionalAssetUpload(options)
+		file, err := os.Open(options.AssetFileUpload)
+		if err != nil {
+			gologger.Fatal().Msgf("Could not open file: %s\n", err)
+		}
+		defer file.Close()
+		dec := json.NewDecoder(file)
+		for dec.More() {
+			var r runner.Result
+			err := dec.Decode(&r)
+			if err != nil {
+				gologger.Fatal().Msgf("Could not decode jsonl file: %s\n", err)
+			}
+			options.OnResult(r)
+		}
+		options.OnClose()
+		return
 	}
 
 	// setup optional asset upload
