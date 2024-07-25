@@ -23,21 +23,21 @@ require (
 	github.com/projectdiscovery/asnmap v1.1.1
 	github.com/projectdiscovery/cdncheck v1.1.0
 	github.com/projectdiscovery/clistats v0.0.20
-	github.com/projectdiscovery/dsl v0.1.6
-	github.com/projectdiscovery/fastdialer v0.1.7-0.20240711151717-033b71c47e85
+	github.com/projectdiscovery/dsl v0.1.7
+	github.com/projectdiscovery/fastdialer v0.2.0
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
-	github.com/projectdiscovery/goflags v0.1.59
-	github.com/projectdiscovery/gologger v1.1.14
-	github.com/projectdiscovery/hmap v0.0.49
+	github.com/projectdiscovery/goflags v0.1.60
+	github.com/projectdiscovery/gologger v1.1.16
+	github.com/projectdiscovery/hmap v0.0.51
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.45
 	github.com/projectdiscovery/rawhttp v0.1.57
-	github.com/projectdiscovery/retryablehttp-go v1.0.68
+	github.com/projectdiscovery/retryablehttp-go v1.0.69
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.60
-	github.com/projectdiscovery/utils v0.2.1
+	github.com/projectdiscovery/utils v0.2.2
 	github.com/projectdiscovery/wappalyzergo v0.1.10
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
@@ -106,7 +106,6 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nwaples/rardecode v1.1.3 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
-	github.com/onsi/gomega v1.27.6 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
@@ -115,8 +114,8 @@ require (
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
 	github.com/projectdiscovery/retryabledns v1.0.67 // indirect
-	github.com/refraction-networking/utls v1.6.6 // indirect
-	github.com/rivo/uniseg v0.4.6 // indirect
+	github.com/refraction-networking/utls v1.6.7 // indirect
+	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/sashabaranov/go-openai v1.15.3 // indirect
