@@ -14,7 +14,7 @@ func DoHealthCheck(options *Options, flagSet *goflags.FlagSet) string {
 	// RW permissions on config file
 	cfgFilePath, _ := flagSet.GetConfigFilePath()
 	var test strings.Builder
-	test.WriteString(fmt.Sprintf("Version: %s\n", version))
+	test.WriteString(fmt.Sprintf("Version: %s\n", Version))
 	test.WriteString(fmt.Sprintf("Operative System: %s\n", runtime.GOOS))
 	test.WriteString(fmt.Sprintf("Architecture: %s\n", runtime.GOARCH))
 	test.WriteString(fmt.Sprintf("Go Version: %s\n", runtime.Version()))
