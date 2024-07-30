@@ -868,7 +868,7 @@ func (r *Runner) RunEnumeration() {
 			}
 
 			if r.options.OutputFilterErrorPage && resp.KnowledgeBase["PageType"] == "error" {
-				logFilteredErrorPage(resp.URL)
+				logFilteredErrorPage(r.options.OutputFilterErrorPagePath, resp.URL)
 				continue
 			}
 			if len(r.options.filterStatusCode) > 0 && sliceutil.Contains(r.options.filterStatusCode, resp.StatusCode) {
@@ -1251,9 +1251,17 @@ func (r *Runner) RunEnumeration() {
 	}
 }
 
-func logFilteredErrorPage(url string) {
-	fileName := "filtered_error_page.json"
-	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+func logFilteredErrorPage(fileName, url string) {
+	dir := filepath.Dir(fileName)
+	if !fileutil.FolderExists(dir) {
+		err := fileutil.CreateFolder(dir)
+		if err != nil {
+			gologger.Fatal().Msgf("Could not create directory '%s': %s\n", dir, err)
+			return
+		}
+	}
+
+	file, err := fileutil.OpenOrCreateFile(fileName)
 	if err != nil {
 		gologger.Fatal().Msgf("Could not open/create output file '%s': %s\n", fileName, err)
 		return
@@ -1281,6 +1289,7 @@ func logFilteredErrorPage(url string) {
 		return
 	}
 }
+
 func openOrCreateFile(resume bool, filename string) *os.File {
 	var err error
 	var f *os.File
