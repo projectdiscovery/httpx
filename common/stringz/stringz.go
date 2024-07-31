@@ -156,3 +156,15 @@ func InsertInto(s string, interval int, sep rune) string {
 func Base64(bin []byte) string {
 	return base64.StdEncoding.EncodeToString(bin)
 }
+
+func IsBase64Icon(iconBase64 string) bool {
+	return strings.HasPrefix(strings.TrimSpace(iconBase64), "data:image/")
+}
+
+func DecodeBase64Icon(iconBase64 string) ([]byte, error) {
+	parts := strings.Split(iconBase64, ",")
+	if len(parts) != 2 {
+		return nil, errors.New("invalid base64 icon")
+	}
+	return base64.StdEncoding.DecodeString(strings.TrimSpace(parts[1]))
+}

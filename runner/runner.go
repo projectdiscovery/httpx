@@ -2282,7 +2282,7 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 	clone := req.Clone(context.Background())
 
 	var faviconMMH3, faviconMD5, faviconPath, faviconURL string
-	var faviconData []byte
+	var faviconData, faviconDecodedData []byte
 	errCount := 0
 	if len(potentialURLs) == 0 && defaultProbe {
 		potentialURLs = append(potentialURLs, "/favicon.ico")
@@ -2293,30 +2293,46 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		if errCount == 2 {
 			break
 		}
-		URL, err := r.parseURL(potentialURL)
-		if err != nil {
-			continue
-		}
-		if URL.IsAbs() {
-			clone.SetURL(URL)
-			clone.Host = URL.Host
-			potentialURL = ""
-		} else {
-			potentialURL = URL.String()
+		URL, err := urlutil.ParseURL(potentialURL, r.options.Unsafe)
+
+		isFavUrl, isBas64FavIcon := err == nil, false
+		if !isFavUrl {
+			isBas64FavIcon = stringz.IsBase64Icon(potentialURL)
 		}
 
-		if potentialURL != "" {
-			err = clone.MergePath(potentialURL, false)
+		if !isFavUrl && !isBas64FavIcon {
+			continue
+		}
+
+		if isFavUrl {
+			if URL.IsAbs() {
+				clone.SetURL(URL)
+				clone.Host = URL.Host
+				potentialURL = ""
+			} else {
+				potentialURL = URL.String()
+			}
+
+			if potentialURL != "" {
+				err = clone.UpdateRelPath(potentialURL, false)
+				if err != nil {
+					continue
+				}
+			}
+			resp, err := hp.Do(clone, httpx.UnsafeOptions{})
 			if err != nil {
+				errCount++
+				continue
+			}
+			faviconDecodedData = resp.Data
+		}
+		// if the favicon is base64 encoded, decode before hashing
+		if isBas64FavIcon {
+			if faviconDecodedData, err = stringz.DecodeBase64Icon(potentialURL); err != nil {
 				continue
 			}
 		}
-		resp, err := hp.Do(clone, httpx.UnsafeOptions{})
-		if err != nil {
-			errCount++
-			continue
-		}
-		MMH3Hash, MD5Hash, err := r.calculateFaviconHashWithRaw(resp.Data)
+		MMH3Hash, MD5Hash, err := r.calculateFaviconHashWithRaw(faviconDecodedData)
 		if err != nil {
 			continue
 		}
@@ -2324,7 +2340,7 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		faviconPath = potentialURL
 		faviconMMH3 = MMH3Hash
 		faviconMD5 = MD5Hash
-		faviconData = resp.Data
+		faviconData = faviconDecodedData
 		break
 	}
 	return faviconMMH3, faviconMD5, faviconPath, faviconData, faviconURL, nil
