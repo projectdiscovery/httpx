@@ -15,8 +15,8 @@ const banner = `
              /_/
 `
 
-// Version is the current version of httpx
-const version = `v1.6.6`
+// Version is the current Version of httpx
+const Version = `v1.6.7`
 
 // showBanner is used to show the banner to the user
 func showBanner() {
@@ -28,7 +28,7 @@ func showBanner() {
 func GetUpdateCallback() func() {
 	return func() {
 		showBanner()
-		updateutils.GetUpdateToolCallback("httpx", version)()
+		updateutils.GetUpdateToolCallback("httpx", Version)()
 	}
 }
 

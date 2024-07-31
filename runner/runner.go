@@ -113,7 +113,7 @@ func New(options *Options) (*Runner, error) {
 	var err error
 	if options.Wappalyzer != nil {
 		runner.wappalyzer = options.Wappalyzer
-	} else if options.TechDetect || options.JSONOutput || options.CSVOutput {
+	} else if options.TechDetect || options.JSONOutput || options.CSVOutput || options.AssetUpload {
 		runner.wappalyzer, err = wappalyzer.New()
 	}
 	if err != nil {
@@ -271,7 +271,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputResponseTime = options.OutputResponseTime
 	scanopts.NoFallback = options.NoFallback
 	scanopts.NoFallbackScheme = options.NoFallbackScheme
-	scanopts.TechDetect = options.TechDetect || options.JSONOutput || options.CSVOutput
+	scanopts.TechDetect = options.TechDetect || options.JSONOutput || options.CSVOutput || options.AssetUpload
 	scanopts.StoreChain = options.StoreChain
 	scanopts.StoreVisionReconClusters = options.StoreVisionReconClusters
 	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
@@ -672,6 +672,9 @@ func (r *Runner) Close() {
 	if r.options.Screenshot {
 		r.browser.Close()
 	}
+	if r.options.OnClose != nil {
+		r.options.OnClose()
+	}
 }
 
 // RunEnumeration on targets for httpx client
@@ -865,7 +868,7 @@ func (r *Runner) RunEnumeration() {
 			}
 
 			if r.options.OutputFilterErrorPage && resp.KnowledgeBase["PageType"] == "error" {
-				logFilteredErrorPage(resp.URL)
+				logFilteredErrorPage(r.options.OutputFilterErrorPagePath, resp.URL)
 				continue
 			}
 			if len(r.options.filterStatusCode) > 0 && sliceutil.Contains(r.options.filterStatusCode, resp.StatusCode) {
@@ -933,12 +936,6 @@ func (r *Runner) RunEnumeration() {
 			}
 			if len(r.options.OutputFilterCdn) > 0 && stringsutil.EqualFoldAny(resp.CDNName, r.options.OutputFilterCdn...) {
 				continue
-			}
-
-			// call the callback function if any
-			// be careful and check for result.Err
-			if r.options.OnResult != nil {
-				r.options.OnResult(resp)
 			}
 
 			// store responses or chain in directory
@@ -1102,6 +1099,12 @@ func (r *Runner) RunEnumeration() {
 				plainFile.WriteString(resp.str + "\n")
 			}
 
+			// call the callback function if any
+			// be careful and check for result.Err
+			if r.options.OnResult != nil {
+				r.options.OnResult(resp)
+			}
+
 			if r.options.JSONOutput {
 				row := resp.JSON(&r.scanopts)
 
@@ -1248,9 +1251,17 @@ func (r *Runner) RunEnumeration() {
 	}
 }
 
-func logFilteredErrorPage(url string) {
-	fileName := "filtered_error_page.json"
-	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+func logFilteredErrorPage(fileName, url string) {
+	dir := filepath.Dir(fileName)
+	if !fileutil.FolderExists(dir) {
+		err := fileutil.CreateFolder(dir)
+		if err != nil {
+			gologger.Fatal().Msgf("Could not create directory '%s': %s\n", dir, err)
+			return
+		}
+	}
+
+	file, err := fileutil.OpenOrCreateFile(fileName)
 	if err != nil {
 		gologger.Fatal().Msgf("Could not open/create output file '%s': %s\n", fileName, err)
 		return
@@ -1278,6 +1289,7 @@ func logFilteredErrorPage(url string) {
 		return
 	}
 }
+
 func openOrCreateFile(resume bool, filename string) *os.File {
 	var err error
 	var f *os.File
@@ -2149,14 +2161,17 @@ retry:
 	if scanopts.TechDetect && len(technologies) > 0 {
 		sort.Strings(technologies)
 		technologies := strings.Join(technologies, ",")
-
-		builder.WriteString(" [")
-		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Magenta(technologies).String())
-		} else {
-			builder.WriteString(technologies)
+		// only print to console if tech-detect flag is enabled
+		// scanopts.TechDetect implicitly enabled for json , csv and asset-upload
+		if r.options.TechDetect {
+			builder.WriteString(" [")
+			if !scanopts.OutputWithNoColor {
+				builder.WriteString(aurora.Magenta(technologies).String())
+			} else {
+				builder.WriteString(technologies)
+			}
+			builder.WriteRune(']')
 		}
-		builder.WriteRune(']')
 	}
 
 	result := Result{
@@ -2204,7 +2219,7 @@ retry:
 		FaviconURL:       faviconURL,
 		Hashes:           hashesMap,
 		Extracts:         extractResult,
-		Jarm:             jarmhash,
+		JarmHash:         jarmhash,
 		Lines:            resp.Lines,
 		Words:            resp.Words,
 		ASN:              asnResponse,

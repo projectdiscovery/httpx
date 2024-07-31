@@ -308,6 +308,18 @@ type Options struct {
 	// HeadlessOptionalArguments specifies optional arguments to pass to Chrome
 	HeadlessOptionalArguments goflags.StringSlice
 	Protocol                  string
+	OutputFilterErrorPagePath string
+	// AssetUpload
+	AssetUpload bool
+	// AssetName
+	AssetName string
+	// AssetID
+	AssetID string
+	// AssetFileUpload
+	AssetFileUpload string
+	// OnClose adds a callback function that is invoked when httpx is closed
+	// to be exact at end of existing closures
+	OnClose func()
 
 	// Optional pre-created objects to reduce allocations
 	Wappalyzer     *wappalyzer.Wappalyze
@@ -436,11 +448,11 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
 		flagSet.BoolVarP(&options.StoreVisionReconClusters, "store-vision-recon-cluster", "svrc", false, "include visual recon clusters (-ss and -sr only)"),
 		flagSet.StringVarP(&options.Protocol, "protocol", "pr", "", "protocol to use (unknown, http11)"),
+		flagSet.StringVarP(&options.OutputFilterErrorPagePath, "filter-error-page-path", "fepp", "filtered_error_page.json", "path to store filtered error pages"),
 	)
 
 	flagSet.CreateGroup("configs", "Configurations",
 		flagSet.StringVar(&cfgFile, "config", "", "path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)"),
-		flagSet.DynamicVar(&options.PdcpAuth, "auth", "true", "configure projectdiscovery cloud (pdcp) api key"),
 		flagSet.StringSliceVarP(&options.Resolvers, "resolvers", "r", nil, "list of custom resolver (file or comma separated)", goflags.NormalizedStringSliceOptions),
 		flagSet.Var(&options.Allow, "allow", "allowed list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
@@ -491,6 +503,14 @@ func ParseOptions() *Options {
 		flagSet.DurationVar(&options.Delay, "delay", -1, "duration between each http request (eg: 200ms, 1s)"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", math.MaxInt32, "max response size to save in bytes"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", math.MaxInt32, "max response size to read in bytes"),
+	)
+
+	flagSet.CreateGroup("cloud", "Cloud",
+		flagSet.DynamicVar(&options.PdcpAuth, "auth", "true", "configure projectdiscovery cloud (pdcp) api key"),
+		flagSet.BoolVarP(&options.AssetUpload, "dashboard", "pd", false, "upload / view output in projectdiscovery cloud (pdcp) UI dashboard"),
+		flagSet.StringVarP(&options.AssetID, "asset-id", "aid", "", "upload new assets to existing asset id (optional)"),
+		flagSet.StringVarP(&options.AssetName, "asset-name", "aname", "", "assets group name to set (optional)"),
+		flagSet.StringVarP(&options.AssetFileUpload, "dashboard-upload", "pdu", "", "upload httpx output file (jsonl) in projectdiscovery cloud (pdcp) UI dashboard"),
 	)
 
 	_ = flagSet.Parse()
@@ -561,18 +581,18 @@ func ParseOptions() *Options {
 	showBanner()
 
 	if options.Version {
-		gologger.Info().Msgf("Current Version: %s\n", version)
+		gologger.Info().Msgf("Current Version: %s\n", Version)
 		os.Exit(0)
 	}
 
 	if !options.DisableUpdateCheck {
-		latestVersion, err := updateutils.GetToolVersionCallback("httpx", version)()
+		latestVersion, err := updateutils.GetToolVersionCallback("httpx", Version)()
 		if err != nil {
 			if options.Verbose {
 				gologger.Error().Msgf("httpx version check failed: %v", err.Error())
 			}
 		} else {
-			gologger.Info().Msgf("Current httpx version %v %v", version, updateutils.GetVersionDescription(version, latestVersion))
+			gologger.Info().Msgf("Current httpx version %v %v", Version, updateutils.GetVersionDescription(Version, latestVersion))
 		}
 	}
 

@@ -1,14 +1,19 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"os"
 	"os/signal"
 	"runtime"
 	"runtime/pprof"
 
+	"github.com/logrusorgru/aurora"
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/httpx/internal/pdcp"
 	"github.com/projectdiscovery/httpx/runner"
-	errorutil "github.com/projectdiscovery/utils/errors"
+	pdcpauth "github.com/projectdiscovery/utils/auth/pdcp"
+	_ "github.com/projectdiscovery/utils/pprof"
 )
 
 func main() {
@@ -32,6 +37,30 @@ func main() {
 			gologger.Print().Msgf("profile: memory profiling disabled, %s", options.Memprofile)
 		}()
 	}
+
+	// validation for local results file upload
+	if options.AssetFileUpload != "" {
+		_ = setupOptionalAssetUpload(options)
+		file, err := os.Open(options.AssetFileUpload)
+		if err != nil {
+			gologger.Fatal().Msgf("Could not open file: %s\n", err)
+		}
+		defer file.Close()
+		dec := json.NewDecoder(file)
+		for dec.More() {
+			var r runner.Result
+			err := dec.Decode(&r)
+			if err != nil {
+				gologger.Fatal().Msgf("Could not decode jsonl file: %s\n", err)
+			}
+			options.OnResult(r)
+		}
+		options.OnClose()
+		return
+	}
+
+	// setup optional asset upload
+	_ = setupOptionalAssetUpload(options)
 
 	httpxRunner, err := runner.New(options)
 	if err != nil {
@@ -60,8 +89,54 @@ func main() {
 	httpxRunner.Close()
 }
 
-func init() {
-	if os.Getenv("DEBUG") != "" {
-		errorutil.ShowStackTrace = true
+// setupOptionalAssetUpload is used to setup optional asset upload
+// this is optional and only initialized when explicitly enabled
+func setupOptionalAssetUpload(opts *runner.Options) *pdcp.UploadWriter {
+	var mustEnable bool
+	// enable on multiple conditions
+	if opts.AssetUpload || opts.AssetID != "" || opts.AssetName != "" || pdcp.EnableCloudUpload {
+		mustEnable = true
 	}
+	a := aurora.NewAurora(!opts.NoColor)
+	if !mustEnable {
+		if !pdcp.HideAutoSaveMsg {
+			gologger.Print().Msgf("[%s] UI Dashboard is disabled, Use -dashboard option to enable", a.BrightYellow("WRN"))
+		}
+		return nil
+	}
+	if opts.Screenshot {
+		gologger.Fatal().Msgf("Screenshot option is not supported for dashboard upload yet")
+	}
+	gologger.Info().Msgf("To view results in UI dashboard, visit https://cloud.projectdiscovery.io/assets upon completion.")
+	h := &pdcpauth.PDCPCredHandler{}
+	creds, err := h.GetCreds()
+	if err != nil {
+		if err != pdcpauth.ErrNoCreds && !pdcp.HideAutoSaveMsg {
+			gologger.Verbose().Msgf("Could not get credentials for cloud upload: %s\n", err)
+		}
+		pdcpauth.CheckNValidateCredentials("httpx")
+		return nil
+	}
+	writer, err := pdcp.NewUploadWriterCallback(context.Background(), creds)
+	if err != nil {
+		gologger.Error().Msgf("failed to setup UI dashboard: %s", err)
+		return nil
+	}
+	if writer == nil {
+		gologger.Error().Msgf("something went wrong, could not setup UI dashboard")
+	}
+	opts.OnResult = writer.GetWriterCallback()
+	opts.OnClose = func() {
+		writer.Close()
+	}
+	// add additional metadata
+	if opts.AssetID != "" {
+		// silently ignore
+		_ = writer.SetAssetID(opts.AssetID)
+	}
+	if opts.AssetName != "" {
+		// silently ignore
+		writer.SetAssetGroupName(opts.AssetName)
+	}
+	return writer
 }

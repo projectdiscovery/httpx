@@ -134,13 +134,13 @@ MATCHERS:
    -mfc, -match-favicon string[]      match response with specified favicon hash (-mfc 1494302000)
    -ms, -match-string string[]        match response with specified string (-ms admin)
    -mr, -match-regex string[]         match response with specified regex (-mr admin)
-   -mcdn, -match-cdn string[]         match host with specified cdn provider (leaseweb, stackpath, cloudfront, fastly, google)
+   -mcdn, -match-cdn string[]         match host with specified cdn provider (google, cloudfront, fastly)
    -mrt, -match-response-time string  match response with specified response time in seconds (-mrt '< 1')
    -mdc, -match-condition string      match response with dsl expression condition
 
 EXTRACTOR:
    -er, -extract-regex string[]   display response content with matched regex
-   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (url,ipv4,mail)
+   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (ipv4,mail,url)
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
@@ -151,7 +151,7 @@ FILTERS:
    -ffc, -filter-favicon string[]      filter response with specified favicon hash (-ffc 1494302000)
    -fs, -filter-string string[]        filter response with specified string (-fs admin)
    -fe, -filter-regex string[]         filter response with specified regex (-fe admin)
-   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (leaseweb, stackpath, cloudfront, fastly, google)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (google, cloudfront, fastly)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
    -fdc, -filter-condition string      filter response with dsl expression condition
    -strip                              strips all tags in response. supported formats: html,xml (default html)
@@ -178,25 +178,25 @@ UPDATE:
    -duc, -disable-update-check  disable automatic httpx update check
 
 OUTPUT:
-   -o, -output string                  file to write output results
-   -oa, -output-all                    filename to write output results in all formats
-   -sr, -store-response                store http response to output directory
-   -srd, -store-response-dir string    store http response to custom directory
-   -ob, -omit-body                     omit response body in output
-   -csv                                store output in csv format
-   -csvo, -csv-output-encoding string  define output encoding
-   -j, -json                           store output in JSONL(ines) format
-   -irh, -include-response-header      include http response (headers) in JSON output (-json only)
-   -irr, -include-response             include http request/response (headers + body) in JSON output (-json only)
-   -irrb, -include-response-base64     include base64 encoded http request/response in JSON output (-json only)
-   -include-chain                      include redirect http chain in JSON output (-json only)
-   -store-chain                        include http redirect chain in responses (-sr only)
-   -svrc, -store-vision-recon-cluster  include visual recon clusters (-ss and -sr only)
-   -pr, -protocol string               protocol to use (unknown, http11)
+   -o, -output string                     file to write output results
+   -oa, -output-all                       filename to write output results in all formats
+   -sr, -store-response                   store http response to output directory
+   -srd, -store-response-dir string       store http response to custom directory
+   -ob, -omit-body                        omit response body in output
+   -csv                                   store output in csv format
+   -csvo, -csv-output-encoding string     define output encoding
+   -j, -json                              store output in JSONL(ines) format
+   -irh, -include-response-header         include http response (headers) in JSON output (-json only)
+   -irr, -include-response                include http request/response (headers + body) in JSON output (-json only)
+   -irrb, -include-response-base64        include base64 encoded http request/response in JSON output (-json only)
+   -include-chain                         include redirect http chain in JSON output (-json only)
+   -store-chain                           include http redirect chain in responses (-sr only)
+   -svrc, -store-vision-recon-cluster     include visual recon clusters (-ss and -sr only)
+   -pr, -protocol string                  protocol to use (unknown, http11)
+   -fepp, -filter-error-page-path string  path to store filtered error pages (default "filtered_error_page.json")
 
 CONFIGURATIONS:
    -config string                   path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
-   -auth                            configure projectdiscovery cloud (pdcp) api key (default true)
    -r, -resolvers string[]          list of custom resolver (file or comma separated)
    -allow string[]                  allowed list of IP/CIDR's to process (file or comma separated)
    -deny string[]                   denied list of IP/CIDR's to process (file or comma separated)
@@ -237,7 +237,7 @@ DEBUG:
 
 OPTIMIZATIONS:
    -nf, -no-fallback                  display both probed protocol (HTTPS and HTTP)
-   -nfs, -no-fallback-scheme          probe with protocol scheme specified in input
+   -nfs, -no-fallback-scheme          probe with protocol scheme specified in input 
    -maxhr, -max-host-error int        max error count per host before skipping remaining path/s (default 30)
    -e, -exclude string[]              exclude host matching specified filter ('cdn', 'private-ips', cidr, ip, regex)
    -retries int                       number of retries
@@ -245,6 +245,13 @@ OPTIMIZATIONS:
    -delay value                       duration between each http request (eg: 200ms, 1s) (default -1ns)
    -rsts, -response-size-to-save int  max response size to save in bytes (default 2147483647)
    -rstr, -response-size-to-read int  max response size to read in bytes (default 2147483647)
+
+CLOUD:
+   -auth                           configure projectdiscovery cloud (pdcp) api key (default true)
+   -pd, -dashboard                 upload / view output in projectdiscovery cloud (pdcp) UI dashboard
+   -aid, -asset-id string          upload new assets to existing asset id (optional)
+   -aname, -asset-name string      assets group name to set (optional)
+   -pdu, -dashboard-upload string  upload httpx output file (jsonl) in projectdiscovery cloud (pdcp) UI dashboard
 ```
 
 # Running httpx
