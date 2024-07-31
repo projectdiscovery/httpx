@@ -134,13 +134,13 @@ MATCHERS:
    -mfc, -match-favicon string[]      match response with specified favicon hash (-mfc 1494302000)
    -ms, -match-string string[]        match response with specified string (-ms admin)
    -mr, -match-regex string[]         match response with specified regex (-mr admin)
-   -mcdn, -match-cdn string[]         match host with specified cdn provider (cloudfront, fastly, google)
+   -mcdn, -match-cdn string[]         match host with specified cdn provider (google, cloudfront, fastly)
    -mrt, -match-response-time string  match response with specified response time in seconds (-mrt '< 1')
    -mdc, -match-condition string      match response with dsl expression condition
 
 EXTRACTOR:
    -er, -extract-regex string[]   display response content with matched regex
-   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (url,ipv4,mail)
+   -ep, -extract-preset string[]  display response content matched by a pre-defined regex (ipv4,mail,url)
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
@@ -151,7 +151,7 @@ FILTERS:
    -ffc, -filter-favicon string[]      filter response with specified favicon hash (-ffc 1494302000)
    -fs, -filter-string string[]        filter response with specified string (-fs admin)
    -fe, -filter-regex string[]         filter response with specified regex (-fe admin)
-   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (cloudfront, fastly, google)
+   -fcdn, -filter-cdn string[]         filter host with specified cdn provider (google, cloudfront, fastly)
    -frt, -filter-response-time string  filter response with specified response time in seconds (-frt '> 1')
    -fdc, -filter-condition string      filter response with dsl expression condition
    -strip                              strips all tags in response. supported formats: html,xml (default html)
@@ -197,7 +197,6 @@ OUTPUT:
 
 CONFIGURATIONS:
    -config string                   path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
-   -auth                            configure projectdiscovery cloud (pdcp) api key (default true)
    -r, -resolvers string[]          list of custom resolver (file or comma separated)
    -allow string[]                  allowed list of IP/CIDR's to process (file or comma separated)
    -deny string[]                   denied list of IP/CIDR's to process (file or comma separated)
@@ -246,6 +245,13 @@ OPTIMIZATIONS:
    -delay value                       duration between each http request (eg: 200ms, 1s) (default -1ns)
    -rsts, -response-size-to-save int  max response size to save in bytes (default 2147483647)
    -rstr, -response-size-to-read int  max response size to read in bytes (default 2147483647)
+
+CLOUD:
+   -auth                           configure projectdiscovery cloud (pdcp) api key (default true)
+   -pd, -dashboard                 upload / view output in projectdiscovery cloud (pdcp) UI dashboard
+   -aid, -asset-id string          upload new assets to existing asset id (optional)
+   -aname, -asset-name string      assets group name to set (optional)
+   -pdu, -dashboard-upload string  upload httpx output file (jsonl) in projectdiscovery cloud (pdcp) UI dashboard
 ```
 
 # Running httpx
