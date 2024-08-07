@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"mime"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -158,10 +159,21 @@ func Base64(bin []byte) string {
 }
 
 func IsBase64Icon(iconBase64 string) bool {
-	return strings.HasPrefix(strings.TrimSpace(iconBase64), "data:image/")
+	if iconBase64 == "" {
+		return false
+	}
+	parts := strings.Split(strings.TrimPrefix(iconBase64, "data:"), ",")
+	if len(parts) != 2 {
+		return false
+	}
+	mediaType, _, _ := mime.ParseMediaType(parts[0])
+	return strings.HasPrefix(mediaType, "image/")
 }
 
 func DecodeBase64Icon(iconBase64 string) ([]byte, error) {
+	if iconBase64 == "" {
+		return nil, errors.New("empty base64 icon")
+	}
 	parts := strings.Split(iconBase64, ",")
 	if len(parts) != 2 {
 		return nil, errors.New("invalid base64 icon")

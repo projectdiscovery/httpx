@@ -2295,12 +2295,12 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		}
 		URL, err := urlutil.ParseURL(potentialURL, r.options.Unsafe)
 
-		isFavUrl, isBas64FavIcon := err == nil, false
+		isFavUrl, isBase64FavIcon := err == nil, false
 		if !isFavUrl {
-			isBas64FavIcon = stringz.IsBase64Icon(potentialURL)
+			isBase64FavIcon = stringz.IsBase64Icon(potentialURL)
 		}
 
-		if !isFavUrl && !isBas64FavIcon {
+		if !isFavUrl && !isBase64FavIcon {
 			continue
 		}
 
@@ -2327,7 +2327,7 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 			faviconDecodedData = resp.Data
 		}
 		// if the favicon is base64 encoded, decode before hashing
-		if isBas64FavIcon {
+		if isBase64FavIcon {
 			if faviconDecodedData, err = stringz.DecodeBase64Icon(potentialURL); err != nil {
 				continue
 			}
