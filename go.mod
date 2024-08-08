@@ -28,8 +28,8 @@ require (
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.60
-	github.com/projectdiscovery/gologger v1.1.17
-	github.com/projectdiscovery/hmap v0.0.51
+	github.com/projectdiscovery/gologger v1.1.19-0.20240808104313-5f7810bbf5d5
+	github.com/projectdiscovery/hmap v0.0.52
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.49
@@ -37,7 +37,7 @@ require (
 	github.com/projectdiscovery/retryablehttp-go v1.0.71
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.60
-	github.com/projectdiscovery/utils v0.2.3
+	github.com/projectdiscovery/utils v0.2.4
 	github.com/projectdiscovery/wappalyzergo v0.1.12
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
@@ -113,7 +113,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.5 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.68 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.69 // indirect
 	github.com/refraction-networking/utls v1.6.7 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
