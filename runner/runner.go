@@ -672,6 +672,9 @@ func (r *Runner) Close() {
 	if r.options.Screenshot {
 		r.browser.Close()
 	}
+	if r.options.ShowStatistics {
+		_ = r.stats.Stop()
+	}
 	if r.options.OnClose != nil {
 		r.options.OnClose()
 	}
