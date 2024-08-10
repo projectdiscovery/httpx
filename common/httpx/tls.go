@@ -63,7 +63,7 @@ func (h *HTTPX) ZTLSGrab(r *http.Response) *clients.Response {
 	}
 	// canonical net concatenation
 	host = net.JoinHostPort(hostname, fmt.Sprint(port))
-	ctx, cancel := context.WithTimeout(context.Background(), h.client2.Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), h.Options.Timeout)
 	defer cancel()
 	tlsConn, err := h.Dialer.DialTLS(ctx, "tcp", host)
 	if err != nil {
