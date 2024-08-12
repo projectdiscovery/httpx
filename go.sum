@@ -222,8 +222,8 @@ github.com/projectdiscovery/blackrock v0.0.1 h1:lHQqhaaEFjgf5WkuItbpeCZv2DUIE45k
 github.com/projectdiscovery/blackrock v0.0.1/go.mod h1:ANUtjDfaVrqB453bzToU+YB4cUbvBRpLvEwoWIwlTss=
 github.com/projectdiscovery/cdncheck v1.1.0 h1:qDITidmJsejzpk3rMkauCh6sjI2GH9hW/snk0cQ3kXE=
 github.com/projectdiscovery/cdncheck v1.1.0/go.mod h1:sZ8U4MjHSsyaTVjBbYWHT1cwUVvUYwDX1W+WvWRicIc=
-github.com/projectdiscovery/clistats v0.0.21 h1:8wQ6fwbEyGo3IFDa21P2NhxnkeDJA1xoocHypw/BFbI=
-github.com/projectdiscovery/clistats v0.0.21/go.mod h1:GJ2av0KnOvK0AISQnP8hyDclYIji1LVkx2l0pwnzAu4=
+github.com/projectdiscovery/clistats v0.1.0 h1:b+LF1w0xhNd7cneKWMXb+/yUmF1n5szawxP4XGpmbxs=
+github.com/projectdiscovery/clistats v0.1.0/go.mod h1:GJ2av0KnOvK0AISQnP8hyDclYIji1LVkx2l0pwnzAu4=
 github.com/projectdiscovery/dsl v0.1.10 h1:FBD5Muiwj3OdkDAYvmltQ0rcVMpLZK5IqNZi9Pd/gb0=
 github.com/projectdiscovery/dsl v0.1.10/go.mod h1:Kg9snSkjTPZ2qiIDr4jjFI46FgJzvqz48qcHWUWY7lw=
 github.com/projectdiscovery/fastdialer v0.2.3 h1:K03x5XEXGyVWxS2rtSR104E9kHF0aphN7kOCzbh8zv0=
