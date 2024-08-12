@@ -666,6 +666,7 @@ func (r *Runner) Close() {
 	r.hm.Close()
 	r.hp.Dialer.Close()
 	r.ratelimiter.Stop()
+
 	if r.options.HostMaxErrors >= 0 {
 		r.HostErrorsCache.Purge()
 	}
@@ -674,6 +675,9 @@ func (r *Runner) Close() {
 	}
 	if r.options.ShowStatistics {
 		_ = r.stats.Stop()
+	}
+	if r.options.HttpApiEndpoint != "" {
+		_ = r.httpApiEndpoint.Stop()
 	}
 	if r.options.OnClose != nil {
 		r.options.OnClose()
