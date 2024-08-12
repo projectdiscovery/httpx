@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -62,7 +63,9 @@ func (h *HTTPX) ZTLSGrab(r *http.Response) *clients.Response {
 	}
 	// canonical net concatenation
 	host = net.JoinHostPort(hostname, fmt.Sprint(port))
-	tlsConn, err := h.Dialer.DialTLS(r.Request.Context(), "tcp", host)
+	ctx, cancel := context.WithTimeout(context.Background(), h.Options.Timeout)
+	defer cancel()
+	tlsConn, err := h.Dialer.DialTLS(ctx, "tcp", host)
 	if err != nil {
 		return nil
 	}
@@ -106,6 +109,7 @@ func convertCertificateToResponse(hostname string, cert *x509.Certificate) *clie
 			SHA1:   clients.SHA1Fingerprint(cert.Raw),
 			SHA256: clients.SHA256Fingerprint(cert.Raw),
 		},
+		Serial: clients.FormatToSerialNumber(cert.SerialNumber),
 	}
 	response.IssuerDN = clients.ParseASN1DNSequenceWithZpkixOrDefault(cert.RawIssuer, cert.Issuer.String())
 	response.SubjectDN = clients.ParseASN1DNSequenceWithZpkixOrDefault(cert.RawSubject, cert.Subject.String())
