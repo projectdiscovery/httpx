@@ -479,6 +479,11 @@ func (r *Runner) prepareInput() {
 		numHosts += numTargetsStdin
 	}
 
+	// Adjust total hosts based on the number of paths
+	if len(r.options.requestURIs) > 0 {
+		numHosts *= len(r.options.requestURIs)
+	}
+
 	if r.options.ShowStatistics {
 		r.stats.AddStatic("totalHosts", numHosts)
 		r.stats.AddCounter("hosts", 0)
