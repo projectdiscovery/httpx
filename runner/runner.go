@@ -1098,7 +1098,7 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
-			if !jsonOrCsv || jsonAndCsv || r.options.OutputAll {
+			if !r.options.DisableStdout && (!jsonOrCsv || jsonAndCsv || r.options.OutputAll) {
 				gologger.Silent().Msgf("%s\n", resp.str)
 			}
 

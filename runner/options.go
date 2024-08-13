@@ -309,6 +309,7 @@ type Options struct {
 	HeadlessOptionalArguments goflags.StringSlice
 	Protocol                  string
 	OutputFilterErrorPagePath string
+	DisableStdout             bool
 	// AssetUpload
 	AssetUpload bool
 	// AssetName
