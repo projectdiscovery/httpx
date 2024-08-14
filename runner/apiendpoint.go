@@ -2,6 +2,9 @@
 package runner
 
 import (
+	"context"
+	"time"
+
 	"encoding/json"
 	"net/http"
 )
@@ -12,8 +15,9 @@ type Concurrency struct {
 
 // Server represents the HTTP server that handles the concurrency settings endpoints.
 type Server struct {
-	addr   string
-	config *Options
+	addr       string
+	config     *Options
+	httpServer *http.Server
 }
 
 // New creates a new instance of Server.
@@ -26,10 +30,18 @@ func NewServer(addr string, config *Options) *Server {
 
 // Start initializes the server and its routes, then starts listening on the specified address.
 func (s *Server) Start() error {
-	http.HandleFunc("/api/concurrency", s.handleConcurrency)
-	if err := http.ListenAndServe(s.addr, nil); err != nil {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/concurrency", s.handleConcurrency)
+
+	s.httpServer = &http.Server{
+		Addr:    s.addr,
+		Handler: mux,
+	}
+
+	if err := s.httpServer.ListenAndServe(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -70,4 +82,12 @@ func (s *Server) updateSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// Stop gracefully shuts down the server.
+func (s *Server) Stop() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	return s.httpServer.Shutdown(ctx)
 }
