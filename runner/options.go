@@ -625,7 +625,7 @@ func (options *Options) ValidateOptions() error {
 				msg += fmt.Sprintf("%s flag is", last)
 			}
 			msg += " incompatible with silent flag"
-			return fmt.Errorf(msg)
+			return fmt.Errorf("%v", msg)
 		}
 	}
 
