@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hbakhtiyor/strsim"
-	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
+	retryablehttp "github.com/projectdiscovery/browserhttp/retryablehttp-go"
 	"github.com/rs/xid"
 )
 

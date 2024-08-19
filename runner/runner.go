@@ -44,10 +44,10 @@ import (
 	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
 
+	"github.com/projectdiscovery/browserhttp/retryablehttp-go"
 	"github.com/projectdiscovery/clistats"
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/httpx/common/hashes"
-	"github.com/projectdiscovery/retryablehttp-go"
 	sliceutil "github.com/projectdiscovery/utils/slice"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	urlutil "github.com/projectdiscovery/utils/url"

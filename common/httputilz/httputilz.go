@@ -7,7 +7,7 @@ import (
 	"net/http/httputil"
 	"strings"
 
-	"github.com/projectdiscovery/retryablehttp-go"
+	"github.com/projectdiscovery/browserhttp/retryablehttp-go"
 	urlutil "github.com/projectdiscovery/utils/url"
 )
 
