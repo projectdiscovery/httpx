@@ -100,6 +100,25 @@ type Result struct {
 	RequestRaw        []byte                        `json:"-" csv:"-"`
 	Response          *httpx.Response               `json:"-" csv:"-"`
 	FaviconData       []byte                        `json:"-" csv:"-"`
+	Trace             *Trace                        `json:"trace,omitempty" csv:"trace"`
+}
+
+type Trace struct {
+	GetConn              time.Time `json:"get_conn,omitempty"`
+	GotConn              time.Time `json:"got_conn,omitempty"`
+	PutIdleConn          time.Time `json:"put_idle_conn,omitempty"`
+	GotFirstResponseByte time.Time `json:"got_first_response_byte,omitempty"`
+	Got100Continue       time.Time `json:"got_100_continue,omitempty"`
+	DNSStart             time.Time `json:"dns_start,omitempty"`
+	DNSDone              time.Time `json:"dns_done,omitempty"`
+	ConnectStart         time.Time `json:"connect_start,omitempty"`
+	ConnectDone          time.Time `json:"connect_done,omitempty"`
+	TLSHandshakeStart    time.Time `json:"tls_handshake_start,omitempty"`
+	TLSHandshakeDone     time.Time `json:"tls_handshake_done,omitempty"`
+	WroteHeaderField     time.Time `json:"wrote_header_field,omitempty"`
+	WroteHeaders         time.Time `json:"wrote_headers,omitempty"`
+	Wait100Continue      time.Time `json:"wait_100_continue,omitempty"`
+	WroteRequest         time.Time `json:"wrote_request,omitempty"`
 }
 
 // function to get dsl variables from result struct
