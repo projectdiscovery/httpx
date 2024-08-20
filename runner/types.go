@@ -12,6 +12,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/projectdiscovery/dsl"
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 	mapsutil "github.com/projectdiscovery/utils/maps"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
@@ -100,7 +101,7 @@ type Result struct {
 	RequestRaw        []byte                        `json:"-" csv:"-"`
 	Response          *httpx.Response               `json:"-" csv:"-"`
 	FaviconData       []byte                        `json:"-" csv:"-"`
-	Trace             *Trace                        `json:"trace,omitempty" csv:"trace"`
+	Trace             *retryablehttp.TraceInfo      `json:"trace,omitempty" csv:"trace"`
 }
 
 type Trace struct {

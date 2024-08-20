@@ -24,7 +24,7 @@ require (
 	github.com/projectdiscovery/cdncheck v1.1.0
 	github.com/projectdiscovery/clistats v0.1.0
 	github.com/projectdiscovery/dsl v0.1.10
-	github.com/projectdiscovery/fastdialer v0.2.3
+	github.com/projectdiscovery/fastdialer v0.2.4
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.64
@@ -34,7 +34,7 @@ require (
 	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.49
 	github.com/projectdiscovery/rawhttp v0.1.61
-	github.com/projectdiscovery/retryablehttp-go v1.0.72
+	github.com/projectdiscovery/retryablehttp-go v1.0.75-0.20240820113354-dfc7b22d035a
 	github.com/projectdiscovery/tlsx v1.1.6
 	github.com/projectdiscovery/useragent v0.0.66
 	github.com/projectdiscovery/utils v0.2.5

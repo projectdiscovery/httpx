@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -13,7 +12,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/http/httptrace"
 	"net/http/httputil"
 	"os"
 	"path"
@@ -128,6 +126,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	httpxOptions := httpx.DefaultOptions
+	httpxOptions.Trace = options.Trace
 
 	var np *networkpolicy.NetworkPolicy
 	if options.Networkpolicy != nil {
@@ -1545,57 +1544,6 @@ retry:
 		return Result{URL: URL.String(), Input: origInput, Err: err}
 	}
 
-	var traceInfo *Trace
-	if r.options.Trace {
-		traceInfo = &Trace{}
-		trace := &httptrace.ClientTrace{
-			GotConn: func(connInfo httptrace.GotConnInfo) {
-				traceInfo.GotConn = time.Now()
-			},
-			DNSDone: func(dnsInfo httptrace.DNSDoneInfo) {
-				traceInfo.DNSDone = time.Now()
-			},
-			GetConn: func(hostPort string) {
-				traceInfo.GetConn = time.Now()
-			},
-			PutIdleConn: func(err error) {
-				traceInfo.PutIdleConn = time.Now()
-			},
-			GotFirstResponseByte: func() {
-				traceInfo.GotFirstResponseByte = time.Now()
-			},
-			Got100Continue: func() {
-				traceInfo.Got100Continue = time.Now()
-			},
-			DNSStart: func(di httptrace.DNSStartInfo) {
-				traceInfo.DNSStart = time.Now()
-			},
-			ConnectStart: func(network, addr string) {
-				traceInfo.ConnectStart = time.Now()
-			},
-			ConnectDone: func(network, addr string, err error) {
-				if err == nil {
-					traceInfo.ConnectDone = time.Now()
-				}
-			},
-			TLSHandshakeStart: func() {
-				traceInfo.TLSHandshakeStart = time.Now()
-			},
-			TLSHandshakeDone: func(cs tls.ConnectionState, err error) {
-				if err == nil {
-					traceInfo.TLSHandshakeDone = time.Now()
-				}
-			},
-			WroteHeaders: func() {
-				traceInfo.WroteHeaders = time.Now()
-			},
-			WroteRequest: func(wri httptrace.WroteRequestInfo) {
-				traceInfo.WroteRequest = time.Now()
-			},
-		}
-		req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
-	}
-
 	if target.CustomHost != "" {
 		req.Host = target.CustomHost
 	}
@@ -2303,11 +2251,13 @@ retry:
 		RequestRaw:        requestDump,
 		Response:          resp,
 		FaviconData:       faviconData,
-		Trace:             traceInfo,
 	}
 	if resp.BodyDomains != nil {
 		result.Fqdns = resp.BodyDomains.Fqdns
 		result.Domains = resp.BodyDomains.Domains
+	}
+	if r.options.Trace {
+		result.Trace = req.TraceInfo
 	}
 	return result
 }
