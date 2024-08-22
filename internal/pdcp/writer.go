@@ -35,8 +35,6 @@ const (
 
 var (
 	xidRegex = regexp.MustCompile(xidRe)
-	// teamID if given
-	teamID = env.GetEnvOrDefault("PDCP_TEAM_ID", "")
 	// EnableeUpload if set to true enables the upload feature
 	HideAutoSaveMsg   = env.GetEnvOrDefault("DISABLE_CLOUD_UPLOAD_WRN", false)
 	EnableCloudUpload = env.GetEnvOrDefault("ENABLE_CLOUD_UPLOAD", false)
@@ -54,6 +52,7 @@ type UploadWriter struct {
 	assetGroupName string
 	counter        atomic.Int32
 	closed         atomic.Bool
+	TeamID         string
 }
 
 // NewUploadWriterCallback creates a new upload writer callback
@@ -63,9 +62,10 @@ func NewUploadWriterCallback(ctx context.Context, creds *pdcpauth.PDCPCredential
 		return nil, fmt.Errorf("no credentials provided")
 	}
 	u := &UploadWriter{
-		creds: creds,
-		done:  make(chan struct{}, 1),
-		data:  make(chan runner.Result, 8), // default buffer size
+		creds:  creds,
+		done:   make(chan struct{}, 1),
+		data:   make(chan runner.Result, 8), // default buffer size
+		TeamID: "",
 	}
 	var err error
 	tmp, err := urlutil.Parse(creds.Server)
@@ -109,6 +109,11 @@ func (u *UploadWriter) SetAssetID(id string) error {
 // SetAssetGroupName sets the scan name for the upload writer
 func (u *UploadWriter) SetAssetGroupName(name string) {
 	u.assetGroupName = name
+}
+
+// SetTeamID sets the team id for the upload writer
+func (u *UploadWriter) SetTeamID(id string) {
+	u.TeamID = id
 }
 
 func (u *UploadWriter) autoCommit(ctx context.Context) {
@@ -244,8 +249,8 @@ func (u *UploadWriter) getRequest(bin []byte) (*retryablehttp.Request, error) {
 	req.URL.Update()
 
 	req.Header.Set(pdcpauth.ApiKeyHeaderName, u.creds.APIKey)
-	if teamID != "" {
-		req.Header.Set(teamIDHeader, teamID)
+	if u.TeamID != "" {
+		req.Header.Set(teamIDHeader, u.TeamID)
 	}
 	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("Accept", "application/json")
