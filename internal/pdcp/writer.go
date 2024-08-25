@@ -31,6 +31,7 @@ const (
 	MaxChunkSize   = 4 * unitutils.Mega // 4 MB
 	xidRe          = `^[a-z0-9]{20}$`
 	teamIDHeader   = "X-Team-Id"
+	NoneTeamID     = "none"
 )
 
 var (
@@ -125,7 +126,7 @@ func (u *UploadWriter) autoCommit(ctx context.Context) {
 		if u.assetGroupID == "" {
 			gologger.Verbose().Msgf("UI dashboard setup skipped, no results found to upload")
 		} else {
-			gologger.Info().Msgf("Found %v results, View found results in dashboard : %v", u.counter.Load(), getAssetsDashBoardURL(u.assetGroupID))
+			gologger.Info().Msgf("Found %v results, View found results in dashboard : %v", u.counter.Load(), getAssetsDashBoardURL(u.assetGroupID, u.TeamID))
 		}
 	}()
 	// temporary buffer to store the results
@@ -190,7 +191,7 @@ func (u *UploadWriter) uploadChunk(buff *bytes.Buffer) error {
 	// if successful, reset the buffer
 	buff.Reset()
 	// log in verbose mode
-	gologger.Warning().Msgf("Uploaded results chunk, you can view assets at %v", getAssetsDashBoardURL(u.assetGroupID))
+	gologger.Warning().Msgf("Uploaded results chunk, you can view assets at %v", getAssetsDashBoardURL(u.assetGroupID, u.TeamID))
 	return nil
 }
 
