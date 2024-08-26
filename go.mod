@@ -18,7 +18,6 @@ require (
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/miekg/dns v1.1.59 // indirect
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/asnmap v1.1.1
 	github.com/projectdiscovery/cdncheck v1.1.0
@@ -51,7 +50,10 @@ require (
 	golang.org/x/text v0.16.0
 )
 
-require github.com/weppos/publicsuffix-go v0.30.2
+require (
+	github.com/go-viper/mapstructure/v2 v2.1.0
+	github.com/weppos/publicsuffix-go v0.30.2
+)
 
 require (
 	aead.dev/minisign v0.2.0 // indirect
