@@ -138,5 +138,8 @@ func setupOptionalAssetUpload(opts *runner.Options) *pdcp.UploadWriter {
 		// silently ignore
 		writer.SetAssetGroupName(opts.AssetName)
 	}
+	if opts.TeamID != "" {
+		writer.SetTeamID(opts.TeamID)
+	}
 	return writer
 }

@@ -25,7 +25,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/networkpolicy"
-	"github.com/projectdiscovery/utils/auth/pdcp"
+	pdcpauth "github.com/projectdiscovery/utils/auth/pdcp"
 	"github.com/projectdiscovery/utils/env"
 	fileutil "github.com/projectdiscovery/utils/file"
 	sliceutil "github.com/projectdiscovery/utils/slice"
@@ -41,7 +41,10 @@ const (
 	DefaultOutputDirectory = "output"
 )
 
-var PDCPApiKey = ""
+var (
+	PDCPApiKey = ""
+	TeamIDEnv  = env.GetEnvOrDefault("PDCP_TEAM_ID", "")
+)
 
 // OnResultCallback (hostResult)
 type OnResultCallback func(Result)
@@ -318,6 +321,7 @@ type Options struct {
 	AssetID string
 	// AssetFileUpload
 	AssetFileUpload string
+	TeamID          string
 	// OnClose adds a callback function that is invoked when httpx is closed
 	// to be exact at end of existing closures
 	OnClose func()
@@ -512,6 +516,7 @@ func ParseOptions() *Options {
 	flagSet.CreateGroup("cloud", "Cloud",
 		flagSet.DynamicVar(&options.PdcpAuth, "auth", "true", "configure projectdiscovery cloud (pdcp) api key"),
 		flagSet.BoolVarP(&options.AssetUpload, "dashboard", "pd", false, "upload / view output in projectdiscovery cloud (pdcp) UI dashboard"),
+		flagSet.StringVarP(&options.TeamID, "team-id", "tid", TeamIDEnv, "upload asset results to given team id (optional)"),
 		flagSet.StringVarP(&options.AssetID, "asset-id", "aid", "", "upload new assets to existing asset id (optional)"),
 		flagSet.StringVarP(&options.AssetName, "asset-name", "aname", "", "assets group name to set (optional)"),
 		flagSet.StringVarP(&options.AssetFileUpload, "dashboard-upload", "pdu", "", "upload httpx output file (jsonl) in projectdiscovery cloud (pdcp) UI dashboard"),
@@ -543,9 +548,9 @@ func ParseOptions() *Options {
 		AuthWithPDCP()
 	} else if len(options.PdcpAuth) == 36 {
 		PDCPApiKey = options.PdcpAuth
-		ph := pdcp.PDCPCredHandler{}
-		if _, err := ph.GetCreds(); err == pdcp.ErrNoCreds {
-			apiServer := env.GetEnvOrDefault("PDCP_API_SERVER", pdcp.DefaultApiServer)
+		ph := pdcpauth.PDCPCredHandler{}
+		if _, err := ph.GetCreds(); err == pdcpauth.ErrNoCreds {
+			apiServer := env.GetEnvOrDefault("PDCP_API_SERVER", pdcpauth.DefaultApiServer)
 			if validatedCreds, err := ph.ValidateAPIKey(PDCPApiKey, apiServer, "httpx"); err == nil {
 				_ = ph.SaveCreds(validatedCreds)
 			}
