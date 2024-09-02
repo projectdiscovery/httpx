@@ -22,20 +22,20 @@ require (
 	github.com/projectdiscovery/asnmap v1.1.1
 	github.com/projectdiscovery/cdncheck v1.1.0
 	github.com/projectdiscovery/clistats v0.1.0
-	github.com/projectdiscovery/dsl v0.1.10
-	github.com/projectdiscovery/fastdialer v0.2.6
+	github.com/projectdiscovery/dsl v0.2.1
+	github.com/projectdiscovery/fastdialer v0.2.7
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.64
-	github.com/projectdiscovery/gologger v1.1.20
-	github.com/projectdiscovery/hmap v0.0.56
+	github.com/projectdiscovery/gologger v1.1.21
+	github.com/projectdiscovery/hmap v0.0.57
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.49
 	github.com/projectdiscovery/rawhttp v0.1.63
 	github.com/projectdiscovery/retryablehttp-go v1.0.76-0.20240826132304-648e6e6f3a4c
 	github.com/projectdiscovery/tlsx v1.1.6
-	github.com/projectdiscovery/useragent v0.0.67
+	github.com/projectdiscovery/useragent v0.0.68
 	github.com/projectdiscovery/utils v0.2.7
 	github.com/projectdiscovery/wappalyzergo v0.1.16
 	github.com/rs/xid v1.5.0
@@ -115,7 +115,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.5 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.72 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.74 // indirect
 	github.com/refraction-networking/utls v1.6.7 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
