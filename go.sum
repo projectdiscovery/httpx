@@ -236,8 +236,8 @@ github.com/projectdiscovery/goconfig v0.0.1 h1:36m3QjohZvemqh9bkJAakaHsm9iEZ2AcQ
 github.com/projectdiscovery/goconfig v0.0.1/go.mod h1:CPO25zR+mzTtyBrsygqsHse0sp/4vB/PjaHi9upXlDw=
 github.com/projectdiscovery/goflags v0.1.64 h1:FDfwdt9N97Hi8OuhbkDlKtVttpc/CRMIWQVa08VsHsI=
 github.com/projectdiscovery/goflags v0.1.64/go.mod h1:3FyHIVQtnycNOc1LE3O1jj/XR5XuMdF9QfHd0ujhnX4=
-github.com/projectdiscovery/gologger v1.1.21 h1:FD9MGE9adY/y2IxDpQgPZIvZAkQIx3bvcuY+d1FLQUo=
-github.com/projectdiscovery/gologger v1.1.21/go.mod h1:eyvlcHiSuzJQtwmh+fcfwZVaqVgSGtEP1oL1gJFgP3c=
+github.com/projectdiscovery/gologger v1.1.23 h1:u9ksRgkWuUoaOqkk0Z1FngWriXH0Bnt73yYwFGmZo8E=
+github.com/projectdiscovery/gologger v1.1.23/go.mod h1:zcFt3u4U0kmhXou7cTXWwwu+yqVPX3GSABD1hqU0Ur8=
 github.com/projectdiscovery/gostruct v0.0.2 h1:s8gP8ApugGM4go1pA+sVlPDXaWqNP5BBDDSv7VEdG1M=
 github.com/projectdiscovery/gostruct v0.0.2/go.mod h1:H86peL4HKwMXcQQtEa6lmC8FuD9XFt6gkNR0B/Mu5PE=
 github.com/projectdiscovery/hmap v0.0.57 h1:n45T9Me/fL0fqdVZ+Pi/eVizBguNRCleThqxgzNPLrA=
