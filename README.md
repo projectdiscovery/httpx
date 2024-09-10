@@ -248,6 +248,7 @@ OPTIMIZATIONS:
 
 CLOUD:
    -auth                           configure projectdiscovery cloud (pdcp) api key (default true)
+   -acf, -auth-cred-file string    configure projectdiscovery cloud (pdcp) api key credential file
    -pd, -dashboard                 upload / view output in projectdiscovery cloud (pdcp) UI dashboard
    -aid, -asset-id string          upload new assets to existing asset id (optional)
    -aname, -asset-name string      assets group name to set (optional)
