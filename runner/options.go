@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -212,6 +213,7 @@ type Options struct {
 	CSVOutput                 bool
 	CSVOutputEncoding         string
 	PdcpAuth                  string
+	PdcpAuthCredFile          string
 	Silent                    bool
 	Version                   bool
 	Verbose                   bool
@@ -512,6 +514,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("cloud", "Cloud",
 		flagSet.DynamicVar(&options.PdcpAuth, "auth", "true", "configure projectdiscovery cloud (pdcp) api key"),
+		flagSet.StringVarP(&options.PdcpAuthCredFile, "auth-cred-file", "acf", "", "configure projectdiscovery cloud (pdcp) api key credential file"),
 		flagSet.BoolVarP(&options.AssetUpload, "dashboard", "pd", false, "upload / view output in projectdiscovery cloud (pdcp) UI dashboard"),
 		flagSet.StringVarP(&options.TeamID, "team-id", "tid", TeamIDEnv, "upload asset results to given team id (optional)"),
 		flagSet.StringVarP(&options.AssetID, "asset-id", "aid", "", "upload new assets to existing asset id (optional)"),
@@ -538,6 +541,11 @@ func ParseOptions() *Options {
 		if err := flagSet.MergeConfigFile(cfgFile); err != nil {
 			gologger.Fatal().Msgf("Could not read config: %s\n", err)
 		}
+	}
+
+	if options.PdcpAuthCredFile != "" {
+		pdcpauth.PDCPCredFile = options.PdcpAuthCredFile
+		pdcpauth.PDCPDir = filepath.Dir(pdcpauth.PDCPCredFile)
 	}
 
 	// api key hierarchy: cli flag > env var > .pdcp/credential file
