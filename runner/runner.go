@@ -1102,6 +1102,15 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
+			// Clear response body, headers, and request data if matchers or filters are applied
+			shouldClearResponseData := r.options.OutputMatchCondition != "" || r.options.OutputFilterCondition != ""
+			if shouldClearResponseData {
+				resp.ResponseBody = ""
+				resp.ResponseHeaders = nil
+				resp.RawHeaders = ""
+				resp.Request = ""
+			}
+
 			if !r.options.DisableStdout && (!jsonOrCsv || jsonAndCsv || r.options.OutputAll) {
 				gologger.Silent().Msgf("%s\n", resp.str)
 			}
