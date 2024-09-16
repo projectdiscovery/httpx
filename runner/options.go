@@ -103,7 +103,8 @@ type ScanOptions struct {
 	DisableStdin              bool
 	NoScreenshotBytes         bool
 	NoHeadlessBody            bool
-	ScreenshotTimeout         int
+	ScreenshotTimeout         time.Duration
+	ScreenshotIdle            time.Duration
 }
 
 func (s *ScanOptions) Clone() *ScanOptions {
@@ -157,6 +158,7 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		NoScreenshotBytes:         s.NoScreenshotBytes,
 		NoHeadlessBody:            s.NoHeadlessBody,
 		ScreenshotTimeout:         s.ScreenshotTimeout,
+		ScreenshotIdle:            s.ScreenshotIdle,
 	}
 }
 
@@ -307,7 +309,8 @@ type Options struct {
 	HttpApiEndpoint    string
 	NoScreenshotBytes  bool
 	NoHeadlessBody     bool
-	ScreenshotTimeout  int
+	ScreenshotTimeout  time.Duration
+	ScreenshotIdle     time.Duration
 	// HeadlessOptionalArguments specifies optional arguments to pass to Chrome
 	HeadlessOptionalArguments goflags.StringSlice
 	Protocol                  string
@@ -377,7 +380,8 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.HeadlessOptionalArguments, "headless-options", "ho", nil, "start headless chrome with additional options", goflags.FileCommaSeparatedStringSliceOptions),
 		flagSet.BoolVarP(&options.NoScreenshotBytes, "exclude-screenshot-bytes", "esb", false, "enable excluding screenshot bytes from json output"),
 		flagSet.BoolVarP(&options.NoHeadlessBody, "exclude-headless-body", "ehb", false, "enable excluding headless header from json output"),
-		flagSet.IntVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10, "set timeout for screenshot in seconds"),
+		flagSet.DurationVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10*time.Second, "set timeout for screenshot in seconds"),
+		flagSet.DurationVarP(&options.ScreenshotIdle, "screenshot-idle", "sid", 1*time.Second, "set idle time before taking screenshot in seconds"),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",
@@ -630,7 +634,7 @@ func (options *Options) ValidateOptions() error {
 				msg += fmt.Sprintf("%s flag is", last)
 			}
 			msg += " incompatible with silent flag"
-			return fmt.Errorf("%v", msg)
+			return errors.New(msg)
 		}
 	}
 
