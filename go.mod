@@ -23,7 +23,7 @@ require (
 	github.com/projectdiscovery/cdncheck v1.1.0
 	github.com/projectdiscovery/clistats v0.1.0
 	github.com/projectdiscovery/dsl v0.2.1
-	github.com/projectdiscovery/fastdialer v0.2.8
+	github.com/projectdiscovery/fastdialer v0.2.9
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.64
@@ -32,11 +32,11 @@ require (
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.54
-	github.com/projectdiscovery/rawhttp v0.1.63
+	github.com/projectdiscovery/rawhttp v0.1.66
 	github.com/projectdiscovery/retryablehttp-go v1.0.78
-	github.com/projectdiscovery/tlsx v1.1.6
+	github.com/projectdiscovery/tlsx v1.1.7
 	github.com/projectdiscovery/useragent v0.0.69
-	github.com/projectdiscovery/utils v0.2.9
+	github.com/projectdiscovery/utils v0.2.10
 	github.com/projectdiscovery/wappalyzergo v0.1.16
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
