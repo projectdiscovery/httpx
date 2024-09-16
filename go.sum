@@ -262,8 +262,8 @@ github.com/projectdiscovery/tlsx v1.1.6 h1:iw2zwKbd2+kRQ8J1G4dLmS0CLyemd/tKz1Uzc
 github.com/projectdiscovery/tlsx v1.1.6/go.mod h1:s7SRRFdrwIZBK/RXXZi4CR/CubqFSvp8h5Bk1srEZIo=
 github.com/projectdiscovery/useragent v0.0.69 h1:6TkVMKjOBDqecUBBkXlTlBUfAUM8Bgn/58E3ZasndBs=
 github.com/projectdiscovery/useragent v0.0.69/go.mod h1:Ss+Kf6XEjSQqhm7LmbEtOxKvGnnnR88Fx+0PG2PXuBY=
-github.com/projectdiscovery/utils v0.2.9 h1:QDhKUC7nX6O6IRoaSWpQ+bzVn9Pq346386zVbOQrXlM=
-github.com/projectdiscovery/utils v0.2.9/go.mod h1:nVnY7qVu5tkN95BBm0rUkzPsfiiRozI7aJ2Gszu+WFM=
+github.com/projectdiscovery/utils v0.2.10 h1:MFx9pAaSyYGjXNi46mdAD7ceSZ80E0AGeuBj8fXaAF4=
+github.com/projectdiscovery/utils v0.2.10/go.mod h1:jvTckFUQxZSiJrhACUuU63tqtd0tdBu3ng3QUVm/Ce0=
 github.com/projectdiscovery/wappalyzergo v0.1.16 h1:c8HScLwkKOydIWyfjojLFzQjHdo0YYsU0MYXlx6ON5U=
 github.com/projectdiscovery/wappalyzergo v0.1.16/go.mod h1:/hzgxkBFTMe2wDbA93nFfoMjULw7/vIZ9QPSAnCgUa8=
 github.com/refraction-networking/utls v1.6.7 h1:zVJ7sP1dJx/WtVuITug3qYUq034cDq9B2MR1K67ULZM=
