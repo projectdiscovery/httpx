@@ -18,27 +18,26 @@ require (
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/miekg/dns v1.1.59 // indirect
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/asnmap v1.1.1
 	github.com/projectdiscovery/cdncheck v1.1.0
 	github.com/projectdiscovery/clistats v0.1.0
-	github.com/projectdiscovery/dsl v0.1.10
-	github.com/projectdiscovery/fastdialer v0.2.3
+	github.com/projectdiscovery/dsl v0.2.1
+	github.com/projectdiscovery/fastdialer v0.2.9
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
-	github.com/projectdiscovery/goflags v0.1.62
-	github.com/projectdiscovery/gologger v1.1.19
-	github.com/projectdiscovery/hmap v0.0.54
+	github.com/projectdiscovery/goflags v0.1.64
+	github.com/projectdiscovery/gologger v1.1.23
+	github.com/projectdiscovery/hmap v0.0.58
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.9
-	github.com/projectdiscovery/ratelimit v0.0.49
-	github.com/projectdiscovery/rawhttp v0.1.61
-	github.com/projectdiscovery/retryablehttp-go v1.0.72
-	github.com/projectdiscovery/tlsx v1.1.6
-	github.com/projectdiscovery/useragent v0.0.65
-	github.com/projectdiscovery/utils v0.2.4
-	github.com/projectdiscovery/wappalyzergo v0.1.12
+	github.com/projectdiscovery/ratelimit v0.0.54
+	github.com/projectdiscovery/rawhttp v0.1.66
+	github.com/projectdiscovery/retryablehttp-go v1.0.78
+	github.com/projectdiscovery/tlsx v1.1.7
+	github.com/projectdiscovery/useragent v0.0.69
+	github.com/projectdiscovery/utils v0.2.10
+	github.com/projectdiscovery/wappalyzergo v0.1.16
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.9.0
@@ -51,7 +50,10 @@ require (
 	golang.org/x/text v0.16.0
 )
 
-require github.com/weppos/publicsuffix-go v0.30.2
+require (
+	github.com/go-viper/mapstructure/v2 v2.1.0
+	github.com/weppos/publicsuffix-go v0.30.2
+)
 
 require (
 	aead.dev/minisign v0.2.0 // indirect
@@ -110,10 +112,10 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/projectdiscovery/blackrock v0.0.1 // indirect
-	github.com/projectdiscovery/freeport v0.0.5 // indirect
+	github.com/projectdiscovery/freeport v0.0.7 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.70 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.75 // indirect
 	github.com/refraction-networking/utls v1.6.7 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
