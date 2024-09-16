@@ -126,6 +126,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	httpxOptions := httpx.DefaultOptions
+	httpxOptions.Trace = options.Trace
 
 	var np *networkpolicy.NetworkPolicy
 	if options.Networkpolicy != nil {
@@ -1523,7 +1524,10 @@ retry:
 	if err := URL.MergePath(scanopts.RequestURI, scanopts.Unsafe); err != nil {
 		gologger.Debug().Msgf("failed to merge paths of url %v and %v", URL.String(), scanopts.RequestURI)
 	}
-	var req *retryablehttp.Request
+	var (
+		req *retryablehttp.Request
+		ctx context.Context
+	)
 	if target.CustomIP != "" {
 		var requestIP string
 		if iputil.IsIPv6(target.CustomIP) {
@@ -1531,11 +1535,11 @@ retry:
 		} else {
 			requestIP = target.CustomIP
 		}
-		ctx := context.WithValue(context.Background(), fastdialer.IP, requestIP)
-		req, err = hp.NewRequestWithContext(ctx, method, URL.String())
+		ctx = context.WithValue(context.Background(), fastdialer.IP, requestIP)
 	} else {
-		req, err = hp.NewRequest(method, URL.String())
+		ctx = context.Background()
 	}
+	req, err = hp.NewRequestWithContext(ctx, method, URL.String())
 	if err != nil {
 		return Result{URL: URL.String(), Input: origInput, Err: err}
 	}
@@ -2251,6 +2255,9 @@ retry:
 	if resp.BodyDomains != nil {
 		result.Fqdns = resp.BodyDomains.Fqdns
 		result.Domains = resp.BodyDomains.Domains
+	}
+	if r.options.Trace {
+		result.Trace = req.TraceInfo
 	}
 	return result
 }
