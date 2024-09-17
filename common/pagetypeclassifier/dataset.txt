@@ -328,3 +328,53 @@ Please authenticate to access the control panel.||login
 Sign in to review and accept your job offer.||login
 Log in to access premium tutorials and guides.||login
 Please log in to manage your API keys.||login
+Please log in with your email address and password.||login
+Enter your username and password to access your account.||login
+Sign in to your account using your email and password.||login
+Welcome back! Please enter your login credentials.||login
+Email address: [input field] Password: [input field]||login
+Login to your account. Don't have one? Sign up now.||login
+Username: [input field] Password: [input field] Remember me?||login
+Forgot your password? Click here to reset it.||login
+Please enter your email and password to continue.||login
+Secure login portal. Enter credentials below.||login
+Access your account by logging in below.||login
+Remember me on this device.||login
+Login required. Please sign in to proceed.||login
+Forgot password? Reset it here.||login
+Sign in with your email address and password.||login
+Welcome! Please log in to your account.||login
+User login: Enter your email and password.||login
+Email: [input field] Password: [input field]||login
+Please authenticate by entering your login details.||login
+Sign in to your account or register for a new one.||login
+Login page: Access restricted to authorized users only.||login
+Need help logging in? Click here.||login
+Enter your credentials to log in.||login
+Keep me signed in.||login
+Please sign in to access exclusive content.||login
+Welcome back! Sign in to your dashboard.||login
+Forgot your username or password? Retrieve them here.||login
+Log in using your email or username.||login
+Authentication required. Please log in.||login
+Password recovery: Reset your password now.||login
+Log in to manage your account settings.||login
+Sign in to continue to checkout.||login
+Enter your login information below.||login
+Sign in to access your personalized dashboard.||login
+Welcome to the member login page.||login
+Already have an account? Log in here.||login
+Enter email and password to sign in.||login
+Sign in to your profile.||login
+Member login: Access your account here.||login
+Please log in to continue.||login
+Enter your password to log in.||login
+Sign in to view your messages.||login
+Login to your profile to see updates.||login
+Log in to your account to access features.||login
+Please provide your username and password.||login
+Log in to manage your subscriptions.||login
+Sign in using your credentials.||login
+Access denied. Please log in first.||login
+Authentication portal. Enter login details.||login
+Need an account? Sign up or log in if you already have one.||login
