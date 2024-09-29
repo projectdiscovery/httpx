@@ -1884,7 +1884,7 @@ retry:
 		if err != nil {
 			gologger.Warning().Msgf("could not get ASN information for %s: %s", ip, err)
 		}
-		fmt.Printf("Results: %v\n", results)
+		fmt.Printf("Results: %v, %v\n", results, err)
 		if len(results) > 0 {
 			var cidrs []string
 			ipnets, _ := asnmap.GetCIDR(results)
