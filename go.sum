@@ -228,6 +228,8 @@ github.com/projectdiscovery/asnmap v1.1.1 h1:ImJiKIaACOT7HPx4Pabb5dksolzaFYsD1kI
 github.com/projectdiscovery/asnmap v1.1.1/go.mod h1:QT7jt9nQanj+Ucjr9BqGr1Q2veCCKSAVyUzLXfEcQ60=
 github.com/projectdiscovery/asnmap v1.1.2-0.20240929105924-e6cac5184b18 h1:tzmWieKgXXmEV2HBzhqmn8w1WyF3XTDDyC3AAZWOtfo=
 github.com/projectdiscovery/asnmap v1.1.2-0.20240929105924-e6cac5184b18/go.mod h1:QT7jt9nQanj+Ucjr9BqGr1Q2veCCKSAVyUzLXfEcQ60=
+github.com/projectdiscovery/asnmap v1.1.2-0.20240929111458-236ce66bfe9d h1:MQgSrgO9RrRT25UOxHryzlu0uyq51Wr3gunYEE+kmDI=
+github.com/projectdiscovery/asnmap v1.1.2-0.20240929111458-236ce66bfe9d/go.mod h1:QT7jt9nQanj+Ucjr9BqGr1Q2veCCKSAVyUzLXfEcQ60=
 github.com/projectdiscovery/blackrock v0.0.1 h1:lHQqhaaEFjgf5WkuItbpeCZv2DUIE45k0VbGJyft6LQ=
 github.com/projectdiscovery/blackrock v0.0.1/go.mod h1:ANUtjDfaVrqB453bzToU+YB4cUbvBRpLvEwoWIwlTss=
 github.com/projectdiscovery/cdncheck v1.1.0 h1:qDITidmJsejzpk3rMkauCh6sjI2GH9hW/snk0cQ3kXE=

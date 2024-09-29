@@ -19,7 +19,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/miekg/dns v1.1.59 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/projectdiscovery/asnmap v1.1.2-0.20240929105924-e6cac5184b18
+	github.com/projectdiscovery/asnmap v1.1.2-0.20240929111458-236ce66bfe9d
 	github.com/projectdiscovery/cdncheck v1.1.0
 	github.com/projectdiscovery/clistats v0.1.1
 	github.com/projectdiscovery/dsl v0.2.1
