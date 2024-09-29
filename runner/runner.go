@@ -1877,12 +1877,14 @@ retry:
 		}
 	}
 
+	fmt.Printf("ASNMAp eanbled: %v\n", r.options.Asn)
 	var asnResponse *AsnResponse
 	if r.options.Asn {
 		results, err := asnmap.DefaultClient.GetData(ip)
 		if err != nil {
 			gologger.Warning().Msgf("could not get ASN information for %s: %s", ip, err)
 		}
+		fmt.Printf("Results: %v\n", results)
 		if len(results) > 0 {
 			var cidrs []string
 			ipnets, _ := asnmap.GetCIDR(results)
