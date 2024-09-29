@@ -1879,7 +1879,10 @@ retry:
 
 	var asnResponse *AsnResponse
 	if r.options.Asn {
-		results, _ := asnmap.DefaultClient.GetData(ip)
+		results, err := asnmap.DefaultClient.GetData(ip)
+		if err != nil {
+			gologger.Warning().Msgf("could not get ASN information for %s: %s", ip, err)
+		}
 		if len(results) > 0 {
 			var cidrs []string
 			ipnets, _ := asnmap.GetCIDR(results)
