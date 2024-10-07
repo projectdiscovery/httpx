@@ -31,12 +31,11 @@ const (
 	MaxChunkSize   = 4 * unitutils.Mega // 4 MB
 	xidRe          = `^[a-z0-9]{20}$`
 	teamIDHeader   = "X-Team-Id"
+	NoneTeamID     = "none"
 )
 
 var (
 	xidRegex = regexp.MustCompile(xidRe)
-	// teamID if given
-	teamID = env.GetEnvOrDefault("PDCP_TEAM_ID", "")
 	// EnableeUpload if set to true enables the upload feature
 	HideAutoSaveMsg   = env.GetEnvOrDefault("DISABLE_CLOUD_UPLOAD_WRN", false)
 	EnableCloudUpload = env.GetEnvOrDefault("ENABLE_CLOUD_UPLOAD", false)
@@ -54,6 +53,7 @@ type UploadWriter struct {
 	assetGroupName string
 	counter        atomic.Int32
 	closed         atomic.Bool
+	TeamID         string
 }
 
 // NewUploadWriterCallback creates a new upload writer callback
@@ -63,9 +63,10 @@ func NewUploadWriterCallback(ctx context.Context, creds *pdcpauth.PDCPCredential
 		return nil, fmt.Errorf("no credentials provided")
 	}
 	u := &UploadWriter{
-		creds: creds,
-		done:  make(chan struct{}, 1),
-		data:  make(chan runner.Result, 8), // default buffer size
+		creds:  creds,
+		done:   make(chan struct{}, 1),
+		data:   make(chan runner.Result, 8), // default buffer size
+		TeamID: "",
 	}
 	var err error
 	tmp, err := urlutil.Parse(creds.Server)
@@ -111,6 +112,11 @@ func (u *UploadWriter) SetAssetGroupName(name string) {
 	u.assetGroupName = name
 }
 
+// SetTeamID sets the team id for the upload writer
+func (u *UploadWriter) SetTeamID(id string) {
+	u.TeamID = id
+}
+
 func (u *UploadWriter) autoCommit(ctx context.Context) {
 	// wait for context to be done
 	defer func() {
@@ -120,7 +126,7 @@ func (u *UploadWriter) autoCommit(ctx context.Context) {
 		if u.assetGroupID == "" {
 			gologger.Verbose().Msgf("UI dashboard setup skipped, no results found to upload")
 		} else {
-			gologger.Info().Msgf("Found %v results, View found results in dashboard : %v", u.counter.Load(), getAssetsDashBoardURL(u.assetGroupID))
+			gologger.Info().Msgf("Found %v results, View found results in dashboard : %v", u.counter.Load(), getAssetsDashBoardURL(u.assetGroupID, u.TeamID))
 		}
 	}()
 	// temporary buffer to store the results
@@ -185,7 +191,7 @@ func (u *UploadWriter) uploadChunk(buff *bytes.Buffer) error {
 	// if successful, reset the buffer
 	buff.Reset()
 	// log in verbose mode
-	gologger.Warning().Msgf("Uploaded results chunk, you can view assets at %v", getAssetsDashBoardURL(u.assetGroupID))
+	gologger.Warning().Msgf("Uploaded results chunk, you can view assets at %v", getAssetsDashBoardURL(u.assetGroupID, u.TeamID))
 	return nil
 }
 
@@ -244,8 +250,8 @@ func (u *UploadWriter) getRequest(bin []byte) (*retryablehttp.Request, error) {
 	req.URL.Update()
 
 	req.Header.Set(pdcpauth.ApiKeyHeaderName, u.creds.APIKey)
-	if teamID != "" {
-		req.Header.Set(teamIDHeader, teamID)
+	if u.TeamID != "" {
+		req.Header.Set(teamIDHeader, u.TeamID)
 	}
 	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("Accept", "application/json")
