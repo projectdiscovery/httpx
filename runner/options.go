@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -103,7 +104,8 @@ type ScanOptions struct {
 	DisableStdin              bool
 	NoScreenshotBytes         bool
 	NoHeadlessBody            bool
-	ScreenshotTimeout         int
+	ScreenshotTimeout         time.Duration
+	ScreenshotIdle            time.Duration
 }
 
 func (s *ScanOptions) Clone() *ScanOptions {
@@ -157,6 +159,7 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		NoScreenshotBytes:         s.NoScreenshotBytes,
 		NoHeadlessBody:            s.NoHeadlessBody,
 		ScreenshotTimeout:         s.ScreenshotTimeout,
+		ScreenshotIdle:            s.ScreenshotIdle,
 	}
 }
 
@@ -212,6 +215,7 @@ type Options struct {
 	CSVOutput                 bool
 	CSVOutputEncoding         string
 	PdcpAuth                  string
+	PdcpAuthCredFile          string
 	Silent                    bool
 	Version                   bool
 	Verbose                   bool
@@ -307,7 +311,8 @@ type Options struct {
 	HttpApiEndpoint    string
 	NoScreenshotBytes  bool
 	NoHeadlessBody     bool
-	ScreenshotTimeout  int
+	ScreenshotTimeout  time.Duration
+	ScreenshotIdle     time.Duration
 	// HeadlessOptionalArguments specifies optional arguments to pass to Chrome
 	HeadlessOptionalArguments goflags.StringSlice
 	Protocol                  string
@@ -325,6 +330,8 @@ type Options struct {
 	// OnClose adds a callback function that is invoked when httpx is closed
 	// to be exact at end of existing closures
 	OnClose func()
+
+	Trace bool
 
 	// Optional pre-created objects to reduce allocations
 	Wappalyzer     *wappalyzer.Wappalyze
@@ -377,7 +384,8 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.HeadlessOptionalArguments, "headless-options", "ho", nil, "start headless chrome with additional options", goflags.FileCommaSeparatedStringSliceOptions),
 		flagSet.BoolVarP(&options.NoScreenshotBytes, "exclude-screenshot-bytes", "esb", false, "enable excluding screenshot bytes from json output"),
 		flagSet.BoolVarP(&options.NoHeadlessBody, "exclude-headless-body", "ehb", false, "enable excluding headless header from json output"),
-		flagSet.IntVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10, "set timeout for screenshot in seconds"),
+		flagSet.DurationVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10*time.Second, "set timeout for screenshot in seconds"),
+		flagSet.DurationVarP(&options.ScreenshotIdle, "screenshot-idle", "sid", 1*time.Second, "set idle time before taking screenshot in seconds"),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",
@@ -496,6 +504,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.Verbose, "verbose", "v", false, "verbose mode"),
 		flagSet.IntVarP(&options.StatsInterval, "stats-interval", "si", 0, "number of seconds to wait between showing a statistics update (default: 5)"),
 		flagSet.BoolVarP(&options.NoColor, "no-color", "nc", false, "disable colors in cli output"),
+		flagSet.BoolVarP(&options.Trace, "trace", "tr", false, "trace"),
 	)
 
 	flagSet.CreateGroup("Optimizations", "Optimizations",
@@ -512,6 +521,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("cloud", "Cloud",
 		flagSet.DynamicVar(&options.PdcpAuth, "auth", "true", "configure projectdiscovery cloud (pdcp) api key"),
+		flagSet.StringVarP(&options.PdcpAuthCredFile, "auth-config", "ac", "", "configure projectdiscovery cloud (pdcp) api key credential file"),
 		flagSet.BoolVarP(&options.AssetUpload, "dashboard", "pd", false, "upload / view output in projectdiscovery cloud (pdcp) UI dashboard"),
 		flagSet.StringVarP(&options.TeamID, "team-id", "tid", TeamIDEnv, "upload asset results to given team id (optional)"),
 		flagSet.StringVarP(&options.AssetID, "asset-id", "aid", "", "upload new assets to existing asset id (optional)"),
@@ -538,6 +548,11 @@ func ParseOptions() *Options {
 		if err := flagSet.MergeConfigFile(cfgFile); err != nil {
 			gologger.Fatal().Msgf("Could not read config: %s\n", err)
 		}
+	}
+
+	if options.PdcpAuthCredFile != "" {
+		pdcpauth.PDCPCredFile = options.PdcpAuthCredFile
+		pdcpauth.PDCPDir = filepath.Dir(pdcpauth.PDCPCredFile)
 	}
 
 	// api key hierarchy: cli flag > env var > .pdcp/credential file
@@ -630,7 +645,7 @@ func (options *Options) ValidateOptions() error {
 				msg += fmt.Sprintf("%s flag is", last)
 			}
 			msg += " incompatible with silent flag"
-			return fmt.Errorf("%v", msg)
+			return errors.New(msg)
 		}
 	}
 

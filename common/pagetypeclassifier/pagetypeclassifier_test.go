@@ -1,4 +1,4 @@
-package errorpageclassifier
+package pagetypeclassifier
 
 import (
 	"testing"
@@ -6,8 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestErrorPageClassifier(t *testing.T) {
-	t.Run("test creation of new ErrorPageClassifier", func(t *testing.T) {
+func TestPageTypeClassifier(t *testing.T) {
+
+	t.Run("test creation of new PageTypeClassifier", func(t *testing.T) {
 		epc := New()
 		assert.NotNil(t, epc)
 	})

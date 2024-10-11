@@ -32,8 +32,8 @@ import (
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
-	"github.com/projectdiscovery/httpx/common/errorpageclassifier"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
+	"github.com/projectdiscovery/httpx/common/pagetypeclassifier"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
@@ -74,19 +74,19 @@ import (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options             *Options
-	hp                  *httpx.HTTPX
-	wappalyzer          *wappalyzer.Wappalyze
-	scanopts            ScanOptions
-	hm                  *hybrid.HybridMap
-	excludeCdn          bool
-	stats               clistats.StatisticsClient
-	ratelimiter         ratelimit.Limiter
-	HostErrorsCache     gcache.Cache[string, int]
-	browser             *Browser
-	errorPageClassifier *errorpageclassifier.ErrorPageClassifier
-	pHashClusters       []pHashCluster
-	httpApiEndpoint     *Server
+	options            *Options
+	hp                 *httpx.HTTPX
+	wappalyzer         *wappalyzer.Wappalyze
+	scanopts           ScanOptions
+	hm                 *hybrid.HybridMap
+	excludeCdn         bool
+	stats              clistats.StatisticsClient
+	ratelimiter        ratelimit.Limiter
+	HostErrorsCache    gcache.Cache[string, int]
+	browser            *Browser
+	pageTypeClassifier *pagetypeclassifier.PageTypeClassifier
+	pHashClusters      []pHashCluster
+	httpApiEndpoint    *Server
 }
 
 func (r *Runner) HTTPX() *httpx.HTTPX {
@@ -126,6 +126,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	httpxOptions := httpx.DefaultOptions
+	httpxOptions.Trace = options.Trace
 
 	var np *networkpolicy.NetworkPolicy
 	if options.Networkpolicy != nil {
@@ -357,7 +358,7 @@ func New(options *Options) (*Runner, error) {
 		runner.HostErrorsCache = gc
 	}
 
-	runner.errorPageClassifier = errorpageclassifier.New()
+	runner.pageTypeClassifier = pagetypeclassifier.New()
 
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)
@@ -1523,7 +1524,10 @@ retry:
 	if err := URL.MergePath(scanopts.RequestURI, scanopts.Unsafe); err != nil {
 		gologger.Debug().Msgf("failed to merge paths of url %v and %v", URL.String(), scanopts.RequestURI)
 	}
-	var req *retryablehttp.Request
+	var (
+		req *retryablehttp.Request
+		ctx context.Context
+	)
 	if target.CustomIP != "" {
 		var requestIP string
 		if iputil.IsIPv6(target.CustomIP) {
@@ -1531,11 +1535,11 @@ retry:
 		} else {
 			requestIP = target.CustomIP
 		}
-		ctx := context.WithValue(context.Background(), fastdialer.IP, requestIP)
-		req, err = hp.NewRequestWithContext(ctx, method, URL.String())
+		ctx = context.WithValue(context.Background(), fastdialer.IP, requestIP)
 	} else {
-		req, err = hp.NewRequest(method, URL.String())
+		ctx = context.Background()
 	}
+	req, err = hp.NewRequestWithContext(ctx, method, URL.String())
 	if err != nil {
 		return Result{URL: URL.String(), Input: origInput, Err: err}
 	}
@@ -2144,7 +2148,7 @@ retry:
 	var pHash uint64
 	if scanopts.Screenshot {
 		var err error
-		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, time.Duration(scanopts.ScreenshotTimeout)*time.Second, r.options.CustomHeaders)
+		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle, r.options.CustomHeaders)
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
@@ -2239,7 +2243,7 @@ retry:
 		ScreenshotBytes:  screenshotBytes,
 		HeadlessBody:     headlessBody,
 		KnowledgeBase: map[string]interface{}{
-			"PageType": r.errorPageClassifier.Classify(respData),
+			"PageType": r.pageTypeClassifier.Classify(respData),
 			"pHash":    pHash,
 		},
 		TechnologyDetails: technologyDetails,
@@ -2251,6 +2255,9 @@ retry:
 	if resp.BodyDomains != nil {
 		result.Fqdns = resp.BodyDomains.Fqdns
 		result.Domains = resp.BodyDomains.Domains
+	}
+	if r.options.Trace {
+		result.Trace = req.TraceInfo
 	}
 	return result
 }
