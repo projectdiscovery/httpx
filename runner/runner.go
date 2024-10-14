@@ -29,6 +29,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/corona10/goimagehash"
+	"github.com/mfonda/simhash"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
@@ -86,6 +87,7 @@ type Runner struct {
 	browser             *Browser
 	errorPageClassifier *errorpageclassifier.ErrorPageClassifier
 	pHashClusters       []pHashCluster
+	simHashes           map[uint64]struct{}
 	httpApiEndpoint     *Server
 }
 
@@ -359,6 +361,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.errorPageClassifier = errorpageclassifier.New()
+	runner.simHashes = make(map[uint64]struct{})
 
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)
@@ -512,6 +515,23 @@ func (r *Runner) setSeen(k string) {
 func (r *Runner) seen(k string) bool {
 	_, ok := r.hm.Get(k)
 	return ok
+}
+
+func (r *Runner) duplicate(resp []byte) bool {
+	respSimHash := simhash.Simhash(simhash.NewWordFeatureSet(resp))
+	if _, exists := r.simHashes[respSimHash]; exists {
+		gologger.Warning().Msgf("Skipping duplicate response with simhash %d\n", respSimHash)
+		return true
+	}
+	for simHash := range r.simHashes {
+		// lower threshold for increased precision
+		if simhash.Compare(simHash, respSimHash) <= 3 {
+			gologger.Warning().Msgf("Skipping near-duplicate response with simhash %d\n", respSimHash)
+			return true
+		}
+	}
+	r.simHashes[respSimHash] = struct{}{}
+	return false
 }
 
 func (r *Runner) testAndSet(k string) bool {
@@ -884,6 +904,11 @@ func (r *Runner) RunEnumeration() {
 				logFilteredErrorPage(r.options.OutputFilterErrorPagePath, resp.URL)
 				continue
 			}
+
+			if r.options.FilterOutDuplicates && r.duplicate(resp.Response.Data) {
+				continue
+			}
+
 			if len(r.options.filterStatusCode) > 0 && sliceutil.Contains(r.options.filterStatusCode, resp.StatusCode) {
 				continue
 			}
