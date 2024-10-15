@@ -87,7 +87,7 @@ type Runner struct {
 	browser             *Browser
 	errorPageClassifier *errorpageclassifier.ErrorPageClassifier
 	pHashClusters       []pHashCluster
-	simHashes           map[uint64]struct{}
+	simHashes           gcache.Cache[uint64, struct{}]
 	httpApiEndpoint     *Server
 }
 
@@ -361,7 +361,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.errorPageClassifier = errorpageclassifier.New()
-	runner.simHashes = make(map[uint64]struct{})
+	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
 
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)
@@ -519,18 +519,19 @@ func (r *Runner) seen(k string) bool {
 
 func (r *Runner) duplicate(resp []byte) bool {
 	respSimHash := simhash.Simhash(simhash.NewWordFeatureSet(resp))
-	if _, exists := r.simHashes[respSimHash]; exists {
+	if r.simHashes.Has(respSimHash) {
 		gologger.Warning().Msgf("Skipping duplicate response with simhash %d\n", respSimHash)
 		return true
 	}
-	for simHash := range r.simHashes {
+
+	for simHash := range r.simHashes.GetALL(false) {
 		// lower threshold for increased precision
 		if simhash.Compare(simHash, respSimHash) <= 3 {
 			gologger.Warning().Msgf("Skipping near-duplicate response with simhash %d\n", respSimHash)
 			return true
 		}
 	}
-	r.simHashes[respSimHash] = struct{}{}
+	r.simHashes.Set(respSimHash, struct{}{})
 	return false
 }
 
