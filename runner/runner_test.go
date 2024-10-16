@@ -7,6 +7,8 @@ import (
 
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/httpx/common/httpx"
+	"github.com/projectdiscovery/mapcidr/asn"
+	stringsutil "github.com/projectdiscovery/utils/strings"
 	"github.com/stretchr/testify/require"
 )
 
@@ -106,11 +108,17 @@ func TestRunner_asn_targets(t *testing.T) {
 	for _, ip := range ips {
 		expected = append(expected, httpx.Target{Host: ip})
 	}
+
+	if _, err := asn.GetIPAddressesAsStream(input); err != nil && stringsutil.ContainsAnyI(err.Error(), "unauthorized: 401") {
+		t.Skip("skipping asn test due to missing/invalid api key")
+		return
+	}
+
 	got := []httpx.Target{}
 	for target := range r.targets(r.hp, input) {
 		got = append(got, target)
 	}
-	require.ElementsMatch(t, expected, got, "could not exepcted output")
+	require.ElementsMatch(t, expected, got, "could not get expected output")
 }
 
 func TestRunner_countTargetFromRawTarget(t *testing.T) {
@@ -120,32 +128,41 @@ func TestRunner_countTargetFromRawTarget(t *testing.T) {
 
 	input := "example.com"
 	expected := 1
-	got := r.countTargetFromRawTarget(input)
+	got, err := r.countTargetFromRawTarget(input)
+	require.Nil(t, err, "could not count targets")
 	require.Equal(t, expected, got, "got wrong output")
 
 	input = "example.com"
 	expected = 0
 	err = r.hm.Set(input, nil)
 	require.Nil(t, err, "could not set value to hm")
-	got = r.countTargetFromRawTarget(input)
+	got, err = r.countTargetFromRawTarget(input)
+	require.Nil(t, err, "could not count targets")
+	require.Equal(t, expected, got, "got wrong output")
+
+	input = "173.0.84.0/24"
+	expected = 256
+	got, err = r.countTargetFromRawTarget(input)
+	require.Nil(t, err, "could not count targets")
 	require.Equal(t, expected, got, "got wrong output")
 
 	input = ""
 	expected = 0
-	got = r.countTargetFromRawTarget(input)
+	got, err = r.countTargetFromRawTarget(input)
+	require.Nil(t, err, "could not count targets")
 	require.Equal(t, expected, got, "got wrong output")
 
 	if os.Getenv("PDCP_API_KEY") != "" {
 		input = "AS14421"
 		expected = 256
-		got = r.countTargetFromRawTarget(input)
+		got, err = r.countTargetFromRawTarget(input)
+		if err != nil && stringsutil.ContainsAnyI(err.Error(), "unauthorized: 401") {
+			t.Skip("skipping asn test due to missing/invalid api key")
+			return
+		}
+		require.Nil(t, err, "could not count targets")
 		require.Equal(t, expected, got, "got wrong output")
 	}
-
-	input = "173.0.84.0/24"
-	expected = 256
-	got = r.countTargetFromRawTarget(input)
-	require.Equal(t, expected, got, "got wrong output")
 }
 
 func TestRunner_urlWithComma_targets(t *testing.T) {
