@@ -109,9 +109,9 @@ func TestRunner_asn_targets(t *testing.T) {
 		expected = append(expected, httpx.Target{Host: ip})
 	}
 
-	// check if asn is enabled
-	if _, err := asn.GetIPAddressesAsStream(input); err != nil && stringsutil.ContainsAnyI(err.Error(), "missing or invalid api key") {
-		t.Skip("skipping asn test due to error", err)
+	if _, err := asn.GetIPAddressesAsStream(input); err != nil && stringsutil.ContainsAnyI(err.Error(), "unauthorized: 401") {
+		t.Skip("skipping asn test due to missing/invalid api key")
+		return
 	}
 
 	got := []httpx.Target{}
