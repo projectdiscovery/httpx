@@ -442,7 +442,7 @@ func (r *Runner) prepareInput() {
 	// check if input target host(s) have been provided
 	if len(r.options.InputTargetHost) > 0 {
 		for _, target := range r.options.InputTargetHost {
-			expandedTarget := r.countTargetFromRawTarget(target)
+			expandedTarget, _ := r.countTargetFromRawTarget(target)
 			if expandedTarget > 0 {
 				numHosts += expandedTarget
 				r.hm.Set(target, nil) //nolint
@@ -603,7 +603,7 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	for scanner.Scan() {
 		target := strings.TrimSpace(scanner.Text())
 		// Used just to get the exact number of targets
-		expandedTarget := r.countTargetFromRawTarget(target)
+		expandedTarget, _ := r.countTargetFromRawTarget(target)
 		if expandedTarget > 0 {
 			numTargets += expandedTarget
 			r.hm.Set(target, nil) //nolint
@@ -613,12 +613,12 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	return numTargets, err
 }
 
-func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int) {
+func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int, err error) {
 	if rawTarget == "" {
-		return 0
+		return 0, nil
 	}
 	if _, ok := r.hm.Get(rawTarget); ok {
-		return 0
+		return 0, nil
 	}
 
 	expandedTarget := 0
@@ -628,14 +628,17 @@ func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int) {
 			expandedTarget = int(ipsCount)
 		}
 	case asn.IsASN(rawTarget):
-		cidrs, _ := asn.GetCIDRsForASNNum(rawTarget)
+		cidrs, err := asn.GetCIDRsForASNNum(rawTarget)
+		if err != nil {
+			return 0, err
+		}
 		for _, cidr := range cidrs {
 			expandedTarget += int(mapcidr.AddressCountIpnet(cidr))
 		}
 	default:
 		expandedTarget = 1
 	}
-	return expandedTarget
+	return expandedTarget, nil
 }
 
 var (

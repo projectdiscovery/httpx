@@ -128,32 +128,41 @@ func TestRunner_countTargetFromRawTarget(t *testing.T) {
 
 	input := "example.com"
 	expected := 1
-	got := r.countTargetFromRawTarget(input)
+	got, err := r.countTargetFromRawTarget(input)
+	require.Nil(t, err, "could not count targets")
 	require.Equal(t, expected, got, "got wrong output")
 
 	input = "example.com"
 	expected = 0
 	err = r.hm.Set(input, nil)
 	require.Nil(t, err, "could not set value to hm")
-	got = r.countTargetFromRawTarget(input)
+	got, err = r.countTargetFromRawTarget(input)
+	require.Nil(t, err, "could not count targets")
+	require.Equal(t, expected, got, "got wrong output")
+
+	input = "173.0.84.0/24"
+	expected = 256
+	got, err = r.countTargetFromRawTarget(input)
+	require.Nil(t, err, "could not count targets")
 	require.Equal(t, expected, got, "got wrong output")
 
 	input = ""
 	expected = 0
-	got = r.countTargetFromRawTarget(input)
+	got, err = r.countTargetFromRawTarget(input)
+	require.Nil(t, err, "could not count targets")
 	require.Equal(t, expected, got, "got wrong output")
 
 	if os.Getenv("PDCP_API_KEY") != "" {
 		input = "AS14421"
 		expected = 256
-		got = r.countTargetFromRawTarget(input)
+		got, err = r.countTargetFromRawTarget(input)
+		if err != nil && stringsutil.ContainsAnyI(err.Error(), "unauthorized: 401") {
+			t.Skip("skipping asn test due to missing/invalid api key")
+			return
+		}
+		require.Nil(t, err, "could not count targets")
 		require.Equal(t, expected, got, "got wrong output")
 	}
-
-	input = "173.0.84.0/24"
-	expected = 256
-	got = r.countTargetFromRawTarget(input)
-	require.Equal(t, expected, got, "got wrong output")
 }
 
 func TestRunner_urlWithComma_targets(t *testing.T) {
