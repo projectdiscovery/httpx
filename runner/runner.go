@@ -66,6 +66,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/projectdiscovery/rawhttp"
+	converstionutil "github.com/projectdiscovery/utils/conversion"
 	fileutil "github.com/projectdiscovery/utils/file"
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	iputil "github.com/projectdiscovery/utils/ip"
@@ -517,21 +518,21 @@ func (r *Runner) seen(k string) bool {
 	return ok
 }
 
-func (r *Runner) duplicate(resp []byte) bool {
-	respSimHash := simhash.Simhash(simhash.NewWordFeatureSet(resp))
+func (r *Runner) duplicate(result *Result) bool {
+	respSimHash := simhash.Simhash(simhash.NewWordFeatureSet(converstionutil.Bytes(result.Raw)))
 	if r.simHashes.Has(respSimHash) {
-		gologger.Warning().Msgf("Skipping duplicate response with simhash %d\n", respSimHash)
+		gologger.Debug().Msgf("Skipping duplicate response with simhash %d for URL %s\n", respSimHash, result.URL)
 		return true
 	}
 
 	for simHash := range r.simHashes.GetALL(false) {
 		// lower threshold for increased precision
 		if simhash.Compare(simHash, respSimHash) <= 3 {
-			gologger.Warning().Msgf("Skipping near-duplicate response with simhash %d\n", respSimHash)
+			gologger.Debug().Msgf("Skipping near-duplicate response with simhash %d for URL %s\n", respSimHash, result.URL)
 			return true
 		}
 	}
-	r.simHashes.Set(respSimHash, struct{}{})
+	_ = r.simHashes.Set(respSimHash, struct{}{})
 	return false
 }
 
@@ -906,7 +907,7 @@ func (r *Runner) RunEnumeration() {
 				continue
 			}
 
-			if r.options.FilterOutDuplicates && r.duplicate(resp.Response.Data) {
+			if r.options.FilterOutDuplicates && r.duplicate(&resp) {
 				continue
 			}
 
