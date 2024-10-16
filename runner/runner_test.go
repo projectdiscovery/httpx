@@ -7,6 +7,8 @@ import (
 
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/httpx/common/httpx"
+	"github.com/projectdiscovery/mapcidr/asn"
+	stringsutil "github.com/projectdiscovery/utils/strings"
 	"github.com/stretchr/testify/require"
 )
 
@@ -106,11 +108,17 @@ func TestRunner_asn_targets(t *testing.T) {
 	for _, ip := range ips {
 		expected = append(expected, httpx.Target{Host: ip})
 	}
+
+	// check if asn is enabled
+	if _, err := asn.GetIPAddressesAsStream(input); err != nil && stringsutil.ContainsAnyI(err.Error(), "missing or invalid api key") {
+		t.Skip("skipping asn test due to error", err)
+	}
+
 	got := []httpx.Target{}
 	for target := range r.targets(r.hp, input) {
 		got = append(got, target)
 	}
-	require.ElementsMatch(t, expected, got, "could not exepcted output")
+	require.ElementsMatch(t, expected, got, "could not get expected output")
 }
 
 func TestRunner_countTargetFromRawTarget(t *testing.T) {
