@@ -59,6 +59,7 @@
 | Body Hash       | true          | Header  Hash   | true          |
 | Redirect chain  | false         | URL Scheme     | true          |
 | JARM Hash       | false         | ASN            | false         |
+| Copyright Year  | false         | 
 
 # Installation Instructions
 
@@ -106,6 +107,7 @@ PROBES:
    -lc, -line-count       display response body line count
    -wc, -word-count       display response body word count
    -title                 display page title
+   -copyright             display copyright years or years if present
    -bp, -body-preview     display first N characters of response body (default 100)
    -server, -web-server   display server name
    -td, -tech-detect      display technology in use based on wappalyzer dataset

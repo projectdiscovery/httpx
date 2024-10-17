@@ -48,6 +48,7 @@ type Result struct {
 	Input              string                 `json:"input,omitempty" csv:"input"`
 	Location           string                 `json:"location,omitempty" csv:"location"`
 	Title              string                 `json:"title,omitempty" csv:"title"`
+	Copyright          string                 `json:"copyright,omitempty" csv:"copyright"`
 	str                string
 	Scheme             string                 `json:"scheme,omitempty" csv:"scheme"`
 	Error              string                 `json:"error,omitempty" csv:"error"`
