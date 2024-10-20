@@ -76,21 +76,20 @@ import (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options             *Options
-	hp                  *httpx.HTTPX
-	wappalyzer          *wappalyzer.Wappalyze
-	scanopts            ScanOptions
-	hm                  *hybrid.HybridMap
-	excludeCdn          bool
-	stats               clistats.StatisticsClient
-	ratelimiter         ratelimit.Limiter
-	HostErrorsCache     gcache.Cache[string, int]
-	browser             *Browser
-	errorPageClassifier *errorpageclassifier.ErrorPageClassifier // Use this for the most specific classification of error pages
-	pageTypeClassifier  *pagetypeclassifier.PageTypeClassifier   // Include this for general page classification
-	pHashClusters       []pHashCluster
-	simHashes           gcache.Cache[uint64, struct{}]           // Include simHashes for efficient duplicate detection
-	httpApiEndpoint     *Server
+	options            *Options
+	hp                 *httpx.HTTPX
+	wappalyzer         *wappalyzer.Wappalyze
+	scanopts           ScanOptions
+	hm                 *hybrid.HybridMap
+	excludeCdn         bool
+	stats              clistats.StatisticsClient
+	ratelimiter        ratelimit.Limiter
+	HostErrorsCache    gcache.Cache[string, int]
+	browser            *Browser
+	pageTypeClassifier *pagetypeclassifier.PageTypeClassifier // Include this for general page classification
+	pHashClusters      []pHashCluster
+	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
+	httpApiEndpoint    *Server
 }
 
 func (r *Runner) HTTPX() *httpx.HTTPX {
@@ -362,7 +361,6 @@ func New(options *Options) (*Runner, error) {
 		runner.HostErrorsCache = gc
 	}
 
-	runner.errorPageClassifier = errorpageclassifier.New()
 	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
 	runner.pageTypeClassifier = pagetypeclassifier.New()
 
