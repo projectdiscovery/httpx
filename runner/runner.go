@@ -33,8 +33,8 @@ import (
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
-	"github.com/projectdiscovery/httpx/common/errorpageclassifier"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
+	"github.com/projectdiscovery/httpx/common/pagetypeclassifier"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
@@ -86,9 +86,10 @@ type Runner struct {
 	ratelimiter         ratelimit.Limiter
 	HostErrorsCache     gcache.Cache[string, int]
 	browser             *Browser
-	errorPageClassifier *errorpageclassifier.ErrorPageClassifier
+	errorPageClassifier *errorpageclassifier.ErrorPageClassifier // Use this for the most specific classification of error pages
+	pageTypeClassifier  *pagetypeclassifier.PageTypeClassifier   // Include this for general page classification
 	pHashClusters       []pHashCluster
-	simHashes           gcache.Cache[uint64, struct{}]
+	simHashes           gcache.Cache[uint64, struct{}]           // Include simHashes for efficient duplicate detection
 	httpApiEndpoint     *Server
 }
 
@@ -363,6 +364,7 @@ func New(options *Options) (*Runner, error) {
 
 	runner.errorPageClassifier = errorpageclassifier.New()
 	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
+	runner.pageTypeClassifier = pagetypeclassifier.New()
 
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)
@@ -2273,7 +2275,7 @@ retry:
 		ScreenshotBytes:  screenshotBytes,
 		HeadlessBody:     headlessBody,
 		KnowledgeBase: map[string]interface{}{
-			"PageType": r.errorPageClassifier.Classify(respData),
+			"PageType": r.pageTypeClassifier.Classify(respData),
 			"pHash":    pHash,
 		},
 		TechnologyDetails: technologyDetails,
