@@ -9,9 +9,10 @@ import (
 
 	"github.com/go-faker/faker/v4"
 	"github.com/go-faker/faker/v4/pkg/options"
-	"github.com/mitchellh/mapstructure"
+	mapstructure "github.com/go-viper/mapstructure/v2"
 	"github.com/projectdiscovery/dsl"
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 	mapsutil "github.com/projectdiscovery/utils/maps"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
@@ -32,74 +33,91 @@ func (o AsnResponse) String() string {
 
 // Result of a scan
 type Result struct {
-	Timestamp          time.Time              `json:"timestamp,omitempty" csv:"timestamp"`
-	ASN                *AsnResponse           `json:"asn,omitempty" csv:"asn"`
-	Err                error                  `json:"-" csv:"-"`
-	CSPData            *httpx.CSPData         `json:"csp,omitempty" csv:"csp"`
-	TLSData            *clients.Response      `json:"tls,omitempty" csv:"tls"`
-	Hashes             map[string]interface{} `json:"hash,omitempty" csv:"hash"`
-	ExtractRegex       []string               `json:"extract_regex,omitempty" csv:"extract_regex"`
-	CDNName            string                 `json:"cdn_name,omitempty" csv:"cdn_name"`
-	CDNType            string                 `json:"cdn_type,omitempty" csv:"cdn_type"`
-	SNI                string                 `json:"sni,omitempty" csv:"sni"`
-	Port               string                 `json:"port,omitempty" csv:"port"`
-	Raw                string                 `json:"-" csv:"-"`
-	URL                string                 `json:"url,omitempty" csv:"url"`
-	Input              string                 `json:"input,omitempty" csv:"input"`
-	Location           string                 `json:"location,omitempty" csv:"location"`
-	Title              string                 `json:"title,omitempty" csv:"title"`
-	str                string
-	Scheme             string                 `json:"scheme,omitempty" csv:"scheme"`
-	Error              string                 `json:"error,omitempty" csv:"error"`
-	WebServer          string                 `json:"webserver,omitempty" csv:"webserver"`
-	ResponseBody       string                 `json:"body,omitempty" csv:"body"`
-	BodyPreview        string                 `json:"body_preview,omitempty" csv:"body_preview"`
-	ContentType        string                 `json:"content_type,omitempty" csv:"content_type"`
-	Method             string                 `json:"method,omitempty" csv:"method"`
-	Host               string                 `json:"host,omitempty" csv:"host"`
-	Path               string                 `json:"path,omitempty" csv:"path"`
-	FavIconMMH3        string                 `json:"favicon,omitempty" csv:"favicon"`
-	FavIconMD5         string                 `json:"favicon_md5,omitempty" csv:"favicon"`
-	FaviconPath        string                 `json:"favicon_path,omitempty" csv:"favicon_path"`
-	FaviconURL         string                 `json:"favicon_url,omitempty" csv:"favicon_url"`
-	FinalURL           string                 `json:"final_url,omitempty" csv:"final_url"`
-	ResponseHeaders    map[string]interface{} `json:"header,omitempty" csv:"header"`
-	RawHeaders         string                 `json:"raw_header,omitempty" csv:"raw_header"`
-	Request            string                 `json:"request,omitempty" csv:"request"`
-	ResponseTime       string                 `json:"time,omitempty" csv:"time"`
-	JarmHash           string                 `json:"jarm_hash,omitempty" csv:"jarm_hash"`
-	ChainStatusCodes   []int                  `json:"chain_status_codes,omitempty" csv:"chain_status_codes"`
-	A                  []string               `json:"a,omitempty" csv:"a"`
-	AAAA               []string               `json:"aaaa,omitempty" csv:"aaaa"`
-	CNAMEs             []string               `json:"cname,omitempty" csv:"cname"`
-	Technologies       []string               `json:"tech,omitempty" csv:"tech"`
-	Extracts           map[string][]string    `json:"extracts,omitempty" csv:"extracts"`
-	Chain              []httpx.ChainItem      `json:"chain,omitempty" csv:"chain"`
-	Words              int                    `json:"words" csv:"words"`
-	Lines              int                    `json:"lines" csv:"lines"`
-	StatusCode         int                    `json:"status_code" csv:"status_code"`
-	ContentLength      int                    `json:"content_length" csv:"content_length"`
-	Failed             bool                   `json:"failed" csv:"failed"`
-	VHost              bool                   `json:"vhost,omitempty" csv:"vhost"`
-	WebSocket          bool                   `json:"websocket,omitempty" csv:"websocket"`
-	CDN                bool                   `json:"cdn,omitempty" csv:"cdn"`
-	HTTP2              bool                   `json:"http2,omitempty" csv:"http2"`
-	Pipeline           bool                   `json:"pipeline,omitempty" csv:"pipeline"`
-	HeadlessBody       string                 `json:"headless_body,omitempty" csv:"headless_body"`
-	ScreenshotBytes    []byte                 `json:"screenshot_bytes,omitempty" csv:"screenshot_bytes"`
-	StoredResponsePath string                 `json:"stored_response_path,omitempty" csv:"stored_response_path"`
-	ScreenshotPath     string                 `json:"screenshot_path,omitempty" csv:"screenshot_path"`
-	ScreenshotPathRel  string                 `json:"screenshot_path_rel,omitempty" csv:"screenshot_path_rel"`
-	KnowledgeBase      map[string]interface{} `json:"knowledgebase,omitempty" csv:"knowledgebase"`
-	Resolvers          []string               `json:"resolvers,omitempty" csv:"resolvers"`
-	Fqdns              []string               `json:"body_fqdn,omitempty"`
-	Domains            []string               `json:"body_domains,omitempty"`
+	Timestamp          time.Time                     `json:"timestamp,omitempty" csv:"timestamp" mapstructure:"timestamp"`
+	ASN                *AsnResponse                  `json:"asn,omitempty" csv:"asn" mapstructure:"asn"`
+	Err                error                         `json:"-" csv:"-" mapstructure:"-"`
+	CSPData            *httpx.CSPData                `json:"csp,omitempty" csv:"csp" mapstructure:"csp"`
+	TLSData            *clients.Response             `json:"tls,omitempty" csv:"tls" mapstructure:"tls"`
+	Hashes             map[string]interface{}        `json:"hash,omitempty" csv:"hash" mapstructure:"hash"`
+	ExtractRegex       []string                      `json:"extract_regex,omitempty" csv:"extract_regex" mapstructure:"extract_regex"`
+	CDNName            string                        `json:"cdn_name,omitempty" csv:"cdn_name" mapstructure:"cdn_name"`
+	CDNType            string                        `json:"cdn_type,omitempty" csv:"cdn_type" mapstructure:"cdn_type"`
+	SNI                string                        `json:"sni,omitempty" csv:"sni" mapstructure:"sni"`
+	Port               string                        `json:"port,omitempty" csv:"port" mapstructure:"port"`
+	Raw                string                        `json:"-" csv:"-" mapstructure:"-"`
+	URL                string                        `json:"url,omitempty" csv:"url" mapstructure:"url"`
+	Input              string                        `json:"input,omitempty" csv:"input" mapstructure:"input"`
+	Location           string                        `json:"location,omitempty" csv:"location" mapstructure:"location"`
+	Title              string                        `json:"title,omitempty" csv:"title" mapstructure:"title"`
+	str                string                        `mapstructure:"-"`
+	Scheme             string                        `json:"scheme,omitempty" csv:"scheme" mapstructure:"scheme"`
+	Error              string                        `json:"error,omitempty" csv:"error" mapstructure:"error"`
+	WebServer          string                        `json:"webserver,omitempty" csv:"webserver" mapstructure:"webserver"`
+	ResponseBody       string                        `json:"body,omitempty" csv:"body" mapstructure:"body"`
+	BodyPreview        string                        `json:"body_preview,omitempty" csv:"body_preview" mapstructure:"body_preview"`
+	ContentType        string                        `json:"content_type,omitempty" csv:"content_type" mapstructure:"content_type"`
+	Method             string                        `json:"method,omitempty" csv:"method" mapstructure:"method"`
+	Host               string                        `json:"host,omitempty" csv:"host" mapstructure:"host"`
+	Path               string                        `json:"path,omitempty" csv:"path" mapstructure:"path"`
+	FavIconMMH3        string                        `json:"favicon,omitempty" csv:"favicon" mapstructure:"favicon"`
+	FavIconMD5         string                        `json:"favicon_md5,omitempty" csv:"favicon" mapstructure:"favicon_md5"`
+	FaviconPath        string                        `json:"favicon_path,omitempty" csv:"favicon_path" mapstructure:"favicon_path"`
+	FaviconURL         string                        `json:"favicon_url,omitempty" csv:"favicon_url" mapstructure:"favicon_url"`
+	FinalURL           string                        `json:"final_url,omitempty" csv:"final_url" mapstructure:"final_url"`
+	ResponseHeaders    map[string]interface{}        `json:"header,omitempty" csv:"header" mapstructure:"header"`
+	RawHeaders         string                        `json:"raw_header,omitempty" csv:"raw_header" mapstructure:"raw_header"`
+	Request            string                        `json:"request,omitempty" csv:"request" mapstructure:"request"`
+	ResponseTime       string                        `json:"time,omitempty" csv:"time" mapstructure:"time"`
+	JarmHash           string                        `json:"jarm_hash,omitempty" csv:"jarm_hash" mapstructure:"jarm_hash"`
+	ChainStatusCodes   []int                         `json:"chain_status_codes,omitempty" csv:"chain_status_codes" mapstructure:"chain_status_codes"`
+	A                  []string                      `json:"a,omitempty" csv:"a" mapstructure:"a"`
+	AAAA               []string                      `json:"aaaa,omitempty" csv:"aaaa" mapstructure:"aaaa"`
+	CNAMEs             []string                      `json:"cname,omitempty" csv:"cname" mapstructure:"cname"`
+	Technologies       []string                      `json:"tech,omitempty" csv:"tech" mapstructure:"tech"`
+	Extracts           map[string][]string           `json:"extracts,omitempty" csv:"extracts" mapstructure:"extracts"`
+	Chain              []httpx.ChainItem             `json:"chain,omitempty" csv:"chain" mapstructure:"chain"`
+	Words              int                           `json:"words" csv:"words" mapstructure:"words"`
+	Lines              int                           `json:"lines" csv:"lines" mapstructure:"lines"`
+	StatusCode         int                           `json:"status_code" csv:"status_code" mapstructure:"status_code"`
+	ContentLength      int                           `json:"content_length" csv:"content_length" mapstructure:"content_length"`
+	Failed             bool                          `json:"failed" csv:"failed" mapstructure:"failed"`
+	VHost              bool                          `json:"vhost,omitempty" csv:"vhost" mapstructure:"vhost"`
+	WebSocket          bool                          `json:"websocket,omitempty" csv:"websocket" mapstructure:"websocket"`
+	CDN                bool                          `json:"cdn,omitempty" csv:"cdn" mapstructure:"cdn"`
+	HTTP2              bool                          `json:"http2,omitempty" csv:"http2" mapstructure:"http2"`
+	Pipeline           bool                          `json:"pipeline,omitempty" csv:"pipeline" mapstructure:"pipeline"`
+	HeadlessBody       string                        `json:"headless_body,omitempty" csv:"headless_body" mapstructure:"headless_body"`
+	ScreenshotBytes    []byte                        `json:"screenshot_bytes,omitempty" csv:"screenshot_bytes" mapstructure:"screenshot_bytes"`
+	StoredResponsePath string                        `json:"stored_response_path,omitempty" csv:"stored_response_path" mapstructure:"stored_response_path"`
+	ScreenshotPath     string                        `json:"screenshot_path,omitempty" csv:"screenshot_path" mapstructure:"screenshot_path"`
+	ScreenshotPathRel  string                        `json:"screenshot_path_rel,omitempty" csv:"screenshot_path_rel" mapstructure:"screenshot_path_rel"`
+	KnowledgeBase      map[string]interface{}        `json:"knowledgebase,omitempty" csv:"knowledgebase" mapstructure:"knowledgebase"`
+	Resolvers          []string                      `json:"resolvers,omitempty" csv:"resolvers" mapstructure:"resolvers"`
+	Fqdns              []string                      `json:"body_fqdn,omitempty" mapstructure:"body_fqdn"`
+	Domains            []string                      `json:"body_domains,omitempty" mapstructure:"body_domains"`
+	TechnologyDetails  map[string]wappalyzer.AppInfo `json:"-" csv:"-" mapstructure:"-"`
+	RequestRaw         []byte                        `json:"-" csv:"-" mapstructure:"-"`
+	Response           *httpx.Response               `json:"-" csv:"-" mapstructure:"-"`
+	FaviconData        []byte                        `json:"-" csv:"-" mapstructure:"-"`
+	Trace              *retryablehttp.TraceInfo      `json:"trace,omitempty" csv:"trace"  mapstructure:"trace"`
+}
 
-	// Internal Fields
-	TechnologyDetails map[string]wappalyzer.AppInfo `json:"-" csv:"-"`
-	RequestRaw        []byte                        `json:"-" csv:"-"`
-	Response          *httpx.Response               `json:"-" csv:"-"`
-	FaviconData       []byte                        `json:"-" csv:"-"`
+type Trace struct {
+	GetConn              time.Time `json:"get_conn,omitempty"`
+	GotConn              time.Time `json:"got_conn,omitempty"`
+	PutIdleConn          time.Time `json:"put_idle_conn,omitempty"`
+	GotFirstResponseByte time.Time `json:"got_first_response_byte,omitempty"`
+	Got100Continue       time.Time `json:"got_100_continue,omitempty"`
+	DNSStart             time.Time `json:"dns_start,omitempty"`
+	DNSDone              time.Time `json:"dns_done,omitempty"`
+	ConnectStart         time.Time `json:"connect_start,omitempty"`
+	ConnectDone          time.Time `json:"connect_done,omitempty"`
+	TLSHandshakeStart    time.Time `json:"tls_handshake_start,omitempty"`
+	TLSHandshakeDone     time.Time `json:"tls_handshake_done,omitempty"`
+	WroteHeaderField     time.Time `json:"wrote_header_field,omitempty"`
+	WroteHeaders         time.Time `json:"wrote_headers,omitempty"`
+	Wait100Continue      time.Time `json:"wait_100_continue,omitempty"`
+	WroteRequest         time.Time `json:"wrote_request,omitempty"`
 }
 
 // function to get dsl variables from result struct
@@ -139,8 +157,7 @@ func evalDslExpr(result Result, dslExpr string) bool {
 func resultToMap(resp Result) (map[string]any, error) {
 	m := make(map[string]any)
 	config := &mapstructure.DecoderConfig{
-		TagName: "json",
-		Result:  &m,
+		Result: &m,
 	}
 	decoder, err := mapstructure.NewDecoder(config)
 	if err != nil {

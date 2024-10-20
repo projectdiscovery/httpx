@@ -1,4 +1,4 @@
-package errorpageclassifier
+package pagetypeclassifier
 
 import (
 	_ "embed"
@@ -10,19 +10,19 @@ import (
 //go:embed clf.gob
 var classifierData []byte
 
-type ErrorPageClassifier struct {
+type PageTypeClassifier struct {
 	classifier *naive_bayes.NaiveBayesClassifier
 }
 
-func New() *ErrorPageClassifier {
+func New() *PageTypeClassifier {
 	classifier, err := naive_bayes.NewClassifierFromFileData(classifierData)
 	if err != nil {
 		panic(err)
 	}
-	return &ErrorPageClassifier{classifier: classifier}
+	return &PageTypeClassifier{classifier: classifier}
 }
 
-func (n *ErrorPageClassifier) Classify(html string) string {
+func (n *PageTypeClassifier) Classify(html string) string {
 	text := htmlToText(html)
 	if text == "" {
 		return "other"
