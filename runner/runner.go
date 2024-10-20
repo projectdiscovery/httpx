@@ -29,11 +29,12 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/corona10/goimagehash"
+	"github.com/mfonda/simhash"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
-	"github.com/projectdiscovery/httpx/common/errorpageclassifier"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
+	"github.com/projectdiscovery/httpx/common/pagetypeclassifier"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
@@ -65,6 +66,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/projectdiscovery/rawhttp"
+	converstionutil "github.com/projectdiscovery/utils/conversion"
 	fileutil "github.com/projectdiscovery/utils/file"
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	iputil "github.com/projectdiscovery/utils/ip"
@@ -74,19 +76,20 @@ import (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options             *Options
-	hp                  *httpx.HTTPX
-	wappalyzer          *wappalyzer.Wappalyze
-	scanopts            ScanOptions
-	hm                  *hybrid.HybridMap
-	excludeCdn          bool
-	stats               clistats.StatisticsClient
-	ratelimiter         ratelimit.Limiter
-	HostErrorsCache     gcache.Cache[string, int]
-	browser             *Browser
-	errorPageClassifier *errorpageclassifier.ErrorPageClassifier
-	pHashClusters       []pHashCluster
-	httpApiEndpoint     *Server
+	options            *Options
+	hp                 *httpx.HTTPX
+	wappalyzer         *wappalyzer.Wappalyze
+	scanopts           ScanOptions
+	hm                 *hybrid.HybridMap
+	excludeCdn         bool
+	stats              clistats.StatisticsClient
+	ratelimiter        ratelimit.Limiter
+	HostErrorsCache    gcache.Cache[string, int]
+	browser            *Browser
+	pageTypeClassifier *pagetypeclassifier.PageTypeClassifier // Include this for general page classification
+	pHashClusters      []pHashCluster
+	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
+	httpApiEndpoint    *Server
 }
 
 func (r *Runner) HTTPX() *httpx.HTTPX {
@@ -358,7 +361,8 @@ func New(options *Options) (*Runner, error) {
 		runner.HostErrorsCache = gc
 	}
 
-	runner.errorPageClassifier = errorpageclassifier.New()
+	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
+	runner.pageTypeClassifier = pagetypeclassifier.New()
 
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)
@@ -438,7 +442,7 @@ func (r *Runner) prepareInput() {
 	// check if input target host(s) have been provided
 	if len(r.options.InputTargetHost) > 0 {
 		for _, target := range r.options.InputTargetHost {
-			expandedTarget := r.countTargetFromRawTarget(target)
+			expandedTarget, _ := r.countTargetFromRawTarget(target)
 			if expandedTarget > 0 {
 				numHosts += expandedTarget
 				r.hm.Set(target, nil) //nolint
@@ -514,6 +518,24 @@ func (r *Runner) seen(k string) bool {
 	return ok
 }
 
+func (r *Runner) duplicate(result *Result) bool {
+	respSimHash := simhash.Simhash(simhash.NewWordFeatureSet(converstionutil.Bytes(result.Raw)))
+	if r.simHashes.Has(respSimHash) {
+		gologger.Debug().Msgf("Skipping duplicate response with simhash %d for URL %s\n", respSimHash, result.URL)
+		return true
+	}
+
+	for simHash := range r.simHashes.GetALL(false) {
+		// lower threshold for increased precision
+		if simhash.Compare(simHash, respSimHash) <= 3 {
+			gologger.Debug().Msgf("Skipping near-duplicate response with simhash %d for URL %s\n", respSimHash, result.URL)
+			return true
+		}
+	}
+	_ = r.simHashes.Set(respSimHash, struct{}{})
+	return false
+}
+
 func (r *Runner) testAndSet(k string) bool {
 	// skip empty lines
 	k = strings.TrimSpace(k)
@@ -581,7 +603,7 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	for scanner.Scan() {
 		target := strings.TrimSpace(scanner.Text())
 		// Used just to get the exact number of targets
-		expandedTarget := r.countTargetFromRawTarget(target)
+		expandedTarget, _ := r.countTargetFromRawTarget(target)
 		if expandedTarget > 0 {
 			numTargets += expandedTarget
 			r.hm.Set(target, nil) //nolint
@@ -591,12 +613,12 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	return numTargets, err
 }
 
-func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int) {
+func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int, err error) {
 	if rawTarget == "" {
-		return 0
+		return 0, nil
 	}
 	if _, ok := r.hm.Get(rawTarget); ok {
-		return 0
+		return 0, nil
 	}
 
 	expandedTarget := 0
@@ -606,14 +628,17 @@ func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int) {
 			expandedTarget = int(ipsCount)
 		}
 	case asn.IsASN(rawTarget):
-		cidrs, _ := asn.GetCIDRsForASNNum(rawTarget)
+		cidrs, err := asn.GetCIDRsForASNNum(rawTarget)
+		if err != nil {
+			return 0, err
+		}
 		for _, cidr := range cidrs {
 			expandedTarget += int(mapcidr.AddressCountIpnet(cidr))
 		}
 	default:
 		expandedTarget = 1
 	}
-	return expandedTarget
+	return expandedTarget, nil
 }
 
 var (
@@ -884,6 +909,11 @@ func (r *Runner) RunEnumeration() {
 				logFilteredErrorPage(r.options.OutputFilterErrorPagePath, resp.URL)
 				continue
 			}
+
+			if r.options.FilterOutDuplicates && r.duplicate(&resp) {
+				continue
+			}
+
 			if len(r.options.filterStatusCode) > 0 && sliceutil.Contains(r.options.filterStatusCode, resp.StatusCode) {
 				continue
 			}
@@ -2248,7 +2278,7 @@ retry:
 		ScreenshotBytes:  screenshotBytes,
 		HeadlessBody:     headlessBody,
 		KnowledgeBase: map[string]interface{}{
-			"PageType": r.errorPageClassifier.Classify(respData),
+			"PageType": r.pageTypeClassifier.Classify(respData),
 			"pHash":    pHash,
 		},
 		TechnologyDetails: technologyDetails,
