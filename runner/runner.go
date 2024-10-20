@@ -879,7 +879,7 @@ func (r *Runner) RunEnumeration() {
 				continue
 			}
 
-			if indexFile != nil {
+			if indexFile != nil && resp.Err == nil {
 				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
 				_, _ = indexFile.WriteString(indexData)
 			}
@@ -981,6 +981,80 @@ func (r *Runner) RunEnumeration() {
 				continue
 			}
 
+			if r.options.OutputMatchResponseTime != "" {
+				filterOps := FilterOperator{flag: "-mrt, -match-response-time"}
+				operator, value, err := filterOps.Parse(r.options.OutputMatchResponseTime)
+				if err != nil {
+					gologger.Fatal().Msg(err.Error())
+				}
+				respTimeTaken, _ := time.ParseDuration(resp.ResponseTime)
+				switch operator {
+				// take negation of >= and >
+				case greaterThanEq, greaterThan:
+					if respTimeTaken < value {
+						continue
+					}
+				// take negation of <= and <
+				case lessThanEq, lessThan:
+					if respTimeTaken > value {
+						continue
+					}
+				// take negation of =
+				case equal:
+					if respTimeTaken != value {
+						continue
+					}
+				// take negation of !=
+				case notEq:
+					if respTimeTaken == value {
+						continue
+					}
+				}
+			}
+
+			if r.options.OutputFilterResponseTime != "" {
+				filterOps := FilterOperator{flag: "-frt, -filter-response-time"}
+				operator, value, err := filterOps.Parse(r.options.OutputFilterResponseTime)
+				if err != nil {
+					gologger.Fatal().Msg(err.Error())
+				}
+				respTimeTaken, _ := time.ParseDuration(resp.ResponseTime)
+				switch operator {
+				case greaterThanEq:
+					if respTimeTaken >= value {
+						continue
+					}
+				case lessThanEq:
+					if respTimeTaken <= value {
+						continue
+					}
+				case equal:
+					if respTimeTaken == value {
+						continue
+					}
+				case lessThan:
+					if respTimeTaken < value {
+						continue
+					}
+				case greaterThan:
+					if respTimeTaken > value {
+						continue
+					}
+				case notEq:
+					if respTimeTaken != value {
+						continue
+					}
+				}
+			}
+
+			if !r.options.DisableStdout && (!jsonOrCsv || jsonAndCsv || r.options.OutputAll) {
+				gologger.Silent().Msgf("%s\n", resp.str)
+			}
+
+			if resp.Err != nil {
+				continue
+			}
+
 			// store responses or chain in directory
 			URL, _ := urlutil.Parse(resp.URL)
 			domainFile := resp.Method + ":" + URL.EscapedString()
@@ -1047,71 +1121,6 @@ func (r *Runner) RunEnumeration() {
 				_, _ = indexScreenshotFile.WriteString(indexData)
 			}
 
-			if r.options.OutputMatchResponseTime != "" {
-				filterOps := FilterOperator{flag: "-mrt, -match-response-time"}
-				operator, value, err := filterOps.Parse(r.options.OutputMatchResponseTime)
-				if err != nil {
-					gologger.Fatal().Msg(err.Error())
-				}
-				respTimeTaken, _ := time.ParseDuration(resp.ResponseTime)
-				switch operator {
-				// take negation of >= and >
-				case greaterThanEq, greaterThan:
-					if respTimeTaken < value {
-						continue
-					}
-				// take negation of <= and <
-				case lessThanEq, lessThan:
-					if respTimeTaken > value {
-						continue
-					}
-				// take negation of =
-				case equal:
-					if respTimeTaken != value {
-						continue
-					}
-				// take negation of !=
-				case notEq:
-					if respTimeTaken == value {
-						continue
-					}
-				}
-			}
-			if r.options.OutputFilterResponseTime != "" {
-				filterOps := FilterOperator{flag: "-frt, -filter-response-time"}
-				operator, value, err := filterOps.Parse(r.options.OutputFilterResponseTime)
-				if err != nil {
-					gologger.Fatal().Msg(err.Error())
-				}
-				respTimeTaken, _ := time.ParseDuration(resp.ResponseTime)
-				switch operator {
-				case greaterThanEq:
-					if respTimeTaken >= value {
-						continue
-					}
-				case lessThanEq:
-					if respTimeTaken <= value {
-						continue
-					}
-				case equal:
-					if respTimeTaken == value {
-						continue
-					}
-				case lessThan:
-					if respTimeTaken < value {
-						continue
-					}
-				case greaterThan:
-					if respTimeTaken > value {
-						continue
-					}
-				case notEq:
-					if respTimeTaken != value {
-						continue
-					}
-				}
-			}
-
 			if r.scanopts.StoreVisionReconClusters {
 				foundCluster := false
 				pHash, _ := resp.KnowledgeBase["pHash"].(uint64)
@@ -1131,10 +1140,6 @@ func (r *Runner) RunEnumeration() {
 					}
 					r.pHashClusters = append(r.pHashClusters, newCluster)
 				}
-			}
-
-			if !r.options.DisableStdout && (!jsonOrCsv || jsonAndCsv || r.options.OutputAll) {
-				gologger.Silent().Msgf("%s\n", resp.str)
 			}
 
 			//nolint:errcheck // this method needs a small refactor to reduce complexity
