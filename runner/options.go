@@ -57,7 +57,8 @@ type ScanOptions struct {
 	RequestBody               string
 	VHost                     bool
 	OutputTitle               bool
-	OutputStatusCode          bool
+	OutputCopyright	          bool
+	OutputStatusCode	  bool
 	OutputLocation            bool
 	OutputContentLength       bool
 	StoreResponse             bool
@@ -116,6 +117,7 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		RequestBody:               s.RequestBody,
 		VHost:                     s.VHost,
 		OutputTitle:               s.OutputTitle,
+		OutputCopyright:           s.OutputCopyright,
 		OutputStatusCode:          s.OutputStatusCode,
 		OutputLocation:            s.OutputLocation,
 		OutputContentLength:       s.OutputContentLength,
@@ -206,6 +208,7 @@ type Options struct {
 	VHostInput                bool
 	Smuggling                 bool
 	ExtractTitle              bool
+	ExtractCopyright          bool
 	StatusCode                bool
 	Location                  bool
 	ContentLength             bool
@@ -366,6 +369,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.OutputLinesCount, "line-count", "lc", false, "display response body line count"),
 		flagSet.BoolVarP(&options.OutputWordsCount, "word-count", "wc", false, "display response body word count"),
 		flagSet.BoolVar(&options.ExtractTitle, "title", false, "display page title"),
+		flagSet.BoolVar(&options.ExtractCopyright, "copyright", false, "display copyright year"),
 		flagSet.DynamicVarP(&options.ResponseBodyPreviewSize, "body-preview", "bp", 100, "display first N characters of response body"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
 		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),

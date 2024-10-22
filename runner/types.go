@@ -49,6 +49,7 @@ type Result struct {
 	Input              string                        `json:"input,omitempty" csv:"input" mapstructure:"input"`
 	Location           string                        `json:"location,omitempty" csv:"location" mapstructure:"location"`
 	Title              string                        `json:"title,omitempty" csv:"title" mapstructure:"title"`
+	Copyright          string	                 `json:"copyright,omitempty" csv:"copyright" mapstructure:"copyright"`
 	str                string                        `mapstructure:"-"`
 	Scheme             string                        `json:"scheme,omitempty" csv:"scheme" mapstructure:"scheme"`
 	Error              string                        `json:"error,omitempty" csv:"error" mapstructure:"error"`

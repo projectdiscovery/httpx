@@ -245,6 +245,7 @@ func New(options *Options) (*Runner, error) {
 	runner.options.protocol = httpx.HTTPorHTTPS
 	scanopts.VHost = options.VHost
 	scanopts.OutputTitle = options.ExtractTitle
+	scanopts.OutputCopyright = options.ExtractCopyright
 	scanopts.OutputStatusCode = options.StatusCode
 	scanopts.OutputLocation = options.Location
 	scanopts.OutputContentLength = options.ContentLength
@@ -1800,6 +1801,21 @@ retry:
 		builder.WriteRune(']')
 	}
 
+	var copyright string
+	if httpx.CanHaveTitleTag(resp.GetHeaderPart("Content-Type", ";")) {
+	    copyright = httpx.ExtractCopyright(resp)  // This will return a space-delimited string of years
+	}
+
+	if scanopts.OutputCopyright && copyright != "" {
+	    builder.WriteString(" [")
+	    if !scanopts.OutputWithNoColor {
+	        builder.WriteString(aurora.Cyan(copyright).String())
+	    } else {
+	        builder.WriteString(copyright)
+	    }
+	    builder.WriteRune(']')
+	}
+
 	var bodyPreview string
 	if r.options.ResponseBodyPreviewSize > 0 && resp != nil {
 		bodyPreview = string(resp.Data)
@@ -2243,6 +2259,7 @@ retry:
 		Location:         resp.GetHeaderPart("Location", ";"),
 		ContentType:      resp.GetHeaderPart("Content-Type", ";"),
 		Title:            title,
+		Copyright:        copyright,
 		str:              builder.String(),
 		VHost:            isvhost,
 		WebServer:        serverHeader,
