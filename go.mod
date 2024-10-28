@@ -35,7 +35,7 @@ require (
 	github.com/projectdiscovery/rawhttp v0.1.71
 	github.com/projectdiscovery/retryablehttp-go v1.0.84
 	github.com/projectdiscovery/tlsx v1.1.8
-	github.com/projectdiscovery/useragent v0.0.69
+	github.com/projectdiscovery/useragent v0.0.76
 	github.com/projectdiscovery/utils v0.2.15
 	github.com/projectdiscovery/wappalyzergo v0.1.24
 	github.com/rs/xid v1.5.0
