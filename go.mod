@@ -1,6 +1,8 @@
 module github.com/projectdiscovery/httpx
 
-go 1.21
+go 1.21.3
+
+toolchain go1.23.2
 
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
@@ -52,6 +54,7 @@ require (
 
 require (
 	github.com/go-viper/mapstructure/v2 v2.1.0
+	github.com/projectdiscovery/awesome-search-queries v0.0.0-20241030094221-9fa3c0933578
 	github.com/weppos/publicsuffix-go v0.30.2
 )
 

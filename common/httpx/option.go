@@ -50,6 +50,7 @@ type Options struct {
 	CDNCheckClient            *cdncheck.Client
 	Protocol                  Proto
 	Trace                     bool
+	AwesomeSearchQueries      bool
 }
 
 // DefaultOptions contains the default options
@@ -71,6 +72,7 @@ var DefaultOptions = Options{
 	VHostStripHTML:           false,
 	VHostSimilarityRatio:     85,
 	DefaultUserAgent:         "httpx - Open-source project (github.com/projectdiscovery/httpx)",
+	AwesomeSearchQueries:     false,
 }
 
 func (options *Options) parseCustomCookies() {

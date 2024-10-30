@@ -100,6 +100,10 @@ type Result struct {
 	Response           *httpx.Response               `json:"-" csv:"-" mapstructure:"-"`
 	FaviconData        []byte                        `json:"-" csv:"-" mapstructure:"-"`
 	Trace              *retryablehttp.TraceInfo      `json:"trace,omitempty" csv:"trace"  mapstructure:"trace"`
+	Product            string                        `json:"product,omitempty" csv:"product"`
+	Vendor             string                        `json:"vendor,omitempty" csv:"vendor"`
+	WordPress          *WordPressInfo                `json:"wordpress,omitempty" csv:"wordpress"`
+	CPE                string                        `json:"cpe,omitempty" csv:"cpe"`
 }
 
 type Trace struct {

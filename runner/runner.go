@@ -90,6 +90,8 @@ type Runner struct {
 	pHashClusters      []pHashCluster
 	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
 	httpApiEndpoint    *Server
+	awesomeQueries     *AwesomeSearchMaps
+	wpData             *WordPressData
 }
 
 func (r *Runner) HTTPX() *httpx.HTTPX {
@@ -373,6 +375,26 @@ func New(options *Options) (*Runner, error) {
 				gologger.Error().Msgf("Failed to start API server: %s", err)
 			}
 		}()
+	}
+
+	if options.JSONOutput || options.AwesomeSearchQueries {
+		aq, err := LoadAwesomeQueries()
+		if err != nil {
+			gologger.Warning().Msgf("Could not load awesome search queries: %s", err)
+		} else {
+			runner.awesomeQueries = aq
+		}
+	}
+
+	if options.WordPress {
+		wpData, err := NewWordPressData()
+		if err != nil {
+			return nil, err
+		}
+		if err := wpData.LoadData(); err != nil {
+			gologger.Warning().Msgf("Could not load WordPress data: %s", err)
+		}
+		runner.wpData = wpData
 	}
 
 	return runner, nil
@@ -2225,6 +2247,74 @@ retry:
 		}
 	}
 
+	// Add awesome queries check here, before creating the result struct
+	var product, vendor, cpe string
+	if r.awesomeQueries != nil {
+		tempResult := Result{
+			Title:        title,
+			ResponseBody: string(resp.Data),
+			FavIconMMH3:  faviconMMH3,
+		}
+		if matches, found := r.awesomeQueries.FindMatches(&tempResult); found && len(matches) > 0 {
+			product = matches[0].Product
+			vendor = matches[0].Vendor
+			cpe = fmt.Sprintf("cpe:2.3:a:%s:%s:*:*:*:*:*:*:*:*", strings.ToLower(vendor), strings.ToLower(product))
+
+			// Update the builder string for CLI output
+			if r.options.AwesomeSearchQueries {
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Magenta(cpe).String())
+				} else {
+					builder.WriteString(cpe)
+				}
+				builder.WriteString("] [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Magenta(vendor).String())
+				} else {
+					builder.WriteString(vendor)
+				}
+				builder.WriteString("] [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Magenta(product).String())
+				} else {
+					builder.WriteString(product)
+				}
+				builder.WriteString("]")
+			}
+		}
+	}
+
+	var wpInfo *WordPressInfo
+	if r.wpData != nil {
+		wpInfo = r.wpData.ExtractInfo(string(resp.Data))
+		if wpInfo != nil {
+			builder.WriteString(" [")
+			if !scanopts.OutputWithNoColor {
+				if len(wpInfo.Plugins) > 0 {
+					builder.WriteString(aurora.Magenta(fmt.Sprintf("WP Plugins: %s", strings.Join(wpInfo.Plugins, ","))).String())
+				}
+				if len(wpInfo.Themes) > 0 {
+					if len(wpInfo.Plugins) > 0 {
+						builder.WriteString("] [")
+					}
+					builder.WriteString(aurora.Magenta(fmt.Sprintf("WP Themes: %s", strings.Join(wpInfo.Themes, ","))).String())
+				}
+			} else {
+				if len(wpInfo.Plugins) > 0 {
+					builder.WriteString(fmt.Sprintf("WP Plugins: %s", strings.Join(wpInfo.Plugins, ",")))
+				}
+				if len(wpInfo.Themes) > 0 {
+					if len(wpInfo.Plugins) > 0 {
+						builder.WriteString("] [")
+					}
+					builder.WriteString(fmt.Sprintf("WP Themes: %s", strings.Join(wpInfo.Themes, ",")))
+				}
+			}
+			builder.WriteString("]")
+		}
+	}
+
 	result := Result{
 		Timestamp:        time.Now(),
 		Request:          request,
@@ -2286,6 +2376,10 @@ retry:
 		RequestRaw:        requestDump,
 		Response:          resp,
 		FaviconData:       faviconData,
+		Product:           product,
+		Vendor:            vendor,
+		CPE:               cpe,
+		WordPress:         wpInfo,
 	}
 	if resp.BodyDomains != nil {
 		result.Fqdns = resp.BodyDomains.Fqdns
@@ -2294,6 +2388,7 @@ retry:
 	if r.options.Trace {
 		result.Trace = req.TraceInfo
 	}
+
 	return result
 }
 

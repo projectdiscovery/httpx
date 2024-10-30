@@ -335,9 +335,11 @@ type Options struct {
 	Trace bool
 
 	// Optional pre-created objects to reduce allocations
-	Wappalyzer     *wappalyzer.Wappalyze
-	Networkpolicy  *networkpolicy.NetworkPolicy
-	CDNCheckClient *cdncheck.Client
+	Wappalyzer           *wappalyzer.Wappalyze
+	Networkpolicy        *networkpolicy.NetworkPolicy
+	CDNCheckClient       *cdncheck.Client
+	AwesomeSearchQueries bool
+	WordPress            bool
 }
 
 // ParseOptions parses the command line options for application
@@ -369,6 +371,7 @@ func ParseOptions() *Options {
 		flagSet.DynamicVarP(&options.ResponseBodyPreviewSize, "body-preview", "bp", 100, "display first N characters of response body"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
 		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
+		flagSet.BoolVar(&options.AwesomeSearchQueries, "cpe", false, "display product and vendor information based on awesome search queries"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
 		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
@@ -377,6 +380,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Asn, "asn", false, "display host asn information"),
 		flagSet.DynamicVar(&options.OutputCDN, "cdn", "true", "display cdn/waf in use"),
 		flagSet.BoolVar(&options.Probe, "probe", false, "display probe status"),
+		flagSet.BoolVarP(&options.WordPress, "wordpress", "wp", false, "display WordPress themes and plugins"),
 	)
 
 	flagSet.CreateGroup("headless", "Headless",
@@ -621,6 +625,11 @@ func ParseOptions() *Options {
 
 	if err := options.ValidateOptions(); err != nil {
 		gologger.Fatal().Msgf("%s\n", err)
+	}
+
+	// Enable WordPress detection for JSON output
+	if options.JSONOutput {
+		options.WordPress = true
 	}
 
 	return options
