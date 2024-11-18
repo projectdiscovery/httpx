@@ -32,7 +32,7 @@ require (
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.61
-	github.com/projectdiscovery/rawhttp v0.1.73
+	github.com/projectdiscovery/rawhttp v0.1.74
 	github.com/projectdiscovery/retryablehttp-go v1.0.87
 	github.com/projectdiscovery/tlsx v1.1.8
 	github.com/projectdiscovery/useragent v0.0.79
