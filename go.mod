@@ -33,7 +33,7 @@ require (
 	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.61
 	github.com/projectdiscovery/rawhttp v0.1.73
-	github.com/projectdiscovery/retryablehttp-go v1.0.85
+	github.com/projectdiscovery/retryablehttp-go v1.0.87
 	github.com/projectdiscovery/tlsx v1.1.8
 	github.com/projectdiscovery/useragent v0.0.79
 	github.com/projectdiscovery/utils v0.2.18
@@ -117,7 +117,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.7 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.83 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.84 // indirect
 	github.com/refraction-networking/utls v1.6.7 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
