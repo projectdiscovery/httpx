@@ -27,12 +27,12 @@ require (
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.65
-	github.com/projectdiscovery/gologger v1.1.31
+	github.com/projectdiscovery/gologger v1.1.32
 	github.com/projectdiscovery/hmap v0.0.67
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.63
-	github.com/projectdiscovery/rawhttp v0.1.74
+	github.com/projectdiscovery/rawhttp v0.1.75
 	github.com/projectdiscovery/retryablehttp-go v1.0.88
 	github.com/projectdiscovery/tlsx v1.1.8
 	github.com/projectdiscovery/useragent v0.0.79
