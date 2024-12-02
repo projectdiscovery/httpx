@@ -22,12 +22,12 @@ require (
 	github.com/projectdiscovery/asnmap v1.1.1
 	github.com/projectdiscovery/cdncheck v1.1.0
 	github.com/projectdiscovery/clistats v0.1.1
-	github.com/projectdiscovery/dsl v0.3.1
+	github.com/projectdiscovery/dsl v0.3.5
 	github.com/projectdiscovery/fastdialer v0.2.11
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.65
-	github.com/projectdiscovery/gologger v1.1.32
+	github.com/projectdiscovery/gologger v1.1.33
 	github.com/projectdiscovery/hmap v0.0.68
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.9
