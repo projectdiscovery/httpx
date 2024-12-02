@@ -37,10 +37,10 @@ require (
 	github.com/projectdiscovery/tlsx v1.1.8
 	github.com/projectdiscovery/useragent v0.0.79
 	github.com/projectdiscovery/utils v0.2.20
-	github.com/projectdiscovery/wappalyzergo v0.2.3
+	github.com/projectdiscovery/wappalyzergo v0.2.5
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/zmap/zcrypto v0.0.0-20240512203510-0fef58d9a9db
 	go.etcd.io/bbolt v1.3.10 // indirect
 	go.uber.org/multierr v1.11.0
