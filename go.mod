@@ -22,25 +22,25 @@ require (
 	github.com/projectdiscovery/asnmap v1.1.1
 	github.com/projectdiscovery/cdncheck v1.1.0
 	github.com/projectdiscovery/clistats v0.1.1
-	github.com/projectdiscovery/dsl v0.3.1
-	github.com/projectdiscovery/fastdialer v0.2.9
+	github.com/projectdiscovery/dsl v0.3.5
+	github.com/projectdiscovery/fastdialer v0.2.11
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
-	github.com/projectdiscovery/goflags v0.1.64
-	github.com/projectdiscovery/gologger v1.1.31
-	github.com/projectdiscovery/hmap v0.0.67
+	github.com/projectdiscovery/goflags v0.1.65
+	github.com/projectdiscovery/gologger v1.1.33
+	github.com/projectdiscovery/hmap v0.0.68
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.9
-	github.com/projectdiscovery/ratelimit v0.0.61
-	github.com/projectdiscovery/rawhttp v0.1.74
-	github.com/projectdiscovery/retryablehttp-go v1.0.87
+	github.com/projectdiscovery/ratelimit v0.0.63
+	github.com/projectdiscovery/rawhttp v0.1.75
+	github.com/projectdiscovery/retryablehttp-go v1.0.88
 	github.com/projectdiscovery/tlsx v1.1.8
 	github.com/projectdiscovery/useragent v0.0.79
-	github.com/projectdiscovery/utils v0.2.18
-	github.com/projectdiscovery/wappalyzergo v0.2.3
+	github.com/projectdiscovery/utils v0.2.20
+	github.com/projectdiscovery/wappalyzergo v0.2.5
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/zmap/zcrypto v0.0.0-20240512203510-0fef58d9a9db
 	go.etcd.io/bbolt v1.3.10 // indirect
 	go.uber.org/multierr v1.11.0
@@ -117,7 +117,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.7 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.84 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.87 // indirect
 	github.com/refraction-networking/utls v1.6.7 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
