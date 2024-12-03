@@ -601,12 +601,14 @@ func (r *Runner) streamInput() (chan string, error) {
 func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	scanner := bufio.NewScanner(finput)
 	for scanner.Scan() {
-		target := strings.TrimSpace(scanner.Text())
-		// Used just to get the exact number of targets
-		expandedTarget, _ := r.countTargetFromRawTarget(target)
-		if expandedTarget > 0 {
-			numTargets += expandedTarget
-			r.hm.Set(target, nil) //nolint
+		targets := strings.Split(strings.TrimSpace(scanner.Text()), ",")
+		for _, target := range targets {
+			// Used just to get the exact number of targets
+			expandedTarget, _ := r.countTargetFromRawTarget(target)
+			if expandedTarget > 0 {
+				numTargets += expandedTarget
+				r.hm.Set(target, nil) //nolint
+			}
 		}
 	}
 	err = finput.Close()
