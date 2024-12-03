@@ -27,16 +27,16 @@ require (
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.65
-	github.com/projectdiscovery/gologger v1.1.33
-	github.com/projectdiscovery/hmap v0.0.68
+	github.com/projectdiscovery/gologger v1.1.34
+	github.com/projectdiscovery/hmap v0.0.69
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.63
 	github.com/projectdiscovery/rawhttp v0.1.75
-	github.com/projectdiscovery/retryablehttp-go v1.0.88
+	github.com/projectdiscovery/retryablehttp-go v1.0.89
 	github.com/projectdiscovery/tlsx v1.1.8
 	github.com/projectdiscovery/useragent v0.0.79
-	github.com/projectdiscovery/utils v0.2.20
+	github.com/projectdiscovery/utils v0.4.1-0.20241203192107-571a7b050f0f
 	github.com/projectdiscovery/wappalyzergo v0.2.5
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
@@ -81,12 +81,14 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5 // indirect
 	github.com/fatih/color v1.16.0 // indirect
+	github.com/felixge/fgprof v0.9.5 // indirect
 	github.com/gaissmai/bart v0.9.5 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/certificate-transparency-go v1.1.4 // indirect
 	github.com/google/go-github/v30 v30.1.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/pprof v0.0.0-20240227163752-401108e1b7e7 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
