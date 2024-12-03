@@ -164,7 +164,13 @@ func New(options *Options) (*HTTPX, error) {
 	}
 
 	if httpx.Options.HTTPProxy != "" {
-		proxyURL, parseErr := url.Parse(httpx.Options.HTTPProxy)
+		httpx.Options.Proxy = httpx.Options.HTTPProxy
+	} else if httpx.Options.SocksProxy != "" {
+		httpx.Options.Proxy = httpx.Options.SocksProxy
+	}
+
+	if httpx.Options.Proxy != "" {
+		proxyURL, parseErr := url.Parse(httpx.Options.Proxy)
 		if parseErr != nil {
 			return nil, parseErr
 		}
