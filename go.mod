@@ -37,7 +37,7 @@ require (
 	github.com/projectdiscovery/tlsx v1.1.8
 	github.com/projectdiscovery/useragent v0.0.82
 	github.com/projectdiscovery/utils v0.4.1-0.20241203192107-571a7b050f0f
-	github.com/projectdiscovery/wappalyzergo v0.2.5
+	github.com/projectdiscovery/wappalyzergo v0.2.6
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.10.0
