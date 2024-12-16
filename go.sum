@@ -286,10 +286,10 @@ github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZA
 github.com/projectdiscovery/stringsutil v0.0.2/go.mod h1:EJ3w6bC5fBYjVou6ryzodQq37D5c6qbAYQpGmAy+DC0=
 github.com/projectdiscovery/tlsx v1.1.8 h1:Y+VkOp6JmUBb4tci1Fbz9U7ELEQ2irFhm+HS58tHruM=
 github.com/projectdiscovery/tlsx v1.1.8/go.mod h1:6u/dbLuMsLzmux58AWnAB24qh2+Trk0auCK2I9B17Vo=
-github.com/projectdiscovery/useragent v0.0.82 h1:LYumn4RIUtR5ZcpwCOABcfz/yFz5u4IHKyc037jg4/o=
-github.com/projectdiscovery/useragent v0.0.82/go.mod h1:XGbLPVtJrjdwMjuQgRuCCfowEIlwpoe1AykP6oFbmvM=
-github.com/projectdiscovery/utils v0.4.1-0.20241203192107-571a7b050f0f h1:vzyYcfMdpi8PACH/71keT+1e/8nYlkW+/rnRPUKQd4g=
-github.com/projectdiscovery/utils v0.4.1-0.20241203192107-571a7b050f0f/go.mod h1:tV//VyD+4qZYn3s3XCS7xDbhW20qjUjV6CWDDHE2VfQ=
+github.com/projectdiscovery/useragent v0.0.83 h1:rSSdwi0QyCr3qYtohLtOQm+UuTWR9P5YTnnWz/f+oMg=
+github.com/projectdiscovery/useragent v0.0.83/go.mod h1:rqt7/rrhuREVBkhbnpoI1mvtiQv2AIXMJcjYbkhOndQ=
+github.com/projectdiscovery/utils v0.4.1 h1:DRAqVMuLuo5NJChzXVdSqsKfAY3eFf9N1NX3Blhb0yU=
+github.com/projectdiscovery/utils v0.4.1/go.mod h1:tV//VyD+4qZYn3s3XCS7xDbhW20qjUjV6CWDDHE2VfQ=
 github.com/projectdiscovery/wappalyzergo v0.2.6 h1:lRNt/t7//79R1y749IO2jgR0DkIZ06jjpgWDQKoOXLI=
 github.com/projectdiscovery/wappalyzergo v0.2.6/go.mod h1:fXiqsyLHaX/ovBNUe/nX0318bWON6SHftLvgq1xaOq0=
 github.com/refraction-networking/utls v1.6.7 h1:zVJ7sP1dJx/WtVuITug3qYUq034cDq9B2MR1K67ULZM=
