@@ -23,7 +23,7 @@ require (
 	github.com/projectdiscovery/cdncheck v1.1.0
 	github.com/projectdiscovery/clistats v0.1.1
 	github.com/projectdiscovery/dsl v0.3.6
-	github.com/projectdiscovery/fastdialer v0.2.13
+	github.com/projectdiscovery/fastdialer v0.2.14
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.65
@@ -33,10 +33,10 @@ require (
 	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.63
 	github.com/projectdiscovery/rawhttp v0.1.78
-	github.com/projectdiscovery/retryablehttp-go v1.0.90
+	github.com/projectdiscovery/retryablehttp-go v1.0.91
 	github.com/projectdiscovery/tlsx v1.1.8
 	github.com/projectdiscovery/useragent v0.0.83
-	github.com/projectdiscovery/utils v0.4.1
+	github.com/projectdiscovery/utils v0.4.3
 	github.com/projectdiscovery/wappalyzergo v0.2.7
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
@@ -119,7 +119,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.7 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.88 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.89 // indirect
 	github.com/refraction-networking/utls v1.6.7 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
@@ -151,7 +151,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zcalusic/sysinfo v1.0.2 // indirect
 	github.com/zmap/rc2 v0.0.0-20190804163417-abaa70531248 // indirect
-	golang.org/x/crypto v0.30.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/oauth2 v0.18.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
