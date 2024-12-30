@@ -28,15 +28,15 @@ require (
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.65
 	github.com/projectdiscovery/gologger v1.1.37
-	github.com/projectdiscovery/hmap v0.0.71
+	github.com/projectdiscovery/hmap v0.0.72
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.9
 	github.com/projectdiscovery/ratelimit v0.0.67
 	github.com/projectdiscovery/rawhttp v0.1.79
-	github.com/projectdiscovery/retryablehttp-go v1.0.91
+	github.com/projectdiscovery/retryablehttp-go v1.0.92
 	github.com/projectdiscovery/tlsx v1.1.8
 	github.com/projectdiscovery/useragent v0.0.85
-	github.com/projectdiscovery/utils v0.4.3
+	github.com/projectdiscovery/utils v0.4.4
 	github.com/projectdiscovery/wappalyzergo v0.2.8
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
@@ -119,7 +119,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.7 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.89 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.90 // indirect
 	github.com/refraction-networking/utls v1.6.7 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
