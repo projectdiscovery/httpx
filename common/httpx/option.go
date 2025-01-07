@@ -13,12 +13,15 @@ import (
 type Options struct {
 	RandomAgent      bool
 	DefaultUserAgent string
-	HTTPProxy        string
-	SocksProxy       string
-	Threads          int
-	CdnCheck         string
-	ExcludeCdn       bool
-	ExtractFqdn      bool
+	Proxy            string
+	// Deprecated: use Proxy
+	HTTPProxy string
+	// Deprecated: use Proxy
+	SocksProxy  string
+	Threads     int
+	CdnCheck    string
+	ExcludeCdn  bool
+	ExtractFqdn bool
 	// Timeout is the maximum time to wait for the request
 	Timeout time.Duration
 	// RetryMax is the maximum number of retries

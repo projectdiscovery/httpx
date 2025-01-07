@@ -151,7 +151,12 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.FollowHostRedirects = options.FollowHostRedirects
 	httpxOptions.RespectHSTS = options.RespectHSTS
 	httpxOptions.MaxRedirects = options.MaxRedirects
-	httpxOptions.HTTPProxy = options.HTTPProxy
+	if options.HTTPProxy != "" {
+		options.Proxy = options.HTTPProxy
+	} else if options.SocksProxy != "" {
+		options.Proxy = options.SocksProxy
+	}
+	httpxOptions.Proxy = options.Proxy
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.UnsafeURI = options.RequestURI
 	httpxOptions.CdnCheck = options.OutputCDN

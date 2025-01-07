@@ -165,18 +165,21 @@ func (s *ScanOptions) Clone() *ScanOptions {
 
 // Options contains configuration options for httpx.
 type Options struct {
-	CustomHeaders             customheader.CustomHeaders
-	CustomPorts               customport.CustomPorts
-	matchStatusCode           []int
-	matchContentLength        []int
-	filterStatusCode          []int
-	filterContentLength       []int
-	Output                    string
-	OutputAll                 bool
-	StoreResponseDir          string
-	OmitBody                  bool
-	HTTPProxy                 string
+	CustomHeaders       customheader.CustomHeaders
+	CustomPorts         customport.CustomPorts
+	matchStatusCode     []int
+	matchContentLength  []int
+	filterStatusCode    []int
+	filterContentLength []int
+	Output              string
+	OutputAll           bool
+	StoreResponseDir    string
+	OmitBody            bool
+	// Deprecated: use Proxy
+	HTTPProxy string
+	// Deprecated: use Proxy
 	SocksProxy                string
+	Proxy                     string
 	InputFile                 string
 	InputTargetHost           goflags.StringSlice
 	Methods                   string
@@ -474,7 +477,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.SniName, "sni-name", "sni", "", "custom TLS SNI name"),
 		flagSet.BoolVar(&options.RandomAgent, "random-agent", true, "enable Random User-Agent to use"),
 		flagSet.VarP(&options.CustomHeaders, "header", "H", "custom http headers to send with request"),
-		flagSet.StringVarP(&options.HTTPProxy, "proxy", "http-proxy", "", "http proxy to use (eg http://127.0.0.1:8080)"),
+		flagSet.StringVarP(&options.Proxy, "proxy", "http-proxy", "", "proxy (http|socks) to use (eg http://127.0.0.1:8080)"),
 		flagSet.BoolVar(&options.Unsafe, "unsafe", false, "send raw requests skipping golang normalization"),
 		flagSet.BoolVar(&options.Resume, "resume", false, "resume scan using resume.cfg"),
 		flagSet.BoolVarP(&options.FollowRedirects, "follow-redirects", "fr", false, "follow http redirects"),
