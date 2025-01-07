@@ -1307,6 +1307,29 @@ func (r *Runner) RunEnumeration() {
 	}
 }
 
+func parseVhostInput(input string) (hostname, ip string, err error) {
+	// Expecting format: host[ip]
+	if !strings.Contains(input, "[") || !strings.HasSuffix(input, "]") {
+		return "", "", fmt.Errorf("invalid input format: %s", input)
+	}
+
+	// Split the input into hostname and IP parts
+	parts := strings.SplitN(input, "[", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid input format: %s", input)
+	}
+
+	hostname = parts[0]
+	ip = strings.TrimSuffix(parts[1], "]")
+
+	// Validate that both hostname and IP are not empty
+	if hostname == "" || ip == "" {
+		return "", "", fmt.Errorf("invalid input format: %s", input)
+	}
+
+	return hostname, ip, nil
+}
+
 func logFilteredErrorPage(fileName, url string) {
 	dir := filepath.Dir(fileName)
 	if !fileutil.FolderExists(dir) {
@@ -1519,6 +1542,10 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 		case !stringsutil.HasPrefixAny(target, "http://", "https://") && stringsutil.ContainsAny(target, ","):
 			idxComma := strings.Index(target, ",")
 			results <- httpx.Target{Host: target[idxComma+1:], CustomHost: target[:idxComma]}
+		case stringsutil.ContainsAny(target, "[", "]") && r.options.VHostInput:
+			if _, ip, err := parseVhostInput(target); err == nil {
+				results <- httpx.Target{Host: ip}
+			}
 		default:
 			results <- httpx.Target{Host: target}
 		}
@@ -1533,9 +1560,6 @@ func (r *Runner) analyze(hp *httpx.HTTPX, protocol string, target httpx.Target, 
 	}
 	retried := false
 retry:
-	if scanopts.VHostInput && target.CustomHost == "" {
-		return Result{Input: origInput}
-	}
 	URL, err := r.parseURL(target.Host)
 	if err != nil {
 		return Result{URL: target.Host, Input: origInput, Err: err}
