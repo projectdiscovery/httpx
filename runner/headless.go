@@ -114,10 +114,6 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 		_, _ = page.SetExtraHeaders([]string{key, value})
 	}
 
-	for _, js := range jsinj {
-		page.MustEval(js)
-	}
-
 	page = page.Timeout(timeout)
 	defer page.Close()
 
@@ -125,11 +121,19 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 		return nil, "", err
 	}
 
+	for _, js := range jsinj {
+		_, err = page.Eval(js)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
 	page.Timeout(5 * time.Second).WaitNavigation(proto.PageLifecycleEventNameFirstMeaningfulPaint)()
 
 	if err := page.WaitLoad(); err != nil {
 		return nil, "", err
 	}
+
 	_ = page.WaitIdle(idle)
 
 	screenshot, err := page.Screenshot(true, &proto.PageCaptureScreenshot{})
