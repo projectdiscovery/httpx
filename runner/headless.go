@@ -99,7 +99,7 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 	return engine, nil
 }
 
-func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, headers []string) ([]byte, string, error) {
+func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, headers []string, jsinj []string) ([]byte, string, error) {
 	page, err := b.engine.Page(proto.TargetCreateTarget{})
 	if err != nil {
 		return nil, "", err
@@ -112,6 +112,10 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, headers 
 		key := strings.TrimSpace(headerParts[0])
 		value := strings.TrimSpace(headerParts[1])
 		_, _ = page.SetExtraHeaders([]string{key, value})
+	}
+
+	for _, js := range jsinj {
+		page.MustEval(js)
 	}
 
 	page = page.Timeout(timeout)
