@@ -387,13 +387,9 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.HeadlessOptionalArguments, "headless-options", "ho", nil, "start headless chrome with additional options", goflags.FileCommaSeparatedStringSliceOptions),
 		flagSet.BoolVarP(&options.NoScreenshotBytes, "exclude-screenshot-bytes", "esb", false, "enable excluding screenshot bytes from json output"),
 		flagSet.BoolVarP(&options.NoHeadlessBody, "exclude-headless-body", "ehb", false, "enable excluding headless header from json output"),
-<<<<<<< HEAD
-		flagSet.IntVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10, "set timeout for screenshot in seconds"),
-		flagSet.StringSliceVarP(&options.JavascriptInject, "javascript-inject", "js", nil, "set javascript to inject", goflags.NormalizedStringSliceOptions),
-=======
 		flagSet.DurationVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10*time.Second, "set timeout for screenshot in seconds"),
 		flagSet.DurationVarP(&options.ScreenshotIdle, "screenshot-idle", "sid", 1*time.Second, "set idle time before taking screenshot in seconds"),
->>>>>>> main
+		flagSet.StringSliceVarP(&options.JavascriptInject, "javascript-inject", "js", nil, "set javascript to inject", goflags.NormalizedStringSliceOptions),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",
