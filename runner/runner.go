@@ -29,11 +29,12 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/corona10/goimagehash"
+	"github.com/mfonda/simhash"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
-	"github.com/projectdiscovery/httpx/common/errorpageclassifier"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
+	"github.com/projectdiscovery/httpx/common/pagetypeclassifier"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
@@ -65,6 +66,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/projectdiscovery/rawhttp"
+	converstionutil "github.com/projectdiscovery/utils/conversion"
 	fileutil "github.com/projectdiscovery/utils/file"
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	iputil "github.com/projectdiscovery/utils/ip"
@@ -74,19 +76,20 @@ import (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
-	options             *Options
-	hp                  *httpx.HTTPX
-	wappalyzer          *wappalyzer.Wappalyze
-	scanopts            ScanOptions
-	hm                  *hybrid.HybridMap
-	excludeCdn          bool
-	stats               clistats.StatisticsClient
-	ratelimiter         ratelimit.Limiter
-	HostErrorsCache     gcache.Cache[string, int]
-	browser             *Browser
-	errorPageClassifier *errorpageclassifier.ErrorPageClassifier
-	pHashClusters       []pHashCluster
-	httpApiEndpoint     *Server
+	options            *Options
+	hp                 *httpx.HTTPX
+	wappalyzer         *wappalyzer.Wappalyze
+	scanopts           ScanOptions
+	hm                 *hybrid.HybridMap
+	excludeCdn         bool
+	stats              clistats.StatisticsClient
+	ratelimiter        ratelimit.Limiter
+	HostErrorsCache    gcache.Cache[string, int]
+	browser            *Browser
+	pageTypeClassifier *pagetypeclassifier.PageTypeClassifier // Include this for general page classification
+	pHashClusters      []pHashCluster
+	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
+	httpApiEndpoint    *Server
 }
 
 func (r *Runner) HTTPX() *httpx.HTTPX {
@@ -126,6 +129,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	httpxOptions := httpx.DefaultOptions
+	httpxOptions.Trace = options.Trace
 
 	var np *networkpolicy.NetworkPolicy
 	if options.Networkpolicy != nil {
@@ -357,7 +361,8 @@ func New(options *Options) (*Runner, error) {
 		runner.HostErrorsCache = gc
 	}
 
-	runner.errorPageClassifier = errorpageclassifier.New()
+	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
+	runner.pageTypeClassifier = pagetypeclassifier.New()
 
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)
@@ -437,7 +442,7 @@ func (r *Runner) prepareInput() {
 	// check if input target host(s) have been provided
 	if len(r.options.InputTargetHost) > 0 {
 		for _, target := range r.options.InputTargetHost {
-			expandedTarget := r.countTargetFromRawTarget(target)
+			expandedTarget, _ := r.countTargetFromRawTarget(target)
 			if expandedTarget > 0 {
 				numHosts += expandedTarget
 				r.hm.Set(target, nil) //nolint
@@ -513,6 +518,24 @@ func (r *Runner) seen(k string) bool {
 	return ok
 }
 
+func (r *Runner) duplicate(result *Result) bool {
+	respSimHash := simhash.Simhash(simhash.NewWordFeatureSet(converstionutil.Bytes(result.Raw)))
+	if r.simHashes.Has(respSimHash) {
+		gologger.Debug().Msgf("Skipping duplicate response with simhash %d for URL %s\n", respSimHash, result.URL)
+		return true
+	}
+
+	for simHash := range r.simHashes.GetALL(false) {
+		// lower threshold for increased precision
+		if simhash.Compare(simHash, respSimHash) <= 3 {
+			gologger.Debug().Msgf("Skipping near-duplicate response with simhash %d for URL %s\n", respSimHash, result.URL)
+			return true
+		}
+	}
+	_ = r.simHashes.Set(respSimHash, struct{}{})
+	return false
+}
+
 func (r *Runner) testAndSet(k string) bool {
 	// skip empty lines
 	k = strings.TrimSpace(k)
@@ -580,7 +603,7 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	for scanner.Scan() {
 		target := strings.TrimSpace(scanner.Text())
 		// Used just to get the exact number of targets
-		expandedTarget := r.countTargetFromRawTarget(target)
+		expandedTarget, _ := r.countTargetFromRawTarget(target)
 		if expandedTarget > 0 {
 			numTargets += expandedTarget
 			r.hm.Set(target, nil) //nolint
@@ -590,12 +613,12 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	return numTargets, err
 }
 
-func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int) {
+func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int, err error) {
 	if rawTarget == "" {
-		return 0
+		return 0, nil
 	}
 	if _, ok := r.hm.Get(rawTarget); ok {
-		return 0
+		return 0, nil
 	}
 
 	expandedTarget := 0
@@ -605,14 +628,17 @@ func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int) {
 			expandedTarget = int(ipsCount)
 		}
 	case asn.IsASN(rawTarget):
-		cidrs, _ := asn.GetCIDRsForASNNum(rawTarget)
+		cidrs, err := asn.GetCIDRsForASNNum(rawTarget)
+		if err != nil {
+			return 0, err
+		}
 		for _, cidr := range cidrs {
 			expandedTarget += int(mapcidr.AddressCountIpnet(cidr))
 		}
 	default:
 		expandedTarget = 1
 	}
-	return expandedTarget
+	return expandedTarget, nil
 }
 
 var (
@@ -853,7 +879,7 @@ func (r *Runner) RunEnumeration() {
 				continue
 			}
 
-			if indexFile != nil {
+			if indexFile != nil && resp.Err == nil {
 				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
 				_, _ = indexFile.WriteString(indexData)
 			}
@@ -883,6 +909,11 @@ func (r *Runner) RunEnumeration() {
 				logFilteredErrorPage(r.options.OutputFilterErrorPagePath, resp.URL)
 				continue
 			}
+
+			if r.options.FilterOutDuplicates && r.duplicate(&resp) {
+				continue
+			}
+
 			if len(r.options.filterStatusCode) > 0 && sliceutil.Contains(r.options.filterStatusCode, resp.StatusCode) {
 				continue
 			}
@@ -947,6 +978,80 @@ func (r *Runner) RunEnumeration() {
 				continue
 			}
 			if len(r.options.OutputFilterCdn) > 0 && stringsutil.EqualFoldAny(resp.CDNName, r.options.OutputFilterCdn...) {
+				continue
+			}
+
+			if r.options.OutputMatchResponseTime != "" {
+				filterOps := FilterOperator{flag: "-mrt, -match-response-time"}
+				operator, value, err := filterOps.Parse(r.options.OutputMatchResponseTime)
+				if err != nil {
+					gologger.Fatal().Msg(err.Error())
+				}
+				respTimeTaken, _ := time.ParseDuration(resp.ResponseTime)
+				switch operator {
+				// take negation of >= and >
+				case greaterThanEq, greaterThan:
+					if respTimeTaken < value {
+						continue
+					}
+				// take negation of <= and <
+				case lessThanEq, lessThan:
+					if respTimeTaken > value {
+						continue
+					}
+				// take negation of =
+				case equal:
+					if respTimeTaken != value {
+						continue
+					}
+				// take negation of !=
+				case notEq:
+					if respTimeTaken == value {
+						continue
+					}
+				}
+			}
+
+			if r.options.OutputFilterResponseTime != "" {
+				filterOps := FilterOperator{flag: "-frt, -filter-response-time"}
+				operator, value, err := filterOps.Parse(r.options.OutputFilterResponseTime)
+				if err != nil {
+					gologger.Fatal().Msg(err.Error())
+				}
+				respTimeTaken, _ := time.ParseDuration(resp.ResponseTime)
+				switch operator {
+				case greaterThanEq:
+					if respTimeTaken >= value {
+						continue
+					}
+				case lessThanEq:
+					if respTimeTaken <= value {
+						continue
+					}
+				case equal:
+					if respTimeTaken == value {
+						continue
+					}
+				case lessThan:
+					if respTimeTaken < value {
+						continue
+					}
+				case greaterThan:
+					if respTimeTaken > value {
+						continue
+					}
+				case notEq:
+					if respTimeTaken != value {
+						continue
+					}
+				}
+			}
+
+			if !r.options.DisableStdout && (!jsonOrCsv || jsonAndCsv || r.options.OutputAll) {
+				gologger.Silent().Msgf("%s\n", resp.str)
+			}
+
+			if resp.Err != nil {
 				continue
 			}
 
@@ -1016,71 +1121,6 @@ func (r *Runner) RunEnumeration() {
 				_, _ = indexScreenshotFile.WriteString(indexData)
 			}
 
-			if r.options.OutputMatchResponseTime != "" {
-				filterOps := FilterOperator{flag: "-mrt, -match-response-time"}
-				operator, value, err := filterOps.Parse(r.options.OutputMatchResponseTime)
-				if err != nil {
-					gologger.Fatal().Msg(err.Error())
-				}
-				respTimeTaken, _ := time.ParseDuration(resp.ResponseTime)
-				switch operator {
-				// take negation of >= and >
-				case greaterThanEq, greaterThan:
-					if respTimeTaken < value {
-						continue
-					}
-				// take negation of <= and <
-				case lessThanEq, lessThan:
-					if respTimeTaken > value {
-						continue
-					}
-				// take negation of =
-				case equal:
-					if respTimeTaken != value {
-						continue
-					}
-				// take negation of !=
-				case notEq:
-					if respTimeTaken == value {
-						continue
-					}
-				}
-			}
-			if r.options.OutputFilterResponseTime != "" {
-				filterOps := FilterOperator{flag: "-frt, -filter-response-time"}
-				operator, value, err := filterOps.Parse(r.options.OutputFilterResponseTime)
-				if err != nil {
-					gologger.Fatal().Msg(err.Error())
-				}
-				respTimeTaken, _ := time.ParseDuration(resp.ResponseTime)
-				switch operator {
-				case greaterThanEq:
-					if respTimeTaken >= value {
-						continue
-					}
-				case lessThanEq:
-					if respTimeTaken <= value {
-						continue
-					}
-				case equal:
-					if respTimeTaken == value {
-						continue
-					}
-				case lessThan:
-					if respTimeTaken < value {
-						continue
-					}
-				case greaterThan:
-					if respTimeTaken > value {
-						continue
-					}
-				case notEq:
-					if respTimeTaken != value {
-						continue
-					}
-				}
-			}
-
 			if r.scanopts.StoreVisionReconClusters {
 				foundCluster := false
 				pHash, _ := resp.KnowledgeBase["pHash"].(uint64)
@@ -1100,10 +1140,6 @@ func (r *Runner) RunEnumeration() {
 					}
 					r.pHashClusters = append(r.pHashClusters, newCluster)
 				}
-			}
-
-			if !r.options.DisableStdout && (!jsonOrCsv || jsonAndCsv || r.options.OutputAll) {
-				gologger.Silent().Msgf("%s\n", resp.str)
 			}
 
 			//nolint:errcheck // this method needs a small refactor to reduce complexity
@@ -1523,7 +1559,10 @@ retry:
 	if err := URL.MergePath(scanopts.RequestURI, scanopts.Unsafe); err != nil {
 		gologger.Debug().Msgf("failed to merge paths of url %v and %v", URL.String(), scanopts.RequestURI)
 	}
-	var req *retryablehttp.Request
+	var (
+		req *retryablehttp.Request
+		ctx context.Context
+	)
 	if target.CustomIP != "" {
 		var requestIP string
 		if iputil.IsIPv6(target.CustomIP) {
@@ -1531,11 +1570,11 @@ retry:
 		} else {
 			requestIP = target.CustomIP
 		}
-		ctx := context.WithValue(context.Background(), fastdialer.IP, requestIP)
-		req, err = hp.NewRequestWithContext(ctx, method, URL.String())
+		ctx = context.WithValue(context.Background(), fastdialer.IP, requestIP)
 	} else {
-		req, err = hp.NewRequest(method, URL.String())
+		ctx = context.Background()
 	}
+	req, err = hp.NewRequestWithContext(ctx, method, URL.String())
 	if err != nil {
 		return Result{URL: URL.String(), Input: origInput, Err: err}
 	}
@@ -2144,7 +2183,7 @@ retry:
 	var pHash uint64
 	if scanopts.Screenshot {
 		var err error
-		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, time.Duration(scanopts.ScreenshotTimeout)*time.Second, r.options.CustomHeaders, r.options.JavascriptInject)
+		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle, r.options.CustomHeaders, r.options.JavascriptInject)
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
@@ -2239,7 +2278,7 @@ retry:
 		ScreenshotBytes:  screenshotBytes,
 		HeadlessBody:     headlessBody,
 		KnowledgeBase: map[string]interface{}{
-			"PageType": r.errorPageClassifier.Classify(respData),
+			"PageType": r.pageTypeClassifier.Classify(respData),
 			"pHash":    pHash,
 		},
 		TechnologyDetails: technologyDetails,
@@ -2251,6 +2290,9 @@ retry:
 	if resp.BodyDomains != nil {
 		result.Fqdns = resp.BodyDomains.Fqdns
 		result.Domains = resp.BodyDomains.Domains
+	}
+	if r.options.Trace {
+		result.Trace = req.TraceInfo
 	}
 	return result
 }
