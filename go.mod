@@ -31,12 +31,12 @@ require (
 	github.com/projectdiscovery/hmap v0.0.74
 	github.com/projectdiscovery/mapcidr v1.1.34
 	github.com/projectdiscovery/networkpolicy v0.0.9
-	github.com/projectdiscovery/ratelimit v0.0.67
+	github.com/projectdiscovery/ratelimit v0.0.68
 	github.com/projectdiscovery/rawhttp v0.1.79
 	github.com/projectdiscovery/retryablehttp-go v1.0.94
 	github.com/projectdiscovery/tlsx v1.1.8
 	github.com/projectdiscovery/useragent v0.0.86
-	github.com/projectdiscovery/utils v0.4.4
+	github.com/projectdiscovery/utils v0.4.5
 	github.com/projectdiscovery/wappalyzergo v0.2.8
 	github.com/rs/xid v1.5.0
 	github.com/spaolacci/murmur3 v1.1.0
