@@ -298,6 +298,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.NoHeadlessBody = options.NoHeadlessBody
 	scanopts.UseInstalledChrome = options.UseInstalledChrome
 	scanopts.ScreenshotTimeout = options.ScreenshotTimeout
+	scanopts.ScreenshotIdle = options.ScreenshotIdle
 
 	if options.OutputExtractRegexs != nil {
 		for _, regex := range options.OutputExtractRegexs {
