@@ -23,14 +23,14 @@ require (
 	github.com/projectdiscovery/cdncheck v1.1.0
 	github.com/projectdiscovery/clistats v0.1.1
 	github.com/projectdiscovery/dsl v0.3.10
-	github.com/projectdiscovery/fastdialer v0.2.14
+	github.com/projectdiscovery/fastdialer v0.2.15
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.67
 	github.com/projectdiscovery/gologger v1.1.39
 	github.com/projectdiscovery/hmap v0.0.74
 	github.com/projectdiscovery/mapcidr v1.1.34
-	github.com/projectdiscovery/networkpolicy v0.0.9
+	github.com/projectdiscovery/networkpolicy v0.1.1
 	github.com/projectdiscovery/ratelimit v0.0.68
 	github.com/projectdiscovery/rawhttp v0.1.79
 	github.com/projectdiscovery/retryablehttp-go v1.0.94
@@ -45,7 +45,7 @@ require (
 	go.etcd.io/bbolt v1.3.10 // indirect
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
-	golang.org/x/net v0.32.0
+	golang.org/x/net v0.33.0
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.21.0
 )
