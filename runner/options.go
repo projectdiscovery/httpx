@@ -392,7 +392,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.NoHeadlessBody, "exclude-headless-body", "ehb", false, "enable excluding headless header from json output"),
 		flagSet.DurationVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10*time.Second, "set timeout for screenshot in seconds"),
 		flagSet.DurationVarP(&options.ScreenshotIdle, "screenshot-idle", "sid", 1*time.Second, "set idle time before taking screenshot in seconds"),
-		flagSet.StringSliceVarP(&options.JavascriptInject, "javascript-inject", "js", nil, "set javascript to inject", goflags.StringSliceOptions),
+		flagSet.StringSliceVarP(&options.JavascriptInject, "javascript-code", "jsc", nil, "execute JavaScript code after DOM content loaded", goflags.StringSliceOptions),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",

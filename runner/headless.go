@@ -22,6 +22,21 @@ func MustDisableSandbox() bool {
 	return osutils.IsLinux() && os.Geteuid() == 0
 }
 
+func EvalJavaScript(page *rod.Page, jsc []string) ([]*proto.RuntimeRemoteObject, error) {
+	outputs := make([]*proto.RuntimeRemoteObject, 0, len(jsc))
+	for _, js := range jsc {
+		if js == "" {
+			continue
+		}
+		output, err := page.Eval(js)
+		if err != nil {
+			return nil, err
+		}
+		outputs = append(outputs, output)
+	}
+	return outputs, nil
+}
+
 type Browser struct {
 	tempDir string
 	engine  *rod.Browser
@@ -99,7 +114,7 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 	return engine, nil
 }
 
-func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle time.Duration, headers []string, jsinj []string) ([]byte, string, error) {
+func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle time.Duration, headers []string, jsc []string) ([]byte, string, error) {
 	page, err := b.engine.Page(proto.TargetCreateTarget{})
 	if err != nil {
 		return nil, "", err
@@ -121,11 +136,8 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 		return nil, "", err
 	}
 
-	for _, js := range jsinj {
-		_, err = page.Eval(js)
-		if err != nil {
-			return nil, "", err
-		}
+	if _, err = EvalJavaScript(page, jsc); err != nil {
+		return nil, "", err
 	}
 
 	page.Timeout(5 * time.Second).WaitNavigation(proto.PageLifecycleEventNameFirstMeaningfulPaint)()
