@@ -52,7 +52,7 @@ require (
 
 require (
 	github.com/go-viper/mapstructure/v2 v2.1.0
-	github.com/weppos/publicsuffix-go v0.30.2
+	github.com/weppos/publicsuffix-go v0.40.2
 )
 
 require (
