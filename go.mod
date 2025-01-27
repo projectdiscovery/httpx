@@ -34,7 +34,7 @@ require (
 	github.com/projectdiscovery/ratelimit v0.0.68
 	github.com/projectdiscovery/rawhttp v0.1.84
 	github.com/projectdiscovery/retryablehttp-go v1.0.96
-	github.com/projectdiscovery/tlsx v1.1.8
+	github.com/projectdiscovery/tlsx v1.1.9
 	github.com/projectdiscovery/useragent v0.0.87
 	github.com/projectdiscovery/utils v0.4.8
 	github.com/projectdiscovery/wappalyzergo v0.2.12
