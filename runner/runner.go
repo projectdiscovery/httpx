@@ -1541,8 +1541,8 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 			idxComma := strings.Index(target, ",")
 			results <- httpx.Target{Host: target[idxComma+1:], CustomHost: target[:idxComma]}
 		case stringsutil.ContainsAny(target, "[", "]") && r.options.VHostInput:
-			if _, ip, err := parseVhostInput(target); err == nil {
-				results <- httpx.Target{Host: ip}
+			if h, ip, err := parseVhostInput(target); err == nil {
+				results <- httpx.Target{Host: h, CustomIP: ip}
 			}
 		default:
 			results <- httpx.Target{Host: target}
