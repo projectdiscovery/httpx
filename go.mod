@@ -38,7 +38,7 @@ require (
 	github.com/projectdiscovery/useragent v0.0.87
 	github.com/projectdiscovery/utils v0.4.8
 	github.com/projectdiscovery/wappalyzergo v0.2.12
-	github.com/rs/xid v1.5.0
+	github.com/rs/xid v1.6.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.10.0
 	github.com/zmap/zcrypto v0.0.0-20240512203510-0fef58d9a9db
