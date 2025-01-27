@@ -151,7 +151,12 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.FollowHostRedirects = options.FollowHostRedirects
 	httpxOptions.RespectHSTS = options.RespectHSTS
 	httpxOptions.MaxRedirects = options.MaxRedirects
-	httpxOptions.HTTPProxy = options.HTTPProxy
+	if options.HTTPProxy != "" {
+		options.Proxy = options.HTTPProxy
+	} else if options.SocksProxy != "" {
+		options.Proxy = options.SocksProxy
+	}
+	httpxOptions.Proxy = options.Proxy
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.UnsafeURI = options.RequestURI
 	httpxOptions.CdnCheck = options.OutputCDN
@@ -293,6 +298,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.NoHeadlessBody = options.NoHeadlessBody
 	scanopts.UseInstalledChrome = options.UseInstalledChrome
 	scanopts.ScreenshotTimeout = options.ScreenshotTimeout
+	scanopts.ScreenshotIdle = options.ScreenshotIdle
 
 	if options.OutputExtractRegexs != nil {
 		for _, regex := range options.OutputExtractRegexs {
@@ -1051,94 +1057,92 @@ func (r *Runner) RunEnumeration() {
 				gologger.Silent().Msgf("%s\n", resp.str)
 			}
 
-			if resp.Err != nil {
-				continue
-			}
-
 			// store responses or chain in directory
-			URL, _ := urlutil.Parse(resp.URL)
-			domainFile := resp.Method + ":" + URL.EscapedString()
-			hash := hashes.Sha1([]byte(domainFile))
-			domainResponseFile := fmt.Sprintf("%s.txt", hash)
-			screenshotResponseFile := fmt.Sprintf("%s.png", hash)
-			hostFilename := strings.ReplaceAll(URL.Host, ":", "_")
-			domainResponseBaseDir := filepath.Join(r.options.StoreResponseDir, "response")
-			domainScreenshotBaseDir := filepath.Join(r.options.StoreResponseDir, "screenshot")
-			responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
-			screenshotBaseDir := filepath.Join(domainScreenshotBaseDir, hostFilename)
+			if resp.Err == nil {
+				URL, _ := urlutil.Parse(resp.URL)
+				domainFile := resp.Method + ":" + URL.EscapedString()
+				hash := hashes.Sha1([]byte(domainFile))
+				domainResponseFile := fmt.Sprintf("%s.txt", hash)
+				screenshotResponseFile := fmt.Sprintf("%s.png", hash)
+				hostFilename := strings.ReplaceAll(URL.Host, ":", "_")
+				domainResponseBaseDir := filepath.Join(r.options.StoreResponseDir, "response")
+				domainScreenshotBaseDir := filepath.Join(r.options.StoreResponseDir, "screenshot")
+				responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
+				screenshotBaseDir := filepath.Join(domainScreenshotBaseDir, hostFilename)
 
-			var responsePath, screenshotPath, screenshotPathRel string
-			// store response
-			if r.scanopts.StoreResponse || r.scanopts.StoreChain {
-				if r.scanopts.OmitBody {
-					resp.Raw = strings.Replace(resp.Raw, resp.ResponseBody, "", -1)
+				var responsePath, screenshotPath, screenshotPathRel string
+				// store response
+				if r.scanopts.StoreResponse || r.scanopts.StoreChain {
+					if r.scanopts.OmitBody {
+						resp.Raw = strings.Replace(resp.Raw, resp.ResponseBody, "", -1)
+					}
+
+					responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
+					// URL.EscapedString returns that can be used as filename
+					respRaw := resp.Raw
+					reqRaw := resp.RequestRaw
+					if len(respRaw) > r.scanopts.MaxResponseBodySizeToSave {
+						respRaw = respRaw[:r.scanopts.MaxResponseBodySizeToSave]
+					}
+					data := reqRaw
+					if r.options.StoreChain && resp.Response != nil && resp.Response.HasChain() {
+						data = append(data, append([]byte("\n"), []byte(resp.Response.GetChain())...)...)
+					}
+					data = append(data, respRaw...)
+					data = append(data, []byte("\n\n\n")...)
+					data = append(data, []byte(resp.URL)...)
+					_ = fileutil.CreateFolder(responseBaseDir)
+					writeErr := os.WriteFile(responsePath, data, 0644)
+					if writeErr != nil {
+						gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
+					}
+					resp.StoredResponsePath = responsePath
 				}
 
-				responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
-				// URL.EscapedString returns that can be used as filename
-				respRaw := resp.Raw
-				reqRaw := resp.RequestRaw
-				if len(respRaw) > r.scanopts.MaxResponseBodySizeToSave {
-					respRaw = respRaw[:r.scanopts.MaxResponseBodySizeToSave]
-				}
-				data := reqRaw
-				if r.options.StoreChain && resp.Response != nil && resp.Response.HasChain() {
-					data = append(data, append([]byte("\n"), []byte(resp.Response.GetChain())...)...)
-				}
-				data = append(data, respRaw...)
-				data = append(data, []byte("\n\n\n")...)
-				data = append(data, []byte(resp.URL)...)
-				_ = fileutil.CreateFolder(responseBaseDir)
-				writeErr := os.WriteFile(responsePath, data, 0644)
-				if writeErr != nil {
-					gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
-				}
-				resp.StoredResponsePath = responsePath
-			}
+				if r.scanopts.Screenshot {
+					screenshotPath = fileutilz.AbsPathOrDefault(filepath.Join(screenshotBaseDir, screenshotResponseFile))
+					screenshotPathRel = filepath.Join(hostFilename, screenshotResponseFile)
+					_ = fileutil.CreateFolder(screenshotBaseDir)
+					err := os.WriteFile(screenshotPath, resp.ScreenshotBytes, 0644)
+					if err != nil {
+						gologger.Error().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
+					}
 
-			if r.scanopts.Screenshot {
-				screenshotPath = fileutilz.AbsPathOrDefault(filepath.Join(screenshotBaseDir, screenshotResponseFile))
-				screenshotPathRel = filepath.Join(hostFilename, screenshotResponseFile)
-				_ = fileutil.CreateFolder(screenshotBaseDir)
-				err := os.WriteFile(screenshotPath, resp.ScreenshotBytes, 0644)
-				if err != nil {
-					gologger.Error().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
-				}
-
-				resp.ScreenshotPath = screenshotPath
-				resp.ScreenshotPathRel = screenshotPathRel
-				if r.scanopts.NoScreenshotBytes {
-					resp.ScreenshotBytes = []byte{}
-				}
-			}
-
-			if indexFile != nil {
-				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
-				_, _ = indexFile.WriteString(indexData)
-			}
-			if indexScreenshotFile != nil && resp.ScreenshotPathRel != "" {
-				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.ScreenshotPathRel, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
-				_, _ = indexScreenshotFile.WriteString(indexData)
-			}
-
-			if r.scanopts.StoreVisionReconClusters {
-				foundCluster := false
-				pHash, _ := resp.KnowledgeBase["pHash"].(uint64)
-				for i, cluster := range r.pHashClusters {
-					distance, _ := goimagehash.NewImageHash(pHash, goimagehash.PHash).Distance(goimagehash.NewImageHash(cluster.BasePHash, goimagehash.PHash))
-					if distance <= hammingDistanceThreshold {
-						r.pHashClusters[i].Hashes = append(r.pHashClusters[i].Hashes, pHashUrl{PHash: pHash, Url: resp.URL})
-						foundCluster = true
-						break
+					resp.ScreenshotPath = screenshotPath
+					resp.ScreenshotPathRel = screenshotPathRel
+					if r.scanopts.NoScreenshotBytes {
+						resp.ScreenshotBytes = []byte{}
 					}
 				}
 
-				if !foundCluster {
-					newCluster := pHashCluster{
-						BasePHash: pHash,
-						Hashes:    []pHashUrl{{PHash: pHash, Url: resp.URL}},
+				if indexFile != nil {
+					indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
+					_, _ = indexFile.WriteString(indexData)
+				}
+				if indexScreenshotFile != nil && resp.ScreenshotPathRel != "" {
+					indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.ScreenshotPathRel, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
+					_, _ = indexScreenshotFile.WriteString(indexData)
+				}
+
+				if r.scanopts.StoreVisionReconClusters {
+					foundCluster := false
+					pHash, _ := resp.KnowledgeBase["pHash"].(uint64)
+					for i, cluster := range r.pHashClusters {
+						distance, _ := goimagehash.NewImageHash(pHash, goimagehash.PHash).Distance(goimagehash.NewImageHash(cluster.BasePHash, goimagehash.PHash))
+						if distance <= hammingDistanceThreshold {
+							r.pHashClusters[i].Hashes = append(r.pHashClusters[i].Hashes, pHashUrl{PHash: pHash, Url: resp.URL})
+							foundCluster = true
+							break
+						}
 					}
-					r.pHashClusters = append(r.pHashClusters, newCluster)
+
+					if !foundCluster {
+						newCluster := pHashCluster{
+							BasePHash: pHash,
+							Hashes:    []pHashUrl{{PHash: pHash, Url: resp.URL}},
+						}
+						r.pHashClusters = append(r.pHashClusters, newCluster)
+					}
 				}
 			}
 

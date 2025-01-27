@@ -53,20 +53,20 @@ type Result struct {
 	Scheme             string                        `json:"scheme,omitempty" csv:"scheme" mapstructure:"scheme"`
 	Error              string                        `json:"error,omitempty" csv:"error" mapstructure:"error"`
 	WebServer          string                        `json:"webserver,omitempty" csv:"webserver" mapstructure:"webserver"`
-	ResponseBody       string                        `json:"body,omitempty" csv:"body" mapstructure:"body"`
+	ResponseBody       string                        `json:"body,omitempty" csv:"-" mapstructure:"body"`
 	BodyPreview        string                        `json:"body_preview,omitempty" csv:"body_preview" mapstructure:"body_preview"`
 	ContentType        string                        `json:"content_type,omitempty" csv:"content_type" mapstructure:"content_type"`
 	Method             string                        `json:"method,omitempty" csv:"method" mapstructure:"method"`
 	Host               string                        `json:"host,omitempty" csv:"host" mapstructure:"host"`
 	Path               string                        `json:"path,omitempty" csv:"path" mapstructure:"path"`
 	FavIconMMH3        string                        `json:"favicon,omitempty" csv:"favicon" mapstructure:"favicon"`
-	FavIconMD5         string                        `json:"favicon_md5,omitempty" csv:"favicon" mapstructure:"favicon_md5"`
+	FavIconMD5         string                        `json:"favicon_md5,omitempty" csv:"favicon_md5" mapstructure:"favicon_md5"`
 	FaviconPath        string                        `json:"favicon_path,omitempty" csv:"favicon_path" mapstructure:"favicon_path"`
 	FaviconURL         string                        `json:"favicon_url,omitempty" csv:"favicon_url" mapstructure:"favicon_url"`
 	FinalURL           string                        `json:"final_url,omitempty" csv:"final_url" mapstructure:"final_url"`
-	ResponseHeaders    map[string]interface{}        `json:"header,omitempty" csv:"header" mapstructure:"header"`
-	RawHeaders         string                        `json:"raw_header,omitempty" csv:"raw_header" mapstructure:"raw_header"`
-	Request            string                        `json:"request,omitempty" csv:"request" mapstructure:"request"`
+	ResponseHeaders    map[string]interface{}        `json:"header,omitempty" csv:"-" mapstructure:"header"`
+	RawHeaders         string                        `json:"raw_header,omitempty" csv:"-" mapstructure:"raw_header"`
+	Request            string                        `json:"request,omitempty" csv:"-" mapstructure:"request"`
 	ResponseTime       string                        `json:"time,omitempty" csv:"time" mapstructure:"time"`
 	JarmHash           string                        `json:"jarm_hash,omitempty" csv:"jarm_hash" mapstructure:"jarm_hash"`
 	ChainStatusCodes   []int                         `json:"chain_status_codes,omitempty" csv:"chain_status_codes" mapstructure:"chain_status_codes"`
