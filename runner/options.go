@@ -106,6 +106,7 @@ type ScanOptions struct {
 	NoHeadlessBody            bool
 	ScreenshotTimeout         time.Duration
 	ScreenshotIdle            time.Duration
+	JavascriptInject          []string
 }
 
 func (s *ScanOptions) Clone() *ScanOptions {
@@ -322,6 +323,7 @@ type Options struct {
 	Protocol                  string
 	OutputFilterErrorPagePath string
 	DisableStdout             bool
+	JavascriptInject          goflags.StringSlice
 	// AssetUpload
 	AssetUpload bool
 	// AssetName
@@ -390,6 +392,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.NoHeadlessBody, "exclude-headless-body", "ehb", false, "enable excluding headless header from json output"),
 		flagSet.DurationVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10*time.Second, "set timeout for screenshot in seconds"),
 		flagSet.DurationVarP(&options.ScreenshotIdle, "screenshot-idle", "sid", 1*time.Second, "set idle time before taking screenshot in seconds"),
+		flagSet.StringSliceVarP(&options.JavascriptInject, "javascript-code", "jsc", nil, "execute JavaScript code after navigation", goflags.StringSliceOptions),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",
