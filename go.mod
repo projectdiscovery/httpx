@@ -1,10 +1,11 @@
 module github.com/projectdiscovery/httpx
 
 go 1.21
+toolchain go1.23.6
 
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
-	github.com/PuerkitoBio/goquery v1.8.1
+	github.com/PuerkitoBio/goquery v1.10.2
 	github.com/akrylysov/pogreb v0.10.2 // indirect
 	github.com/corona10/goimagehash v1.1.0
 	github.com/go-faker/faker/v4 v4.5.0
@@ -63,7 +64,7 @@ require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
-	github.com/andybalholm/cascadia v1.3.2 // indirect
+	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
