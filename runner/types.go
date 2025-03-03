@@ -34,11 +34,11 @@ func (o AsnResponse) String() string {
 // Result of a scan
 type Result struct {
 	Timestamp          time.Time                     `json:"timestamp,omitempty" csv:"timestamp" mapstructure:"timestamp"`
-	ASN                *AsnResponse                  `json:"asn,omitempty" csv:"asn" mapstructure:"asn"`
+	ASN                *AsnResponse                  `json:"asn,omitempty" csv:"-" mapstructure:"asn"`
 	Err                error                         `json:"-" csv:"-" mapstructure:"-"`
-	CSPData            *httpx.CSPData                `json:"csp,omitempty" csv:"csp" mapstructure:"csp"`
-	TLSData            *clients.Response             `json:"tls,omitempty" csv:"tls" mapstructure:"tls"`
-	Hashes             map[string]interface{}        `json:"hash,omitempty" csv:"hash" mapstructure:"hash"`
+	CSPData            *httpx.CSPData                `json:"csp,omitempty" csv:"-" mapstructure:"csp"`
+	TLSData            *clients.Response             `json:"tls,omitempty" csv:"-" mapstructure:"tls"`
+	Hashes             map[string]interface{}        `json:"hash,omitempty" csv:"-" mapstructure:"hash"`
 	ExtractRegex       []string                      `json:"extract_regex,omitempty" csv:"extract_regex" mapstructure:"extract_regex"`
 	CDNName            string                        `json:"cdn_name,omitempty" csv:"cdn_name" mapstructure:"cdn_name"`
 	CDNType            string                        `json:"cdn_type,omitempty" csv:"cdn_type" mapstructure:"cdn_type"`
@@ -49,7 +49,7 @@ type Result struct {
 	Input              string                        `json:"input,omitempty" csv:"input" mapstructure:"input"`
 	Location           string                        `json:"location,omitempty" csv:"location" mapstructure:"location"`
 	Title              string                        `json:"title,omitempty" csv:"title" mapstructure:"title"`
-	str                string                        `mapstructure:"-"`
+	str                string                        `json:"-" csv:"-" mapstructure:"-"`
 	Scheme             string                        `json:"scheme,omitempty" csv:"scheme" mapstructure:"scheme"`
 	Error              string                        `json:"error,omitempty" csv:"error" mapstructure:"error"`
 	WebServer          string                        `json:"webserver,omitempty" csv:"webserver" mapstructure:"webserver"`
@@ -74,8 +74,8 @@ type Result struct {
 	AAAA               []string                      `json:"aaaa,omitempty" csv:"aaaa" mapstructure:"aaaa"`
 	CNAMEs             []string                      `json:"cname,omitempty" csv:"cname" mapstructure:"cname"`
 	Technologies       []string                      `json:"tech,omitempty" csv:"tech" mapstructure:"tech"`
-	Extracts           map[string][]string           `json:"extracts,omitempty" csv:"extracts" mapstructure:"extracts"`
-	Chain              []httpx.ChainItem             `json:"chain,omitempty" csv:"chain" mapstructure:"chain"`
+	Extracts           map[string][]string           `json:"extracts,omitempty" csv:"-" mapstructure:"extracts"`
+	Chain              []httpx.ChainItem             `json:"chain,omitempty" csv:"-" mapstructure:"chain"`
 	Words              int                           `json:"words" csv:"words" mapstructure:"words"`
 	Lines              int                           `json:"lines" csv:"lines" mapstructure:"lines"`
 	StatusCode         int                           `json:"status_code" csv:"status_code" mapstructure:"status_code"`
@@ -91,15 +91,15 @@ type Result struct {
 	StoredResponsePath string                        `json:"stored_response_path,omitempty" csv:"stored_response_path" mapstructure:"stored_response_path"`
 	ScreenshotPath     string                        `json:"screenshot_path,omitempty" csv:"screenshot_path" mapstructure:"screenshot_path"`
 	ScreenshotPathRel  string                        `json:"screenshot_path_rel,omitempty" csv:"screenshot_path_rel" mapstructure:"screenshot_path_rel"`
-	KnowledgeBase      map[string]interface{}        `json:"knowledgebase,omitempty" csv:"knowledgebase" mapstructure:"knowledgebase"`
+	KnowledgeBase      map[string]interface{}        `json:"knowledgebase,omitempty" csv:"-" mapstructure:"knowledgebase"`
 	Resolvers          []string                      `json:"resolvers,omitempty" csv:"resolvers" mapstructure:"resolvers"`
-	Fqdns              []string                      `json:"body_fqdn,omitempty" mapstructure:"body_fqdn"`
-	Domains            []string                      `json:"body_domains,omitempty" mapstructure:"body_domains"`
+	Fqdns              []string                      `json:"body_fqdn,omitempty" csv:"body_fqdn" mapstructure:"body_fqdn"`
+	Domains            []string                      `json:"body_domains,omitempty" csv:"body_domains" mapstructure:"body_domains"`
 	TechnologyDetails  map[string]wappalyzer.AppInfo `json:"-" csv:"-" mapstructure:"-"`
 	RequestRaw         []byte                        `json:"-" csv:"-" mapstructure:"-"`
 	Response           *httpx.Response               `json:"-" csv:"-" mapstructure:"-"`
 	FaviconData        []byte                        `json:"-" csv:"-" mapstructure:"-"`
-	Trace              *retryablehttp.TraceInfo      `json:"trace,omitempty" csv:"trace"  mapstructure:"trace"`
+	Trace              *retryablehttp.TraceInfo      `json:"trace,omitempty" csv:"-"  mapstructure:"trace"`
 }
 
 type Trace struct {

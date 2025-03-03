@@ -85,6 +85,7 @@ require (
 	github.com/felixge/fgprof v0.9.5 // indirect
 	github.com/gaissmai/bart v0.17.10 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
+	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/certificate-transparency-go v1.1.4 // indirect
 	github.com/google/go-github/v30 v30.1.0 // indirect
