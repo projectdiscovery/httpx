@@ -31,7 +31,7 @@ func TestRunner_domain_targets(t *testing.T) {
 			got = append(got, target)
 		}
 	}
-	require.ElementsMatch(t, expected, got, "could not exepcted output")
+	require.ElementsMatch(t, expected, got, "could not expected output")
 }
 
 func TestRunner_probeall_targets(t *testing.T) {
@@ -62,7 +62,7 @@ func TestRunner_probeall_targets(t *testing.T) {
 		got = append(got, target)
 	}
 
-	require.ElementsMatch(t, expected, got, "could not exepcted output")
+	require.ElementsMatch(t, expected, got, "could not expected output")
 }
 
 func TestRunner_cidr_targets(t *testing.T) {
@@ -87,7 +87,7 @@ func TestRunner_cidr_targets(t *testing.T) {
 		got = append(got, target)
 	}
 
-	require.ElementsMatch(t, expected, got, "could not exepcted output")
+	require.ElementsMatch(t, expected, got, "could not expected output")
 }
 
 func TestRunner_asn_targets(t *testing.T) {
@@ -179,5 +179,5 @@ func TestRunner_urlWithComma_targets(t *testing.T) {
 			got = append(got, target)
 		}
 	}
-	require.ElementsMatch(t, expected, got, "could not exepcted output")
+	require.ElementsMatch(t, expected, got, "could not expected output")
 }
