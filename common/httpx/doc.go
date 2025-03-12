@@ -1,2 +1,2 @@
-// Package httpx containst the httpx common funcionality
+// Package httpx containst the httpx common functionality
 package httpx

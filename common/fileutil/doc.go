@@ -1,2 +1,2 @@
-// Package fileutil contains all the funcionality related to deal with files
+// Package fileutil contains all the functionality related to deal with files
 package fileutil

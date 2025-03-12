@@ -1475,7 +1475,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 		switch {
 		case stringsutil.HasPrefixAny(target, "*", "."):
 			// A valid target does not contain:
-			// trim * and/or . (prefix) from the target to return the domain instead of wilcard
+			// trim * and/or . (prefix) from the target to return the domain instead of wildcard
 			target = stringsutil.TrimPrefixAny(target, "*", ".")
 			if !r.testAndSet(target) {
 				return

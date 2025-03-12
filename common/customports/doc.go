@@ -1,2 +1,2 @@
-// Package customport contains all the funcionality to deal with HTTP ports
+// Package customport contains all the functionality to deal with HTTP ports
 package customport
