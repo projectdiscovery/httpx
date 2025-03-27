@@ -104,6 +104,7 @@ type ScanOptions struct {
 	DisableStdin              bool
 	NoScreenshotBytes         bool
 	NoHeadlessBody            bool
+	ScreenshotFullPage        bool
 	ScreenshotTimeout         time.Duration
 	ScreenshotIdle            time.Duration
 }
@@ -158,6 +159,7 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		UseInstalledChrome:        s.UseInstalledChrome,
 		NoScreenshotBytes:         s.NoScreenshotBytes,
 		NoHeadlessBody:            s.NoHeadlessBody,
+		ScreenshotFullPage:        s.ScreenshotFullPage,
 		ScreenshotTimeout:         s.ScreenshotTimeout,
 		ScreenshotIdle:            s.ScreenshotIdle,
 	}
@@ -315,6 +317,7 @@ type Options struct {
 	HttpApiEndpoint    string
 	NoScreenshotBytes  bool
 	NoHeadlessBody     bool
+	ScreenshotFullPage bool
 	ScreenshotTimeout  time.Duration
 	ScreenshotIdle     time.Duration
 	// HeadlessOptionalArguments specifies optional arguments to pass to Chrome
@@ -388,6 +391,7 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.HeadlessOptionalArguments, "headless-options", "ho", nil, "start headless chrome with additional options", goflags.FileCommaSeparatedStringSliceOptions),
 		flagSet.BoolVarP(&options.NoScreenshotBytes, "exclude-screenshot-bytes", "esb", false, "enable excluding screenshot bytes from json output"),
 		flagSet.BoolVarP(&options.NoHeadlessBody, "exclude-headless-body", "ehb", false, "enable excluding headless header from json output"),
+		flagSet.BoolVarP(&options.ScreenshotFullPage, "screenshot-full-page", "sfp", true, "enable saving full page screenshot"),
 		flagSet.DurationVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10*time.Second, "set timeout for screenshot in seconds"),
 		flagSet.DurationVarP(&options.ScreenshotIdle, "screenshot-idle", "sid", 1*time.Second, "set idle time before taking screenshot in seconds"),
 	)
