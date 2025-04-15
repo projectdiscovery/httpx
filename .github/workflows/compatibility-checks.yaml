@@ -14,4 +14,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: projectdiscovery/actions/setup/go/compatibility-checks@master
+      - uses: projectdiscovery/actions/setup/go/compat-checks@master
+        with:
+          go-version-file: 'v2/go.mod'
