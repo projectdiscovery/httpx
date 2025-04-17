@@ -2500,7 +2500,7 @@ func (r Result) CSVRow(scanopts *ScanOptions) string { //nolint
 						}
 					}
 				}
-				writer.Write(record)
+				_ = writer.Write(record) //nolint
 			}
 			writer.Flush()
 			res = buf.String()
