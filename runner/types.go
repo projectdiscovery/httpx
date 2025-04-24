@@ -124,7 +124,7 @@ type Trace struct {
 func dslVariables() ([]string, error) {
 	fakeResult := Result{}
 	fieldsToIgnore := []string{"Hashes", "ResponseHeaders", "Err", "KnowledgeBase"}
-	if err := faker.FakeData(&fakeResult, options.WithFieldsToIgnore(fieldsToIgnore...)); err != nil {
+	if err := faker.FakeData(&fakeResult, options.WithFieldsToIgnore(fieldsToIgnore...), options.WithIgnoreInterface(true)); err != nil {
 		return nil, err
 	}
 	m, err := resultToMap(fakeResult)

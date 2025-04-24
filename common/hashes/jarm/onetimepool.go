@@ -9,7 +9,7 @@ import (
 	"go.uber.org/multierr"
 )
 
-// oneTimePool is a pool designed to create continous bare connections that are for one time only usage
+// oneTimePool is a pool designed to create continuous bare connections that are for one time only usage
 type oneTimePool struct {
 	address         string
 	idleConnections chan net.Conn

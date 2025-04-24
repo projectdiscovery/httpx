@@ -13,3 +13,4 @@ cmd/functional-test/*.cfg
 /httpx
 /dist
 /resume.cfg
+vendor/

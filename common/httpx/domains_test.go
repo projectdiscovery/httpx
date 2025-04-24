@@ -14,10 +14,10 @@ var rawResponse string
 func TestBodyGrabDoamins(t *testing.T) {
 	ht, err := New(&DefaultOptions)
 	require.Nil(t, err)
-	resposne := &Response{
+	response := &Response{
 		Raw: rawResponse,
 	}
-	bd := ht.BodyDomainGrab(resposne)
+	bd := ht.BodyDomainGrab(response)
 
 	sort.Strings(bd.Domains)
 	sort.Strings(bd.Fqdns)

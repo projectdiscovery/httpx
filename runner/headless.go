@@ -99,7 +99,7 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 	return engine, nil
 }
 
-func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle time.Duration, headers []string) ([]byte, string, error) {
+func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle time.Duration, headers []string, fullPage bool) ([]byte, string, error) {
 	page, err := b.engine.Page(proto.TargetCreateTarget{})
 	if err != nil {
 		return nil, "", err
@@ -128,7 +128,7 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 	}
 	_ = page.WaitIdle(idle)
 
-	screenshot, err := page.Screenshot(true, &proto.PageCaptureScreenshot{})
+	screenshot, err := page.Screenshot(fullPage, &proto.PageCaptureScreenshot{})
 	if err != nil {
 		return nil, "", err
 	}

@@ -296,6 +296,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.Screenshot = options.Screenshot
 	scanopts.NoScreenshotBytes = options.NoScreenshotBytes
 	scanopts.NoHeadlessBody = options.NoHeadlessBody
+	scanopts.NoScreenshotFullPage = options.NoScreenshotFullPage
 	scanopts.UseInstalledChrome = options.UseInstalledChrome
 	scanopts.ScreenshotTimeout = options.ScreenshotTimeout
 	scanopts.ScreenshotIdle = options.ScreenshotIdle
@@ -1475,7 +1476,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 		switch {
 		case stringsutil.HasPrefixAny(target, "*", "."):
 			// A valid target does not contain:
-			// trim * and/or . (prefix) from the target to return the domain instead of wilcard
+			// trim * and/or . (prefix) from the target to return the domain instead of wildcard
 			target = stringsutil.TrimPrefixAny(target, "*", ".")
 			if !r.testAndSet(target) {
 				return
@@ -2187,7 +2188,7 @@ retry:
 	var pHash uint64
 	if scanopts.Screenshot {
 		var err error
-		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle, r.options.CustomHeaders)
+		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle, r.options.CustomHeaders, scanopts.IsScreenshotFullPage())
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
