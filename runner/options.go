@@ -190,7 +190,7 @@ type Options struct {
 	InputTargetHost           goflags.StringSlice `json:"input_target_host,omitempty" yaml:"input_target_host,omitempty"`
 	Methods                   string              `json:"methods,omitempty" yaml:"methods,omitempty"`
 	RequestURI                string              `json:"request_uri,omitempty" yaml:"request_uri,omitempty"`
-	RequestURIs               string              `json:"request_ur_is,omitempty" yaml:"request_ur_is,omitempty"`
+	RequestURIs               string              `json:"request_uris,omitempty" yaml:"request_uris,omitempty"`
 	requestURIs               []string
 	OutputMatchStatusCode     string `json:"output_match_status_code,omitempty" yaml:"output_match_status_code,omitempty"`
 	OutputMatchContentLength  string `json:"output_match_content_length,omitempty" yaml:"output_match_content_length,omitempty"`
@@ -340,7 +340,7 @@ type Options struct {
 	TeamID          string `json:"team_id,omitempty" yaml:"team_id,omitempty"`
 	// OnClose adds a callback function that is invoked when httpx is closed
 	// to be exact at end of existing closures
-	OnClose func() `json:"on_close,omitempty" yaml:"on_close,omitempty"`
+	OnClose func() `json:"-" yaml:"-"`
 
 	Trace bool `json:"trace,omitempty" yaml:"trace,omitempty"`
 
