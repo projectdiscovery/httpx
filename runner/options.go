@@ -51,62 +51,62 @@ var (
 type OnResultCallback func(Result)
 
 type ScanOptions struct {
-	Methods                   []string
-	StoreResponseDirectory    string
-	RequestURI                string
-	RequestBody               string
-	VHost                     bool
-	OutputTitle               bool
-	OutputStatusCode          bool
-	OutputLocation            bool
-	OutputContentLength       bool
-	StoreResponse             bool
-	OmitBody                  bool
-	OutputServerHeader        bool
-	OutputWebSocket           bool
-	OutputWithNoColor         bool
-	OutputMethod              bool
-	ResponseHeadersInStdout   bool
-	ResponseInStdout          bool
-	Base64ResponseInStdout    bool
-	ChainInStdout             bool
-	TLSProbe                  bool
-	CSPProbe                  bool
-	VHostInput                bool
-	OutputContentType         bool
-	Unsafe                    bool
-	Pipeline                  bool
-	HTTP2Probe                bool
-	OutputIP                  bool
-	OutputCName               bool
-	OutputCDN                 string
-	OutputResponseTime        bool
-	PreferHTTPS               bool
-	NoFallback                bool
-	NoFallbackScheme          bool
-	TechDetect                bool
-	StoreChain                bool
-	StoreVisionReconClusters  bool
-	MaxResponseBodySizeToSave int
-	MaxResponseBodySizeToRead int
-	OutputExtractRegex        string
+	Methods                   []string `json:"methods,omitempty" yaml:"methods,omitempty"`
+	StoreResponseDirectory    string   `json:"store_response_directory,omitempty" yaml:"store_response_directory,omitempty"`
+	RequestURI                string   `json:"request_uri,omitempty" yaml:"request_uri,omitempty"`
+	RequestBody               string   `json:"request_body,omitempty" yaml:"request_body,omitempty"`
+	VHost                     bool     `json:"v_host,omitempty" yaml:"v_host,omitempty"`
+	OutputTitle               bool     `json:"output_title,omitempty" yaml:"output_title,omitempty"`
+	OutputStatusCode          bool     `json:"output_status_code,omitempty" yaml:"output_status_code,omitempty"`
+	OutputLocation            bool     `json:"output_location,omitempty" yaml:"output_location,omitempty"`
+	OutputContentLength       bool     `json:"output_content_length,omitempty" yaml:"output_content_length,omitempty"`
+	StoreResponse             bool     `json:"store_response,omitempty" yaml:"store_response,omitempty"`
+	OmitBody                  bool     `json:"omit_body,omitempty" yaml:"omit_body,omitempty"`
+	OutputServerHeader        bool     `json:"output_server_header,omitempty" yaml:"output_server_header,omitempty"`
+	OutputWebSocket           bool     `json:"output_web_socket,omitempty" yaml:"output_web_socket,omitempty"`
+	OutputWithNoColor         bool     `json:"output_with_no_color,omitempty" yaml:"output_with_no_color,omitempty"`
+	OutputMethod              bool     `json:"output_method,omitempty" yaml:"output_method,omitempty"`
+	ResponseHeadersInStdout   bool     `json:"response_headers_in_stdout,omitempty" yaml:"response_headers_in_stdout,omitempty"`
+	ResponseInStdout          bool     `json:"response_in_stdout,omitempty" yaml:"response_in_stdout,omitempty"`
+	Base64ResponseInStdout    bool     `json:"base_64_response_in_stdout,omitempty" yaml:"base_64_response_in_stdout,omitempty"`
+	ChainInStdout             bool     `json:"chain_in_stdout,omitempty" yaml:"chain_in_stdout,omitempty"`
+	TLSProbe                  bool     `json:"tls_probe,omitempty" yaml:"tls_probe,omitempty"`
+	CSPProbe                  bool     `json:"csp_probe,omitempty" yaml:"csp_probe,omitempty"`
+	VHostInput                bool     `json:"v_host_input,omitempty" yaml:"v_host_input,omitempty"`
+	OutputContentType         bool     `json:"output_content_type,omitempty" yaml:"output_content_type,omitempty"`
+	Unsafe                    bool     `json:"unsafe,omitempty" yaml:"unsafe,omitempty"`
+	Pipeline                  bool     `json:"pipeline,omitempty" yaml:"pipeline,omitempty"`
+	HTTP2Probe                bool     `json:"http_2_probe,omitempty" yaml:"http_2_probe,omitempty"`
+	OutputIP                  bool     `json:"output_ip,omitempty" yaml:"output_ip,omitempty"`
+	OutputCName               bool     `json:"output_c_name,omitempty" yaml:"output_c_name,omitempty"`
+	OutputCDN                 string   `json:"output_cdn,omitempty" yaml:"output_cdn,omitempty"`
+	OutputResponseTime        bool     `json:"output_response_time,omitempty" yaml:"output_response_time,omitempty"`
+	PreferHTTPS               bool     `json:"prefer_https,omitempty" yaml:"prefer_https,omitempty"`
+	NoFallback                bool     `json:"no_fallback,omitempty" yaml:"no_fallback,omitempty"`
+	NoFallbackScheme          bool     `json:"no_fallback_scheme,omitempty" yaml:"no_fallback_scheme,omitempty"`
+	TechDetect                bool     `json:"tech_detect,omitempty" yaml:"tech_detect,omitempty"`
+	StoreChain                bool     `json:"store_chain,omitempty" yaml:"store_chain,omitempty"`
+	StoreVisionReconClusters  bool     `json:"store_vision_recon_clusters,omitempty" yaml:"store_vision_recon_clusters,omitempty"`
+	MaxResponseBodySizeToSave int      `json:"max_response_body_size_to_save,omitempty" yaml:"max_response_body_size_to_save,omitempty"`
+	MaxResponseBodySizeToRead int      `json:"max_response_body_size_to_read,omitempty" yaml:"max_response_body_size_to_read,omitempty"`
+	OutputExtractRegex        string   `json:"output_extract_regex,omitempty" yaml:"output_extract_regex,omitempty"`
 	extractRegexps            map[string]*regexp.Regexp
-	ExcludeCDN                bool
-	HostMaxErrors             int
-	ProbeAllIPS               bool
-	Favicon                   bool
-	LeaveDefaultPorts         bool
-	OutputLinesCount          bool
-	OutputWordsCount          bool
-	Hashes                    string
-	Screenshot                bool
-	UseInstalledChrome        bool
-	DisableStdin              bool
-	NoScreenshotBytes         bool
-	NoHeadlessBody            bool
-	NoScreenshotFullPage      bool
-	ScreenshotTimeout         time.Duration
-	ScreenshotIdle            time.Duration
+	ExcludeCDN                bool          `json:"exclude_cdn,omitempty" yaml:"exclude_cdn,omitempty"`
+	HostMaxErrors             int           `json:"host_max_errors,omitempty" yaml:"host_max_errors,omitempty"`
+	ProbeAllIPS               bool          `json:"probe_all_ips,omitempty" yaml:"probe_all_ips,omitempty"`
+	Favicon                   bool          `json:"favicon,omitempty" yaml:"favicon,omitempty"`
+	LeaveDefaultPorts         bool          `json:"leave_default_ports,omitempty" yaml:"leave_default_ports,omitempty"`
+	OutputLinesCount          bool          `json:"output_lines_count,omitempty" yaml:"output_lines_count,omitempty"`
+	OutputWordsCount          bool          `json:"output_words_count,omitempty" yaml:"output_words_count,omitempty"`
+	Hashes                    string        `json:"hashes,omitempty" yaml:"hashes,omitempty"`
+	Screenshot                bool          `json:"screenshot,omitempty" yaml:"screenshot,omitempty"`
+	UseInstalledChrome        bool          `json:"use_installed_chrome,omitempty" yaml:"use_installed_chrome,omitempty"`
+	DisableStdin              bool          `json:"disable_stdin,omitempty" yaml:"disable_stdin,omitempty"`
+	NoScreenshotBytes         bool          `json:"no_screenshot_bytes,omitempty" yaml:"no_screenshot_bytes,omitempty"`
+	NoHeadlessBody            bool          `json:"no_headless_body,omitempty" yaml:"no_headless_body,omitempty"`
+	NoScreenshotFullPage      bool          `json:"no_screenshot_full_page,omitempty" yaml:"no_screenshot_full_page,omitempty"`
+	ScreenshotTimeout         time.Duration `json:"screenshot_timeout,omitempty" yaml:"screenshot_timeout,omitempty"`
+	ScreenshotIdle            time.Duration `json:"screenshot_idle,omitempty" yaml:"screenshot_idle,omitempty"`
 }
 
 func (s *ScanOptions) IsScreenshotFullPage() bool {
@@ -171,183 +171,183 @@ func (s *ScanOptions) Clone() *ScanOptions {
 
 // Options contains configuration options for httpx.
 type Options struct {
-	CustomHeaders       customheader.CustomHeaders
-	CustomPorts         customport.CustomPorts
+	CustomHeaders       customheader.CustomHeaders `json:"custom_headers,omitempty" yaml:"custom_headers,omitempty"`
+	CustomPorts         customport.CustomPorts     `json:"custom_ports,omitempty" yaml:"custom_ports,omitempty"`
 	matchStatusCode     []int
 	matchContentLength  []int
 	filterStatusCode    []int
 	filterContentLength []int
-	Output              string
-	OutputAll           bool
-	StoreResponseDir    string
-	OmitBody            bool
+	Output              string `json:"output,omitempty" yaml:"output,omitempty"`
+	OutputAll           bool   `json:"output_all,omitempty" yaml:"output_all,omitempty"`
+	StoreResponseDir    string `json:"store_response_dir,omitempty" yaml:"store_response_dir,omitempty"`
+	OmitBody            bool   `json:"omit_body,omitempty" yaml:"omit_body,omitempty"`
 	// Deprecated: use Proxy
-	HTTPProxy string
+	HTTPProxy string `json:"http_proxy,omitempty" yaml:"http_proxy,omitempty"`
 	// Deprecated: use Proxy
-	SocksProxy                string
-	Proxy                     string
-	InputFile                 string
-	InputTargetHost           goflags.StringSlice
-	Methods                   string
-	RequestURI                string
-	RequestURIs               string
+	SocksProxy                string              `json:"socks_proxy,omitempty" yaml:"socks_proxy,omitempty"`
+	Proxy                     string              `json:"proxy,omitempty" yaml:"proxy,omitempty"`
+	InputFile                 string              `json:"input_file,omitempty" yaml:"input_file,omitempty"`
+	InputTargetHost           goflags.StringSlice `json:"input_target_host,omitempty" yaml:"input_target_host,omitempty"`
+	Methods                   string              `json:"methods,omitempty" yaml:"methods,omitempty"`
+	RequestURI                string              `json:"request_uri,omitempty" yaml:"request_uri,omitempty"`
+	RequestURIs               string              `json:"request_ur_is,omitempty" yaml:"request_ur_is,omitempty"`
 	requestURIs               []string
-	OutputMatchStatusCode     string
-	OutputMatchContentLength  string
-	OutputFilterStatusCode    string
-	OutputFilterErrorPage     bool
-	FilterOutDuplicates       bool
-	OutputFilterContentLength string
-	InputRawRequest           string
+	OutputMatchStatusCode     string `json:"output_match_status_code,omitempty" yaml:"output_match_status_code,omitempty"`
+	OutputMatchContentLength  string `json:"output_match_content_length,omitempty" yaml:"output_match_content_length,omitempty"`
+	OutputFilterStatusCode    string `json:"output_filter_status_code,omitempty" yaml:"output_filter_status_code,omitempty"`
+	OutputFilterErrorPage     bool   `json:"output_filter_error_page,omitempty" yaml:"output_filter_error_page,omitempty"`
+	FilterOutDuplicates       bool   `json:"filter_out_duplicates,omitempty" yaml:"filter_out_duplicates,omitempty"`
+	OutputFilterContentLength string `json:"output_filter_content_length,omitempty" yaml:"output_filter_content_length,omitempty"`
+	InputRawRequest           string `json:"input_raw_request,omitempty" yaml:"input_raw_request,omitempty"`
 	rawRequest                string
-	RequestBody               string
-	OutputFilterString        goflags.StringSlice
-	OutputMatchString         goflags.StringSlice
-	OutputFilterRegex         goflags.StringSlice
-	OutputMatchRegex          goflags.StringSlice
-	Retries                   int
-	Threads                   int
-	Timeout                   int
-	Delay                     time.Duration
+	RequestBody               string              `json:"request_body,omitempty" yaml:"request_body,omitempty"`
+	OutputFilterString        goflags.StringSlice `json:"output_filter_string,omitempty" yaml:"output_filter_string,omitempty"`
+	OutputMatchString         goflags.StringSlice `json:"output_match_string,omitempty" yaml:"output_match_string,omitempty"`
+	OutputFilterRegex         goflags.StringSlice `json:"output_filter_regex,omitempty" yaml:"output_filter_regex,omitempty"`
+	OutputMatchRegex          goflags.StringSlice `json:"output_match_regex,omitempty" yaml:"output_match_regex,omitempty"`
+	Retries                   int                 `json:"retries,omitempty" yaml:"retries,omitempty"`
+	Threads                   int                 `json:"threads,omitempty" yaml:"threads,omitempty"`
+	Timeout                   int                 `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+	Delay                     time.Duration       `json:"delay,omitempty" yaml:"delay,omitempty"`
 	filterRegexes             []*regexp.Regexp
 	matchRegexes              []*regexp.Regexp
-	VHost                     bool
-	VHostInput                bool
-	Smuggling                 bool
-	ExtractTitle              bool
-	StatusCode                bool
-	Location                  bool
-	ContentLength             bool
-	FollowRedirects           bool
-	RespectHSTS               bool
-	StoreResponse             bool
-	JSONOutput                bool
-	CSVOutput                 bool
-	CSVOutputEncoding         string
-	PdcpAuth                  string
-	PdcpAuthCredFile          string
-	Silent                    bool
-	Version                   bool
-	Verbose                   bool
-	NoColor                   bool
-	OutputServerHeader        bool
-	OutputWebSocket           bool
-	ResponseHeadersInStdout   bool
-	ResponseInStdout          bool
-	Base64ResponseInStdout    bool
-	ChainInStdout             bool
-	FollowHostRedirects       bool
-	MaxRedirects              int
-	OutputMethod              bool
-	TLSProbe                  bool
-	CSPProbe                  bool
-	OutputContentType         bool
-	OutputIP                  bool
-	OutputCName               bool
-	ExtractFqdn               bool
-	Unsafe                    bool
-	Debug                     bool
-	DebugRequests             bool
-	DebugResponse             bool
-	Pipeline                  bool
-	HTTP2Probe                bool
-	OutputCDN                 string
-	OutputResponseTime        bool
-	NoFallback                bool
-	NoFallbackScheme          bool
-	TechDetect                bool
-	TLSGrab                   bool
+	VHost                     bool   `json:"v_host,omitempty" yaml:"v_host,omitempty"`
+	VHostInput                bool   `json:"v_host_input,omitempty" yaml:"v_host_input,omitempty"`
+	Smuggling                 bool   `json:"smuggling,omitempty" yaml:"smuggling,omitempty"`
+	ExtractTitle              bool   `json:"extract_title,omitempty" yaml:"extract_title,omitempty"`
+	StatusCode                bool   `json:"status_code,omitempty" yaml:"status_code,omitempty"`
+	Location                  bool   `json:"location,omitempty" yaml:"location,omitempty"`
+	ContentLength             bool   `json:"content_length,omitempty" yaml:"content_length,omitempty"`
+	FollowRedirects           bool   `json:"follow_redirects,omitempty" yaml:"follow_redirects,omitempty"`
+	RespectHSTS               bool   `json:"respect_hsts,omitempty" yaml:"respect_hsts,omitempty"`
+	StoreResponse             bool   `json:"store_response,omitempty" yaml:"store_response,omitempty"`
+	JSONOutput                bool   `json:"json_output,omitempty" yaml:"json_output,omitempty"`
+	CSVOutput                 bool   `json:"csv_output,omitempty" yaml:"csv_output,omitempty"`
+	CSVOutputEncoding         string `json:"csv_output_encoding,omitempty" yaml:"csv_output_encoding,omitempty"`
+	PdcpAuth                  string `json:"pdcp_auth,omitempty" yaml:"pdcp_auth,omitempty"`
+	PdcpAuthCredFile          string `json:"pdcp_auth_cred_file,omitempty" yaml:"pdcp_auth_cred_file,omitempty"`
+	Silent                    bool   `json:"silent,omitempty" yaml:"silent,omitempty"`
+	Version                   bool   `json:"version,omitempty" yaml:"version,omitempty"`
+	Verbose                   bool   `json:"verbose,omitempty" yaml:"verbose,omitempty"`
+	NoColor                   bool   `json:"no_color,omitempty" yaml:"no_color,omitempty"`
+	OutputServerHeader        bool   `json:"output_server_header,omitempty" yaml:"output_server_header,omitempty"`
+	OutputWebSocket           bool   `json:"output_web_socket,omitempty" yaml:"output_web_socket,omitempty"`
+	ResponseHeadersInStdout   bool   `json:"response_headers_in_stdout,omitempty" yaml:"response_headers_in_stdout,omitempty"`
+	ResponseInStdout          bool   `json:"response_in_stdout,omitempty" yaml:"response_in_stdout,omitempty"`
+	Base64ResponseInStdout    bool   `json:"base_64_response_in_stdout,omitempty" yaml:"base_64_response_in_stdout,omitempty"`
+	ChainInStdout             bool   `json:"chain_in_stdout,omitempty" yaml:"chain_in_stdout,omitempty"`
+	FollowHostRedirects       bool   `json:"follow_host_redirects,omitempty" yaml:"follow_host_redirects,omitempty"`
+	MaxRedirects              int    `json:"max_redirects,omitempty" yaml:"max_redirects,omitempty"`
+	OutputMethod              bool   `json:"output_method,omitempty" yaml:"output_method,omitempty"`
+	TLSProbe                  bool   `json:"tls_probe,omitempty" yaml:"tls_probe,omitempty"`
+	CSPProbe                  bool   `json:"csp_probe,omitempty" yaml:"csp_probe,omitempty"`
+	OutputContentType         bool   `json:"output_content_type,omitempty" yaml:"output_content_type,omitempty"`
+	OutputIP                  bool   `json:"output_ip,omitempty" yaml:"output_ip,omitempty"`
+	OutputCName               bool   `json:"output_c_name,omitempty" yaml:"output_c_name,omitempty"`
+	ExtractFqdn               bool   `json:"extract_fqdn,omitempty" yaml:"extract_fqdn,omitempty"`
+	Unsafe                    bool   `json:"unsafe,omitempty" yaml:"unsafe,omitempty"`
+	Debug                     bool   `json:"debug,omitempty" yaml:"debug,omitempty"`
+	DebugRequests             bool   `json:"debug_requests,omitempty" yaml:"debug_requests,omitempty"`
+	DebugResponse             bool   `json:"debug_response,omitempty" yaml:"debug_response,omitempty"`
+	Pipeline                  bool   `json:"pipeline,omitempty" yaml:"pipeline,omitempty"`
+	HTTP2Probe                bool   `json:"http_2_probe,omitempty" yaml:"http_2_probe,omitempty"`
+	OutputCDN                 string `json:"output_cdn,omitempty" yaml:"output_cdn,omitempty"`
+	OutputResponseTime        bool   `json:"output_response_time,omitempty" yaml:"output_response_time,omitempty"`
+	NoFallback                bool   `json:"no_fallback,omitempty" yaml:"no_fallback,omitempty"`
+	NoFallbackScheme          bool   `json:"no_fallback_scheme,omitempty" yaml:"no_fallback_scheme,omitempty"`
+	TechDetect                bool   `json:"tech_detect,omitempty" yaml:"tech_detect,omitempty"`
+	TLSGrab                   bool   `json:"tls_grab,omitempty" yaml:"tls_grab,omitempty"`
 	protocol                  string
-	ShowStatistics            bool
-	StatsInterval             int
-	RandomAgent               bool
-	StoreChain                bool
-	StoreVisionReconClusters  bool
-	Deny                      customlist.CustomList
-	Allow                     customlist.CustomList
-	MaxResponseBodySizeToSave int
-	MaxResponseBodySizeToRead int
-	ResponseBodyPreviewSize   int
-	OutputExtractRegexs       goflags.StringSlice
-	OutputExtractPresets      goflags.StringSlice
-	RateLimit                 int
-	RateLimitMinute           int
-	Probe                     bool
-	Resume                    bool
+	ShowStatistics            bool                  `json:"show_statistics,omitempty" yaml:"show_statistics,omitempty"`
+	StatsInterval             int                   `json:"stats_interval,omitempty" yaml:"stats_interval,omitempty"`
+	RandomAgent               bool                  `json:"random_agent,omitempty" yaml:"random_agent,omitempty"`
+	StoreChain                bool                  `json:"store_chain,omitempty" yaml:"store_chain,omitempty"`
+	StoreVisionReconClusters  bool                  `json:"store_vision_recon_clusters,omitempty" yaml:"store_vision_recon_clusters,omitempty"`
+	Deny                      customlist.CustomList `json:"deny,omitempty" yaml:"deny,omitempty"`
+	Allow                     customlist.CustomList `json:"allow,omitempty" yaml:"allow,omitempty"`
+	MaxResponseBodySizeToSave int                   `json:"max_response_body_size_to_save,omitempty" yaml:"max_response_body_size_to_save,omitempty"`
+	MaxResponseBodySizeToRead int                   `json:"max_response_body_size_to_read,omitempty" yaml:"max_response_body_size_to_read,omitempty"`
+	ResponseBodyPreviewSize   int                   `json:"response_body_preview_size,omitempty" yaml:"response_body_preview_size,omitempty"`
+	OutputExtractRegexs       goflags.StringSlice   `json:"output_extract_regexs,omitempty" yaml:"output_extract_regexs,omitempty"`
+	OutputExtractPresets      goflags.StringSlice   `json:"output_extract_presets,omitempty" yaml:"output_extract_presets,omitempty"`
+	RateLimit                 int                   `json:"rate_limit,omitempty" yaml:"rate_limit,omitempty"`
+	RateLimitMinute           int                   `json:"rate_limit_minute,omitempty" yaml:"rate_limit_minute,omitempty"`
+	Probe                     bool                  `json:"probe,omitempty" yaml:"probe,omitempty"`
+	Resume                    bool                  `json:"resume,omitempty" yaml:"resume,omitempty"`
 	resumeCfg                 *ResumeCfg
-	Exclude                   goflags.StringSlice
-	HostMaxErrors             int
-	Stream                    bool
-	SkipDedupe                bool
-	ProbeAllIPS               bool
-	Resolvers                 goflags.StringSlice
-	Favicon                   bool
-	OutputFilterFavicon       goflags.StringSlice
-	OutputMatchFavicon        goflags.StringSlice
-	LeaveDefaultPorts         bool
-	ZTLS                      bool
-	OutputLinesCount          bool
-	OutputMatchLinesCount     string
+	Exclude                   goflags.StringSlice `json:"exclude,omitempty" yaml:"exclude,omitempty"`
+	HostMaxErrors             int                 `json:"host_max_errors,omitempty" yaml:"host_max_errors,omitempty"`
+	Stream                    bool                `json:"stream,omitempty" yaml:"stream,omitempty"`
+	SkipDedupe                bool                `json:"skip_dedupe,omitempty" yaml:"skip_dedupe,omitempty"`
+	ProbeAllIPS               bool                `json:"probe_all_ips,omitempty" yaml:"probe_all_ips,omitempty"`
+	Resolvers                 goflags.StringSlice `json:"resolvers,omitempty" yaml:"resolvers,omitempty"`
+	Favicon                   bool                `json:"favicon,omitempty" yaml:"favicon,omitempty"`
+	OutputFilterFavicon       goflags.StringSlice `json:"output_filter_favicon,omitempty" yaml:"output_filter_favicon,omitempty"`
+	OutputMatchFavicon        goflags.StringSlice `json:"output_match_favicon,omitempty" yaml:"output_match_favicon,omitempty"`
+	LeaveDefaultPorts         bool                `json:"leave_default_ports,omitempty" yaml:"leave_default_ports,omitempty"`
+	ZTLS                      bool                `json:"ztls,omitempty" yaml:"ztls,omitempty"`
+	OutputLinesCount          bool                `json:"output_lines_count,omitempty" yaml:"output_lines_count,omitempty"`
+	OutputMatchLinesCount     string              `json:"output_match_lines_count,omitempty" yaml:"output_match_lines_count,omitempty"`
 	matchLinesCount           []int
-	OutputFilterLinesCount    string
-	Memprofile                string
+	OutputFilterLinesCount    string `json:"output_filter_lines_count,omitempty" yaml:"output_filter_lines_count,omitempty"`
+	Memprofile                string `json:"memprofile,omitempty" yaml:"memprofile,omitempty"`
 	filterLinesCount          []int
-	OutputWordsCount          bool
-	OutputMatchWordsCount     string
+	OutputWordsCount          bool   `json:"output_words_count,omitempty" yaml:"output_words_count,omitempty"`
+	OutputMatchWordsCount     string `json:"output_match_words_count,omitempty" yaml:"output_match_words_count,omitempty"`
 	matchWordsCount           []int
-	OutputFilterWordsCount    string
+	OutputFilterWordsCount    string `json:"output_filter_words_count,omitempty" yaml:"output_filter_words_count,omitempty"`
 	filterWordsCount          []int
-	Hashes                    string
-	Jarm                      bool
-	Asn                       bool
-	OutputMatchCdn            goflags.StringSlice
-	OutputFilterCdn           goflags.StringSlice
-	SniName                   string
-	OutputMatchResponseTime   string
-	OutputFilterResponseTime  string
-	HealthCheck               bool
-	ListDSLVariable           bool
-	OutputFilterCondition     string
-	OutputMatchCondition      string
-	StripFilter               string
+	Hashes                    string              `json:"hashes,omitempty" yaml:"hashes,omitempty"`
+	Jarm                      bool                `json:"jarm,omitempty" yaml:"jarm,omitempty"`
+	Asn                       bool                `json:"asn,omitempty" yaml:"asn,omitempty"`
+	OutputMatchCdn            goflags.StringSlice `json:"output_match_cdn,omitempty" yaml:"output_match_cdn,omitempty"`
+	OutputFilterCdn           goflags.StringSlice `json:"output_filter_cdn,omitempty" yaml:"output_filter_cdn,omitempty"`
+	SniName                   string              `json:"sni_name,omitempty" yaml:"sni_name,omitempty"`
+	OutputMatchResponseTime   string              `json:"output_match_response_time,omitempty" yaml:"output_match_response_time,omitempty"`
+	OutputFilterResponseTime  string              `json:"output_filter_response_time,omitempty" yaml:"output_filter_response_time,omitempty"`
+	HealthCheck               bool                `json:"health_check,omitempty" yaml:"health_check,omitempty"`
+	ListDSLVariable           bool                `json:"list_dsl_variable,omitempty" yaml:"list_dsl_variable,omitempty"`
+	OutputFilterCondition     string              `json:"output_filter_condition,omitempty" yaml:"output_filter_condition,omitempty"`
+	OutputMatchCondition      string              `json:"output_match_condition,omitempty" yaml:"output_match_condition,omitempty"`
+	StripFilter               string              `json:"strip_filter,omitempty" yaml:"strip_filter,omitempty"`
 	//The OnResult callback function is invoked for each result. It is important to check for errors in the result before using Result.Err.
-	OnResult             OnResultCallback
-	DisableUpdateCheck   bool
-	NoDecode             bool
-	Screenshot           bool
-	UseInstalledChrome   bool
-	TlsImpersonate       bool
-	DisableStdin         bool
-	HttpApiEndpoint      string
-	NoScreenshotBytes    bool
-	NoHeadlessBody       bool
-	NoScreenshotFullPage bool
-	ScreenshotTimeout    time.Duration
-	ScreenshotIdle       time.Duration
+	OnResult             OnResultCallback `json:"on_result,omitempty" yaml:"on_result,omitempty"`
+	DisableUpdateCheck   bool             `json:"disable_update_check,omitempty" yaml:"disable_update_check,omitempty"`
+	NoDecode             bool             `json:"no_decode,omitempty" yaml:"no_decode,omitempty"`
+	Screenshot           bool             `json:"screenshot,omitempty" yaml:"screenshot,omitempty"`
+	UseInstalledChrome   bool             `json:"use_installed_chrome,omitempty" yaml:"use_installed_chrome,omitempty"`
+	TlsImpersonate       bool             `json:"tls_impersonate,omitempty" yaml:"tls_impersonate,omitempty"`
+	DisableStdin         bool             `json:"disable_stdin,omitempty" yaml:"disable_stdin,omitempty"`
+	HttpApiEndpoint      string           `json:"http_api_endpoint,omitempty" yaml:"http_api_endpoint,omitempty"`
+	NoScreenshotBytes    bool             `json:"no_screenshot_bytes,omitempty" yaml:"no_screenshot_bytes,omitempty"`
+	NoHeadlessBody       bool             `json:"no_headless_body,omitempty" yaml:"no_headless_body,omitempty"`
+	NoScreenshotFullPage bool             `json:"no_screenshot_full_page,omitempty" yaml:"no_screenshot_full_page,omitempty"`
+	ScreenshotTimeout    time.Duration    `json:"screenshot_timeout,omitempty" yaml:"screenshot_timeout,omitempty"`
+	ScreenshotIdle       time.Duration    `json:"screenshot_idle,omitempty" yaml:"screenshot_idle,omitempty"`
 	// HeadlessOptionalArguments specifies optional arguments to pass to Chrome
-	HeadlessOptionalArguments goflags.StringSlice
-	Protocol                  string
-	OutputFilterErrorPagePath string
-	DisableStdout             bool
+	HeadlessOptionalArguments goflags.StringSlice `json:"headless_optional_arguments,omitempty" yaml:"headless_optional_arguments,omitempty"`
+	Protocol                  string              `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+	OutputFilterErrorPagePath string              `json:"output_filter_error_page_path,omitempty" yaml:"output_filter_error_page_path,omitempty"`
+	DisableStdout             bool                `json:"disable_stdout,omitempty" yaml:"disable_stdout,omitempty"`
 	// AssetUpload
-	AssetUpload bool
+	AssetUpload bool `json:"asset_upload,omitempty" yaml:"asset_upload,omitempty"`
 	// AssetName
-	AssetName string
+	AssetName string `json:"asset_name,omitempty" yaml:"asset_name,omitempty"`
 	// AssetID
-	AssetID string
+	AssetID string `json:"asset_id,omitempty" yaml:"asset_id,omitempty"`
 	// AssetFileUpload
-	AssetFileUpload string
-	TeamID          string
+	AssetFileUpload string `json:"asset_file_upload,omitempty" yaml:"asset_file_upload,omitempty"`
+	TeamID          string `json:"team_id,omitempty" yaml:"team_id,omitempty"`
 	// OnClose adds a callback function that is invoked when httpx is closed
 	// to be exact at end of existing closures
-	OnClose func()
+	OnClose func() `json:"on_close,omitempty" yaml:"on_close,omitempty"`
 
-	Trace bool
+	Trace bool `json:"trace,omitempty" yaml:"trace,omitempty"`
 
 	// Optional pre-created objects to reduce allocations
-	Wappalyzer     *wappalyzer.Wappalyze
-	Networkpolicy  *networkpolicy.NetworkPolicy
-	CDNCheckClient *cdncheck.Client
+	Wappalyzer     *wappalyzer.Wappalyze        `json:"wappalyzer,omitempty" yaml:"wappalyzer,omitempty"`
+	Networkpolicy  *networkpolicy.NetworkPolicy `json:"networkpolicy,omitempty" yaml:"networkpolicy,omitempty"`
+	CDNCheckClient *cdncheck.Client             `json:"cdn_check_client,omitempty" yaml:"cdn_check_client,omitempty"`
 }
 
 // ParseOptions parses the command line options for application
