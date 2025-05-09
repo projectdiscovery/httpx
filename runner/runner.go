@@ -2005,11 +2005,8 @@ retry:
 	}
 
 	var finalURL string
-	if resp.HasChain() {
+	if resp.HasChain() && scanopts.OutputLocation {
 		finalURL = resp.GetChainLastURL()
-	}
-
-	if resp.HasChain() {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Magenta(finalURL).String())
