@@ -2006,17 +2006,18 @@ retry:
 
 	var finalURL string
 	if resp.HasChain() {
+		// Populate finalURL with the last URL in the chain, but just print it out in CLI mode if OutputLocation is set.
+		// This way, we can still use the finalURL in JSON output.
 		finalURL = resp.GetChainLastURL()
-	}
-
-	if resp.HasChain() {
-		builder.WriteString(" [")
-		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Magenta(finalURL).String())
-		} else {
-			builder.WriteString(finalURL)
+		if scanopts.OutputLocation {
+			builder.WriteString(" [")
+			if !scanopts.OutputWithNoColor {
+				builder.WriteString(aurora.Magenta(finalURL).String())
+			} else {
+				builder.WriteString(finalURL)
+			}
+			builder.WriteRune(']')
 		}
-		builder.WriteRune(']')
 	}
 
 	var faviconMMH3, faviconMD5, faviconPath, faviconURL string
