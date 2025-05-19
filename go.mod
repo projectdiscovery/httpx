@@ -1,6 +1,6 @@
 module github.com/projectdiscovery/httpx
 
-go 1.23.0
+go 1.24.0
 
 toolchain go1.24.1
 
@@ -22,24 +22,24 @@ require (
 	github.com/miekg/dns v1.1.62 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/asnmap v1.1.1
-	github.com/projectdiscovery/cdncheck v1.1.17
+	github.com/projectdiscovery/cdncheck v1.1.18
 	github.com/projectdiscovery/clistats v0.1.1
-	github.com/projectdiscovery/dsl v0.4.2
+	github.com/projectdiscovery/dsl v0.4.3
 	github.com/projectdiscovery/fastdialer v0.4.0
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.74
 	github.com/projectdiscovery/gologger v1.1.54
-	github.com/projectdiscovery/hmap v0.0.88
+	github.com/projectdiscovery/hmap v0.0.89
 	github.com/projectdiscovery/mapcidr v1.1.34
-	github.com/projectdiscovery/networkpolicy v0.1.14
-	github.com/projectdiscovery/ratelimit v0.0.80
+	github.com/projectdiscovery/networkpolicy v0.1.15
+	github.com/projectdiscovery/ratelimit v0.0.81
 	github.com/projectdiscovery/rawhttp v0.1.90
-	github.com/projectdiscovery/retryablehttp-go v1.0.111
+	github.com/projectdiscovery/retryablehttp-go v1.0.112
 	github.com/projectdiscovery/tlsx v1.1.9
-	github.com/projectdiscovery/useragent v0.0.100
+	github.com/projectdiscovery/useragent v0.0.101
 	github.com/projectdiscovery/utils v0.4.19
-	github.com/projectdiscovery/wappalyzergo v0.2.28
+	github.com/projectdiscovery/wappalyzergo v0.2.29
 	github.com/rs/xid v1.6.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.10.0
@@ -79,7 +79,7 @@ require (
 	github.com/charmbracelet/x/ansi v0.3.2 // indirect
 	github.com/cheggaaa/pb/v3 v3.1.4 // indirect
 	github.com/cloudflare/cfssl v1.6.4 // indirect
-	github.com/cloudflare/circl v1.3.8 // indirect
+	github.com/cloudflare/circl v1.5.0 // indirect
 	github.com/cnf/structhash v0.0.0-20201127153200-e1b16c1ebc08 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
@@ -88,7 +88,7 @@ require (
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/felixge/fgprof v0.9.5 // indirect
-	github.com/gaissmai/bart v0.17.10 // indirect
+	github.com/gaissmai/bart v0.20.4 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/certificate-transparency-go v1.1.4 // indirect
@@ -129,7 +129,7 @@ require (
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
 	github.com/projectdiscovery/retryabledns v1.0.99 // indirect
-	github.com/refraction-networking/utls v1.6.7 // indirect
+	github.com/refraction-networking/utls v1.7.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
