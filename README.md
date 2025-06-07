@@ -129,6 +129,7 @@ HEADLESS:
    -system-chrome                   enable using local installed chrome for screenshot
    -ho, -headless-options string[]  start headless chrome with additional options
    -esb, -exclude-screenshot-bytes  enable excluding screenshot bytes from json output
+   -no-screenshot-full-page         disable saving full page screenshot
    -ehb, -exclude-headless-body     enable excluding headless header from json output
    -st, -screenshot-timeout value   set timeout for screenshot in seconds (default 10s)
    -sid, -screenshot-idle value     set idle time before taking screenshot in seconds (default 1s)

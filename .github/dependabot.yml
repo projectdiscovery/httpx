@@ -17,8 +17,9 @@ updates:
       include: "scope"
     labels:
       - "Type: Maintenance"
-    allow:
-      - dependency-name: "github.com/projectdiscovery/*"
+    groups:
+      modules:
+        patterns: ["github.com/projectdiscovery/*"]
 
 #  # Maintain dependencies for GitHub Actions
 #  - package-ecosystem: "github-actions"

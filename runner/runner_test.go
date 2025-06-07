@@ -1,9 +1,11 @@
 package runner
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/httpx/common/httpx"
@@ -31,7 +33,7 @@ func TestRunner_domain_targets(t *testing.T) {
 			got = append(got, target)
 		}
 	}
-	require.ElementsMatch(t, expected, got, "could not exepcted output")
+	require.ElementsMatch(t, expected, got, "could not expected output")
 }
 
 func TestRunner_probeall_targets(t *testing.T) {
@@ -62,7 +64,7 @@ func TestRunner_probeall_targets(t *testing.T) {
 		got = append(got, target)
 	}
 
-	require.ElementsMatch(t, expected, got, "could not exepcted output")
+	require.ElementsMatch(t, expected, got, "could not expected output")
 }
 
 func TestRunner_cidr_targets(t *testing.T) {
@@ -87,7 +89,7 @@ func TestRunner_cidr_targets(t *testing.T) {
 		got = append(got, target)
 	}
 
-	require.ElementsMatch(t, expected, got, "could not exepcted output")
+	require.ElementsMatch(t, expected, got, "could not expected output")
 }
 
 func TestRunner_asn_targets(t *testing.T) {
@@ -179,5 +181,44 @@ func TestRunner_urlWithComma_targets(t *testing.T) {
 			got = append(got, target)
 		}
 	}
-	require.ElementsMatch(t, expected, got, "could not exepcted output")
+	require.ElementsMatch(t, expected, got, "could not expected output")
+}
+
+func TestRunner_CSVRow(t *testing.T) {
+	// Create a result with fields that would be vulnerable to CSV injection
+	result := Result{
+		URL:         `=HYPERLINK('https://evil.com','click me')`,
+		Title:       `+CMD('calc')`,
+		ContentType: `-SUM(1+1)`,
+		WebServer:   `@MACRO=Virus()`,
+		StatusCode:  200,
+		Timestamp:   time.Now(),
+	}
+
+	// Call CSVRow to get the sanitized output
+	csvOutput := result.CSVRow(nil)
+
+	// Check that vulnerable fields are properly sanitized with a prefix quote
+	tests := []struct {
+		fieldName string
+		original  string
+		expected  string
+	}{
+		{"URL", result.URL, fmt.Sprintf("'%s", result.URL)},
+		{"Title", result.Title, fmt.Sprintf("'%s", result.Title)},
+		{"ContentType", result.ContentType, fmt.Sprintf("'%s", result.ContentType)},
+		{"WebServer", result.WebServer, fmt.Sprintf("'%s", result.WebServer)},
+	}
+
+	for _, tc := range tests {
+		if !strings.Contains(csvOutput, tc.expected) {
+			t.Errorf("CSV sanitization failed for %s field: expected %q but sanitized value not found in output: %s",
+				tc.fieldName, tc.expected, csvOutput)
+		}
+	}
+
+	// Also check that normal fields remain unsanitized
+	if strings.Contains(csvOutput, "'200") {
+		t.Error("CSV sanitization incorrectly modified non-vulnerable field")
+	}
 }
