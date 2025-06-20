@@ -107,6 +107,7 @@ type ScanOptions struct {
 	NoScreenshotFullPage      bool
 	ScreenshotTimeout         time.Duration
 	ScreenshotIdle            time.Duration
+	JavascriptInject          []string
 }
 
 func (s *ScanOptions) IsScreenshotFullPage() bool {
@@ -329,6 +330,7 @@ type Options struct {
 	Protocol                  string
 	OutputFilterErrorPagePath string
 	DisableStdout             bool
+	JavascriptInject          goflags.StringSlice
 	// AssetUpload
 	AssetUpload bool
 	// AssetName
@@ -398,6 +400,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.NoScreenshotFullPage, "no-screenshot-full-page", false, "disable saving full page screenshot"),
 		flagSet.DurationVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10*time.Second, "set timeout for screenshot in seconds"),
 		flagSet.DurationVarP(&options.ScreenshotIdle, "screenshot-idle", "sid", 1*time.Second, "set idle time before taking screenshot in seconds"),
+		flagSet.StringSliceVarP(&options.JavascriptInject, "javascript-code", "jsc", nil, "execute JavaScript code after navigation", goflags.StringSliceOptions),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",
