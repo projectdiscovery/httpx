@@ -85,11 +85,10 @@ func renderNode(n *html.Node) string {
 }
 
 func trimTitleTags(title string) string {
-	// trim <title>*</title>
-	titleBegin := strings.Index(title, ">")
-	titleEnd := strings.Index(title, "</")
-	if titleEnd < 0 || titleBegin < 0 {
-		return title
-	}
-	return title[titleBegin+1 : titleEnd]
+    titleBegin := strings.Index(title, ">")
+    titleEnd := strings.Index(title, "</")
+    if titleEnd < 0 || titleBegin < 0 || titleEnd <= titleBegin {
+        return title
+    }
+    return title[titleBegin+1 : titleEnd]
 }
