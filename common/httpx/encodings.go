@@ -80,6 +80,8 @@ func DecodeData(data []byte, headers http.Header) ([]byte, error) {
 		switch {
 		case stringsutil.ContainsAny(mcontentType, "gb2312", "gbk"):
 			return Decodegbk(data)
+		case stringsutil.ContainsAny(mcontentType, "big5", "Big5"):
+			return Decodebig5(data)
 		}
 	}
 
