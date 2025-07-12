@@ -291,8 +291,8 @@ github.com/projectdiscovery/utils v0.4.18 h1:cSjMOLXI5gAajfA6KV+0iQG4dGx2IHWLQyN
 github.com/projectdiscovery/utils v0.4.18/go.mod h1:y5gnpQn802iEWqf0djTRNskJlS62P5eqe1VS1+ah0tk=
 github.com/projectdiscovery/wappalyzergo v0.2.25 h1:K56XmuMrEBowlu2WqSFJDkUju8DBACRKDJ8JUQrqpDk=
 github.com/projectdiscovery/wappalyzergo v0.2.25/go.mod h1:F8X79ljvmvrG+EIxdxWS9VbdkVTsQupHYz+kXlp8O0o=
-github.com/refraction-networking/utls v1.6.7 h1:zVJ7sP1dJx/WtVuITug3qYUq034cDq9B2MR1K67ULZM=
-github.com/refraction-networking/utls v1.6.7/go.mod h1:BC3O4vQzye5hqpmDTWUqi4P5DDhzJfkV1tdqtawQIH0=
+github.com/refraction-networking/utls v1.7.0 h1:9JTnze/Md74uS3ZWiRAabityY0un69rOLXsBf8LGgTs=
+github.com/refraction-networking/utls v1.7.0/go.mod h1:lV0Gwc1/Fi+HYH8hOtgFRdHfKo4FKSn6+FdyOz9hRms=
 github.com/rivo/uniseg v0.1.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
