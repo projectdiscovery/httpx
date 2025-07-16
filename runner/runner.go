@@ -16,7 +16,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"slices"
 	"sort"
@@ -29,6 +28,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/corona10/goimagehash"
+	"github.com/gocarina/gocsv"
 	"github.com/mfonda/simhash"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
@@ -2006,17 +2006,18 @@ retry:
 
 	var finalURL string
 	if resp.HasChain() {
+		// Populate finalURL with the last URL in the chain, but just print it out in CLI mode if OutputLocation is set.
+		// This way, we can still use the finalURL in JSON output.
 		finalURL = resp.GetChainLastURL()
-	}
-
-	if resp.HasChain() {
-		builder.WriteString(" [")
-		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Magenta(finalURL).String())
-		} else {
-			builder.WriteString(finalURL)
+		if scanopts.OutputLocation {
+			builder.WriteString(" [")
+			if !scanopts.OutputWithNoColor {
+				builder.WriteString(aurora.Magenta(finalURL).String())
+			} else {
+				builder.WriteString(finalURL)
+			}
+			builder.WriteRune(']')
 		}
-		builder.WriteRune(']')
 	}
 
 	var faviconMMH3, faviconMD5, faviconPath, faviconURL string
@@ -2466,57 +2467,51 @@ func (r Result) JSON(scanopts *ScanOptions) string { //nolint
 
 // CSVHeader the CSV headers
 func (r Result) CSVHeader() string { //nolint
-	buffer := bytes.Buffer{}
-	writer := csv.NewWriter(&buffer)
+	var header string
 
-	var headers []string
-	ty := reflect.TypeOf(r)
-	for i := 0; i < ty.NumField(); i++ {
-		tag := ty.Field(i).Tag.Get("csv")
-		if ignored := (tag == "" || tag == "-"); ignored {
-			continue
-		}
-
-		headers = append(headers, tag)
+	if h, err := gocsv.MarshalString([]Result{}); err == nil {
+		header = h
 	}
-	_ = writer.Write(headers)
-	writer.Flush()
+	header = strings.TrimSpace(header)
 
-	return strings.TrimSpace(buffer.String())
+	return header
 }
 
 // CSVRow the CSV Row
 func (r Result) CSVRow(scanopts *ScanOptions) string { //nolint
+	var res string
+
 	if scanopts != nil && len(r.ResponseBody) > scanopts.MaxResponseBodySizeToSave {
 		r.ResponseBody = r.ResponseBody[:scanopts.MaxResponseBodySizeToSave]
 	}
 
-	buffer := bytes.Buffer{}
-	writer := csv.NewWriter(&buffer)
-
-	var cells []string
-	elem := reflect.ValueOf(r)
-	for i := 0; i < elem.NumField(); i++ {
-		value := elem.Field(i)
-		tag := elem.Type().Field(i).Tag.Get(`csv`)
-		if ignored := (tag == "" || tag == "-"); ignored {
-			continue
+	if row, err := gocsv.MarshalStringWithoutHeaders([]Result{r}); err == nil {
+		reader := csv.NewReader(strings.NewReader(row))
+		records, err := reader.ReadAll()
+		if err == nil && len(records) > 0 {
+			buf := &bytes.Buffer{}
+			writer := csv.NewWriter(buf)
+			for _, record := range records {
+				for i, field := range record {
+					if len(field) > 0 {
+						firstChar := field[0]
+						// NOTE(dwisiswant0): Sanitize (prevent CSV injection).
+						if firstChar == '=' || firstChar == '+' || firstChar == '-' || firstChar == '@' {
+							record[i] = "'" + field
+						}
+					}
+				}
+				_ = writer.Write(record) //nolint
+			}
+			writer.Flush()
+			res = buf.String()
+		} else {
+			res = row
 		}
-
-		str := fmt.Sprintf("%v", value.Interface())
-
-		// defense against csv injection
-		startWithRiskyChar, _ := regexp.Compile(`^([=+\-@])`)
-		if startWithRiskyChar.Match([]byte(str)) {
-			str = "'" + str
-		}
-
-		cells = append(cells, str)
+		res = strings.TrimSpace(res)
 	}
-	_ = writer.Write(cells)
-	writer.Flush()
 
-	return strings.TrimSpace(buffer.String()) // remove "\n" in the end
+	return res
 }
 
 func (r *Runner) skipCDNPort(host string, port string) bool {
