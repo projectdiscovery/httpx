@@ -61,7 +61,7 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 		Set("mute-audio", "true").
 		Set("incognito", "true").
 		Delete("use-mock-keychain").
-		Headless(false).
+		Headless(true).
 		UserDataDir(dataStore)
 
 	if MustDisableSandbox() {
