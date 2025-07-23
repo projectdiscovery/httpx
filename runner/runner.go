@@ -1837,6 +1837,7 @@ retry:
 		request            string
 		rawResponseHeaders string
 		responseHeaders    map[string]interface{}
+		linkRequest        []NetworkRequest
 	)
 
 	if scanopts.ResponseHeadersInStdout {
@@ -2189,7 +2190,7 @@ retry:
 	var pHash uint64
 	if scanopts.Screenshot {
 		var err error
-		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle, r.options.CustomHeaders, scanopts.IsScreenshotFullPage())
+		screenshotBytes, headlessBody, linkRequest, err = r.browser.ScreenshotWithBody(fullURL, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle, r.options.CustomHeaders, scanopts.IsScreenshotFullPage())
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
@@ -2234,6 +2235,7 @@ retry:
 	result := Result{
 		Timestamp:        time.Now(),
 		Request:          request,
+		LinkRequest:      linkRequest,
 		ResponseHeaders:  responseHeaders,
 		RawHeaders:       rawResponseHeaders,
 		Scheme:           parsed.Scheme,
