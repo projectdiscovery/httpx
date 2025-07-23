@@ -133,7 +133,7 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 			URL:        e.Request.URL,
 			Method:     e.Request.Method,
 			StatusCode: -1,
-			ErrorType:  "QUIT_BEFORE_RESSOURCE_LOADING_END",
+			ErrorType:  "QUIT_BEFORE_RESOURCE_LOADING_END",
 		}
 		requestsMap[string(e.RequestID)] = req
 	})()
