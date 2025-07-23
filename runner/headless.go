@@ -104,6 +104,11 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 	if err != nil {
 		return nil, "", err
 	}
+	w, h := page.MustHandleDialog()
+	go func() {
+		w()
+		h(true, "")
+	}()
 	for _, header := range headers {
 		headerParts := strings.SplitN(header, ":", 2)
 		if len(headerParts) != 2 {
