@@ -104,10 +104,13 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 	if err != nil {
 		return nil, "", err
 	}
-	w, h := page.MustHandleDialog()
+	wait, handle := page.HandleDialog()
 	go func() {
-		w()
-		h(true, "")
+		wait()
+		handle(&proto.PageHandleJavaScriptDialog{
+			Accept:     true,
+			PromptText: "",
+		})
 	}()
 	for _, header := range headers {
 		headerParts := strings.SplitN(header, ":", 2)
