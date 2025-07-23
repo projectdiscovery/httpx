@@ -21,7 +21,6 @@ type NetworkRequest struct {
 	URL            string
 	Method         string
 	StatusCode     int
-	NetworkRequest string
 	ErrorType      string
 }
 
