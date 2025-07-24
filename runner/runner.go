@@ -41,6 +41,7 @@ import (
 	"github.com/projectdiscovery/networkpolicy"
 	errorutil "github.com/projectdiscovery/utils/errors"
 	osutil "github.com/projectdiscovery/utils/os"
+	"github.com/projectdiscovery/utils/structs"
 
 	"github.com/Mzack9999/gcache"
 	"github.com/logrusorgru/aurora"
@@ -1151,6 +1152,12 @@ func (r *Runner) RunEnumeration() {
 			//nolint:errcheck // this method needs a small refactor to reduce complexity
 			if plainFile != nil {
 				plainFile.WriteString(resp.str + "\n")
+			}
+
+			if len(r.options.ExcludeОutputFields) > 0 {
+				if filteredData, err := structs.FilterStruct(resp, nil, r.options.ExcludeОutputFields); err == nil {
+					resp = filteredData
+				}
 			}
 
 			// call the callback function if any

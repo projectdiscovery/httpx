@@ -31,6 +31,7 @@ import (
 	fileutil "github.com/projectdiscovery/utils/file"
 	sliceutil "github.com/projectdiscovery/utils/slice"
 	stringsutil "github.com/projectdiscovery/utils/strings"
+	"github.com/projectdiscovery/utils/structs"
 	updateutils "github.com/projectdiscovery/utils/update"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 )
@@ -310,6 +311,8 @@ type Options struct {
 	OutputFilterCondition     string
 	OutputMatchCondition      string
 	StripFilter               string
+	ListOutputFields          bool
+	ExcludeОutputFields       goflags.StringSlice
 	//The OnResult callback function is invoked for each result. It is important to check for errors in the result before using Result.Err.
 	OnResult             OnResultCallback
 	DisableUpdateCheck   bool
@@ -432,6 +435,8 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
 		flagSet.StringVarP(&options.OutputFilterCondition, "filter-condition", "fdc", "", "filter response with dsl expression condition"),
 		flagSet.DynamicVar(&options.StripFilter, "strip", "html", "strips all tags in response. supported formats: html,xml"),
+		flagSet.BoolVarP(&options.ListOutputFields, "list-output-fields", "lof", false, "list of fields to output (comma separated)"),
+		flagSet.StringSliceVarP(&options.ExcludeОutputFields, "exclude-output-fields", "eof", nil, "exclude output fields output based on a condition", goflags.NormalizedOriginalStringSliceOptions),
 	)
 
 	flagSet.CreateGroup("rate-limit", "Rate-Limit",
@@ -543,6 +548,17 @@ func ParseOptions() *Options {
 	)
 
 	_ = flagSet.Parse()
+
+	if options.ListOutputFields {
+		fields, err := structs.GetStructFields(Result{})
+		if err != nil {
+			gologger.Fatal().Msgf("Could not get struct fields: %s\n", err)
+		}
+		for _, field := range fields {
+			fmt.Println(field)
+		}
+		os.Exit(0)
+	}
 
 	if options.OutputAll && options.Output == "" {
 		gologger.Fatal().Msg("Please specify an output file using -o/-output when using -oa/-output-all")
