@@ -34,6 +34,7 @@ func (o AsnResponse) String() string {
 // Result of a scan
 type Result struct {
 	Timestamp          time.Time                     `json:"timestamp,omitempty" csv:"timestamp" mapstructure:"timestamp"`
+	LinkRequest        []NetworkRequest              `json:"link_request,omitempty" csv:"link_request" mapstructure:"link_request"`
 	ASN                *AsnResponse                  `json:"asn,omitempty" csv:"-" mapstructure:"asn"`
 	Err                error                         `json:"-" csv:"-" mapstructure:"-"`
 	CSPData            *httpx.CSPData                `json:"csp,omitempty" csv:"-" mapstructure:"csp"`
