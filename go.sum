@@ -354,6 +354,8 @@ github.com/projectdiscovery/useragent v0.0.101 h1:8A+XOJ/nIH+WqW8ogLxJ/psemGp8AT
 github.com/projectdiscovery/useragent v0.0.101/go.mod h1:RGoRw1BQ/lJnhYMbMpEKjyAAgCaDCr/+GsULo5yEJ2I=
 github.com/projectdiscovery/utils v0.4.22 h1:OO3FU2uX967sQxu5JtpdBZNzOevvKHAhWqkoTGl+C0A=
 github.com/projectdiscovery/utils v0.4.22/go.mod h1:3l84gpCwL9KG1/ZmslOBABCrk84CcpGWJZfR8wZysR4=
+github.com/projectdiscovery/utils v0.4.23-0.20250724114850-33370739286f h1:pjXnlUf0uPvLlLcfG2uVIb8mfkHv6/J073csPBCS+Rs=
+github.com/projectdiscovery/utils v0.4.23-0.20250724114850-33370739286f/go.mod h1:3l84gpCwL9KG1/ZmslOBABCrk84CcpGWJZfR8wZysR4=
 github.com/projectdiscovery/wappalyzergo v0.2.38 h1:R7gf5NlndtKd2OFT34uIgFlXDJzE8MXRIwQandAC40M=
 github.com/projectdiscovery/wappalyzergo v0.2.38/go.mod h1:XQSgnMQnxliVw2wjKehxeJ4QTRluOJpmm55gLHdztVQ=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
