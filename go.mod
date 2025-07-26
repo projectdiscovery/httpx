@@ -38,7 +38,7 @@ require (
 	github.com/projectdiscovery/retryablehttp-go v1.0.118
 	github.com/projectdiscovery/tlsx v1.2.0
 	github.com/projectdiscovery/useragent v0.0.101
-	github.com/projectdiscovery/utils v0.4.22
+	github.com/projectdiscovery/utils v0.4.23-0.20250724114850-33370739286f
 	github.com/projectdiscovery/wappalyzergo v0.2.38
 	github.com/rs/xid v1.6.0
 	github.com/spaolacci/murmur3 v1.1.0
