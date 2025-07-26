@@ -168,6 +168,11 @@ func New(options *Options) (*Runner, error) {
 	} else {
 		httpxOptions.RandomAgent = options.RandomAgent
 	}
+	if options.CustomHeaders.Has("Referer:") {
+		httpxOptions.AutoReferer = false
+	} else {
+		httpxOptions.AutoReferer = options.AutoReferer
+	}
 	httpxOptions.ZTLS = options.ZTLS
 	httpxOptions.MaxResponseBodySizeToSave = int64(options.MaxResponseBodySizeToSave)
 	httpxOptions.MaxResponseBodySizeToRead = int64(options.MaxResponseBodySizeToRead)

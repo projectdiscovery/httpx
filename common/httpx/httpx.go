@@ -435,6 +435,9 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 		userAgent := useragent.PickRandom()
 		r.Header.Set("User-Agent", userAgent.Raw) //nolint
 	}
+	if h.Options.AutoReferer {
+		r.Header.Set("Referer", r.URL.String())
+	}
 }
 
 func (httpx *HTTPX) setCustomCookies(req *http.Request) {
