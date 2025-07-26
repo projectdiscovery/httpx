@@ -2190,7 +2190,7 @@ retry:
 	var pHash uint64
 	if scanopts.Screenshot {
 		var err error
-		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle, r.options.CustomHeaders, scanopts.IsScreenshotFullPage())
+		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle, r.options.CustomHeaders, r.options.JavascriptInject, scanopts.IsScreenshotFullPage())
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
