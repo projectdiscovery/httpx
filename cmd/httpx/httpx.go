@@ -32,7 +32,7 @@ func main() {
 
 		defer func() {
 			_ = pprof.Lookup("heap").WriteTo(f, 0)
-			f.Close()
+			_ = f.Close()
 			runtime.MemProfileRate = old
 			gologger.Print().Msgf("profile: memory profiling disabled, %s", options.Memprofile)
 		}()
@@ -45,7 +45,9 @@ func main() {
 		if err != nil {
 			gologger.Fatal().Msgf("Could not open file: %s\n", err)
 		}
-		defer file.Close()
+		defer func() {
+			_ = file.Close()
+		}()
 		dec := json.NewDecoder(file)
 		for dec.More() {
 			var r runner.Result
