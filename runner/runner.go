@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -2024,7 +2025,7 @@ retry:
 	var faviconData []byte
 	if scanopts.Favicon {
 		var err error
-		faviconMMH3, faviconMD5, faviconPath, faviconData, faviconURL, err = r.HandleFaviconHash(hp, req, resp.Data, true)
+		faviconMMH3, faviconMD5, faviconPath, faviconData, faviconURL, err = r.HandleFaviconHash(hp, req, resp.Data, finalURL, true)
 		if err == nil {
 			builder.WriteString(" [")
 			if !scanopts.OutputWithNoColor {
@@ -2333,85 +2334,119 @@ func calculatePerceptionHash(screenshotBytes []byte) (uint64, error) {
 	return pHash.GetHash(), nil
 }
 
-func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp []byte, defaultProbe bool) (string, string, string, []byte, string, error) {
+func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp []byte, finalURL string, defaultProbe bool) (string, string, string, []byte, string, error) {
 	// Check if current URI is ending with .ico => use current body without additional requests
 	if path.Ext(req.URL.Path) == ".ico" {
-		MMH3Hash, MD5Hash, err := r.calculateFaviconHashWithRaw(currentResp)
-		return MMH3Hash, MD5Hash, req.URL.Path, currentResp, "", err
+		mmh3, md5h, err := r.calculateFaviconHashWithRaw(currentResp)
+		return mmh3, md5h, req.URL.Path, currentResp, req.URL.String(), err
 	}
 
-	// search in the response of the requested path for element and rel shortcut/mask/apple-touch icon
-	// link with .ico extension (which will be prioritized if available)
-	// if not, any of link from other icons can be requested
-	potentialURLs, err := extractPotentialFavIconsURLs(currentResp)
+	// Parse HTML: collect <link rel="...icon..."> hrefs + optional <base href>
+	hrefs, baseHref, err := extractPotentialFavIconsURLs(currentResp)
 	if err != nil {
 		return "", "", "", nil, "", err
 	}
 
+	// If none found and probing allowed, add default /favicon.ico
+	if len(hrefs) == 0 && defaultProbe {
+		hrefs = append(hrefs, "/favicon.ico")
+	}
+
+	// Determine base URL: prefer finalURL (redirect target) then apply <base href>
+	baseNet, _ := url.Parse(req.URL.String())
+	if finalURL != "" {
+		if u, err := url.Parse(finalURL); err == nil {
+			baseNet = u
+		}
+	}
+	if baseHref != "" {
+		if bu, err := url.Parse(baseHref); err == nil {
+			baseNet = baseNet.ResolveReference(bu)
+		}
+	}
+
+	// Clone original request (reuse headers/cookies)
 	clone := req.Clone(context.Background())
 
-	var faviconMMH3, faviconMD5, faviconPath, faviconURL string
-	var faviconData, faviconDecodedData []byte
-	errCount := 0
-	if len(potentialURLs) == 0 && defaultProbe {
-		potentialURLs = append(potentialURLs, "/favicon.ico")
-	}
-	// We only want upto two favicon requests, if the
-	// first one fails, we will try the second one
-	for _, potentialURL := range potentialURLs {
-		if errCount == 2 {
+	var (
+		faviconMMH3 string
+		faviconMD5  string
+		faviconPath string
+		faviconURL  string
+		faviconData []byte
+		tries       int // network fetch attempts
+	)
+
+	// Iterate candidates (.ico first ordering handled in extractPotentialFavIconsURLs)
+	for _, raw := range hrefs {
+		if tries == 2 {
 			break
 		}
-		URL, err := urlutil.ParseURL(potentialURL, r.options.Unsafe)
-
-		isFavUrl, isBase64FavIcon := err == nil, false
-		if !isFavUrl {
-			isBase64FavIcon = stringz.IsBase64Icon(potentialURL)
-		}
-
-		if !isFavUrl && !isBase64FavIcon {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
 			continue
 		}
 
-		if isFavUrl {
-			if URL.IsAbs() {
-				clone.SetURL(URL)
-				clone.Host = URL.Host
-				potentialURL = ""
-			} else {
-				potentialURL = URL.String()
-			}
-
-			if potentialURL != "" {
-				err = clone.UpdateRelPath(potentialURL, false)
-				if err != nil {
-					continue
-				}
-			}
-			resp, err := hp.Do(clone, httpx.UnsafeOptions{})
+		// data: URL (base64) favicon
+		if stringz.IsBase64Icon(raw) {
+			data, err := stringz.DecodeBase64Icon(raw)
 			if err != nil {
-				errCount++
 				continue
 			}
-			faviconDecodedData = resp.Data
-		}
-		// if the favicon is base64 encoded, decode before hashing
-		if isBase64FavIcon {
-			if faviconDecodedData, err = stringz.DecodeBase64Icon(potentialURL); err != nil {
+			mmh3, md5h, err := r.calculateFaviconHashWithRaw(data)
+			if err != nil {
 				continue
 			}
+			return mmh3, md5h, "data:", data, "", nil
 		}
-		MMH3Hash, MD5Hash, err := r.calculateFaviconHashWithRaw(faviconDecodedData)
+
+		// Resolve relative/absolute href
+		parsedHref, err := url.Parse(raw)
 		if err != nil {
 			continue
 		}
+		resolvedNet := baseNet.ResolveReference(parsedHref)
+		resolvedURL, err := urlutil.ParseURL(resolvedNet.String(), r.options.Unsafe)
+		if err != nil {
+			continue
+		}
+
+		clone.SetURL(resolvedURL)
+		respFav, err := hp.Do(clone, httpx.UnsafeOptions{})
+		if err != nil || len(respFav.Data) == 0 {
+			tries++
+			// Root fallback: directory-relative failed and raw had no leading slash
+			if !strings.HasPrefix(raw, "/") {
+				rootResolvedNet := baseNet.ResolveReference(&url.URL{Path: "/" + raw})
+				rootResolvedURL, err2 := urlutil.ParseURL(rootResolvedNet.String(), r.options.Unsafe)
+				if err2 != nil {
+					continue
+				}
+				clone.SetURL(rootResolvedURL)
+				if respFav2, err3 := hp.Do(clone, httpx.UnsafeOptions{}); err3 == nil && len(respFav2.Data) > 0 {
+					respFav = respFav2
+				} else {
+					continue
+				}
+			} else {
+				continue
+			}
+		}
+
+		// Hash favicon bytes
+		mmh3, md5h, err := r.calculateFaviconHashWithRaw(respFav.Data)
+		if err != nil {
+			continue
+		}
+		faviconMMH3 = mmh3
+		faviconMD5 = md5h
+		faviconPath = raw
 		faviconURL = clone.URL.String()
-		faviconPath = potentialURL
-		faviconMMH3 = MMH3Hash
-		faviconMD5 = MD5Hash
-		faviconData = faviconDecodedData
+		faviconData = respFav.Data
+		gologger.Debug().Msgf("favicon resolved url=%s raw_href=%s size=%d bytes", faviconURL, faviconPath, len(faviconData))
 		break
 	}
+
 	return faviconMMH3, faviconMD5, faviconPath, faviconData, faviconURL, nil
 }
 
@@ -2423,25 +2458,43 @@ func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, string, error
 	return fmt.Sprintf("%d", hashNum), md5Hash, nil
 }
 
-func extractPotentialFavIconsURLs(resp []byte) ([]string, error) {
-	var potentialURLs []string
-	document, err := goquery.NewDocumentFromReader(bytes.NewReader(resp))
+func extractPotentialFavIconsURLs(resp []byte) (candidates []string, baseHref string, err error) {
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(resp))
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	document.Find("link").Each(func(i int, item *goquery.Selection) {
-		href, okHref := item.Attr("href")
-		rel, okRel := item.Attr("rel")
-		isValidRel := okRel && stringsutil.EqualFoldAny(rel, "icon", "shortcut icon", "mask-icon", "apple-touch-icon")
-		if okHref && isValidRel {
-			potentialURLs = append(potentialURLs, href)
+
+	if b := doc.Find("base[href]").First(); b.Length() == 1 {
+		if v, ok := b.Attr("href"); ok {
+			baseHref = strings.TrimSpace(v)
+		}
+	}
+
+	doc.Find("link[rel]").Each(func(_ int, s *goquery.Selection) {
+		rel := strings.ToLower(strings.TrimSpace(s.AttrOr("rel", "")))
+		href := strings.TrimSpace(s.AttrOr("href", ""))
+		if href == "" {
+			return
+		}
+		for _, tok := range strings.Fields(rel) {
+			switch tok {
+			case "icon", "shortcut", "shortcut-icon", "apple-touch-icon", "mask-icon", "alternate":
+				candidates = append(candidates, href)
+				return
+			}
 		}
 	})
-	// Sort and prefer icon with .ico extension
-	sort.Slice(potentialURLs, func(i, j int) bool {
-		return !strings.HasSuffix(potentialURLs[i], ".ico")
+
+	sort.SliceStable(candidates, func(i, j int) bool {
+		ai := strings.HasSuffix(strings.ToLower(candidates[i]), ".ico")
+		aj := strings.HasSuffix(strings.ToLower(candidates[j]), ".ico")
+		if ai == aj {
+			return candidates[i] < candidates[j]
+		}
+		return ai && !aj
 	})
-	return potentialURLs, nil
+
+	return candidates, baseHref, nil
 }
 
 // SaveResumeConfig to file
