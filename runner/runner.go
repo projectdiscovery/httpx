@@ -1062,7 +1062,7 @@ func (r *Runner) RunEnumeration() {
 			// store responses or chain in directory
 			if resp.Err == nil {
 				URL, _ := urlutil.Parse(resp.URL)
-				domainFile := resp.Method + ":" + URL.EscapedString()
+				domainFile := resp.Method + ":" + URL.EscapedString() + ":" + resp.Host
 				hash := hashes.Sha1([]byte(domainFile))
 				domainResponseFile := fmt.Sprintf("%s.txt", hash)
 				screenshotResponseFile := fmt.Sprintf("%s.png", hash)
