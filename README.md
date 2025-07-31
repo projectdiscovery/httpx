@@ -219,7 +219,7 @@ CONFIGURATIONS:
    -maxr, -max-redirects int        max number of redirects to follow per host (default 10)
    -fhr, -follow-host-redirects     follow redirects on the same host
    -rhsts, -respect-hsts            respect HSTS response headers for redirect requests
-   -vhost-input                     get a list of vhosts as input
+   -vhost-input                     probe vhosts using input format: host[ip] or scheme://host[ip]
    -x string                        request methods to probe, use 'all' to probe all HTTP methods
    -body string                     post body to include in http request
    -s, -stream                      stream mode - start elaborating input targets without sorting

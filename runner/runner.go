@@ -1593,7 +1593,9 @@ retry:
 		req *retryablehttp.Request
 		ctx context.Context
 	)
-	if target.CustomIP != "" {
+	if target.CustomIP != "" && r.options.Proxy == "" {
+		// Only use fastdialer custom IP when no proxy is configured
+		// When proxy is configured, let the proxy handle the connection
 		var requestIP string
 		if iputil.IsIPv6(target.CustomIP) {
 			requestIP = fmt.Sprintf("[%s]", target.CustomIP)
@@ -1611,6 +1613,13 @@ retry:
 
 	if target.CustomHost != "" {
 		req.Host = target.CustomHost
+	} else if target.CustomIP != "" && r.options.Proxy != "" {
+		// When using proxy with vhost-input, preserve the original hostname in Host header
+		// The proxy will handle routing to the CustomIP
+		req.Host = URL.Hostname()
+		if URL.Port() != "" {
+			req.Host = net.JoinHostPort(URL.Hostname(), URL.Port())
+		}
 	}
 
 	if !scanopts.LeaveDefaultPorts {

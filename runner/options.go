@@ -492,7 +492,7 @@ func ParseOptions() *Options {
 		flagSet.IntVarP(&options.MaxRedirects, "max-redirects", "maxr", 10, "max number of redirects to follow per host"),
 		flagSet.BoolVarP(&options.FollowHostRedirects, "follow-host-redirects", "fhr", false, "follow redirects on the same host"),
 		flagSet.BoolVarP(&options.RespectHSTS, "respect-hsts", "rhsts", false, "respect HSTS response headers for redirect requests"),
-		flagSet.BoolVar(&options.VHostInput, "vhost-input", false, "get a list of vhosts as input"),
+		flagSet.BoolVar(&options.VHostInput, "vhost-input", false, "probe vhosts using input format: host[ip] or scheme://host[ip]"),
 		flagSet.StringVar(&options.Methods, "x", "", "request methods to probe, use 'all' to probe all HTTP methods"),
 		flagSet.StringVar(&options.RequestBody, "body", "", "post body to include in http request"),
 		flagSet.BoolVarP(&options.Stream, "stream", "s", false, "stream mode - start elaborating input targets without sorting"),

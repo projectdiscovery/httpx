@@ -222,3 +222,210 @@ func TestRunner_CSVRow(t *testing.T) {
 		t.Error("CSV sanitization incorrectly modified non-vulnerable field")
 	}
 }
+
+func TestRunner_vhostInput_targets(t *testing.T) {
+	options := &Options{
+		VHostInput: true,
+	}
+	r, err := New(options)
+	require.Nil(t, err, "could not create httpx runner")
+	
+	tests := []struct {
+		name     string
+		input    string
+		expected []httpx.Target
+	}{
+		{
+			name:  "basic vhost input without scheme",
+			input: "example.com[127.0.0.1]",
+			expected: []httpx.Target{{
+				Host:     "example.com",
+				CustomIP: "127.0.0.1",
+			}},
+		},
+		{
+			name:  "vhost input with http scheme",
+			input: "http://example.com[192.168.1.1]",
+			expected: []httpx.Target{{
+				Host:     "http://example.com",
+				CustomIP: "192.168.1.1",
+			}},
+		},
+		{
+			name:  "vhost input with https scheme",
+			input: "https://example.com[10.0.0.1]",
+			expected: []httpx.Target{{
+				Host:     "https://example.com",
+				CustomIP: "10.0.0.1",
+			}},
+		},
+		{
+			name:  "vhost input with IPv6",
+			input: "example.com[2001:db8::1]",
+			expected: []httpx.Target{{
+				Host:     "example.com",
+				CustomIP: "2001:db8::1",
+			}},
+		},
+		{
+			name:  "vhost input with port",
+			input: "example.com:8080[127.0.0.1]",
+			expected: []httpx.Target{{
+				Host:     "example.com:8080",
+				CustomIP: "127.0.0.1",
+			}},
+		},
+		{
+			name:  "vhost input with scheme and port",
+			input: "https://example.com:8443[127.0.0.1]",
+			expected: []httpx.Target{{
+				Host:     "https://example.com:8443",
+				CustomIP: "127.0.0.1",
+			}},
+		},
+	}
+	
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := []httpx.Target{}
+			for target := range r.targets(r.hp, tc.input) {
+				got = append(got, target)
+			}
+			require.ElementsMatch(t, tc.expected, got, "incorrect vhost-input parsing for %s", tc.name)
+		})
+	}
+}
+
+func TestRunner_vhostInput_invalidFormats(t *testing.T) {
+	options := &Options{
+		VHostInput: true,
+	}
+	r, err := New(options)
+	require.Nil(t, err, "could not create httpx runner")
+	
+	// Test invalid vhost formats - these should be silently skipped
+	invalidVhostInputs := []string{
+		"example.com[]",         // empty brackets
+		"example.com[",          // unclosed bracket
+		"[127.0.0.1]",           // no hostname
+	}
+	
+	for _, input := range invalidVhostInputs {
+		got := []httpx.Target{}
+		for target := range r.targets(r.hp, input) {
+			got = append(got, target)
+		}
+		// Invalid vhost inputs should produce no targets
+		require.Empty(t, got, "invalid vhost-input %s should produce no targets", input)
+	}
+	
+	// Test inputs that should be treated as regular targets (not vhost)
+	// Note: "example.com]" will match the vhost pattern but fail parsing, so it produces no target
+	regularInputs := []string{
+		"example.com",           // no brackets - regular target
+	}
+	
+	for _, input := range regularInputs {
+		got := []httpx.Target{}
+		for target := range r.targets(r.hp, input) {
+			got = append(got, target)
+		}
+		require.Len(t, got, 1, "expected one target for input %s", input)
+		require.Equal(t, input, got[0].Host, "host should match input")
+		require.Empty(t, got[0].CustomIP, "regular input %s should not set CustomIP", input)
+	}
+	
+	// Test that inputs with partial brackets are silently skipped when vhost parsing fails
+	partialBracketInputs := []string{
+		"example.com]",          // no opening bracket
+	}
+	
+	for _, input := range partialBracketInputs {
+		got := []httpx.Target{}
+		for target := range r.targets(r.hp, input) {
+			got = append(got, target)
+		}
+		// These match the vhost pattern but fail parsing, so no target is produced
+		require.Empty(t, got, "partial bracket input %s should produce no targets", input)
+	}
+}
+
+func TestParseVhostInput(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        string
+		expectHost   string
+		expectIP     string
+		expectError  bool
+	}{
+		{
+			name:        "basic hostname with IP",
+			input:       "example.com[127.0.0.1]",
+			expectHost:  "example.com",
+			expectIP:    "127.0.0.1",
+			expectError: false,
+		},
+		{
+			name:        "hostname with port and IP",
+			input:       "example.com:8080[192.168.1.100]",
+			expectHost:  "example.com:8080",
+			expectIP:    "192.168.1.100",
+			expectError: false,
+		},
+		{
+			name:        "scheme with hostname and IP",
+			input:       "https://example.com[10.10.10.10]",
+			expectHost:  "https://example.com",
+			expectIP:    "10.10.10.10",
+			expectError: false,
+		},
+		{
+			name:        "full URL with scheme, port and IP",
+			input:       "https://example.com:8443[172.16.0.1]",
+			expectHost:  "https://example.com:8443",
+			expectIP:    "172.16.0.1",
+			expectError: false,
+		},
+		{
+			name:        "hostname with IPv6",
+			input:       "example.com[2001:db8::1]",
+			expectHost:  "example.com",
+			expectIP:    "2001:db8::1",
+			expectError: false,
+		},
+		{
+			name:        "missing opening bracket",
+			input:       "example.com127.0.0.1]",
+			expectError: true,
+		},
+		{
+			name:        "missing closing bracket",
+			input:       "example.com[127.0.0.1",
+			expectError: true,
+		},
+		{
+			name:        "empty brackets",
+			input:       "example.com[]",
+			expectError: true,
+		},
+		{
+			name:        "no hostname",
+			input:       "[127.0.0.1]",
+			expectError: true,
+		},
+	}
+	
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			host, ip, err := parseVhostInput(tc.input)
+			
+			if tc.expectError {
+				require.NotNil(t, err, "expected error for input %s", tc.input)
+			} else {
+				require.Nil(t, err, "unexpected error for input %s: %v", tc.input, err)
+				require.Equal(t, tc.expectHost, host, "incorrect hostname parsed")
+				require.Equal(t, tc.expectIP, ip, "incorrect IP parsed")
+			}
+		})
+	}
+}
