@@ -1543,6 +1543,8 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 		case stringsutil.ContainsAny(target, "[", "]") && r.options.VHostInput:
 			if h, ip, err := parseVhostInput(target); err == nil {
 				results <- httpx.Target{Host: h, CustomIP: ip}
+			} else {
+				gologger.Warning().Msgf("Invalid vhost input format '%s': %s", target, err)
 			}
 		default:
 			results <- httpx.Target{Host: target}
