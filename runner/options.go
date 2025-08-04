@@ -222,6 +222,7 @@ type Options struct {
 	RespectHSTS               bool
 	StoreResponse             bool
 	JSONOutput                bool
+	JSONExport                string
 	CSVOutput                 bool
 	CSVOutputEncoding         string
 	PdcpAuth                  string
@@ -475,6 +476,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.StoreVisionReconClusters, "store-vision-recon-cluster", "svrc", false, "include visual recon clusters (-ss and -sr only)"),
 		flagSet.StringVarP(&options.Protocol, "protocol", "pr", "", "protocol to use (unknown, http11)"),
 		flagSet.StringVarP(&options.OutputFilterErrorPagePath, "filter-error-page-path", "fepp", "filtered_error_page.json", "path to store filtered error pages"),
+		flagSet.StringVarP(&options.JSONExport, "json-export", "je", "", "file to export results in JSON format"),
 	)
 
 	flagSet.CreateGroup("configs", "Configurations",

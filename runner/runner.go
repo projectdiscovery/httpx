@@ -780,7 +780,8 @@ func (r *Runner) RunEnumeration() {
 			}
 		}()
 
-		var plainFile, jsonFile, csvFile, indexFile, indexScreenshotFile *os.File
+		var plainFile, jsonFile, csvFile, indexFile, indexScreenshotFile, jsonExportFile *os.File
+		var jsonExportResults []Result
 
 		if r.options.Output != "" && r.options.OutputAll {
 			plainFile = openOrCreateFile(r.options.Resume, r.options.Output)
@@ -1169,6 +1170,27 @@ func (r *Runner) RunEnumeration() {
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				if jsonFile != nil {
 					jsonFile.WriteString(row + "\n")
+				}
+			}
+
+			if r.options.JSONExport != "" {
+				filename := r.options.JSONExport
+
+				if jsonExportResults == nil {
+					jsonExportResults = make([]Result, 0)
+				}
+				jsonExportResults = append(jsonExportResults, resp)
+
+				if jsonExportFile == nil {
+					jsonExportFile = openOrCreateFile(r.options.Resume, filename)
+					defer func() {
+						if jsonExportFile != nil && len(jsonExportResults) > 0 {
+							if jsonData, err := json.Marshal(jsonExportResults); err == nil {
+								jsonExportFile.Write(jsonData)
+							}
+							jsonExportFile.Close()
+						}
+					}()
 				}
 			}
 
