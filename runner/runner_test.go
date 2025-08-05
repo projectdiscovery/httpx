@@ -255,4 +255,48 @@ func TestCreateNetworkpolicyInstance_AllowDenyFlags(t *testing.T) {
 	// Should allow IP outside denied range
 	allowed = np.Validate("8.8.8.8")
 	require.True(t, allowed, "IP outside denied range should be allowed")
+	
+	// Test combined Allow and Deny flags
+	options = &Options{}
+	options.Allow = []string{"192.168.0.0/16"}  // Allow 192.168.x.x
+	options.Deny = []string{"192.168.1.0/24"}   // But deny 192.168.1.x
+	
+	np, err = runner.createNetworkpolicyInstance(options)
+	require.Nil(t, err, "could not create networkpolicy instance")
+	
+	// Should block IP outside allowed range (even if not in deny list)
+	allowed = np.Validate("10.0.0.1")
+	require.False(t, allowed, "IP outside allowed range should be blocked")
+	
+	// Should block IP in denied range (even if in allowed range)
+	allowed = np.Validate("192.168.1.100")
+	require.False(t, allowed, "IP in denied range should be blocked even if in allowed range")
+	
+	// Should allow IP in allowed range but not in denied range
+	allowed = np.Validate("192.168.2.50")
+	require.True(t, allowed, "IP in allowed range but not in denied range should be allowed")
+	
+	// Test with multiple Allow and Deny ranges
+	options = &Options{}
+	options.Allow = []string{"10.0.0.0/8", "172.16.0.0/12"}  // Allow 10.x.x.x and 172.16-31.x.x
+	options.Deny = []string{"10.1.0.0/16", "172.20.0.0/16"} // Deny 10.1.x.x and 172.20.x.x
+	
+	np, err = runner.createNetworkpolicyInstance(options)
+	require.Nil(t, err, "could not create networkpolicy instance")
+	
+	// Test various scenarios
+	allowed = np.Validate("10.0.1.1")
+	require.True(t, allowed, "10.0.1.1 should be allowed (in allow range, not in deny)")
+	
+	allowed = np.Validate("10.1.1.1")
+	require.False(t, allowed, "10.1.1.1 should be blocked (in deny range)")
+	
+	allowed = np.Validate("172.16.1.1")
+	require.True(t, allowed, "172.16.1.1 should be allowed (in allow range, not in deny)")
+	
+	allowed = np.Validate("172.20.1.1")
+	require.False(t, allowed, "172.20.1.1 should be blocked (in deny range)")
+	
+	allowed = np.Validate("192.168.1.1")
+	require.False(t, allowed, "192.168.1.1 should be blocked (not in any allow range)")
 }
