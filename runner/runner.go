@@ -412,6 +412,11 @@ func (runner *Runner) createNetworkpolicyInstance(options *Options) (*networkpol
 			npOptions.DenyList = append(npOptions.DenyList, exclude)
 		}
 	}
+	
+	// Add Allow and Deny flag integration
+	npOptions.AllowList = append(npOptions.AllowList, options.Allow...)
+	npOptions.DenyList = append(npOptions.DenyList, options.Deny...)
+	
 	np, err := networkpolicy.New(npOptions)
 	return np, err
 }

@@ -222,3 +222,37 @@ func TestRunner_CSVRow(t *testing.T) {
 		t.Error("CSV sanitization incorrectly modified non-vulnerable field")
 	}
 }
+
+func TestCreateNetworkpolicyInstance_AllowDenyFlags(t *testing.T) {
+	// Test Allow flag blocks IPs outside allowed range
+	options := &Options{}
+	options.Allow = []string{"192.168.1.0/24"}
+	
+	runner := &Runner{}
+	np, err := runner.createNetworkpolicyInstance(options)
+	require.Nil(t, err, "could not create networkpolicy instance")
+	require.NotNil(t, np, "networkpolicy instance should not be nil")
+	
+	// Should block IP outside allowed range
+	allowed := np.Validate("8.8.8.8")
+	require.False(t, allowed, "IP outside allowed range should be blocked")
+	
+	// Should allow IP inside allowed range  
+	allowed = np.Validate("192.168.1.10")
+	require.True(t, allowed, "IP inside allowed range should be allowed")
+	
+	// Test Deny flag blocks IPs in denied range
+	options = &Options{}
+	options.Deny = []string{"127.0.0.0/8"}
+	
+	np, err = runner.createNetworkpolicyInstance(options)
+	require.Nil(t, err, "could not create networkpolicy instance")
+	
+	// Should block IP in denied range
+	allowed = np.Validate("127.0.0.1")
+	require.False(t, allowed, "IP in denied range should be blocked")
+	
+	// Should allow IP outside denied range
+	allowed = np.Validate("8.8.8.8")
+	require.True(t, allowed, "IP outside denied range should be allowed")
+}
