@@ -177,6 +177,7 @@ func New(options *Options) (*Runner, error) {
 	}
 	httpxOptions.Resolvers = options.Resolvers
 	httpxOptions.TlsImpersonate = options.TlsImpersonate
+	httpxOptions.Protocol = httpx.Proto(options.Protocol)
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
