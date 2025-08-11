@@ -1185,10 +1185,14 @@ func (r *Runner) RunEnumeration() {
 					jsonExportFile = openOrCreateFile(r.options.Resume, filename)
 					defer func() {
 						if jsonExportFile != nil && len(jsonExportResults) > 0 {
-							if jsonData, err := json.Marshal(jsonExportResults); err == nil {
-								jsonExportFile.Write(jsonData)
+							if jsonData, err := json.Marshal(jsonExportResults); err != nil {
+								gologger.Error().Msgf("Failed to marshal JSON export data: %s", err)
+							} else if _, writeErr := jsonExportFile.Write(jsonData); writeErr != nil {
+								gologger.Error().Msgf("Failed to write JSON export file: %s", writeErr)
 							}
-							jsonExportFile.Close()
+							if closeErr := jsonExportFile.Close(); closeErr != nil {
+								gologger.Error().Msgf("Failed to close JSON export file: %s", closeErr)
+							}
 						}
 					}()
 				}
