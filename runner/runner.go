@@ -1257,6 +1257,9 @@ func (r *Runner) RunEnumeration() {
 	}(nextStep)
 
 	wg, _ := syncutil.New(syncutil.WithSize(r.options.Threads))
+	retryCh := make(chan retryJob)
+
+	retryCancel, retryWait := r.retryLoop(context.Background(), retryCh, output, r.analyze)
 
 	processItem := func(k string) error {
 		if r.options.resumeCfg != nil {
@@ -1279,10 +1282,10 @@ func (r *Runner) RunEnumeration() {
 			for _, p := range r.options.requestURIs {
 				scanopts := r.scanopts.Clone()
 				scanopts.RequestURI = p
-				r.process(k, wg, r.hp, protocol, scanopts, output)
+				r.process(k, wg, r.hp, protocol, scanopts, output, retryCh)
 			}
 		} else {
-			r.process(k, wg, r.hp, protocol, &r.scanopts, output)
+			r.process(k, wg, r.hp, protocol, &r.scanopts, output, retryCh)
 		}
 
 		return nil
@@ -1300,8 +1303,11 @@ func (r *Runner) RunEnumeration() {
 
 	wg.Wait()
 
-	close(output)
+	retryWait()
+	retryCancel()
+	close(retryCh)
 
+	close(output)
 	wgoutput.Wait()
 
 	if r.scanopts.StoreVisionReconClusters {
@@ -1321,6 +1327,62 @@ func (r *Runner) RunEnumeration() {
 			gologger.Fatal().Msgf("Failed to write to JSON file: %v", err)
 		}
 	}
+}
+
+type analyzeFunc func(*httpx.HTTPX, string, httpx.Target, string, string, *ScanOptions) Result
+
+func (r *Runner) retryLoop(
+	parent context.Context,
+	ch chan retryJob,
+	output chan<- Result,
+	analyze analyzeFunc,
+) (func(), func()) {
+	ctx, cancel := context.WithCancel(parent)
+	var jobWG sync.WaitGroup
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case job := <-ch:
+				jobWG.Add(1)
+
+				go func(j retryJob) {
+					defer jobWG.Done()
+
+					if wait := time.Until(j.when); wait > 0 {
+						timer := time.NewTimer(wait)
+						select {
+						case <-ctx.Done():
+							timer.Stop()
+							return
+						case <-timer.C:
+						}
+					}
+
+					res := analyze(j.hp, j.protocol, j.target, j.method, j.origInput, j.scanopts)
+					output <- res
+
+					if res.StatusCode == http.StatusTooManyRequests &&
+						j.attempt < r.options.RetryRounds {
+
+						j.attempt++
+						j.when = time.Now().Add(time.Duration(r.options.RetryDelay) * time.Millisecond)
+
+						select {
+						case <-ctx.Done():
+						case ch <- j:
+						}
+					}
+				}(job)
+			}
+		}
+	}()
+
+	stop := func() { cancel() }
+	wait := func() { jobWG.Wait() }
+	return stop, wait
 }
 
 func logFilteredErrorPage(fileName, url string) {
@@ -1380,11 +1442,11 @@ func (r *Runner) GetScanOpts() ScanOptions {
 	return r.scanopts
 }
 
-func (r *Runner) Process(t string, wg *syncutil.AdaptiveWaitGroup, protocol string, scanopts *ScanOptions, output chan Result) {
-	r.process(t, wg, r.hp, protocol, scanopts, output)
+func (r *Runner) Process(t string, wg *syncutil.AdaptiveWaitGroup, protocol string, scanopts *ScanOptions, output chan Result, retryCh chan retryJob) {
+	r.process(t, wg, r.hp, protocol, scanopts, output, retryCh)
 }
 
-func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result) {
+func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result, retryCh chan retryJob) {
 	// attempts to set the workpool size to the number of threads
 	if r.options.Threads > 0 && wg.Size != r.options.Threads {
 		if err := wg.Resize(context.Background(), r.options.Threads); err != nil {
@@ -1409,15 +1471,28 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 						defer wg.Done()
 						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
+						if result.StatusCode == http.StatusTooManyRequests &&
+							r.options.RetryRounds > 0 {
+							retryCh <- retryJob{
+								hp:        hp,
+								protocol:  protocol,
+								target:    target,
+								method:    method,
+								origInput: t,
+								scanopts:  scanopts.Clone(),
+								attempt:   1,
+								when:      time.Now().Add(time.Duration(r.options.RetryDelay) * time.Millisecond),
+							}
+						}
 						if scanopts.TLSProbe && result.TLSData != nil {
 							for _, tt := range result.TLSData.SubjectAN {
 								if !r.testAndSet(tt) {
 									continue
 								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
+								r.process(tt, wg, hp, protocol, scanopts, output, retryCh)
 							}
 							if r.testAndSet(result.TLSData.SubjectCN) {
-								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
+								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output, retryCh)
 							}
 						}
 						if scanopts.CSPProbe && result.CSPData != nil {
@@ -1428,7 +1503,7 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 								if !r.testAndSet(tt) {
 									continue
 								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
+								r.process(tt, wg, hp, protocol, scanopts, output, retryCh)
 							}
 						}
 					}(target, method, prot)
@@ -1463,15 +1538,28 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 						}
 						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
+						if result.StatusCode == http.StatusTooManyRequests &&
+							r.options.RetryRounds > 0 {
+							retryCh <- retryJob{
+								hp:        hp,
+								protocol:  protocol,
+								target:    target,
+								method:    method,
+								origInput: t,
+								scanopts:  scanopts.Clone(),
+								attempt:   1,
+								when:      time.Now().Add(time.Duration(r.options.RetryDelay) * time.Millisecond),
+							}
+						}
 						if scanopts.TLSProbe && result.TLSData != nil {
 							for _, tt := range result.TLSData.SubjectAN {
 								if !r.testAndSet(tt) {
 									continue
 								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
+								r.process(tt, wg, hp, protocol, scanopts, output, retryCh)
 							}
 							if r.testAndSet(result.TLSData.SubjectCN) {
-								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
+								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output, retryCh)
 							}
 						}
 					}(port, target, method, wantedProtocol)

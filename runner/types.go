@@ -120,6 +120,17 @@ type Trace struct {
 	WroteRequest         time.Time `json:"wrote_request,omitempty"`
 }
 
+type retryJob struct {
+	hp        *httpx.HTTPX
+	protocol  string
+	target    httpx.Target
+	method    string
+	origInput string
+	scanopts  *ScanOptions
+	attempt   int
+	when      time.Time
+}
+
 // function to get dsl variables from result struct
 func dslVariables() ([]string, error) {
 	fakeResult := Result{}

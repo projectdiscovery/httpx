@@ -1,7 +1,9 @@
 package runner
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -227,10 +229,10 @@ func TestCreateNetworkpolicyInstance_AllowDenyFlags(t *testing.T) {
 	runner := &Runner{}
 
 	tests := []struct {
-		name        string
-		allow       []string
-		deny        []string
-		testCases   []struct {
+		name      string
+		allow     []string
+		deny      []string
+		testCases []struct {
 			ip       string
 			expected bool
 			reason   string
@@ -311,4 +313,72 @@ func TestCreateNetworkpolicyInstance_AllowDenyFlags(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRunner_RetryLoop(t *testing.T) {
+	retryCh := make(chan retryJob)
+	out := make(chan Result)
+
+	r, err := New(&Options{
+		RetryDelay:  500,
+		RetryRounds: 3,
+	})
+	require.Nil(t, err, "could not create httpx runner")
+
+	var calls = map[string]int{}
+	analyze := func(hp *httpx.HTTPX,
+		protocol string,
+		target httpx.Target,
+		method, origInput string,
+		scanopts *ScanOptions) Result {
+		calls[method]++
+		if strings.HasPrefix(method, "retry-") && calls[method] == 1 {
+			return Result{StatusCode: http.StatusTooManyRequests}
+		}
+		return Result{StatusCode: http.StatusOK}
+	}
+
+	cancel, wait := r.retryLoop(context.Background(), retryCh, out, analyze)
+
+	seed := []retryJob{
+		{method: "ok-a", when: time.Now().Add(-time.Millisecond), attempt: 1},
+		{method: "retry-a", when: time.Now().Add(-time.Millisecond), attempt: 1},
+		{method: "ok-b", when: time.Now().Add(-time.Millisecond), attempt: 1},
+		{method: "retry-b", when: time.Now().Add(-time.Millisecond), attempt: 1},
+	}
+	for _, j := range seed {
+		retryCh <- j
+	}
+
+	want := 6
+	got := make([]Result, 0, want)
+	deadline := time.After(2 * time.Second)
+
+	for len(got) < want {
+		select {
+		case r := <-out:
+			got = append(got, r)
+		case <-deadline:
+			t.Errorf("timed out waiting results: got=%d want=%d", len(got), want)
+		}
+	}
+
+	wait()
+	cancel()
+	close(retryCh)
+
+	close(out)
+
+	var n429, n200 int
+	for _, r := range got {
+		switch r.StatusCode {
+		case http.StatusTooManyRequests:
+			n429++
+		case http.StatusOK:
+			n200++
+		}
+	}
+
+	require.GreaterOrEqual(t, n429, 2)
+	require.Equal(t, 4, n200)
 }
