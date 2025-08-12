@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/exp/maps"
@@ -1259,7 +1260,7 @@ func (r *Runner) RunEnumeration() {
 	wg, _ := syncutil.New(syncutil.WithSize(r.options.Threads))
 	retryCh := make(chan retryJob)
 
-	retryCancel, retryWait := r.retryLoop(context.Background(), retryCh, output, r.analyze)
+	_, drainedCh := r.retryLoop(context.Background(), retryCh, output, r.analyze)
 
 	processItem := func(k string) error {
 		if r.options.resumeCfg != nil {
@@ -1302,11 +1303,9 @@ func (r *Runner) RunEnumeration() {
 	}
 
 	wg.Wait()
-
-	retryWait()
-	retryCancel()
-	close(retryCh)
-
+	if r.options.RetryRounds > 0 {
+		<-drainedCh
+	}
 	close(output)
 	wgoutput.Wait()
 
@@ -1333,24 +1332,30 @@ type analyzeFunc func(*httpx.HTTPX, string, httpx.Target, string, string, *ScanO
 
 func (r *Runner) retryLoop(
 	parent context.Context,
-	ch chan retryJob,
+	retryCh chan retryJob,
 	output chan<- Result,
 	analyze analyzeFunc,
-) (func(), func()) {
+) (stop func(), drained <-chan struct{}) {
+	var remaining atomic.Int64
 	ctx, cancel := context.WithCancel(parent)
-	var jobWG sync.WaitGroup
+	drainedCh := make(chan struct{})
 
 	go func() {
+		defer close(retryCh)
+
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case job := <-ch:
-				jobWG.Add(1)
+			case job, ok := <-retryCh:
+				if !ok {
+					return
+				}
+				if job.attempt == 1 {
+					remaining.Add(1)
+				}
 
 				go func(j retryJob) {
-					defer jobWG.Done()
-
 					if wait := time.Until(j.when); wait > 0 {
 						timer := time.NewTimer(wait)
 						select {
@@ -1364,28 +1369,27 @@ func (r *Runner) retryLoop(
 					res := analyze(j.hp, j.protocol, j.target, j.method, j.origInput, j.scanopts)
 					output <- res
 
-					if res.StatusCode == http.StatusTooManyRequests {
-						if j.attempt >= r.options.RetryRounds {
-							return
-						}
-
+					if res.StatusCode == http.StatusTooManyRequests && j.attempt < r.options.RetryRounds {
 						j.attempt++
 						j.when = time.Now().Add(time.Duration(r.options.RetryDelay) * time.Millisecond)
 
 						select {
 						case <-ctx.Done():
 							return
-						case ch <- j:
+						case retryCh <- j:
+							return
 						}
+					}
+
+					if remaining.Add(-1) == 0 {
+						close(drainedCh)
 					}
 				}(job)
 			}
 		}
 	}()
 
-	stop := func() { cancel() }
-	wait := func() { jobWG.Wait() }
-	return stop, wait
+	return func() { cancel() }, drainedCh
 }
 
 func logFilteredErrorPage(fileName, url string) {

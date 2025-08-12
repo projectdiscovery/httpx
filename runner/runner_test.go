@@ -3,7 +3,6 @@ package runner
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -324,41 +323,34 @@ func TestRunner_Process_And_RetryLoop(t *testing.T) {
 	var hits1, hits2 int32
 	srv1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if atomic.AddInt32(&hits1, 1) != 4 {
-			log.Println("serv1 429")
 			w.WriteHeader(http.StatusTooManyRequests)
 			return
 		}
-		log.Println("serv1 200")
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv1.Close()
 
 	srv2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if atomic.AddInt32(&hits2, 1) != 3 {
-			log.Println("serv2 429")
 			w.WriteHeader(http.StatusTooManyRequests)
 			return
 		}
-		log.Println("serv2 200")
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv2.Close()
 
 	r, err := New(&Options{
 		Threads:     1,
-		Delay:       0,
-		RetryRounds: 3,
-		RetryDelay:  200, // Duration 권장
-		Timeout:     2,
+		RetryRounds: 2,
+		RetryDelay:  5,
+		Timeout:     3,
 	})
 	require.NoError(t, err)
 
 	output := make(chan Result)
 	retryCh := make(chan retryJob)
 
-	// ctx, timeout := context.WithTimeout(context.Background(), time.Duration(r.options.Timeout))
-	// defer timeout()
-	cancel, wait := r.retryLoop(context.Background(), retryCh, output, r.analyze)
+	_, drainedCh := r.retryLoop(context.Background(), retryCh, output, r.analyze)
 
 	wg, _ := syncutil.New(syncutil.WithSize(r.options.Threads))
 	so := r.scanopts.Clone()
@@ -399,15 +391,12 @@ func TestRunner_Process_And_RetryLoop(t *testing.T) {
 	}
 
 	wg.Wait()
-	wait()
-	cancel()
-
-	close(retryCh)
+	<-drainedCh
 	close(output)
 	drainWG.Wait()
 
 	require.Equal(t, 3, s1n429)
-	require.Equal(t, 1, s1n200)
+	require.Equal(t, 0, s1n200)
 	require.Equal(t, 2, s2n429)
 	require.Equal(t, 1, s2n200)
 }
