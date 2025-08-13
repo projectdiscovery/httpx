@@ -3,9 +3,13 @@ package runner
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -13,6 +17,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/mapcidr/asn"
 	stringsutil "github.com/projectdiscovery/utils/strings"
+	syncutil "github.com/projectdiscovery/utils/sync"
 	"github.com/stretchr/testify/require"
 )
 
@@ -315,70 +320,94 @@ func TestCreateNetworkpolicyInstance_AllowDenyFlags(t *testing.T) {
 	}
 }
 
-func TestRunner_RetryLoop(t *testing.T) {
-	retryCh := make(chan retryJob)
-	out := make(chan Result)
+func TestRunner_Process_And_RetryLoop(t *testing.T) {
+	var hits1, hits2 int32
+	srv1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&hits1, 1) != 4 {
+			log.Println("serv1 429")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		log.Println("serv1 200")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv1.Close()
+
+	srv2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&hits2, 1) != 3 {
+			log.Println("serv2 429")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		log.Println("serv2 200")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv2.Close()
 
 	r, err := New(&Options{
-		RetryDelay:  500,
+		Threads:     1,
+		Delay:       0,
 		RetryRounds: 3,
+		RetryDelay:  200, // Duration 권장
+		Timeout:     2,
 	})
-	require.Nil(t, err, "could not create httpx runner")
+	require.NoError(t, err)
 
-	var calls = map[string]int{}
-	analyze := func(hp *httpx.HTTPX,
-		protocol string,
-		target httpx.Target,
-		method, origInput string,
-		scanopts *ScanOptions) Result {
-		calls[method]++
-		if strings.HasPrefix(method, "retry-") && calls[method] == 1 {
-			return Result{StatusCode: http.StatusTooManyRequests}
+	output := make(chan Result)
+	retryCh := make(chan retryJob)
+
+	// ctx, timeout := context.WithTimeout(context.Background(), time.Duration(r.options.Timeout))
+	// defer timeout()
+	cancel, wait := r.retryLoop(context.Background(), retryCh, output, r.analyze)
+
+	wg, _ := syncutil.New(syncutil.WithSize(r.options.Threads))
+	so := r.scanopts.Clone()
+	so.Methods = []string{"GET"}
+	so.TLSProbe = false
+	so.CSPProbe = false
+
+	seed := map[string]string{
+		"srv1": srv1.URL,
+		"srv2": srv2.URL,
+	}
+
+	var drainWG sync.WaitGroup
+	drainWG.Add(1)
+	var s1n429, s1n200, s2n429, s2n200 int
+	go func(output chan Result) {
+		defer drainWG.Done()
+		for res := range output {
+			switch res.StatusCode {
+			case http.StatusTooManyRequests:
+				if res.URL == srv1.URL {
+					s1n429++
+				} else {
+					s2n429++
+				}
+			case http.StatusOK:
+				if res.URL == srv1.URL {
+					s1n200++
+				} else {
+					s2n200++
+				}
+			}
 		}
-		return Result{StatusCode: http.StatusOK}
+	}(output)
+
+	for _, url := range seed {
+		r.process(url, wg, r.hp, httpx.HTTP, so, output, retryCh)
 	}
 
-	cancel, wait := r.retryLoop(context.Background(), retryCh, out, analyze)
-
-	seed := []retryJob{
-		{method: "ok-a", when: time.Now().Add(-time.Millisecond), attempt: 1},
-		{method: "retry-a", when: time.Now().Add(-time.Millisecond), attempt: 1},
-		{method: "ok-b", when: time.Now().Add(-time.Millisecond), attempt: 1},
-		{method: "retry-b", when: time.Now().Add(-time.Millisecond), attempt: 1},
-	}
-	for _, j := range seed {
-		retryCh <- j
-	}
-
-	want := 6
-	got := make([]Result, 0, want)
-	deadline := time.After(2 * time.Second)
-
-	for len(got) < want {
-		select {
-		case r := <-out:
-			got = append(got, r)
-		case <-deadline:
-			t.Errorf("timed out waiting results: got=%d want=%d", len(got), want)
-		}
-	}
-
+	wg.Wait()
 	wait()
 	cancel()
+
 	close(retryCh)
+	close(output)
+	drainWG.Wait()
 
-	close(out)
-
-	var n429, n200 int
-	for _, r := range got {
-		switch r.StatusCode {
-		case http.StatusTooManyRequests:
-			n429++
-		case http.StatusOK:
-			n200++
-		}
-	}
-
-	require.GreaterOrEqual(t, n429, 2)
-	require.Equal(t, 4, n200)
+	require.Equal(t, 3, s1n429)
+	require.Equal(t, 1, s1n200)
+	require.Equal(t, 2, s2n429)
+	require.Equal(t, 1, s2n200)
 }

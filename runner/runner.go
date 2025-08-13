@@ -1364,14 +1364,17 @@ func (r *Runner) retryLoop(
 					res := analyze(j.hp, j.protocol, j.target, j.method, j.origInput, j.scanopts)
 					output <- res
 
-					if res.StatusCode == http.StatusTooManyRequests &&
-						j.attempt < r.options.RetryRounds {
+					if res.StatusCode == http.StatusTooManyRequests {
+						if j.attempt >= r.options.RetryRounds {
+							return
+						}
 
 						j.attempt++
 						j.when = time.Now().Add(time.Duration(r.options.RetryDelay) * time.Millisecond)
 
 						select {
 						case <-ctx.Done():
+							return
 						case ch <- j:
 						}
 					}
