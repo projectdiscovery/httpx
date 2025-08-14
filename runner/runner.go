@@ -412,13 +412,25 @@ func (runner *Runner) createNetworkpolicyInstance(options *Options) (*networkpol
 			npOptions.DenyList = append(npOptions.DenyList, exclude)
 		}
 	}
-	
-	// Add Allow and Deny flag integration
-	npOptions.AllowList = append(npOptions.AllowList, options.Allow...)
-	npOptions.DenyList = append(npOptions.DenyList, options.Deny...)
-	
+
+	npOptions.AllowList = appendToList(npOptions.AllowList, options.Allow...)
+	npOptions.DenyList = appendToList(npOptions.DenyList, options.Deny...)
+
 	np, err := networkpolicy.New(npOptions)
 	return np, err
+}
+
+func appendToList(list []string, values ...string) []string {
+	for _, value := range values {
+		switch {
+		case asn.IsASN(value):
+			ips := expandASNInputValue(value)
+			list = append(list, ips...)
+		default:
+			list = append(list, value)
+		}
+	}
+	return list
 }
 
 func expandCIDRInputValue(value string) []string {
