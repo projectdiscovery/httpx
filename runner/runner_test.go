@@ -224,79 +224,91 @@ func TestRunner_CSVRow(t *testing.T) {
 }
 
 func TestCreateNetworkpolicyInstance_AllowDenyFlags(t *testing.T) {
-	// Test Allow flag blocks IPs outside allowed range
-	options := &Options{}
-	options.Allow = []string{"192.168.1.0/24"}
-	
 	runner := &Runner{}
-	np, err := runner.createNetworkpolicyInstance(options)
-	require.Nil(t, err, "could not create networkpolicy instance")
-	require.NotNil(t, np, "networkpolicy instance should not be nil")
-	
-	// Should block IP outside allowed range
-	allowed := np.Validate("8.8.8.8")
-	require.False(t, allowed, "IP outside allowed range should be blocked")
-	
-	// Should allow IP inside allowed range  
-	allowed = np.Validate("192.168.1.10")
-	require.True(t, allowed, "IP inside allowed range should be allowed")
-	
-	// Test Deny flag blocks IPs in denied range
-	options = &Options{}
-	options.Deny = []string{"127.0.0.0/8"}
-	
-	np, err = runner.createNetworkpolicyInstance(options)
-	require.Nil(t, err, "could not create networkpolicy instance")
-	
-	// Should block IP in denied range
-	allowed = np.Validate("127.0.0.1")
-	require.False(t, allowed, "IP in denied range should be blocked")
-	
-	// Should allow IP outside denied range
-	allowed = np.Validate("8.8.8.8")
-	require.True(t, allowed, "IP outside denied range should be allowed")
-	
-	// Test combined Allow and Deny flags
-	options = &Options{}
-	options.Allow = []string{"192.168.0.0/16"}  // Allow 192.168.x.x
-	options.Deny = []string{"192.168.1.0/24"}   // But deny 192.168.1.x
-	
-	np, err = runner.createNetworkpolicyInstance(options)
-	require.Nil(t, err, "could not create networkpolicy instance")
-	
-	// Should block IP outside allowed range (even if not in deny list)
-	allowed = np.Validate("10.0.0.1")
-	require.False(t, allowed, "IP outside allowed range should be blocked")
-	
-	// Should block IP in denied range (even if in allowed range)
-	allowed = np.Validate("192.168.1.100")
-	require.False(t, allowed, "IP in denied range should be blocked even if in allowed range")
-	
-	// Should allow IP in allowed range but not in denied range
-	allowed = np.Validate("192.168.2.50")
-	require.True(t, allowed, "IP in allowed range but not in denied range should be allowed")
-	
-	// Test with multiple Allow and Deny ranges
-	options = &Options{}
-	options.Allow = []string{"10.0.0.0/8", "172.16.0.0/12"}  // Allow 10.x.x.x and 172.16-31.x.x
-	options.Deny = []string{"10.1.0.0/16", "172.20.0.0/16"} // Deny 10.1.x.x and 172.20.x.x
-	
-	np, err = runner.createNetworkpolicyInstance(options)
-	require.Nil(t, err, "could not create networkpolicy instance")
-	
-	// Test various scenarios
-	allowed = np.Validate("10.0.1.1")
-	require.True(t, allowed, "10.0.1.1 should be allowed (in allow range, not in deny)")
-	
-	allowed = np.Validate("10.1.1.1")
-	require.False(t, allowed, "10.1.1.1 should be blocked (in deny range)")
-	
-	allowed = np.Validate("172.16.1.1")
-	require.True(t, allowed, "172.16.1.1 should be allowed (in allow range, not in deny)")
-	
-	allowed = np.Validate("172.20.1.1")
-	require.False(t, allowed, "172.20.1.1 should be blocked (in deny range)")
-	
-	allowed = np.Validate("192.168.1.1")
-	require.False(t, allowed, "192.168.1.1 should be blocked (not in any allow range)")
+
+	tests := []struct {
+		name        string
+		allow       []string
+		deny        []string
+		testCases   []struct {
+			ip       string
+			expected bool
+			reason   string
+		}
+	}{
+		{
+			name:  "Allow flag blocks IPs outside allowed range",
+			allow: []string{"192.168.1.0/24"},
+			deny:  nil,
+			testCases: []struct {
+				ip       string
+				expected bool
+				reason   string
+			}{
+				{"8.8.8.8", false, "IP outside allowed range should be blocked"},
+				{"192.168.1.10", true, "IP inside allowed range should be allowed"},
+			},
+		},
+		{
+			name:  "Deny flag blocks IPs in denied range",
+			allow: nil,
+			deny:  []string{"127.0.0.0/8"},
+			testCases: []struct {
+				ip       string
+				expected bool
+				reason   string
+			}{
+				{"127.0.0.1", false, "IP in denied range should be blocked"},
+				{"8.8.8.8", true, "IP outside denied range should be allowed"},
+			},
+		},
+		{
+			name:  "Combined Allow and Deny flags",
+			allow: []string{"192.168.0.0/16"},
+			deny:  []string{"192.168.1.0/24"},
+			testCases: []struct {
+				ip       string
+				expected bool
+				reason   string
+			}{
+				{"10.0.0.1", false, "IP outside allowed range should be blocked"},
+				{"192.168.1.100", false, "IP in denied range should be blocked even if in allowed range"},
+				{"192.168.2.50", true, "IP in allowed range but not in denied range should be allowed"},
+			},
+		},
+		{
+			name:  "Multiple Allow and Deny ranges",
+			allow: []string{"10.0.0.0/8", "172.16.0.0/12"},
+			deny:  []string{"10.1.0.0/16", "172.20.0.0/16"},
+			testCases: []struct {
+				ip       string
+				expected bool
+				reason   string
+			}{
+				{"10.0.1.1", true, "10.0.1.1 should be allowed (in allow range, not in deny)"},
+				{"10.1.1.1", false, "10.1.1.1 should be blocked (in deny range)"},
+				{"172.16.1.1", true, "172.16.1.1 should be allowed (in allow range, not in deny)"},
+				{"172.20.1.1", false, "172.20.1.1 should be blocked (in deny range)"},
+				{"192.168.1.1", false, "192.168.1.1 should be blocked (not in any allow range)"},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			options := &Options{
+				Allow: tc.allow,
+				Deny:  tc.deny,
+			}
+
+			np, err := runner.createNetworkpolicyInstance(options)
+			require.Nil(t, err, "could not create networkpolicy instance")
+			require.NotNil(t, np, "networkpolicy instance should not be nil")
+
+			for _, testCase := range tc.testCases {
+				allowed := np.Validate(testCase.ip)
+				require.Equal(t, testCase.expected, allowed, testCase.reason)
+			}
+		})
+	}
 }
