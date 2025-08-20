@@ -780,8 +780,8 @@ func (r *Runner) RunEnumeration() {
 			}
 		}()
 
-		var plainFile, jsonFile, csvFile, indexFile, indexScreenshotFile, jsonExportFile *os.File
-		var jsonExportResults []Result
+		var plainFile, jsonFile, csvFile, indexFile, indexScreenshotFile *os.File
+		var jsonExporter *JSONExporter
 
 		if r.options.Output != "" && r.options.OutputAll {
 			plainFile = openOrCreateFile(r.options.Resume, r.options.Output)
@@ -1174,27 +1174,28 @@ func (r *Runner) RunEnumeration() {
 			}
 
 			if r.options.JSONExport != "" {
-				filename := r.options.JSONExport
+				if jsonExporter == nil {
+					exportOptions := &JSONExportOptions{
+						File: r.options.JSONExport,
+					}
 
-				if jsonExportResults == nil {
-					jsonExportResults = make([]Result, 0)
+					var err error
+					jsonExporter, err = NewJSONExporter(exportOptions)
+					if err != nil {
+						gologger.Error().Msgf("Failed to create JSON exporter: %s", err)
+					} else {
+						defer func() {
+							if closeErr := jsonExporter.Close(); closeErr != nil {
+								gologger.Error().Msgf("Failed to close JSON exporter: %s", closeErr)
+							}
+						}()
+					}
 				}
-				jsonExportResults = append(jsonExportResults, resp)
 
-				if jsonExportFile == nil {
-					jsonExportFile = openOrCreateFile(r.options.Resume, filename)
-					defer func() {
-						if jsonExportFile != nil && len(jsonExportResults) > 0 {
-							if jsonData, err := json.Marshal(jsonExportResults); err != nil {
-								gologger.Error().Msgf("Failed to marshal JSON export data: %s", err)
-							} else if _, writeErr := jsonExportFile.Write(jsonData); writeErr != nil {
-								gologger.Error().Msgf("Failed to write JSON export file: %s", writeErr)
-							}
-							if closeErr := jsonExportFile.Close(); closeErr != nil {
-								gologger.Error().Msgf("Failed to close JSON export file: %s", closeErr)
-							}
-						}
-					}()
+				if jsonExporter != nil {
+					if err := jsonExporter.Export(&resp); err != nil {
+						gologger.Error().Msgf("Failed to export JSON result: %s", err)
+					}
 				}
 			}
 

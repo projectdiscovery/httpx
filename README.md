@@ -203,6 +203,7 @@ OUTPUT:
    -svrc, -store-vision-recon-cluster     include visual recon clusters (-ss and -sr only)
    -pr, -protocol string                  protocol to use (unknown, http11)
    -fepp, -filter-error-page-path string  path to store filtered error pages (default "filtered_error_page.json")
+   -je, -json-export string               file to export results in JSON format
 
 CONFIGURATIONS:
    -config string                   path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
