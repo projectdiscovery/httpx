@@ -765,10 +765,6 @@ func (options *Options) ValidateOptions() error {
 		return errors.New(fmt.Sprintf("invalid retry-delay: must be >0 when retry-rounds=%d (got %d)", options.RetryRounds, options.RetryDelay))
 	}
 
-	if options.RetryRounds > 0 && options.RetryDelay <= 0 {
-		return errors.New(fmt.Sprintf("invalid retry-delay: must be >0 when retry-rounds=%d (got %d)", options.RetryRounds, options.RetryDelay))
-	}
-
 	return nil
 }
 

@@ -321,6 +321,8 @@ func TestCreateNetworkpolicyInstance_AllowDenyFlags(t *testing.T) {
 
 func TestRunner_Process_And_RetryLoop(t *testing.T) {
 	var hits1, hits2 int32
+
+	// srv1: returns 429 for the first 3 requests, and 200 on the 4th request
 	srv1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if atomic.AddInt32(&hits1, 1) != 4 {
 			w.WriteHeader(http.StatusTooManyRequests)
@@ -330,6 +332,7 @@ func TestRunner_Process_And_RetryLoop(t *testing.T) {
 	}))
 	defer srv1.Close()
 
+	// srv2: returns 429 for the first 2 requests, and 200 on the 3rd request
 	srv2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if atomic.AddInt32(&hits2, 1) != 3 {
 			w.WriteHeader(http.StatusTooManyRequests)
@@ -366,7 +369,7 @@ func TestRunner_Process_And_RetryLoop(t *testing.T) {
 	var drainWG sync.WaitGroup
 	drainWG.Add(1)
 	var s1n429, s1n200, s2n429, s2n200 int
-	go func(output chan Result) {
+	go func() {
 		defer drainWG.Done()
 		for res := range output {
 			switch res.StatusCode {
@@ -384,7 +387,7 @@ func TestRunner_Process_And_RetryLoop(t *testing.T) {
 				}
 			}
 		}
-	}(output)
+	}()
 
 	for _, url := range seed {
 		r.process(url, wg, r.hp, httpx.HTTP, so, output, retryCh)
@@ -395,8 +398,12 @@ func TestRunner_Process_And_RetryLoop(t *testing.T) {
 	close(output)
 	drainWG.Wait()
 
+	// Verify expected results
+	// srv1: should have 3x 429 responses and no 200 (never succeeds within retries)
 	require.Equal(t, 3, s1n429)
 	require.Equal(t, 0, s1n200)
+
+	// srv2: should have 2x 429 responses and 1x 200 (succeeds on 3rd attempt)
 	require.Equal(t, 2, s2n429)
 	require.Equal(t, 1, s2n200)
 }
