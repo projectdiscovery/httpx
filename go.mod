@@ -55,7 +55,7 @@ require (
 require (
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1
-	github.com/weppos/publicsuffix-go v0.40.3-0.20250408071509-6074bbe7fd39
+	github.com/weppos/publicsuffix-go v0.50.0
 )
 
 require (
