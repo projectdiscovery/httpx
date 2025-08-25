@@ -42,7 +42,7 @@ require (
 	github.com/projectdiscovery/wappalyzergo v0.2.41
 	github.com/rs/xid v1.6.0
 	github.com/spaolacci/murmur3 v1.1.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	github.com/zmap/zcrypto v0.0.0-20240512203510-0fef58d9a9db
 	go.etcd.io/bbolt v1.4.0 // indirect
 	go.uber.org/multierr v1.11.0
