@@ -211,6 +211,7 @@ CONFIGURATIONS:
    -deny string[]                   denied list of IP/CIDR's to process (file or comma separated)
    -sni, -sni-name string           custom TLS SNI name
    -random-agent                    enable Random User-Agent to use (default true)
+   -auto-referer                    set the Referer header to the current URL (default false)
    -H, -header string[]             custom http headers to send with request
    -http-proxy, -proxy string       http proxy to use (eg http://127.0.0.1:8080)
    -unsafe                          send raw requests skipping golang normalization

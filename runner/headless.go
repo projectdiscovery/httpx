@@ -115,7 +115,9 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 	}
 
 	page = page.Timeout(timeout)
-	defer page.Close()
+	defer func() {
+		_ = page.Close()
+	}()
 
 	if err := page.Navigate(url); err != nil {
 		return nil, "", err
@@ -142,7 +144,7 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 }
 
 func (b *Browser) Close() {
-	b.engine.Close()
-	os.RemoveAll(b.tempDir)
+	_ = b.engine.Close()
+	_ = os.RemoveAll(b.tempDir)
 	// processutil.CloseProcesses(processutil.IsChromeProcess, b.pids)
 }
