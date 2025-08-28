@@ -435,7 +435,7 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 		userAgent := useragent.PickRandom()
 		r.Header.Set("User-Agent", userAgent.Raw) //nolint
 	}
-	if h.Options.AutoReferer {
+	if h.Options.AutoReferer && r.Header.Get("Referer") == "" {
 		r.Header.Set("Referer", r.URL.String())
 	}
 }
