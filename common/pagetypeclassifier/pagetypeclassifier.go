@@ -3,7 +3,7 @@ package pagetypeclassifier
 import (
 	_ "embed"
 
-	"github.com/jaytaylor/html2text"
+	htmltomarkdown "github.com/JohannesKaufmann/html-to-markdown/v2"
 	"github.com/projectdiscovery/utils/ml/naive_bayes"
 )
 
@@ -31,7 +31,7 @@ func (n *PageTypeClassifier) Classify(html string) string {
 }
 
 func htmlToText(html string) string {
-	text, err := html2text.FromString(html, html2text.Options{TextOnly: true})
+	text, err := htmltomarkdown.ConvertString(html)
 	if err != nil {
 		panic(err)
 	}
