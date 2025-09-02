@@ -77,14 +77,14 @@ func (c *CustomPorts) Set(value string) error {
 			}
 			highP, err := strconv.Atoi(potentialRange[1])
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("Could not cast last port of your port range(%s) to integer from your value: %s", potentialPort, potentialRange[1]))
+				return errors.Wrap(err, fmt.Sprintf("could not cast last port of your port range(%s) to integer from your value: %s", potentialPort, potentialRange[1]))
 			}
 			if err := checkPortValue(highP); err != nil {
 				return errors.Wrap(err, fmt.Sprintf("last port of your range(%d)", lowP))
 			}
 
 			if lowP > highP {
-				return fmt.Errorf("First value of port range should be lower than the last port from your range: [%d, %d]", lowP, highP)
+				return fmt.Errorf("first value of port range should be lower than the last port from your range: [%d, %d]", lowP, highP)
 			}
 
 			for i := lowP; i <= highP; i++ {

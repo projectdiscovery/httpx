@@ -18,7 +18,7 @@ import (
 	pdcpauth "github.com/projectdiscovery/utils/auth/pdcp"
 	"github.com/projectdiscovery/utils/conversion"
 	"github.com/projectdiscovery/utils/env"
-	errorutil "github.com/projectdiscovery/utils/errors"
+	"github.com/projectdiscovery/utils/errkit" //
 	unitutils "github.com/projectdiscovery/utils/unit"
 	updateutils "github.com/projectdiscovery/utils/update"
 	urlutil "github.com/projectdiscovery/utils/url"
@@ -71,7 +71,7 @@ func NewUploadWriterCallback(ctx context.Context, creds *pdcpauth.PDCPCredential
 	var err error
 	tmp, err := urlutil.Parse(creds.Server)
 	if err != nil {
-		return nil, errorutil.NewWithErr(err).Msgf("could not parse server url")
+		return nil, errkit.Wrap(err, "could not parse server url")
 	}
 	tmp.Path = uploadEndpoint
 	tmp.Update()
@@ -186,7 +186,7 @@ func (u *UploadWriter) autoCommit(ctx context.Context) {
 // uploadChunk uploads a chunk of data to the server
 func (u *UploadWriter) uploadChunk(buff *bytes.Buffer) error {
 	if err := u.upload(buff.Bytes()); err != nil {
-		return errorutil.NewWithErr(err).Msgf("could not upload chunk")
+		return errkit.Wrap(err, "could not upload chunk")
 	}
 	// if successful, reset the buffer
 	buff.Reset()
@@ -198,23 +198,25 @@ func (u *UploadWriter) uploadChunk(buff *bytes.Buffer) error {
 func (u *UploadWriter) upload(data []byte) error {
 	req, err := u.getRequest(data)
 	if err != nil {
-		return errorutil.NewWithErr(err).Msgf("could not create upload request")
+		return errkit.Wrap(err, "could not create upload request")
 	}
 	resp, err := u.client.Do(req)
 	if err != nil {
-		return errorutil.NewWithErr(err).Msgf("could not upload results")
+		return errkit.Wrap(err, "could not upload results")
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	bin, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return errorutil.NewWithErr(err).Msgf("could not get id from response")
+		return errkit.Wrap(err, "could not get id from response")
 	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("could not upload results got status code %v on %v", resp.StatusCode, resp.Request.URL.String())
 	}
 	var uploadResp uploadResponse
 	if err := json.Unmarshal(bin, &uploadResp); err != nil {
-		return errorutil.NewWithErr(err).Msgf("could not unmarshal response got %v", string(bin))
+		return errkit.Wrapf(err, "could not unmarshal response got %v", string(bin))
 	}
 	if uploadResp.ID != "" && u.assetGroupID == "" {
 		u.assetGroupID = uploadResp.ID
@@ -239,15 +241,15 @@ func (u *UploadWriter) getRequest(bin []byte) (*retryablehttp.Request, error) {
 	}
 	req, err := retryablehttp.NewRequest(method, url, bytes.NewReader(bin))
 	if err != nil {
-		return nil, errorutil.NewWithErr(err).Msgf("could not create cloud upload request")
+		return nil, errkit.Wrap(err, "could not create cloud upload request")
 	}
 	// add pdtm meta params
-	req.URL.Params.Merge(updateutils.GetpdtmParams(runner.Version))
+	req.Params.Merge(updateutils.GetpdtmParams(runner.Version))
 	// if it is upload endpoint also include name if it exists
-	if u.assetGroupName != "" && req.URL.Path == uploadEndpoint {
-		req.URL.Params.Add("name", u.assetGroupName)
+	if u.assetGroupName != "" && req.Path == uploadEndpoint {
+		req.Params.Add("name", u.assetGroupName)
 	}
-	req.URL.Update()
+	req.Update()
 
 	req.Header.Set(pdcpauth.ApiKeyHeaderName, u.creds.APIKey)
 	if u.TeamID != "" {

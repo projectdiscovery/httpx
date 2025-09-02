@@ -262,6 +262,7 @@ type Options struct {
 	ShowStatistics            bool
 	StatsInterval             int
 	RandomAgent               bool
+	AutoReferer               bool
 	StoreChain                bool
 	StoreVisionReconClusters  bool
 	Deny                      customlist.CustomList
@@ -478,7 +479,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.ChainInStdout, "include-chain", false, "include redirect http chain in JSON output (-json only)"),
 		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
 		flagSet.BoolVarP(&options.StoreVisionReconClusters, "store-vision-recon-cluster", "svrc", false, "include visual recon clusters (-ss and -sr only)"),
-		flagSet.StringVarP(&options.Protocol, "protocol", "pr", "", "protocol to use (unknown, http11)"),
+		flagSet.StringVarP(&options.Protocol, "protocol", "pr", "", "protocol to use (unknown, http11, http2 [experimental], http3 [experimental])"),
 		flagSet.StringVarP(&options.OutputFilterErrorPagePath, "filter-error-page-path", "fepp", "filtered_error_page.json", "path to store filtered error pages"),
 	)
 
@@ -489,6 +490,7 @@ func ParseOptions() *Options {
 		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.StringVarP(&options.SniName, "sni-name", "sni", "", "custom TLS SNI name"),
 		flagSet.BoolVar(&options.RandomAgent, "random-agent", true, "enable Random User-Agent to use"),
+		flagSet.BoolVar(&options.AutoReferer, "auto-referer", false, "set the Referer header to the current URL"),
 		flagSet.VarP(&options.CustomHeaders, "header", "H", "custom http headers to send with request"),
 		flagSet.StringVarP(&options.Proxy, "proxy", "http-proxy", "", "proxy (http|socks) to use (eg http://127.0.0.1:8080)"),
 		flagSet.BoolVar(&options.Unsafe, "unsafe", false, "send raw requests skipping golang normalization"),
