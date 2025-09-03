@@ -1189,8 +1189,8 @@ func (r *Runner) RunEnumeration() {
 				plainFile.WriteString(resp.str + "\n")
 			}
 
-			if len(r.options.ExcludeОutputFields) > 0 {
-				if filteredData, err := structs.FilterStruct(resp, nil, r.options.ExcludeОutputFields); err == nil {
+			if len(r.options.ExcludeOutputFields) > 0 {
+				if filteredData, err := structs.FilterStruct(resp, nil, r.options.ExcludeOutputFields); err == nil {
 					resp = filteredData
 				}
 			}
