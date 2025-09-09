@@ -115,6 +115,7 @@ PROBES:
    -bp, -body-preview     display first N characters of response body (default 100)
    -server, -web-server   display server name
    -td, -tech-detect      display technology in use based on wappalyzer dataset
+   -cff, -custom-fingerprint-file string  path to a custom fingerprint file for technology detection
    -method                display http request method
    -websocket             display server using websocket
    -ip                    display host ip
