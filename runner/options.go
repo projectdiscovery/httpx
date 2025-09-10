@@ -257,6 +257,7 @@ type Options struct {
 	NoFallback                bool
 	NoFallbackScheme          bool
 	TechDetect                bool
+	CustomFingerprintFile     string
 	TLSGrab                   bool
 	protocol                  string
 	ShowStatistics            bool
@@ -383,6 +384,7 @@ func ParseOptions() *Options {
 		flagSet.DynamicVarP(&options.ResponseBodyPreviewSize, "body-preview", "bp", 100, "display first N characters of response body"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
 		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
+		flagSet.StringVarP(&options.CustomFingerprintFile, "custom-fingerprint-file", "cff", "", "path to a custom fingerprint file for technology detection"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
 		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
