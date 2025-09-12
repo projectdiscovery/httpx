@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/go-rod/rod"
@@ -13,15 +12,18 @@ import (
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/pkg/errors"
 	fileutil "github.com/projectdiscovery/utils/file"
+	mapsutil "github.com/projectdiscovery/utils/maps"
 	osutils "github.com/projectdiscovery/utils/os"
+	sliceutil "github.com/projectdiscovery/utils/slice"
+	stringsutil "github.com/projectdiscovery/utils/strings"
 )
 
 type NetworkRequest struct {
-	RequestID      string
-	URL            string
-	Method         string
-	StatusCode     int
-	ErrorType      string
+	RequestID  string
+	URL        string
+	Method     string
+	StatusCode int
+	ErrorType  string
 }
 
 // MustDisableSandbox determines if the current os and user needs sandbox mode disabled
@@ -117,17 +119,14 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 	// Enable network
 	page.EnableDomain(proto.NetworkEnable{})
 
-	var networkRequests []NetworkRequest
-	var networkMutex sync.Mutex
-	requestsMap := make(map[string]*NetworkRequest)
+	networkRequests := sliceutil.NewSyncSlice[NetworkRequest]()
+	requestsMap := mapsutil.NewSyncLockMap[string, *NetworkRequest]()
 
-	// Intercept out request
+	// Intercept outbound requests
 	go page.EachEvent(func(e *proto.NetworkRequestWillBeSent) {
-		if !strings.HasPrefix(e.Request.URL, "http://") && !strings.HasPrefix(e.Request.URL, "https://") {
+		if !stringsutil.HasPrefixAnyI(e.Request.URL, "http://", "https://") {
 			return
 		}
-		networkMutex.Lock()
-		defer networkMutex.Unlock()
 		req := &NetworkRequest{
 			RequestID:  string(e.RequestID),
 			URL:        e.Request.URL,
@@ -135,39 +134,45 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 			StatusCode: -1,
 			ErrorType:  "QUIT_BEFORE_RESOURCE_LOADING_END",
 		}
-		requestsMap[string(e.RequestID)] = req
+		requestsMap.Set(string(e.RequestID), req)
 	})()
-	// Intercept response
+	// Intercept inbound responses
 	go page.EachEvent(func(e *proto.NetworkResponseReceived) {
-		networkMutex.Lock()
-		defer networkMutex.Unlock()
-		if req, exists := requestsMap[string(e.RequestID)]; exists {
+		if requestsMap.Has(string(e.RequestID)) {
+			req, _ := requestsMap.Get(string(e.RequestID))
 			req.StatusCode = e.Response.Status
 		}
 	})()
-	//  Intercept end request
+	// Intercept network end requests
 	go page.EachEvent(func(e *proto.NetworkLoadingFinished) {
-		networkMutex.Lock()
-		defer networkMutex.Unlock()
-		if req, exists := requestsMap[string(e.RequestID)]; exists {
+		if requestsMap.Has(string(e.RequestID)) {
+			req, _ := requestsMap.Get(string(e.RequestID))
 			if req.StatusCode > 0 {
 				req.ErrorType = ""
 			}
-			networkRequests = append(networkRequests, *req)
+			networkRequests.Append(*req)
 		}
 	})()
-	//Intercept failed request
+	// Intercept failed request
 	go page.EachEvent(func(e *proto.NetworkLoadingFailed) {
-		networkMutex.Lock()
-		defer networkMutex.Unlock()
-		if req, exists := requestsMap[string(e.RequestID)]; exists {
-			req.StatusCode = 0 // Marquer comme échec
+		if requestsMap.Has(string(e.RequestID)) {
+			req, _ := requestsMap.Get(string(e.RequestID))
+			req.StatusCode = 0 // mark to zero
 			req.ErrorType = getSimpleErrorType(e.ErrorText, string(e.Type), string(e.BlockedReason))
-			if strings.HasPrefix(req.URL, "http://") || strings.HasPrefix(req.URL, "https://") {
-				networkRequests = append(networkRequests, *req)
+			if stringsutil.HasPrefixAnyI(req.URL, "http://", "https://") {
+				networkRequests.Append(*req)
 			}
 		}
 	})()
+
+	// Handle any popup dialogs
+	go page.EachEvent(func(e *proto.PageJavascriptDialogOpening) {
+		_ = proto.PageHandleJavaScriptDialog{
+			Accept:     true,
+			PromptText: "",
+		}.Call(page)
+	})()
+
 	for _, header := range headers {
 		headerParts := strings.SplitN(header, ":", 2)
 		if len(headerParts) != 2 {
@@ -179,35 +184,37 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 	}
 
 	page = page.Timeout(timeout)
-	defer page.Close()
+	defer func() {
+		_ = page.Close()
+	}()
 
 	if err := page.Navigate(url); err != nil {
-		return nil, "", networkRequests, err
+		return nil, "", networkRequests.Slice, err
 	}
 
 	page.Timeout(5 * time.Second).WaitNavigation(proto.PageLifecycleEventNameFirstMeaningfulPaint)()
 
 	if err := page.WaitLoad(); err != nil {
-		return nil, "", networkRequests, err
+		return nil, "", networkRequests.Slice, err
 	}
 	_ = page.WaitIdle(idle)
 
 	screenshot, err := page.Screenshot(fullPage, &proto.PageCaptureScreenshot{})
 	if err != nil {
-		return nil, "", networkRequests, err
+		return nil, "", networkRequests.Slice, err
 	}
 
 	body, err := page.HTML()
 	if err != nil {
-		return screenshot, "", networkRequests, err
+		return screenshot, "", networkRequests.Slice, err
 	}
 
-	return screenshot, body, networkRequests, nil
+	return screenshot, body, networkRequests.Slice, nil
 }
 
 func (b *Browser) Close() {
-	b.engine.Close()
-	os.RemoveAll(b.tempDir)
+	_ = b.engine.Close()
+	_ = os.RemoveAll(b.tempDir)
 	// processutil.CloseProcesses(processutil.IsChromeProcess, b.pids)
 }
 func getSimpleErrorType(errorText, errorType, blockedReason string) string {

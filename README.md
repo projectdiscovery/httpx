@@ -85,10 +85,6 @@ This will display help for the tool. Here are all the switches it supports.
 
 
 ```console
-Usage:
-  ./httpx [flags]
-
-Flags:
 httpx is a fast and multi-purpose HTTP toolkit that allows running multiple probes using the retryablehttp library.
 
 Usage:
@@ -115,6 +111,7 @@ PROBES:
    -bp, -body-preview     display first N characters of response body (default 100)
    -server, -web-server   display server name
    -td, -tech-detect      display technology in use based on wappalyzer dataset
+   -cff, -custom-fingerprint-file string  path to a custom fingerprint file for technology detection
    -method                display http request method
    -websocket             display server using websocket
    -ip                    display host ip
@@ -203,6 +200,8 @@ OUTPUT:
    -svrc, -store-vision-recon-cluster     include visual recon clusters (-ss and -sr only)
    -pr, -protocol string                  protocol to use (unknown, http11)
    -fepp, -filter-error-page-path string  path to store filtered error pages (default "filtered_error_page.json")
+   -lof, -list-output-fields              list available output field names for filtering
+   -eof, -exclude-output-fields string[]  exclude specified output fields from results
 
 CONFIGURATIONS:
    -config string                   path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
@@ -211,6 +210,7 @@ CONFIGURATIONS:
    -deny string[]                   denied list of IP/CIDR's to process (file or comma separated)
    -sni, -sni-name string           custom TLS SNI name
    -random-agent                    enable Random User-Agent to use (default true)
+   -auto-referer                    set the Referer header to the current URL (default false)
    -H, -header string[]             custom http headers to send with request
    -http-proxy, -proxy string       http proxy to use (eg http://127.0.0.1:8080)
    -unsafe                          send raw requests skipping golang normalization

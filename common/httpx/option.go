@@ -12,6 +12,7 @@ import (
 // Options contains configuration options for the client
 type Options struct {
 	RandomAgent      bool
+	AutoReferer      bool
 	DefaultUserAgent string
 	Proxy            string
 	// Deprecated: use Proxy
