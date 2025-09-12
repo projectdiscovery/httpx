@@ -134,7 +134,7 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 			StatusCode: -1,
 			ErrorType:  "QUIT_BEFORE_RESOURCE_LOADING_END",
 		}
-		requestsMap.Set(string(e.RequestID), req)
+		_ = requestsMap.Set(string(e.RequestID), req)
 	})()
 	// Intercept inbound responses
 	go page.EachEvent(func(e *proto.NetworkResponseReceived) {
