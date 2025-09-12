@@ -713,7 +713,6 @@ func makePrintCallback() func(stats clistats.StatisticsClient) interface{} {
 		builder.WriteString(clistats.String(totalHosts))
 		builder.WriteRune(' ')
 		builder.WriteRune('(')
-		//nolint:gomnd // this is not a magic number
 		builder.WriteString(clistats.String(uint64(float64(hosts) / float64(totalHosts.(int)) * 100.0)))
 		builder.WriteRune('%')
 		builder.WriteRune(')')

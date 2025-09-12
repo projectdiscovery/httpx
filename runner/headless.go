@@ -104,6 +104,14 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 	if err != nil {
 		return nil, "", err
 	}
+
+	go page.EachEvent(func(e *proto.PageJavascriptDialogOpening) {
+		_ = proto.PageHandleJavaScriptDialog{
+			Accept:     true,
+			PromptText: "",
+		}.Call(page)
+	})()
+
 	for _, header := range headers {
 		headerParts := strings.SplitN(header, ":", 2)
 		if len(headerParts) != 2 {
