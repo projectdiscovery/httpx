@@ -1147,7 +1147,7 @@ func (r *Runner) RunEnumeration() {
 					}
 				}
 
-				if indexFile != nil && resp.Err == nil {
+				if indexFile != nil {
 					indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
 					_, _ = indexFile.WriteString(indexData)
 				}
