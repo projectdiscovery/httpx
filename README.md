@@ -62,7 +62,7 @@
 
 # Installation Instructions
 
-`httpx` requires **go1.21** to install successfully. Run the following command to get the repo:
+`httpx` requires **go >=1.24.0** to install successfully. Run the following command to get the repo:
 
 ```sh
 go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
