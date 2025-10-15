@@ -113,7 +113,7 @@ PROBES:
    -td, -tech-detect      display technology in use based on wappalyzer dataset
    -cff, -custom-fingerprint-file string  path to a custom fingerprint file for technology detection
    -method                display http request method
-   -websocket             display server using websocket
+   -ws, -websocket        display server using websocket
    -ip                    display host ip
    -cname                 display host cname
    -extract-fqdn, -efqdn  get domain and subdomains from response body and header in jsonl/csv output
