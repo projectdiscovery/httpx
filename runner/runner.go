@@ -927,16 +927,6 @@ func (r *Runner) RunEnumeration() {
 				continue
 			}
 
-			if indexFile != nil && resp.Err == nil {
-				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
-				_, _ = indexFile.WriteString(indexData)
-			}
-
-			if indexScreenshotFile != nil && resp.ScreenshotPathRel != "" {
-				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.ScreenshotPathRel, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
-				_, _ = indexScreenshotFile.WriteString(indexData)
-			}
-
 			// apply matchers and filters
 			if r.options.OutputFilterCondition != "" || r.options.OutputMatchCondition != "" {
 				if r.options.OutputMatchCondition != "" {
