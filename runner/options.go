@@ -277,6 +277,8 @@ type Options struct {
 	RateLimitMinute           int
 	Probe                     bool
 	Resume                    bool
+	RetryRounds               int
+	RetryDelay                int
 	resumeCfg                 *ResumeCfg
 	Exclude                   goflags.StringSlice
 	HostMaxErrors             int
@@ -539,6 +541,8 @@ func ParseOptions() *Options {
 		flagSet.DurationVar(&options.Delay, "delay", -1, "duration between each http request (eg: 200ms, 1s)"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", math.MaxInt32, "max response size to save in bytes"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", math.MaxInt32, "max response size to read in bytes"),
+		flagSet.IntVar(&options.RetryRounds, "retry-rounds", 0, "number of retry rounds for HTTP 429 responses (Too Many Requests)"),
+		flagSet.IntVar(&options.RetryDelay, "retry-delay", 500, "delay between retry rounds for HTTP 429 responses (e.g. 5ms, 30ms)"),
 	)
 
 	flagSet.CreateGroup("cloud", "Cloud",
@@ -775,6 +779,10 @@ func (options *Options) ValidateOptions() error {
 	if options.Threads == 0 {
 		gologger.Info().Msgf("Threads automatically set to %d", defaultThreads)
 		options.Threads = defaultThreads
+	}
+
+	if options.RetryRounds > 0 && options.RetryDelay <= 0 {
+		return errors.New(fmt.Sprintf("invalid retry-delay: must be >0 when retry-rounds=%d (got %d)", options.RetryRounds, options.RetryDelay))
 	}
 
 	return nil

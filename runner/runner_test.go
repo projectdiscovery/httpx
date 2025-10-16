@@ -1,9 +1,14 @@
 package runner
 
 import (
+	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -11,6 +16,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/mapcidr/asn"
 	stringsutil "github.com/projectdiscovery/utils/strings"
+	syncutil "github.com/projectdiscovery/utils/sync"
 	"github.com/stretchr/testify/require"
 )
 
@@ -227,10 +233,10 @@ func TestCreateNetworkpolicyInstance_AllowDenyFlags(t *testing.T) {
 	runner := &Runner{}
 
 	tests := []struct {
-		name        string
-		allow       []string
-		deny        []string
-		testCases   []struct {
+		name      string
+		allow     []string
+		deny      []string
+		testCases []struct {
 			ip       string
 			expected bool
 			reason   string
@@ -311,4 +317,93 @@ func TestCreateNetworkpolicyInstance_AllowDenyFlags(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRunner_Process_And_RetryLoop(t *testing.T) {
+	var hits1, hits2 int32
+
+	// srv1: returns 429 for the first 3 requests, and 200 on the 4th request
+	srv1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&hits1, 1) != 4 {
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv1.Close()
+
+	// srv2: returns 429 for the first 2 requests, and 200 on the 3rd request
+	srv2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&hits2, 1) != 3 {
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv2.Close()
+
+	r, err := New(&Options{
+		Threads:     1,
+		RetryRounds: 2,
+		RetryDelay:  5,
+		Timeout:     3,
+	})
+	require.NoError(t, err)
+
+	output := make(chan Result)
+	retryCh := make(chan retryJob)
+
+	_, drainedCh := r.retryLoop(context.Background(), retryCh, output, r.analyze)
+
+	wg, _ := syncutil.New(syncutil.WithSize(r.options.Threads))
+	so := r.scanopts.Clone()
+	so.Methods = []string{"GET"}
+	so.TLSProbe = false
+	so.CSPProbe = false
+
+	seed := map[string]string{
+		"srv1": srv1.URL,
+		"srv2": srv2.URL,
+	}
+
+	var drainWG sync.WaitGroup
+	drainWG.Add(1)
+	var s1n429, s1n200, s2n429, s2n200 int
+	go func() {
+		defer drainWG.Done()
+		for res := range output {
+			switch res.StatusCode {
+			case http.StatusTooManyRequests:
+				if res.URL == srv1.URL {
+					s1n429++
+				} else {
+					s2n429++
+				}
+			case http.StatusOK:
+				if res.URL == srv1.URL {
+					s1n200++
+				} else {
+					s2n200++
+				}
+			}
+		}
+	}()
+
+	for _, url := range seed {
+		r.process(url, wg, r.hp, httpx.HTTP, so, output, retryCh)
+	}
+
+	wg.Wait()
+	<-drainedCh
+	close(output)
+	drainWG.Wait()
+
+	// Verify expected results
+	// srv1: should have 3x 429 responses and no 200 (never succeeds within retries)
+	require.Equal(t, 3, s1n429)
+	require.Equal(t, 0, s1n200)
+
+	// srv2: should have 2x 429 responses and 1x 200 (succeeds on 3rd attempt)
+	require.Equal(t, 2, s2n429)
+	require.Equal(t, 1, s2n200)
 }
