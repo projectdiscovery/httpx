@@ -1183,11 +1183,7 @@ func (r *Runner) RunEnumeration() {
 
 			//nolint:errcheck // this method needs a small refactor to reduce complexity
 			if plainFile != nil {
-				if r.options.NoColor {
-					plainFile.WriteString(resp.str + "\n")
-				} else {
-					plainFile.WriteString(stripANSI(resp.str) + "\n")
-				}
+				plainFile.WriteString(stripANSI(resp.str) + "\n")
 			}
 
 			if len(r.options.ExcludeOutputFields) > 0 {
