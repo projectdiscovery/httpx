@@ -491,7 +491,7 @@ func (r *Runner) prepareInput() {
 			} else if r.options.SkipDedupe && errors.Is(err, duplicateTargetErr) {
 				if v, ok := r.hm.Get(target); ok {
 					cnt, _ := strconv.Atoi(string(v))
-					r.hm.Set(target, []byte(strconv.Itoa(cnt+1)))
+					_ = r.hm.Set(target, []byte(strconv.Itoa(cnt+1)))
 					numHosts += 1
 				}
 			}
@@ -658,7 +658,7 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 		} else if r.options.SkipDedupe && errors.Is(err, duplicateTargetErr) {
 			if v, ok := r.hm.Get(target); ok {
 				cnt, _ := strconv.Atoi(string(v))
-				r.hm.Set(target, []byte(strconv.Itoa(cnt+1)))
+				_ = r.hm.Set(target, []byte(strconv.Itoa(cnt+1)))
 				numTargets += 1
 			}
 		}
@@ -2244,7 +2244,7 @@ retry:
 			f, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 			if err == nil {
 				_, writeErr := f.Write(data)
-				f.Close()
+				_ = f.Close()
 				if writeErr != nil {
 					gologger.Error().Msgf("Could not write to '%s': %s", targetPath, writeErr)
 				}
