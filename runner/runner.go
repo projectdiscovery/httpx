@@ -39,8 +39,9 @@ import (
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
-	errorutil "github.com/projectdiscovery/utils/errors"
+	errorutil "github.com/projectdiscovery/utils/errors" //nolint
 	osutil "github.com/projectdiscovery/utils/os"
+	"github.com/projectdiscovery/utils/structs"
 
 	"github.com/Mzack9999/gcache"
 	"github.com/logrusorgru/aurora"
@@ -100,6 +101,9 @@ func (r *Runner) HTTPX() *httpx.HTTPX {
 // picked based on try-fail but it seems to close to one it's used https://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html#c1992
 var hammingDistanceThreshold int = 22
 
+// regex for stripping ANSI codes
+var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
 type pHashCluster struct {
 	BasePHash uint64     `json:"base_phash,omitempty" csv:"base_phash"`
 	Hashes    []pHashUrl `json:"hashes,omitempty" csv:"hashes"`
@@ -118,15 +122,20 @@ func New(options *Options) (*Runner, error) {
 	if options.Wappalyzer != nil {
 		runner.wappalyzer = options.Wappalyzer
 	} else if options.TechDetect || options.JSONOutput || options.CSVOutput || options.AssetUpload {
-		runner.wappalyzer, err = wappalyzer.New()
+		runner.wappalyzer, err = func() (*wappalyzer.Wappalyze, error) {
+			if options.CustomFingerprintFile != "" {
+				return wappalyzer.NewFromFile(options.CustomFingerprintFile, true, true)
+			}
+			return wappalyzer.New()
+		}()
 	}
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
 	}
 
 	if options.StoreResponseDir != "" {
-		os.RemoveAll(filepath.Join(options.StoreResponseDir, "response", "index.txt"))
-		os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
+		_ = os.RemoveAll(filepath.Join(options.StoreResponseDir, "response", "index.txt"))
+		_ = os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
 	}
 
 	httpxOptions := httpx.DefaultOptions
@@ -168,6 +177,11 @@ func New(options *Options) (*Runner, error) {
 	} else {
 		httpxOptions.RandomAgent = options.RandomAgent
 	}
+	if options.CustomHeaders.Has("Referer:") {
+		httpxOptions.AutoReferer = false
+	} else {
+		httpxOptions.AutoReferer = options.AutoReferer
+	}
 	httpxOptions.ZTLS = options.ZTLS
 	httpxOptions.MaxResponseBodySizeToSave = int64(options.MaxResponseBodySizeToSave)
 	httpxOptions.MaxResponseBodySizeToRead = int64(options.MaxResponseBodySizeToRead)
@@ -177,6 +191,7 @@ func New(options *Options) (*Runner, error) {
 	}
 	httpxOptions.Resolvers = options.Resolvers
 	httpxOptions.TlsImpersonate = options.TlsImpersonate
+	httpxOptions.Protocol = httpx.Proto(options.Protocol)
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string]string)
@@ -412,8 +427,25 @@ func (runner *Runner) createNetworkpolicyInstance(options *Options) (*networkpol
 			npOptions.DenyList = append(npOptions.DenyList, exclude)
 		}
 	}
+
+	npOptions.AllowList = appendToList(npOptions.AllowList, options.Allow...)
+	npOptions.DenyList = appendToList(npOptions.DenyList, options.Deny...)
+
 	np, err := networkpolicy.New(npOptions)
 	return np, err
+}
+
+func appendToList(list []string, values ...string) []string {
+	for _, value := range values {
+		switch {
+		case asn.IsASN(value):
+			ips := expandASNInputValue(value)
+			list = append(list, ips...)
+		default:
+			list = append(list, value)
+		}
+	}
+	return list
 }
 
 func expandCIDRInputValue(value string) []string {
@@ -688,7 +720,7 @@ func makePrintCallback() func(stats clistats.StatisticsClient) interface{} {
 		builder.WriteString(clistats.String(uint64(incrementRequests / duration.Seconds())))
 
 		builder.WriteString(" | Requests: ")
-		builder.WriteString(fmt.Sprintf("%.0f", currentRequests))
+		_, _ = fmt.Fprintf(builder, "%.0f", currentRequests)
 
 		hosts, _ := stats.GetCounter("hosts")
 		totalHosts, _ := stats.GetStatic("totalHosts")
@@ -699,7 +731,6 @@ func makePrintCallback() func(stats clistats.StatisticsClient) interface{} {
 		builder.WriteString(clistats.String(totalHosts))
 		builder.WriteRune(' ')
 		builder.WriteRune('(')
-		//nolint:gomnd // this is not a magic number
 		builder.WriteString(clistats.String(uint64(float64(hosts) / float64(totalHosts.(int)) * 100.0)))
 		builder.WriteRune('%')
 		builder.WriteRune(')')
@@ -799,18 +830,26 @@ func (r *Runner) RunEnumeration() {
 
 		if r.options.Output != "" && r.options.OutputAll {
 			plainFile = openOrCreateFile(r.options.Resume, r.options.Output)
-			defer plainFile.Close()
+			defer func() {
+				_ = plainFile.Close()
+			}()
 			jsonFile = openOrCreateFile(r.options.Resume, r.options.Output+".json")
-			defer jsonFile.Close()
+			defer func() {
+				_ = jsonFile.Close()
+			}()
 			csvFile = openOrCreateFile(r.options.Resume, r.options.Output+".csv")
-			defer csvFile.Close()
+			defer func() {
+				_ = csvFile.Close()
+			}()
 		}
 
 		jsonOrCsv := (r.options.JSONOutput || r.options.CSVOutput)
 		jsonAndCsv := (r.options.JSONOutput && r.options.CSVOutput)
 		if r.options.Output != "" && plainFile == nil && !jsonOrCsv {
 			plainFile = openOrCreateFile(r.options.Resume, r.options.Output)
-			defer plainFile.Close()
+			defer func() {
+				_ = plainFile.Close()
+			}()
 		}
 
 		if r.options.Output != "" && r.options.JSONOutput && jsonFile == nil {
@@ -819,7 +858,9 @@ func (r *Runner) RunEnumeration() {
 				ext = ".json"
 			}
 			jsonFile = openOrCreateFile(r.options.Resume, r.options.Output+ext)
-			defer jsonFile.Close()
+			defer func() {
+				_ = jsonFile.Close()
+			}()
 		}
 
 		if r.options.Output != "" && r.options.CSVOutput && csvFile == nil {
@@ -828,7 +869,9 @@ func (r *Runner) RunEnumeration() {
 				ext = ".csv"
 			}
 			csvFile = openOrCreateFile(r.options.Resume, r.options.Output+ext)
-			defer csvFile.Close()
+			defer func() {
+				_ = csvFile.Close()
+			}()
 		}
 
 		if r.options.CSVOutput {
@@ -900,16 +943,6 @@ func (r *Runner) RunEnumeration() {
 			}
 			if resp.str == "" {
 				continue
-			}
-
-			if indexFile != nil && resp.Err == nil {
-				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
-				_, _ = indexFile.WriteString(indexData)
-			}
-
-			if indexScreenshotFile != nil && resp.ScreenshotPathRel != "" {
-				indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.ScreenshotPathRel, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
-				_, _ = indexScreenshotFile.WriteString(indexData)
 			}
 
 			// apply matchers and filters
@@ -1084,7 +1117,34 @@ func (r *Runner) RunEnumeration() {
 				domainScreenshotBaseDir := filepath.Join(r.options.StoreResponseDir, "screenshot")
 				screenshotBaseDir := filepath.Join(domainScreenshotBaseDir, hostFilename)
 
-				var screenshotPath, screenshotPathRel string
+				var responsePath, screenshotPath, screenshotPathRel string
+				// store response
+				if r.scanopts.StoreResponse || r.scanopts.StoreChain {
+					if r.scanopts.OmitBody {
+						resp.Raw = strings.ReplaceAll(resp.Raw, resp.ResponseBody, "")
+					}
+
+					responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
+					// URL.EscapedString returns that can be used as filename
+					respRaw := resp.Raw
+					reqRaw := resp.RequestRaw
+					if len(respRaw) > r.scanopts.MaxResponseBodySizeToSave {
+						respRaw = respRaw[:r.scanopts.MaxResponseBodySizeToSave]
+					}
+					data := reqRaw
+					if r.options.StoreChain && resp.Response != nil && resp.Response.HasChain() {
+						data = append(data, append([]byte("\n"), []byte(resp.Response.GetChain())...)...)
+					}
+					data = append(data, respRaw...)
+					data = append(data, []byte("\n\n\n")...)
+					data = append(data, []byte(resp.URL)...)
+					_ = fileutil.CreateFolder(responseBaseDir)
+					writeErr := os.WriteFile(responsePath, data, 0644)
+					if writeErr != nil {
+						gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
+					}
+					resp.StoredResponsePath = responsePath
+				}
 
 				if r.scanopts.Screenshot {
 					screenshotPath = fileutilz.AbsPathOrDefault(filepath.Join(screenshotBaseDir, screenshotResponseFile))
@@ -1135,7 +1195,13 @@ func (r *Runner) RunEnumeration() {
 
 			//nolint:errcheck // this method needs a small refactor to reduce complexity
 			if plainFile != nil {
-				plainFile.WriteString(resp.str + "\n")
+				plainFile.WriteString(handleStripAnsiCharacters(resp.str, r.options.NoColor) + "\n")
+			}
+
+			if len(r.options.ExcludeOutputFields) > 0 {
+				if filteredData, err := structs.FilterStruct(resp, nil, r.options.ExcludeOutputFields); err == nil {
+					resp = filteredData
+				}
 			}
 
 			// call the callback function if any
@@ -1189,7 +1255,9 @@ func (r *Runner) RunEnumeration() {
 			if err != nil {
 				gologger.Warning().Msgf("Could not create HTML file %s\n", err)
 			}
-			defer screenshotHtml.Close()
+			defer func() {
+				_ = screenshotHtml.Close()
+			}()
 
 			templateMap := template.FuncMap{
 				"safeURL": func(u string) template.URL {
@@ -1295,13 +1363,22 @@ func (r *Runner) RunEnumeration() {
 		if err != nil {
 			gologger.Fatal().Msgf("Failed to create JSON file: %v", err)
 		}
-		defer file.Close()
+		defer func() {
+			_ = file.Close()
+		}()
 
 		_, err = file.Write(clusterReportJSON)
 		if err != nil {
 			gologger.Fatal().Msgf("Failed to write to JSON file: %v", err)
 		}
 	}
+}
+
+func handleStripAnsiCharacters(data string, skip bool) string {
+	if skip {
+		return data
+	}
+	return stripANSI(data)
 }
 
 func logFilteredErrorPage(fileName, url string) {
@@ -1319,7 +1396,9 @@ func logFilteredErrorPage(fileName, url string) {
 		gologger.Fatal().Msgf("Could not open/create output file '%s': %s\n", fileName, err)
 		return
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	info := map[string]interface{}{
 		"url":           url,
@@ -1620,7 +1699,7 @@ retry:
 	var requestDump []byte
 	if scanopts.Unsafe {
 		var errDump error
-		requestDump, errDump = rawhttp.DumpRequestRaw(req.Method, req.URL.String(), reqURI, req.Header, req.Body, rawhttp.DefaultOptions)
+		requestDump, errDump = rawhttp.DumpRequestRaw(req.Method, req.String(), reqURI, req.Header, req.Body, rawhttp.DefaultOptions)
 		if errDump != nil {
 			return Result{URL: URL.String(), Input: origInput, Err: errDump}
 		}
@@ -1643,7 +1722,7 @@ retry:
 		}
 	}
 	// fix the final output url
-	fullURL := req.URL.String()
+	fullURL := req.String()
 	if parsedURL, errParse := r.parseURL(fullURL); errParse != nil {
 		return Result{URL: URL.String(), Input: origInput, Err: errParse}
 	} else {
@@ -1829,7 +1908,7 @@ retry:
 
 	serverHeader := resp.GetHeader("Server")
 	if scanopts.OutputServerHeader {
-		builder.WriteString(fmt.Sprintf(" [%s]", serverHeader))
+		_, _ = fmt.Fprintf(builder, " [%s]", serverHeader)
 	}
 
 	var (
@@ -1837,6 +1916,7 @@ retry:
 		request            string
 		rawResponseHeaders string
 		responseHeaders    map[string]interface{}
+		linkRequest        []NetworkRequest
 	)
 
 	if scanopts.ResponseHeadersInStdout {
@@ -1943,7 +2023,7 @@ retry:
 	}
 
 	if scanopts.OutputIP || scanopts.ProbeAllIPS {
-		builder.WriteString(fmt.Sprintf(" [%s]", ip))
+		_, _ = fmt.Fprintf(builder, " [%s]", ip)
 	}
 
 	var onlyHost string
@@ -1968,16 +2048,16 @@ retry:
 
 	if scanopts.OutputCName && len(cnames) > 0 {
 		// Print only the first CNAME (full list in json)
-		builder.WriteString(fmt.Sprintf(" [%s]", cnames[0]))
+		_, _ = fmt.Fprintf(builder, " [%s]", cnames[0])
 	}
 
 	isCDN, cdnName, cdnType, err := hp.CdnCheck(ip)
 	if scanopts.OutputCDN == "true" && isCDN && err == nil {
-		builder.WriteString(fmt.Sprintf(" [%s]", cdnName))
+		_, _ = fmt.Fprintf(builder, " [%s]", cdnName)
 	}
 
 	if scanopts.OutputResponseTime {
-		builder.WriteString(fmt.Sprintf(" [%s]", resp.Duration))
+		_, _ = fmt.Fprintf(builder, " [%s]", resp.Duration)
 	}
 
 	technologyDetails := make(map[string]wappalyzer.AppInfo)
@@ -2041,7 +2121,7 @@ retry:
 	hashesMap := make(map[string]interface{})
 	if scanopts.Hashes != "" {
 		hs := strings.Split(scanopts.Hashes, ",")
-		outputHashes := !(r.options.JSONOutput || r.options.OutputAll)
+		outputHashes := !(r.options.JSONOutput || r.options.OutputAll) //nolint
 		if outputHashes {
 			builder.WriteString(" [")
 		}
@@ -2094,7 +2174,7 @@ retry:
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Magenta(resp.Lines).String())
 		} else {
-			builder.WriteString(fmt.Sprint(resp.Lines))
+			_, _ = fmt.Fprintf(builder, "%d", resp.Lines)
 		}
 		builder.WriteRune(']')
 	}
@@ -2105,7 +2185,7 @@ retry:
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Magenta(jarmhash).String())
 		} else {
-			builder.WriteString(fmt.Sprint(jarmhash))
+			_, _ = fmt.Fprintf(builder, "%s", jarmhash)
 		}
 		builder.WriteRune(']')
 	}
@@ -2114,7 +2194,7 @@ retry:
 		if !scanopts.OutputWithNoColor {
 			builder.WriteString(aurora.Magenta(resp.Words).String())
 		} else {
-			builder.WriteString(fmt.Sprint(resp.Words))
+			_, _ = fmt.Fprintf(builder, "%d", resp.Words)
 		}
 		builder.WriteRune(']')
 	}
@@ -2132,7 +2212,7 @@ retry:
 	// store response
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		if r.options.OmitBody {
-			resp.Raw = strings.Replace(resp.Raw, string(resp.Data), "", -1)
+			resp.Raw = strings.ReplaceAll(resp.Raw, string(resp.Data), "")
 		}
 		responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
 		// URL.EscapedString returns that can be used as filename
@@ -2209,7 +2289,7 @@ retry:
 	var pHash uint64
 	if scanopts.Screenshot {
 		var err error
-		screenshotBytes, headlessBody, err = r.browser.ScreenshotWithBody(fullURL, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle, r.options.CustomHeaders, scanopts.IsScreenshotFullPage())
+		screenshotBytes, headlessBody, linkRequest, err = r.browser.ScreenshotWithBody(fullURL, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle, r.options.CustomHeaders, scanopts.IsScreenshotFullPage())
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
@@ -2254,6 +2334,7 @@ retry:
 	result := Result{
 		Timestamp:        time.Now(),
 		Request:          request,
+		LinkRequest:      linkRequest,
 		ResponseHeaders:  responseHeaders,
 		RawHeaders:       rawResponseHeaders,
 		Scheme:           parsed.Scheme,
@@ -2355,9 +2436,9 @@ func calculatePerceptionHash(screenshotBytes []byte) (uint64, error) {
 
 func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp []byte, finalURL string, defaultProbe bool) (string, string, string, []byte, string, error) {
 	// Check if current URI is ending with .ico => use current body without additional requests
-	if path.Ext(req.URL.Path) == ".ico" {
+	if path.Ext(req.Path) == ".ico" {
 		mmh3, md5h, err := r.calculateFaviconHashWithRaw(currentResp)
-		return mmh3, md5h, req.URL.Path, currentResp, req.URL.String(), err
+		return mmh3, md5h, req.Path, currentResp, req.String(), err
 	}
 
 	// Parse HTML: collect <link rel="...icon..."> hrefs + optional <base href>
@@ -2372,7 +2453,7 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 	}
 
 	// Determine base URL: prefer finalURL (redirect target) then apply <base href>
-	baseNet, _ := url.Parse(req.URL.String())
+	baseNet, _ := url.Parse(req.String())
 	if finalURL != "" {
 		if u, err := url.Parse(finalURL); err == nil {
 			baseNet = u
@@ -2460,7 +2541,7 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		faviconMMH3 = mmh3
 		faviconMD5 = md5h
 		faviconPath = raw
-		faviconURL = clone.URL.String()
+		faviconURL = clone.String()
 		faviconData = respFav.Data
 		gologger.Debug().Msgf("favicon resolved url=%s raw_href=%s size=%d bytes", faviconURL, faviconPath, len(faviconData))
 		break
@@ -2472,7 +2553,7 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, string, error) {
 	hashNum, md5Hash, err := stringz.FaviconHash(data)
 	if err != nil {
-		return "", "", errorutil.NewWithTag("favicon", "could not calculate favicon hash").Wrap(err)
+		return "", "", errorutil.NewWithTag("favicon", "could not calculate favicon hash").Wrap(err) //nolint
 	}
 	return fmt.Sprintf("%d", hashNum), md5Hash, nil
 }
@@ -2673,4 +2754,9 @@ func isWebSocket(resp *httpx.Response) bool {
 		}
 	}
 	return false
+}
+
+// stripANSI removes ANSI color codes from a string using pre-compiled regex
+func stripANSI(str string) string {
+	return ansiRegex.ReplaceAllString(str, "")
 }
