@@ -101,6 +101,9 @@ func (r *Runner) HTTPX() *httpx.HTTPX {
 // picked based on try-fail but it seems to close to one it's used https://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html#c1992
 var hammingDistanceThreshold int = 22
 
+// regex for stripping ANSI codes
+var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
 type pHashCluster struct {
 	BasePHash uint64     `json:"base_phash,omitempty" csv:"base_phash"`
 	Hashes    []pHashUrl `json:"hashes,omitempty" csv:"hashes"`
@@ -1180,7 +1183,7 @@ func (r *Runner) RunEnumeration() {
 
 			//nolint:errcheck // this method needs a small refactor to reduce complexity
 			if plainFile != nil {
-				plainFile.WriteString(resp.str + "\n")
+				plainFile.WriteString(handleStripAnsiCharacters(resp.str, r.options.NoColor) + "\n")
 			}
 
 			if len(r.options.ExcludeOutputFields) > 0 {
@@ -1343,6 +1346,13 @@ func (r *Runner) RunEnumeration() {
 			gologger.Fatal().Msgf("Failed to write to JSON file: %v", err)
 		}
 	}
+}
+
+func handleStripAnsiCharacters(data string, skip bool) string {
+	if skip {
+		return data
+	}
+	return stripANSI(data)
 }
 
 func logFilteredErrorPage(fileName, url string) {
@@ -2698,4 +2708,9 @@ func isWebSocket(resp *httpx.Response) bool {
 		}
 	}
 	return false
+}
+
+// stripANSI removes ANSI color codes from a string using pre-compiled regex
+func stripANSI(str string) string {
+	return ansiRegex.ReplaceAllString(str, "")
 }
