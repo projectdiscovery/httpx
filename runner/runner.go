@@ -1112,9 +1112,12 @@ func (r *Runner) RunEnumeration() {
 				URL, _ := urlutil.Parse(resp.URL)
 				domainFile := resp.Method + ":" + URL.EscapedString()
 				hash := hashes.Sha1([]byte(domainFile))
+				domainResponseFile := fmt.Sprintf("%s.txt", hash)
 				screenshotResponseFile := fmt.Sprintf("%s.png", hash)
 				hostFilename := strings.ReplaceAll(URL.Host, ":", "_")
+				domainResponseBaseDir := filepath.Join(r.options.StoreResponseDir, "response")
 				domainScreenshotBaseDir := filepath.Join(r.options.StoreResponseDir, "screenshot")
+				responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
 				screenshotBaseDir := filepath.Join(domainScreenshotBaseDir, hostFilename)
 
 				var responsePath, screenshotPath, screenshotPathRel string
