@@ -1183,7 +1183,7 @@ func (r *Runner) RunEnumeration() {
 
 			//nolint:errcheck // this method needs a small refactor to reduce complexity
 			if plainFile != nil {
-				plainFile.WriteString(stripANSI(resp.str) + "\n")
+				plainFile.WriteString(handleStripAnsiCharacters(resp.str, r.options.NoColor) + "\n")
 			}
 
 			if len(r.options.ExcludeOutputFields) > 0 {
@@ -1346,6 +1346,13 @@ func (r *Runner) RunEnumeration() {
 			gologger.Fatal().Msgf("Failed to write to JSON file: %v", err)
 		}
 	}
+}
+
+func handleStripAnsiCharacters(data string, skip bool) string {
+	if skip {
+		return data
+	}
+	return stripANSI(data)
 }
 
 func logFilteredErrorPage(fileName, url string) {
