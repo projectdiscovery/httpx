@@ -1579,7 +1579,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 func (r *Runner) analyze(hp *httpx.HTTPX, protocol string, target httpx.Target, method, origInput string, scanopts *ScanOptions) Result {
 	origProtocol := protocol
 	if protocol == httpx.HTTPorHTTPS || protocol == httpx.HTTPandHTTPS {
-		protocol = httpx.HTTPS
+		protocol = determineMostLikelySchemeOrder(target.Host)
 	}
 	retried := false
 retry:
