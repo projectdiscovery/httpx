@@ -1110,10 +1110,8 @@ func (r *Runner) RunEnumeration() {
 			// store responses or chain in directory
 			if resp.Err == nil {
 				URL, _ := urlutil.Parse(resp.URL)
-				domainFile := resp.Method + ":" + URL.EscapedString()
-				hash := hashes.Sha1([]byte(domainFile))
-				domainResponseFile := fmt.Sprintf("%s.txt", hash)
-				screenshotResponseFile := fmt.Sprintf("%s.png", hash)
+				domainResponseFile := fmt.Sprintf("%s.txt", resp.FileNameHash)
+				screenshotResponseFile := fmt.Sprintf("%s.png", resp.FileNameHash)
 				hostFilename := strings.ReplaceAll(URL.Host, ":", "_")
 				domainResponseBaseDir := filepath.Join(r.options.StoreResponseDir, "response")
 				domainScreenshotBaseDir := filepath.Join(r.options.StoreResponseDir, "screenshot")
@@ -2211,7 +2209,7 @@ retry:
 	domainResponseBaseDir := filepath.Join(scanopts.StoreResponseDirectory, "response")
 	responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
 
-	var responsePath string
+	var responsePath, fileNameHash string
 	// store response
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		if r.options.OmitBody {
@@ -2233,12 +2231,11 @@ retry:
 		data = append(data, []byte(fullURL)...)
 		_ = fileutil.CreateFolder(responseBaseDir)
 
-		finalPath := responsePath
-		idx := 0
-		for {
-			targetPath := finalPath
+		basePath := strings.TrimSuffix(responsePath, ".txt")
+		var idx int
+		for idx = 0; ; idx++ {
+			targetPath := responsePath
 			if idx > 0 {
-				basePath := strings.TrimSuffix(responsePath, ".txt")
 				targetPath = fmt.Sprintf("%s_%d.txt", basePath, idx)
 			}
 			f, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
@@ -2254,7 +2251,12 @@ retry:
 				gologger.Error().Msgf("Failed to create file '%s': %s", targetPath, err)
 				break
 			}
-			idx++
+		}
+
+		if idx == 0 {
+			fileNameHash = hash
+		} else {
+			fileNameHash = fmt.Sprintf("%s_%d", hash, idx)
 		}
 	}
 
@@ -2396,6 +2398,7 @@ retry:
 		RequestRaw:        requestDump,
 		Response:          resp,
 		FaviconData:       faviconData,
+		FileNameHash:      fileNameHash,
 	}
 	if resp.BodyDomains != nil {
 		result.Fqdns = resp.BodyDomains.Fqdns
