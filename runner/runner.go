@@ -2249,7 +2249,7 @@ retry:
 			scanopts.ScreenshotIdle,
 			r.options.CustomHeaders,
 			scanopts.IsScreenshotFullPage(),
-			r.options.CustomHeaders,
+			r.options.JavascriptCodes,
 		)
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
