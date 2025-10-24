@@ -130,6 +130,7 @@ HEADLESS:
    -ehb, -exclude-headless-body     enable excluding headless header from json output
    -st, -screenshot-timeout value   set timeout for screenshot in seconds (default 10s)
    -sid, -screenshot-idle value     set idle time before taking screenshot in seconds (default 1s)
+   -jsc, -javascript-code string[]   execute JavaScript code after navigation
 
 MATCHERS:
    -mc, -match-code string            match response with specified status code (-mc 200,302)

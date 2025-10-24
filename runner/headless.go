@@ -110,10 +110,26 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 	return engine, nil
 }
 
-func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle time.Duration, headers []string, fullPage bool) ([]byte, string, []NetworkRequest, error) {
-	page, err := b.engine.Page(proto.TargetCreateTarget{})
+func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle time.Duration, headers []string, fullPage bool, jsCodes []string) ([]byte, string, []NetworkRequest, error) {
+	page, networkRequests, err := b.setupPageAndNavigate(url, timeout, headers, jsCodes)
 	if err != nil {
 		return nil, "", []NetworkRequest{}, err
+	}
+	defer b.closePage(page)
+
+	screenshot, body, err := b.takeScreenshotAndGetBody(page, idle, fullPage)
+	if err != nil {
+		return nil, "", networkRequests, err
+	}
+
+	return screenshot, body, networkRequests, nil
+}
+
+// setupPageAndNavigate opens a page, performs all adaptive actions including JS injection
+func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, headers []string, jsCodes []string) (*rod.Page, []NetworkRequest, error) {
+	page, err := b.engine.Page(proto.TargetCreateTarget{})
+	if err != nil {
+		return nil, []NetworkRequest{}, err
 	}
 
 	// Enable network
@@ -184,32 +200,46 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 	}
 
 	page = page.Timeout(timeout)
-	defer func() {
-		_ = page.Close()
-	}()
 
 	if err := page.Navigate(url); err != nil {
-		return nil, "", networkRequests.Slice, err
+		return page, networkRequests.Slice, err
+	}
+
+	if len(jsCodes) > 0 {
+		_, err := b.ExecuteJavascriptCodesWithPage(page, jsCodes)
+		if err != nil {
+			return page, networkRequests.Slice, err
+		}
 	}
 
 	page.Timeout(5 * time.Second).WaitNavigation(proto.PageLifecycleEventNameFirstMeaningfulPaint)()
 
+	return page, networkRequests.Slice, nil
+}
+
+// takeScreenshotAndGetBody performs the screenshot actions
+func (b *Browser) takeScreenshotAndGetBody(page *rod.Page, idle time.Duration, fullPage bool) ([]byte, string, error) {
 	if err := page.WaitLoad(); err != nil {
-		return nil, "", networkRequests.Slice, err
+		return nil, "", err
 	}
 	_ = page.WaitIdle(idle)
 
 	screenshot, err := page.Screenshot(fullPage, &proto.PageCaptureScreenshot{})
 	if err != nil {
-		return nil, "", networkRequests.Slice, err
+		return nil, "", err
 	}
 
 	body, err := page.HTML()
 	if err != nil {
-		return screenshot, "", networkRequests.Slice, err
+		return screenshot, "", err
 	}
 
-	return screenshot, body, networkRequests.Slice, nil
+	return screenshot, body, nil
+}
+
+// closePage closes the page and performs cleanup
+func (b *Browser) closePage(page *rod.Page) {
+	_ = page.Close()
 }
 
 func (b *Browser) Close() {
@@ -267,4 +297,19 @@ func getSimpleErrorType(errorText, errorType, blockedReason string) string {
 		return "OTHER_ERROR"
 	}
 	return "UNKNOWN"
+}
+
+func (b *Browser) ExecuteJavascriptCodesWithPage(page *rod.Page, jsc []string) ([]*proto.RuntimeRemoteObject, error) {
+	outputs := make([]*proto.RuntimeRemoteObject, 0, len(jsc))
+	for _, js := range jsc {
+		if js == "" {
+			continue
+		}
+		output, err := page.Eval(js)
+		if err != nil {
+			return nil, err
+		}
+		outputs = append(outputs, output)
+	}
+	return outputs, nil
 }
