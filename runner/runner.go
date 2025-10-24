@@ -39,7 +39,6 @@ import (
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
-	errorutil "github.com/projectdiscovery/utils/errors" //nolint
 	osutil "github.com/projectdiscovery/utils/os"
 	"github.com/projectdiscovery/utils/structs"
 
@@ -69,6 +68,7 @@ import (
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/projectdiscovery/rawhttp"
 	converstionutil "github.com/projectdiscovery/utils/conversion"
+	errkit "github.com/projectdiscovery/utils/errkit"
 	fileutil "github.com/projectdiscovery/utils/file"
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	iputil "github.com/projectdiscovery/utils/ip"
@@ -2243,7 +2243,14 @@ retry:
 	var pHash uint64
 	if scanopts.Screenshot {
 		var err error
-		screenshotBytes, headlessBody, linkRequest, err = r.browser.ScreenshotWithBody(fullURL, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle, r.options.CustomHeaders, scanopts.IsScreenshotFullPage())
+		screenshotBytes, headlessBody, linkRequest, err = r.browser.ScreenshotWithBody(
+			fullURL,
+			scanopts.ScreenshotTimeout,
+			scanopts.ScreenshotIdle,
+			r.options.CustomHeaders,
+			scanopts.IsScreenshotFullPage(),
+			r.options.CustomHeaders,
+		)
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
@@ -2507,7 +2514,7 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, string, error) {
 	hashNum, md5Hash, err := stringz.FaviconHash(data)
 	if err != nil {
-		return "", "", errorutil.NewWithTag("favicon", "could not calculate favicon hash").Wrap(err) //nolint
+		return "", "", errkit.Wrapf(err, "could not calculate favicon hash")
 	}
 	return fmt.Sprintf("%d", hashNum), md5Hash, nil
 }

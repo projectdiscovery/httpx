@@ -110,7 +110,7 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 	return engine, nil
 }
 
-func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle time.Duration, headers []string, fullPage bool) ([]byte, string, []NetworkRequest, error) {
+func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle time.Duration, headers []string, fullPage bool, jsCodes []string) ([]byte, string, []NetworkRequest, error) {
 	page, err := b.engine.Page(proto.TargetCreateTarget{})
 	if err != nil {
 		return nil, "", []NetworkRequest{}, err
@@ -192,6 +192,13 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 		return nil, "", networkRequests.Slice, err
 	}
 
+	if len(jsCodes) > 0 {
+		_, err := b.ExecuteJavascriptCodesWithPage(page, jsCodes)
+		if err != nil {
+			return nil, "", networkRequests.Slice, err
+		}
+	}
+
 	page.Timeout(5 * time.Second).WaitNavigation(proto.PageLifecycleEventNameFirstMeaningfulPaint)()
 
 	if err := page.WaitLoad(); err != nil {
@@ -267,4 +274,19 @@ func getSimpleErrorType(errorText, errorType, blockedReason string) string {
 		return "OTHER_ERROR"
 	}
 	return "UNKNOWN"
+}
+
+func (b *Browser) ExecuteJavascriptCodesWithPage(page *rod.Page, jsc []string) ([]*proto.RuntimeRemoteObject, error) {
+	outputs := make([]*proto.RuntimeRemoteObject, 0, len(jsc))
+	for _, js := range jsc {
+		if js == "" {
+			continue
+		}
+		output, err := page.Eval(js)
+		if err != nil {
+			return nil, err
+		}
+		outputs = append(outputs, output)
+	}
+	return outputs, nil
 }
