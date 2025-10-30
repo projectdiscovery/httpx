@@ -424,6 +424,9 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 		switch strings.ToLower(name) {
 		case "host":
 			r.Host = value
+			if h.Options.Unsafe {
+				r.Header.Set("Host", value)
+			}
 		case "cookie":
 			// cookies are set in the default branch, and reset during the follow redirect flow
 			fallthrough
