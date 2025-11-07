@@ -131,10 +131,11 @@ func setupOptionalAssetUpload(opts *runner.Options) *pdcp.UploadWriter {
 	opts.OnClose = func() {
 		writer.Close()
 	}
+
 	// add additional metadata
 	if opts.AssetID != "" {
 		// silently ignore
-		_ = writer.SetAssetID(opts.AssetID)
+		writer.SetAssetID(opts.AssetID)
 	}
 	if opts.AssetName != "" {
 		// silently ignore
