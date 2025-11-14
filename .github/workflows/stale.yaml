@@ -1,21 +1,41 @@
-name: 'Close stale issues and PR'
+name: 💤 Stale
+
 on:
   schedule:
-    - cron: '30 1 * * *'
+    - cron: "0 0 * * 0" # Weekly
 
 jobs:
   stale:
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write # only for delete-branch option
+      issues: write
+      pull-requests: write
     steps:
       - uses: actions/stale@v9
         with:
-          only-labels: "Status: Abandoned, Type: Question"
-          stale-issue-label: stale
-          stale-issue-message: 'This issue is stale because it has been open 14 days with no activity. Remove stale label or comment or this will be closed in 90 days.'
-          close-issue-message: 'This issue was closed because it has been stalled for 90 days with no activity.'
-          days-before-stale: 14
-          days-before-close: 90
-          days-before-pr-stale: -1
-          days-before-pr-close: -1
-          stale-pr-message: ''
-          close-pr-message: ''
+          days-before-stale: 90
+          days-before-close: 7
+          stale-issue-label: "Status: Stale"
+          stale-pr-label: "Status: Stale"
+          stale-issue-message: >
+            This issue has been automatically marked as stale because it has not
+            had recent activity. It will be closed in 7 days if no further
+            activity occurs. Thank you for your contributions!
+          stale-pr-message: >
+            This pull request has been automatically marked as stale due to
+            inactivity. It will be closed in 7 days if no further activity
+            occurs. Please update if you wish to keep it open.
+          close-issue-message: >
+            This issue has been automatically closed due to inactivity. If you
+            think this is a mistake or would like to continue the discussion,
+            please comment or feel free to reopen it.
+          close-pr-message: >
+            This pull request has been automatically closed due to inactivity.
+            If you think this is a mistake or would like to continue working on
+            it, please comment or feel free to reopen it.
+          close-issue-label: "Status: Abandoned"
+          close-pr-label: "Status: Abandoned"
+          exempt-issue-labels: "Status: Abandoned"
+          exempt-pr-labels: "Status: Abandoned"

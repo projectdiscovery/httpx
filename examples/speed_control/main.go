@@ -60,7 +60,9 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error sending PUT request: %v", err)
 		}
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 
 		if resp.StatusCode != http.StatusOK {
 			log.Printf("Failed to update threads, status code: %d", resp.StatusCode)

@@ -31,6 +31,7 @@ import (
 	fileutil "github.com/projectdiscovery/utils/file"
 	sliceutil "github.com/projectdiscovery/utils/slice"
 	stringsutil "github.com/projectdiscovery/utils/strings"
+	"github.com/projectdiscovery/utils/structs"
 	updateutils "github.com/projectdiscovery/utils/update"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 )
@@ -256,11 +257,13 @@ type Options struct {
 	NoFallback                bool
 	NoFallbackScheme          bool
 	TechDetect                bool
+	CustomFingerprintFile     string
 	TLSGrab                   bool
 	protocol                  string
 	ShowStatistics            bool
 	StatsInterval             int
 	RandomAgent               bool
+	AutoReferer               bool
 	StoreChain                bool
 	StoreVisionReconClusters  bool
 	Deny                      customlist.CustomList
@@ -310,6 +313,8 @@ type Options struct {
 	OutputFilterCondition     string
 	OutputMatchCondition      string
 	StripFilter               string
+	ListOutputFields          bool
+	ExcludeOutputFields       goflags.StringSlice
 	//The OnResult callback function is invoked for each result. It is important to check for errors in the result before using Result.Err.
 	OnResult             OnResultCallback
 	DisableUpdateCheck   bool
@@ -329,6 +334,9 @@ type Options struct {
 	Protocol                  string
 	OutputFilterErrorPagePath string
 	DisableStdout             bool
+
+	JavascriptCodes goflags.StringSlice
+
 	// AssetUpload
 	AssetUpload bool
 	// AssetName
@@ -379,8 +387,9 @@ func ParseOptions() *Options {
 		flagSet.DynamicVarP(&options.ResponseBodyPreviewSize, "body-preview", "bp", 100, "display first N characters of response body"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
 		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
+		flagSet.StringVarP(&options.CustomFingerprintFile, "custom-fingerprint-file", "cff", "", "path to a custom fingerprint file for technology detection"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
-		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "display server using websocket"),
+		flagSet.BoolVarP(&options.OutputWebSocket, "websocket", "ws", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
 		flagSet.BoolVar(&options.OutputCName, "cname", false, "display host cname"),
 		flagSet.BoolVarP(&options.ExtractFqdn, "efqdn", "extract-fqdn", false, "get domain and subdomains from response body and header in jsonl/csv output"),
@@ -398,6 +407,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.NoScreenshotFullPage, "no-screenshot-full-page", false, "disable saving full page screenshot"),
 		flagSet.DurationVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10*time.Second, "set timeout for screenshot in seconds"),
 		flagSet.DurationVarP(&options.ScreenshotIdle, "screenshot-idle", "sid", 1*time.Second, "set idle time before taking screenshot in seconds"),
+		flagSet.StringSliceVarP(&options.JavascriptCodes, "javascript-code", "jsc", nil, "execute JavaScript code after navigation", goflags.StringSliceOptions),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",
@@ -432,6 +442,8 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
 		flagSet.StringVarP(&options.OutputFilterCondition, "filter-condition", "fdc", "", "filter response with dsl expression condition"),
 		flagSet.DynamicVar(&options.StripFilter, "strip", "html", "strips all tags in response. supported formats: html,xml"),
+		flagSet.BoolVarP(&options.ListOutputFields, "list-output-fields", "lof", false, "list of fields to output (comma separated)"),
+		flagSet.StringSliceVarP(&options.ExcludeOutputFields, "exclude-output-fields", "eof", nil, "exclude output fields output based on a condition", goflags.NormalizedOriginalStringSliceOptions),
 	)
 
 	flagSet.CreateGroup("rate-limit", "Rate-Limit",
@@ -473,7 +485,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.ChainInStdout, "include-chain", false, "include redirect http chain in JSON output (-json only)"),
 		flagSet.BoolVar(&options.StoreChain, "store-chain", false, "include http redirect chain in responses (-sr only)"),
 		flagSet.BoolVarP(&options.StoreVisionReconClusters, "store-vision-recon-cluster", "svrc", false, "include visual recon clusters (-ss and -sr only)"),
-		flagSet.StringVarP(&options.Protocol, "protocol", "pr", "", "protocol to use (unknown, http11)"),
+		flagSet.StringVarP(&options.Protocol, "protocol", "pr", "", "protocol to use (unknown, http11, http2 [experimental], http3 [experimental])"),
 		flagSet.StringVarP(&options.OutputFilterErrorPagePath, "filter-error-page-path", "fepp", "filtered_error_page.json", "path to store filtered error pages"),
 	)
 
@@ -484,6 +496,7 @@ func ParseOptions() *Options {
 		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.StringVarP(&options.SniName, "sni-name", "sni", "", "custom TLS SNI name"),
 		flagSet.BoolVar(&options.RandomAgent, "random-agent", true, "enable Random User-Agent to use"),
+		flagSet.BoolVar(&options.AutoReferer, "auto-referer", false, "set the Referer header to the current URL"),
 		flagSet.VarP(&options.CustomHeaders, "header", "H", "custom http headers to send with request"),
 		flagSet.StringVarP(&options.Proxy, "proxy", "http-proxy", "", "proxy (http|socks) to use (eg http://127.0.0.1:8080)"),
 		flagSet.BoolVar(&options.Unsafe, "unsafe", false, "send raw requests skipping golang normalization"),
@@ -543,6 +556,17 @@ func ParseOptions() *Options {
 	)
 
 	_ = flagSet.Parse()
+
+	if options.ListOutputFields {
+		fields, err := structs.GetStructFields(Result{})
+		if err != nil {
+			gologger.Fatal().Msgf("Could not get struct fields: %s\n", err)
+		}
+		for _, field := range fields {
+			fmt.Println(field)
+		}
+		os.Exit(0)
+	}
 
 	if options.OutputAll && options.Output == "" {
 		gologger.Fatal().Msg("Please specify an output file using -o/-output when using -oa/-output-all")
