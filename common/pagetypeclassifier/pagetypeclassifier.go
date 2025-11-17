@@ -30,10 +30,18 @@ func (n *PageTypeClassifier) Classify(html string) string {
 	return n.classifier.Classify(text)
 }
 
-func htmlToText(html string) string {
-	text, err := htmltomarkdown.ConvertString(html)
+// htmlToText safely converts HTML to text and protects against panics from Go's HTML parser.
+func htmlToText(html string) (text string) {
+	defer func() {
+		if r := recover(); r != nil {
+			// Optionally log this event, e.g., log.Printf("Recovered in htmlToText: %v", r)
+			text = ""
+		}
+	}()
+	var err error
+	text, err = htmltomarkdown.ConvertString(html)
 	if err != nil {
-		panic(err)
+		text = ""
 	}
-	return text
+	return
 }
