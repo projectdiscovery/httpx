@@ -3,19 +3,22 @@ package pagetypeclassifier
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPageTypeClassifier(t *testing.T) {
 
 	t.Run("test creation of new PageTypeClassifier", func(t *testing.T) {
-		epc := New()
-		assert.NotNil(t, epc)
+		epc, err := New()
+		require.NoError(t, err)
+		require.NotNil(t, epc)
 	})
 
 	t.Run("test classification non error page text", func(t *testing.T) {
-		epc := New()
-		assert.Equal(t, "nonerror", epc.Classify(`<!DOCTYPE html>
+		epc, err := New()
+		require.NoError(t, err)
+		require.NotNil(t, epc)
+		require.Equal(t, "nonerror", epc.Classify(`<!DOCTYPE html>
 		<html lang="en">
 		<head>
 			<meta charset="UTF-8">
@@ -30,8 +33,10 @@ func TestPageTypeClassifier(t *testing.T) {
 	})
 
 	t.Run("test classification on error page text", func(t *testing.T) {
-		epc := New()
-		assert.Equal(t, "error", epc.Classify(`<!DOCTYPE html>
+		epc, err := New()
+		require.NoError(t, err)
+		require.NotNil(t, epc)
+		require.Equal(t, "error", epc.Classify(`<!DOCTYPE html>
 		<html>
 		<head>
 			<title>Error 403: Forbidden</title>

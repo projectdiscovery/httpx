@@ -385,7 +385,11 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
-	runner.pageTypeClassifier = pagetypeclassifier.New()
+	pageTypeClassifier, err := pagetypeclassifier.New()
+	if err != nil {
+		return nil, err
+	}
+	runner.pageTypeClassifier = pageTypeClassifier
 
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)
