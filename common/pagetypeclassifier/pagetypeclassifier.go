@@ -14,26 +14,23 @@ type PageTypeClassifier struct {
 	classifier *naive_bayes.NaiveBayesClassifier
 }
 
-func New() *PageTypeClassifier {
+func New() (*PageTypeClassifier, error) {
 	classifier, err := naive_bayes.NewClassifierFromFileData(classifierData)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return &PageTypeClassifier{classifier: classifier}
+	return &PageTypeClassifier{classifier: classifier}, nil
 }
 
 func (n *PageTypeClassifier) Classify(html string) string {
-	text := htmlToText(html)
-	if text == "" {
+	text, err := htmlToText(html)
+	if err != nil || text == "" {
 		return "other"
 	}
 	return n.classifier.Classify(text)
 }
 
-func htmlToText(html string) string {
-	text, err := htmltomarkdown.ConvertString(html)
-	if err != nil {
-		panic(err)
-	}
-	return text
+// htmlToText safely converts HTML to text and protects against panics from Go's HTML parser.
+func htmlToText(html string) (string, error) {
+	return htmltomarkdown.ConvertString(html)
 }
