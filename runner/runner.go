@@ -481,15 +481,23 @@ func (r *Runner) prepareInputPaths() {
 	}
 }
 
+var duplicateTargetErr = errors.New("duplicate target")
+
 func (r *Runner) prepareInput() {
 	var numHosts int
 	// check if input target host(s) have been provided
 	if len(r.options.InputTargetHost) > 0 {
 		for _, target := range r.options.InputTargetHost {
-			expandedTarget, _ := r.countTargetFromRawTarget(target)
-			if expandedTarget > 0 {
+			expandedTarget, err := r.countTargetFromRawTarget(target)
+			if err == nil && expandedTarget > 0 {
 				numHosts += expandedTarget
-				r.hm.Set(target, nil) //nolint
+				r.hm.Set(target, []byte("1")) //nolint
+			} else if r.options.SkipDedupe && errors.Is(err, duplicateTargetErr) {
+				if v, ok := r.hm.Get(target); ok {
+					cnt, _ := strconv.Atoi(string(v))
+					_ = r.hm.Set(target, []byte(strconv.Itoa(cnt+1)))
+					numHosts += 1
+				}
 			}
 		}
 	}
@@ -647,10 +655,16 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	for scanner.Scan() {
 		target := strings.TrimSpace(scanner.Text())
 		// Used just to get the exact number of targets
-		expandedTarget, _ := r.countTargetFromRawTarget(target)
-		if expandedTarget > 0 {
+		expandedTarget, err := r.countTargetFromRawTarget(target)
+		if err == nil && expandedTarget > 0 {
 			numTargets += expandedTarget
-			r.hm.Set(target, nil) //nolint
+			r.hm.Set(target, []byte("1")) //nolint
+		} else if r.options.SkipDedupe && errors.Is(err, duplicateTargetErr) {
+			if v, ok := r.hm.Get(target); ok {
+				cnt, _ := strconv.Atoi(string(v))
+				_ = r.hm.Set(target, []byte(strconv.Itoa(cnt+1)))
+				numTargets += 1
+			}
 		}
 	}
 	err = finput.Close()
@@ -661,8 +675,9 @@ func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int, err
 	if rawTarget == "" {
 		return 0, nil
 	}
+
 	if _, ok := r.hm.Get(rawTarget); ok {
-		return 0, nil
+		return 0, duplicateTargetErr
 	}
 
 	expandedTarget := 0
@@ -1099,10 +1114,8 @@ func (r *Runner) RunEnumeration() {
 			// store responses or chain in directory
 			if resp.Err == nil {
 				URL, _ := urlutil.Parse(resp.URL)
-				domainFile := resp.Method + ":" + URL.EscapedString()
-				hash := hashes.Sha1([]byte(domainFile))
-				domainResponseFile := fmt.Sprintf("%s.txt", hash)
-				screenshotResponseFile := fmt.Sprintf("%s.png", hash)
+				domainResponseFile := fmt.Sprintf("%s.txt", resp.FileNameHash)
+				screenshotResponseFile := fmt.Sprintf("%s.png", resp.FileNameHash)
 				hostFilename := strings.ReplaceAll(URL.Host, ":", "_")
 				domainResponseBaseDir := filepath.Join(r.options.StoreResponseDir, "response")
 				domainScreenshotBaseDir := filepath.Join(r.options.StoreResponseDir, "screenshot")
@@ -1302,14 +1315,28 @@ func (r *Runner) RunEnumeration() {
 			}
 		}
 
-		if len(r.options.requestURIs) > 0 {
-			for _, p := range r.options.requestURIs {
-				scanopts := r.scanopts.Clone()
-				scanopts.RequestURI = p
-				r.process(k, wg, r.hp, protocol, scanopts, output)
+		runProcess := func(times int) {
+			for i := 0; i < times; i++ {
+				if len(r.options.requestURIs) > 0 {
+					for _, p := range r.options.requestURIs {
+						scanopts := r.scanopts.Clone()
+						scanopts.RequestURI = p
+						r.process(k, wg, r.hp, protocol, scanopts, output)
+					}
+				} else {
+					r.process(k, wg, r.hp, protocol, &r.scanopts, output)
+				}
 			}
-		} else {
-			r.process(k, wg, r.hp, protocol, &r.scanopts, output)
+		}
+
+		if r.options.Stream {
+			runProcess(1)
+		} else if v, ok := r.hm.Get(k); ok {
+			cnt, err := strconv.Atoi(string(v))
+			if err != nil || cnt <= 0 {
+				cnt = 1
+			}
+			runProcess(cnt)
 		}
 
 		return nil
@@ -2186,7 +2213,7 @@ retry:
 	domainResponseBaseDir := filepath.Join(scanopts.StoreResponseDirectory, "response")
 	responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
 
-	var responsePath string
+	var responsePath, fileNameHash string
 	// store response
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		if r.options.OmitBody {
@@ -2207,9 +2234,33 @@ retry:
 		data = append(data, []byte("\n\n\n")...)
 		data = append(data, []byte(fullURL)...)
 		_ = fileutil.CreateFolder(responseBaseDir)
-		writeErr := os.WriteFile(responsePath, data, 0644)
-		if writeErr != nil {
-			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
+
+		basePath := strings.TrimSuffix(responsePath, ".txt")
+		var idx int
+		for idx = 0; ; idx++ {
+			targetPath := responsePath
+			if idx > 0 {
+				targetPath = fmt.Sprintf("%s_%d.txt", basePath, idx)
+			}
+			f, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+			if err == nil {
+				_, writeErr := f.Write(data)
+				_ = f.Close()
+				if writeErr != nil {
+					gologger.Error().Msgf("Could not write to '%s': %s", targetPath, writeErr)
+				}
+				break
+			}
+			if !os.IsExist(err) {
+				gologger.Error().Msgf("Failed to create file '%s': %s", targetPath, err)
+				break
+			}
+		}
+
+		if idx == 0 {
+			fileNameHash = hash
+		} else {
+			fileNameHash = fmt.Sprintf("%s_%d", hash, idx)
 		}
 	}
 
@@ -2358,6 +2409,7 @@ retry:
 		RequestRaw:        requestDump,
 		Response:          resp,
 		FaviconData:       faviconData,
+		FileNameHash:      fileNameHash,
 	}
 	if resp.BodyDomains != nil {
 		result.Fqdns = resp.BodyDomains.Fqdns
