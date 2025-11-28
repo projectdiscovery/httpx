@@ -90,9 +90,9 @@ func TestPageTypeClassifier(t *testing.T) {
 		}
 		deeplyNestedHTML += "</div>"
 
-		// Should not panic and should return empty string on panic
+		// Should not panic and should return empty string with error on panic
 		result, err := htmlToText(deeplyNestedHTML)
-		require.NoError(t, err)
+		require.Error(t, err)
 		require.Equal(t, "", result)
 	})
 

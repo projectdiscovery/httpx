@@ -4,10 +4,11 @@ import (
 	_ "embed"
 	"sync"
 
-	"github.com/microcosm-cc/bluemonday"
-	htmltomarkdown "github.com/JohannesKaufmann/html-to-markdown/v2"
-	"github.com/projectdiscovery/utils/ml/naive_bayes"
 	"fmt"
+
+	htmltomarkdown "github.com/JohannesKaufmann/html-to-markdown/v2"
+	"github.com/microcosm-cc/bluemonday"
+	"github.com/projectdiscovery/utils/ml/naive_bayes"
 )
 
 //go:embed clf.gob
@@ -63,7 +64,7 @@ func getSanitizerPolicy() *bluemonday.Policy {
 // Strategy:
 // 1. Always sanitize HTML with bluemonday first to remove useless elements and reduce nesting
 // 2. Convert sanitized HTML to markdown
-// 3. If conversion panics, recover and return empty string
+// 3. If conversion panics, recover and return empty string with error
 func htmlToText(html string) (text string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -71,20 +72,20 @@ func htmlToText(html string) (text string, err error) {
 			text = ""
 		}
 	}()
-	
+
 	// First, sanitize HTML with bluemonday to strip useless elements and reduce nesting
 	sanitizedHTML := getSanitizerPolicy().Sanitize(html)
-	
+
 	// If sanitization failed or produced empty result, return empty
 	if sanitizedHTML == "" {
 		return "", nil
 	}
-	
+
 	// Convert sanitized HTML to markdown
 	text, err = htmltomarkdown.ConvertString(sanitizedHTML)
 	if err != nil || text == "" {
 		return "", err
 	}
-	
+
 	return
 }
