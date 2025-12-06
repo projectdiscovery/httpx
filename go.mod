@@ -1,12 +1,10 @@
 module github.com/projectdiscovery/httpx
 
-go 1.24.0
-
-toolchain go1.24.1
+go 1.24.1
 
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
-	github.com/PuerkitoBio/goquery v1.10.3
+	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/akrylysov/pogreb v0.10.2 // indirect
 	github.com/corona10/goimagehash v1.1.0
 	github.com/go-faker/faker/v4 v4.7.0
@@ -21,24 +19,24 @@ require (
 	github.com/miekg/dns v1.1.68 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/asnmap v1.1.1
-	github.com/projectdiscovery/cdncheck v1.2.9
+	github.com/projectdiscovery/cdncheck v1.2.12
 	github.com/projectdiscovery/clistats v0.1.1
-	github.com/projectdiscovery/dsl v0.8.4
-	github.com/projectdiscovery/fastdialer v0.4.15
+	github.com/projectdiscovery/dsl v0.8.6
+	github.com/projectdiscovery/fastdialer v0.4.18
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.74
-	github.com/projectdiscovery/gologger v1.1.59
-	github.com/projectdiscovery/hmap v0.0.95
+	github.com/projectdiscovery/gologger v1.1.62
+	github.com/projectdiscovery/hmap v0.0.97
 	github.com/projectdiscovery/mapcidr v1.1.97
-	github.com/projectdiscovery/networkpolicy v0.1.27
+	github.com/projectdiscovery/networkpolicy v0.1.30
 	github.com/projectdiscovery/ratelimit v0.0.82
 	github.com/projectdiscovery/rawhttp v0.1.90
-	github.com/projectdiscovery/retryablehttp-go v1.0.131
-	github.com/projectdiscovery/tlsx v1.2.1
-	github.com/projectdiscovery/useragent v0.0.102
-	github.com/projectdiscovery/utils v0.6.1-0.20251030144701-ce5c4b44e1e6
-	github.com/projectdiscovery/wappalyzergo v0.2.54
+	github.com/projectdiscovery/retryablehttp-go v1.0.133
+	github.com/projectdiscovery/tlsx v1.2.2
+	github.com/projectdiscovery/useragent v0.0.104
+	github.com/projectdiscovery/utils v0.7.3
+	github.com/projectdiscovery/wappalyzergo v0.2.57
 	github.com/rs/xid v1.6.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.11.1
@@ -46,16 +44,16 @@ require (
 	go.etcd.io/bbolt v1.4.0 // indirect
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20250911091902-df9299821621
-	golang.org/x/net v0.46.0
-	golang.org/x/sys v0.37.0 // indirect
-	golang.org/x/text v0.30.0
+	golang.org/x/net v0.47.0
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0
 )
 
 require (
-	github.com/JohannesKaufmann/html-to-markdown/v2 v2.4.0
+	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.0
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1
-	github.com/weppos/publicsuffix-go v0.50.0
+	github.com/weppos/publicsuffix-go v0.50.1
 )
 
 require (
@@ -111,7 +109,7 @@ require (
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/kljensen/snowball v0.8.0 // indirect
-	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
+	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -131,7 +129,7 @@ require (
 	github.com/projectdiscovery/freeport v0.0.7 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.108 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.109 // indirect
 	github.com/refraction-networking/utls v1.7.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
@@ -153,6 +151,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect
+	github.com/vulncheck-oss/go-exploit v1.51.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/ysmood/fetchup v0.2.3 // indirect
 	github.com/ysmood/goob v0.4.0 // indirect
@@ -165,13 +164,13 @@ require (
 	github.com/zcalusic/sysinfo v1.0.2 // indirect
 	github.com/zmap/rc2 v0.0.0-20190804163417-abaa70531248 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
-	golang.org/x/crypto v0.43.0 // indirect
-	golang.org/x/mod v0.28.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/oauth2 v0.28.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/term v0.36.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/term v0.37.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	golang.org/x/tools v0.37.0 // indirect
+	golang.org/x/tools v0.38.0 // indirect
 	gopkg.in/djherbis/times.v1 v1.3.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

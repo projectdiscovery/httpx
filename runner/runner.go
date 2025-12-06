@@ -385,7 +385,11 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
-	runner.pageTypeClassifier = pagetypeclassifier.New()
+	pageTypeClassifier, err := pagetypeclassifier.New()
+	if err != nil {
+		return nil, err
+	}
+	runner.pageTypeClassifier = pageTypeClassifier
 
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)
@@ -1719,7 +1723,11 @@ retry:
 	}
 
 	builder := &strings.Builder{}
-	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
+	if scanopts.LeaveDefaultPorts {
+		builder.WriteString(stringz.AddURLDefaultPort(fullURL))
+	} else {
+		builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
+	}
 
 	if r.options.Probe {
 		builder.WriteString(" [")
@@ -2322,7 +2330,8 @@ retry:
 		Pipeline:         pipeline,
 		HTTP2:            http2,
 		Method:           method,
-		Host:             ip,
+		Host:             parsed.Hostname(),
+		HostIP:           ip,
 		A:                ips4,
 		AAAA:             ips6,
 		CNAMEs:           cnames,

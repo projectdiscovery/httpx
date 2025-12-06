@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -25,7 +26,6 @@ import (
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	urlutil "github.com/projectdiscovery/utils/url"
-	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 )
 
