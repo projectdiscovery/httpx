@@ -59,6 +59,7 @@ type Result struct {
 	ContentType        string                        `json:"content_type,omitempty" csv:"content_type" mapstructure:"content_type"`
 	Method             string                        `json:"method,omitempty" csv:"method" mapstructure:"method"`
 	Host               string                        `json:"host,omitempty" csv:"host" mapstructure:"host"`
+	HostIP             string                        `json:"host_ip,omitempty" csv:"host_ip" mapstructure:"host_ip"`
 	Path               string                        `json:"path,omitempty" csv:"path" mapstructure:"path"`
 	FavIconMMH3        string                        `json:"favicon,omitempty" csv:"favicon" mapstructure:"favicon"`
 	FavIconMD5         string                        `json:"favicon_md5,omitempty" csv:"favicon_md5" mapstructure:"favicon_md5"`
