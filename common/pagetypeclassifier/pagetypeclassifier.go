@@ -2,9 +2,9 @@ package pagetypeclassifier
 
 import (
 	_ "embed"
-	"sync"
-
 	"fmt"
+	"strings"
+	"sync"
 
 	htmltomarkdown "github.com/JohannesKaufmann/html-to-markdown/v2"
 	"github.com/microcosm-cc/bluemonday"
@@ -41,30 +41,29 @@ var (
 	sanitizerPolicyOnce sync.Once
 )
 
-// getSanitizerPolicy returns an aggressive HTML sanitizer policy that strips
-// most elements to reduce nesting depth and prevent parser stack overflow.
+// getSanitizerPolicy returns an ultra-aggressive HTML sanitizer policy that strips
+// almost all elements to minimize nesting depth and prevent parser stack overflow.
 func getSanitizerPolicy() *bluemonday.Policy {
 	sanitizerPolicyOnce.Do(func() {
 		p := bluemonday.NewPolicy()
-		// Allow only basic text elements with minimal nesting
-		// This aggressive policy helps reduce nesting depth significantly
-		p.AllowElements("p", "br", "div", "span", "h1", "h2", "h3", "h4", "h5", "h6")
-		p.AllowElements("strong", "em", "b", "i", "u")
-		p.AllowElements("ul", "ol", "li")
-		p.AllowElements("blockquote", "pre", "code")
-		// Allow basic attributes but no style (which can cause nesting issues)
-		p.AllowStandardAttributes()
+		// Ultra-aggressive policy: Allow only the most basic text elements
+		// to minimize nesting and reduce parser stack depth
+		p.AllowElements("p", "br", "h1", "h2", "h3", "h4", "h5", "h6")
+		p.AllowElements("strong", "em", "b", "i")
+		// Remove div, span, ul, ol, li as they can create deep nesting
+		// No attributes allowed to prevent style-based nesting issues
 		sanitizerPolicy = p
 	})
 	return sanitizerPolicy
 }
 
-// htmlToText safely converts HTML to text and protects against panics from Go's HTML parser.
+// htmlToText safely converts HTML to text with multiple fallback strategies.
 // The 512 node limit in golang.org/x/net/html is hardcoded and cannot be increased.
 // Strategy:
-// 1. Always sanitize HTML with bluemonday first to remove useless elements and reduce nesting
-// 2. Convert sanitized HTML to markdown
-// 3. If conversion panics, recover and return empty string with error
+// 1. Length limit the input HTML to prevent massive documents
+// 2. Sanitize HTML aggressively with bluemonday to reduce nesting
+// 3. Convert sanitized HTML to markdown with panic recovery
+// 4. If conversion fails, fallback to plain text extraction
 func htmlToText(html string) (text string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -73,19 +72,85 @@ func htmlToText(html string) (text string, err error) {
 		}
 	}()
 
-	// First, sanitize HTML with bluemonday to strip useless elements and reduce nesting
+	// Limit input size to prevent processing extremely large HTML documents
+	const maxHTMLSize = 1024 * 1024 // 1MB limit
+	if len(html) > maxHTMLSize {
+		html = html[:maxHTMLSize]
+	}
+
+	// First, sanitize HTML with ultra-aggressive bluemonday policy
 	sanitizedHTML := getSanitizerPolicy().Sanitize(html)
 
-	// If sanitization failed or produced empty result, return empty
+	// If sanitization failed or produced empty result, try plain text fallback
 	if sanitizedHTML == "" {
-		return "", nil
+		return extractPlainText(html), nil
 	}
 
 	// Convert sanitized HTML to markdown
 	text, err = htmltomarkdown.ConvertString(sanitizedHTML)
-	if err != nil || text == "" {
-		return "", err
+	if err != nil {
+		// If markdown conversion fails, fallback to plain text extraction
+		return extractPlainText(sanitizedHTML), nil
+	}
+	
+	if text == "" {
+		// If result is empty, try plain text fallback
+		return extractPlainText(sanitizedHTML), nil
 	}
 
-	return
+	return text, nil
+}
+
+// extractPlainText is a simple fallback that extracts text content without HTML parsing
+// This is used when the HTML parser fails due to complexity or nesting depth
+func extractPlainText(html string) string {
+	// Simple regex-based text extraction as fallback
+	// Remove script and style tags first
+	text := html
+	
+	// Remove script tags and content
+	for {
+		start := strings.Index(text, "<script")
+		if start == -1 {
+			break
+		}
+		end := strings.Index(text[start:], "</script>")
+		if end == -1 {
+			text = text[:start]
+			break
+		}
+		text = text[:start] + text[start+end+9:]
+	}
+	
+	// Remove style tags and content
+	for {
+		start := strings.Index(text, "<style")
+		if start == -1 {
+			break
+		}
+		end := strings.Index(text[start:], "</style>")
+		if end == -1 {
+			text = text[:start]
+			break
+		}
+		text = text[:start] + text[start+end+8:]
+	}
+	
+	// Simple HTML tag removal (not perfect but safe)
+	result := ""
+	inTag := false
+	for _, char := range text {
+		if char == '<' {
+			inTag = true
+		} else if char == '>' {
+			inTag = false
+			result += " " // Replace tags with spaces
+		} else if !inTag {
+			result += string(char)
+		}
+	}
+	
+	// Clean up multiple spaces
+	words := strings.Fields(result)
+	return strings.Join(words, " ")
 }
