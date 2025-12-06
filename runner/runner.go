@@ -1723,7 +1723,11 @@ retry:
 	}
 
 	builder := &strings.Builder{}
-	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
+	if scanopts.LeaveDefaultPorts {
+		builder.WriteString(stringz.AddURLDefaultPort(fullURL))
+	} else {
+		builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
+	}
 
 	if r.options.Probe {
 		builder.WriteString(" [")
