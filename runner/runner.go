@@ -1754,10 +1754,21 @@ retry:
 		errString = strings.TrimSpace(splitErr[len(splitErr)-1])
 
 		if !retried && origProtocol == httpx.HTTPorHTTPS {
+			// switch protocol and adjust port accordingly
 			if protocol == httpx.HTTPS {
 				protocol = httpx.HTTP
+				// if port is 443 (default HTTPS), switch to 80 (default HTTP)
+				if URL.Port() == "443" {
+					URL.UpdatePort("80")
+					target.Host = URL.Hostname() + ":80"
+				}
 			} else {
 				protocol = httpx.HTTPS
+				// if port is 80 (default HTTP), switch to 443 (default HTTPS)
+				if URL.Port() == "80" {
+					URL.UpdatePort("443")
+					target.Host = URL.Hostname() + ":443"
+				}
 			}
 			retried = true
 			goto retry
