@@ -1760,14 +1760,14 @@ retry:
 				// if port is 443 (default HTTPS), switch to 80 (default HTTP)
 				if URL.Port() == "443" {
 					URL.UpdatePort("80")
-					target.Host = URL.Hostname() + ":80"
+					target.Host = net.JoinHostPort(URL.Hostname(), "80")
 				}
 			} else {
 				protocol = httpx.HTTPS
 				// if port is 80 (default HTTP), switch to 443 (default HTTPS)
 				if URL.Port() == "80" {
 					URL.UpdatePort("443")
-					target.Host = URL.Hostname() + ":443"
+					target.Host = net.JoinHostPort(URL.Hostname(), "443")
 				}
 			}
 			retried = true
