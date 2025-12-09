@@ -10,10 +10,10 @@ on:
 jobs:
   lint:
     name: Lint Test
-    if: "${{ !endsWith(github.actor, '[bot]') }}"
+    if: ${{ !endsWith(github.actor, '[bot]') }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: projectdiscovery/actions/setup/go@v1
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v5
