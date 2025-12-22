@@ -7,11 +7,15 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	// TODO: temp
+	"log"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
@@ -235,38 +239,49 @@ get_response:
 
 	resp.Headers = httpresp.Header.Clone()
 
-	// httputil.DumpResponse does not handle websockets
-	headers, rawResp, err := pdhttputil.DumpResponseHeadersAndRaw(httpresp)
+	// Dump headers only (does not consume body)
+	headers, err := httputil.DumpResponse(httpresp, false)
 	if err != nil {
 		if stringsutil.ContainsAny(err.Error(), "tls: user canceled") {
 			shouldIgnoreErrors = true
 			shouldIgnoreBodyErrors = true
 		}
-
-		// Edge case - some servers respond with gzip encoding header but uncompressed body, in this case the standard library configures the reader as gzip, triggering an error when read.
-		// The bytes slice is not accessible because of abstraction, therefore we need to perform the request again tampering the Accept-Encoding header
-		if !gzipRetry && strings.Contains(err.Error(), "gzip: invalid header") {
-			gzipRetry = true
-			req.Header.Set("Accept-Encoding", "identity")
-			goto get_response
-		}
 		if !shouldIgnoreErrors {
 			return nil, err
 		}
 	}
-	resp.Raw = string(rawResp)
+
 	resp.RawHeaders = string(headers)
+
 	var respbody []byte
 	// body shouldn't be read with the following status codes
 	// 101 - Switching Protocols => websockets don't have a readable body
 	// 304 - Not Modified => no body the response terminates with latest header newline
 	if !generic.EqualsAny(httpresp.StatusCode, http.StatusSwitchingProtocols, http.StatusNotModified) {
-		var err error
+		// TODO: temp logger
+		log.Printf("MaxResponseBodySizeToRead=%d\n", h.Options.MaxResponseBodySizeToRead)
 		respbody, err = io.ReadAll(io.LimitReader(httpresp.Body, h.Options.MaxResponseBodySizeToRead))
-		if err != nil && !shouldIgnoreBodyErrors {
-			return nil, err
+		if err != nil {
+			// Edge case: some servers respond with gzip encoding header but uncompressed body.
+			// Retry request with identity encoding.
+			if !gzipRetry && strings.Contains(err.Error(), "gzip: invalid header") {
+				gzipRetry = true
+				req.Header.Set("Accept-Encoding", "identity")
+				goto get_response
+			}
+			if !shouldIgnoreBodyErrors {
+				return nil, err
+			}
 		}
 	}
+
+	// Build bounded raw response: headers + capped body
+	// NOTE: resp.Raw must be constructed from a capped body to avoid OOM on infinite streams.
+
+	raw := make([]byte, 0, len(headers)+len(respbody))
+	raw = append(raw, headers...)
+	raw = append(raw, respbody...)
+	resp.Raw = string(raw)
 
 	closeErr := httpresp.Body.Close()
 	if closeErr != nil && !shouldIgnoreBodyErrors {
