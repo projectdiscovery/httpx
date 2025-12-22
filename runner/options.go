@@ -2,7 +2,6 @@ package runner
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -541,8 +540,9 @@ func ParseOptions() *Options {
 		flagSet.IntVar(&options.Retries, "retries", 0, "number of retries"),
 		flagSet.IntVar(&options.Timeout, "timeout", 10, "timeout in seconds"),
 		flagSet.DurationVar(&options.Delay, "delay", -1, "duration between each http request (eg: 200ms, 1s)"),
-		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", math.MaxInt32, "max response size to save in bytes"),
-		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", math.MaxInt32, "max response size to read in bytes"),
+		// 10MB max response size matches common/httpx default
+		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", (10*1024*1024), "max response size to save in bytes"),
+		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", (10*1024*1024), "max response size to read in bytes"),
 	)
 
 	flagSet.CreateGroup("cloud", "Cloud",
