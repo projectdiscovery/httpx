@@ -254,8 +254,8 @@ OPTIMIZATIONS:
    -retries int                       number of retries
    -timeout int                       timeout in seconds (default 10)
    -delay value                       duration between each http request (eg: 200ms, 1s) (default -1ns)
-   -rsts, -response-size-to-save int  max response size to save in bytes (default 2147483647)
-   -rstr, -response-size-to-read int  max response size to read in bytes (default 2147483647)
+   -rsts, -response-size-to-save int  max response size to save in bytes (default 10485760)
+   -rstr, -response-size-to-read int  max response size to read in bytes (default 10485760)
 
 CLOUD:
    -auth                           configure projectdiscovery cloud (pdcp) api key (default true)
