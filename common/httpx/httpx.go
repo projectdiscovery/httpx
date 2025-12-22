@@ -14,9 +14,6 @@ import (
 	"strings"
 	"time"
 
-	// TODO: temp
-	"log"
-
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
@@ -258,8 +255,7 @@ get_response:
 	// 101 - Switching Protocols => websockets don't have a readable body
 	// 304 - Not Modified => no body the response terminates with latest header newline
 	if !generic.EqualsAny(httpresp.StatusCode, http.StatusSwitchingProtocols, http.StatusNotModified) {
-		// TODO: temp logger
-		log.Printf("MaxResponseBodySizeToRead=%d\n", h.Options.MaxResponseBodySizeToRead)
+
 		respbody, err = io.ReadAll(io.LimitReader(httpresp.Body, h.Options.MaxResponseBodySizeToRead))
 		if err != nil {
 			// Edge case: some servers respond with gzip encoding header but uncompressed body.
