@@ -51,6 +51,7 @@ require (
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.0
+	github.com/dustin/go-humanize v1.0.1
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1
 	github.com/weppos/publicsuffix-go v0.50.1
