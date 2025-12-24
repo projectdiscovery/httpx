@@ -10,7 +10,7 @@ import (
 	"github.com/projectdiscovery/networkpolicy"
 )
 
-// DefaultMaxResponseBodySize is the default maximum response body size (4GB)
+// DefaultMaxResponseBodySize is the default maximum response body size
 var DefaultMaxResponseBodySize int64
 
 func init() {
