@@ -816,6 +816,7 @@ func (r *Runner) RunEnumeration() {
 		}()
 
 		var plainFile, jsonFile, csvFile, mdFile, indexFile, indexScreenshotFile *os.File
+		markdownHeaderWritten := false // guard to prevent writing the header multiple times
 
 		if r.options.Output != "" && r.options.OutputAll {
 			plainFile = openOrCreateFile(r.options.Resume, r.options.Output)
@@ -1239,12 +1240,24 @@ func (r *Runner) RunEnumeration() {
 			}
 
 			if r.options.MarkDownOutput {
-				row := resp.MarkdownOutput(&r.scanopts)
+				if !markdownHeaderWritten {
+					header := MarkdownHeader(resp)
+					if !r.options.OutputAll {
+						gologger.Silent().Msgf("%s", header)
+					}
+					if mdFile != nil {
+						mdFile.WriteString(header)
+					}
+					markdownHeaderWritten = true
+				}
+
+				row := resp.MarkdownRow(&r.scanopts)
+
 				if !r.options.OutputAll {
-					gologger.Silent().Msgf("%s\n", row)
+					gologger.Silent().Msgf("%s", row)
 				}
 				if mdFile != nil {
-					mdFile.WriteString(row + "\n")
+					mdFile.WriteString(row)
 				}
 			}
 

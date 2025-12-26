@@ -6,10 +6,9 @@ import (
 	"strings"
 )
 
-func (r Result) MarkdownOutput(scanopts *ScanOptions) string {
+func MarkdownHeader(r Result) string {
 	var b strings.Builder
 
-	// Table Header
 	b.WriteString("| URL | Status | Method | IP | Size | Words | Lines |")
 	if r.Title != "" {
 		b.WriteString(" Title |")
@@ -19,7 +18,6 @@ func (r Result) MarkdownOutput(scanopts *ScanOptions) string {
 	}
 	b.WriteString("\n")
 
-	// Table Separator
 	b.WriteString("|---|---|---|---|---|---|---|")
 	if r.Title != "" {
 		b.WriteString("---|")
@@ -29,7 +27,12 @@ func (r Result) MarkdownOutput(scanopts *ScanOptions) string {
 	}
 	b.WriteString("\n")
 
-	// Table Data Row
+	return b.String()
+}
+
+func (r Result) MarkdownRow(scanopts *ScanOptions) string {
+	var b strings.Builder
+
 	fmt.Fprintf(&b, "| %s | `%d %s` | `%s` | `%s` | %d | %d | %d |",
 		r.URL,
 		r.StatusCode, http.StatusText(r.StatusCode),
@@ -45,15 +48,7 @@ func (r Result) MarkdownOutput(scanopts *ScanOptions) string {
 	if r.CDNName != "" {
 		fmt.Fprintf(&b, " `%s` |", r.CDNName)
 	}
-	b.WriteString("\n\n")
-
-	// Response Body Code Block
-	if r.BodyPreview != "" {
-		b.WriteString("**Response Body Preview:**\n")
-		b.WriteString("```text\n")
-		b.WriteString(r.BodyPreview)
-		b.WriteString("\n```\n")
-	}
+	b.WriteString("\n")
 
 	return b.String()
 }
