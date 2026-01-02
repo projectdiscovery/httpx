@@ -1562,7 +1562,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 				results <- httpx.Target{Host: target}
 				return
 			}
-			ips, _, _, err := getDNSData(hp, URL.Host)
+			ips, _, _, err := getDNSData(hp, URL.Hostname())
 			if err != nil || len(ips) == 0 {
 				results <- httpx.Target{Host: target}
 				return
