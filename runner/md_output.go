@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func MarkdownHeader(r Result) string {
+func (r Result) MarkdownHeader() string { //nolint
 	var b strings.Builder
 	b.WriteString("| URL | Status | Method | IP | Size | Words | Lines | Title | CDN |")
 	b.WriteString("\n")

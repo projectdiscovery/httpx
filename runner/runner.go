@@ -1246,7 +1246,7 @@ func (r *Runner) RunEnumeration() {
 
 			if r.options.MarkDownOutput || r.options.OutputAll {
 				if !markdownHeaderWritten {
-					header := MarkdownHeader(resp)
+					header := resp.MarkdownHeader()
 					if !r.options.OutputAll {
 						gologger.Silent().Msgf("%s", header)
 					}
