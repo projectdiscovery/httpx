@@ -1251,7 +1251,7 @@ func (r *Runner) RunEnumeration() {
 						gologger.Silent().Msgf("%s", header)
 					}
 					if mdFile != nil {
-						mdFile.WriteString(header)
+						_, _ = mdFile.WriteString(header)
 					}
 					markdownHeaderWritten = true
 				}
@@ -1262,7 +1262,7 @@ func (r *Runner) RunEnumeration() {
 					gologger.Silent().Msgf("%s", row)
 				}
 				if mdFile != nil {
-					mdFile.WriteString(row)
+					_, _ = mdFile.WriteString(row)
 				}
 			}
 
