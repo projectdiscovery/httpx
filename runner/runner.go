@@ -1093,6 +1093,21 @@ func (r *Runner) RunEnumeration() {
 			}
 
 			if !r.options.DisableStdout && (!jsonOrCsv || jsonAndCsv || r.options.OutputAll) {
+				// NOTE: Resume state is updated at the *latest commit point* (i.e. after
+				// user-visible output is produced), not during input ingestion or scheduling.
+				//
+				// Reason:
+				// - Updating resume earlier (when reading from streamChan / processItem)
+				//   causes skipped targets on resume if execution is interrupted.
+				// - A missed index is acceptable (user may re-scan one host),
+				//   but a skipped index is catastrophic (user silently misses hosts).
+				//
+				// Therefore, we only advance resume state after the result has been
+				// irrevocably committed to output.
+				if r.options.resumeCfg != nil {
+					r.options.resumeCfg.lastPrinted = resp.Input
+					r.options.resumeCfg.completedIndex++
+				}
 				gologger.Silent().Msgf("%s\n", resp.str)
 			}
 
@@ -1287,11 +1302,11 @@ func (r *Runner) RunEnumeration() {
 
 	processItem := func(k string) error {
 		if r.options.resumeCfg != nil {
-			r.options.resumeCfg.current = k
-			r.options.resumeCfg.currentIndex++
-			if r.options.resumeCfg.currentIndex <= r.options.resumeCfg.Index {
-				return nil
-			}
+			// r.options.resumeCfg.current = k
+			// r.options.resumeCfg.currentIndex++
+			// if r.options.resumeCfg.currentIndex <= r.options.resumeCfg.Index {
+			// 	return nil
+			// }
 		}
 
 		protocol := r.options.protocol
@@ -2581,8 +2596,8 @@ func extractPotentialFavIconsURLs(resp []byte) (candidates []string, baseHref st
 // SaveResumeConfig to file
 func (r *Runner) SaveResumeConfig() error {
 	var resumeCfg ResumeCfg
-	resumeCfg.Index = r.options.resumeCfg.currentIndex
-	resumeCfg.ResumeFrom = r.options.resumeCfg.current
+	resumeCfg.Index = r.options.resumeCfg.completedIndex
+	resumeCfg.ResumeFrom = r.options.resumeCfg.lastPrinted
 	return goconfig.Save(resumeCfg, DefaultResumeFile)
 }
 
