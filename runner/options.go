@@ -735,7 +735,17 @@ func (options *Options) ValidateOptions() error {
 				return errors.Wrapf(err, "Couldn't process resolver file \"%s\"", resolver)
 			}
 			for line := range chFile {
-				resolvers = append(resolvers, line)
+				line = strings.TrimSpace(line)
+				if line != "" && strings.Contains(line, ",") {
+					for item := range strings.SplitSeq(line, ",") {
+						item = strings.TrimSpace(item)
+						if item != "" {
+							resolvers = append(resolvers, item)
+						}
+					}
+				} else {
+					resolvers = append(resolvers, line)
+				}
 			}
 		} else {
 			resolvers = append(resolvers, resolver)
