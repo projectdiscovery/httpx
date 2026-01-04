@@ -1093,22 +1093,23 @@ func (r *Runner) RunEnumeration() {
 			}
 
 			if !r.options.DisableStdout && (!jsonOrCsv || jsonAndCsv || r.options.OutputAll) {
-				// NOTE: Resume state is updated at the *latest commit point* (i.e. after
-				// user-visible output is produced), not during input ingestion or scheduling.
-				//
-				// Reason:
-				// - Updating resume earlier (when reading from streamChan / processItem)
-				//   causes skipped targets on resume if execution is interrupted.
-				// - A missed index is acceptable (user may re-scan one host),
-				//   but a skipped index is catastrophic (user silently misses hosts).
-				//
-				// Therefore, we only advance resume state after the result has been
-				// irrevocably committed to output.
-				if r.options.resumeCfg != nil {
-					r.options.resumeCfg.lastPrinted = resp.Input
-					r.options.resumeCfg.completedIndex++
-				}
 				gologger.Silent().Msgf("%s\n", resp.str)
+			}
+
+			// NOTE: Resume state is updated at the *latest commit point* (i.e. after
+			// user-visible output is produced), not during input ingestion or scheduling.
+			//
+			// Reason:
+			// - Updating resume earlier (when reading from streamChan / processItem)
+			//   causes skipped targets on resume if execution is interrupted.
+			// - A missed index is acceptable (user may re-scan one host),
+			//   but a skipped index is catastrophic (user silently misses hosts).
+			//
+			// Therefore, we only advance resume state after the result has been
+			// irrevocably committed to output.
+			if r.options.resumeCfg != nil {
+				r.options.resumeCfg.lastPrinted = resp.Input
+				r.options.resumeCfg.completedIndex++
 			}
 
 			// store responses or chain in directory
