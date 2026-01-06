@@ -1109,7 +1109,7 @@ func (r *Runner) RunEnumeration() {
 			// irrevocably committed to output.
 			if r.options.resumeCfg != nil {
 				r.options.resumeCfg.lastPrinted = resp.Input
-				r.options.resumeCfg.completedIndex++
+				// r.options.resumeCfg.completedIndex++
 			}
 
 			// store responses or chain in directory
@@ -1303,11 +1303,11 @@ func (r *Runner) RunEnumeration() {
 
 	processItem := func(k string) error {
 		if r.options.resumeCfg != nil {
-			// r.options.resumeCfg.current = k
-			// r.options.resumeCfg.currentIndex++
-			// if r.options.resumeCfg.currentIndex <= r.options.resumeCfg.Index {
-			// 	return nil
-			// }
+			r.options.resumeCfg.current = k
+			r.options.resumeCfg.currentIndex++
+			if r.options.resumeCfg.currentIndex <= r.options.resumeCfg.Index {
+				return nil
+			}
 		}
 
 		protocol := r.options.protocol
@@ -2597,7 +2597,7 @@ func extractPotentialFavIconsURLs(resp []byte) (candidates []string, baseHref st
 // SaveResumeConfig to file
 func (r *Runner) SaveResumeConfig() error {
 	var resumeCfg ResumeCfg
-	resumeCfg.Index = r.options.resumeCfg.completedIndex
+	resumeCfg.Index = r.options.resumeCfg.currentIndex
 	resumeCfg.ResumeFrom = r.options.resumeCfg.lastPrinted
 	return goconfig.Save(resumeCfg, DefaultResumeFile)
 }
