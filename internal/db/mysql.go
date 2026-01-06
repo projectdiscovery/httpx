@@ -5,10 +5,15 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/projectdiscovery/httpx/runner"
 )
+
+func quoteIdentifier(name string) string {
+	return "`" + strings.ReplaceAll(name, "`", "``") + "`"
+}
 
 func init() {
 	Register(MySQL, newMySQLDatabase)
@@ -45,6 +50,7 @@ func (m *mysqlDatabase) Close() error {
 }
 
 func (m *mysqlDatabase) EnsureSchema(ctx context.Context) error {
+	tableName := quoteIdentifier(m.cfg.TableName)
 	schema := fmt.Sprintf(`
 		CREATE TABLE IF NOT EXISTS %s (
 			id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -118,7 +124,7 @@ func (m *mysqlDatabase) EnsureSchema(ctx context.Context) error {
 
 			-- Metrics
 			words INT,
-			` + "`lines`" + ` INT,
+			`+"`lines`"+` INT,
 
 			-- Headers and extracts
 			header JSON,
@@ -146,10 +152,11 @@ func (m *mysqlDatabase) EnsureSchema(ctx context.Context) error {
 			trace JSON,
 
 			INDEX idx_timestamp (timestamp),
+			INDEX idx_url (url(255)),
 			INDEX idx_host (host),
 			INDEX idx_status_code (status_code)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-	`, m.cfg.TableName)
+	`, tableName)
 
 	_, err := m.db.ExecContext(ctx, schema)
 	if err != nil {
@@ -172,6 +179,8 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 		_ = tx.Rollback()
 	}()
 
+	// Use quoteIdentifier to safely quote table name to prevent SQL injection
+	tableName := quoteIdentifier(m.cfg.TableName)
 	query := fmt.Sprintf(`
 		INSERT INTO %s (
 			timestamp, url, input, host, port, scheme, path, method, final_url,
@@ -197,7 +206,7 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 			?, ?,
 			?, ?, ?, ?, ?,
 			?, ?, ?
-		)`, m.cfg.TableName)
+		)`, tableName)
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {

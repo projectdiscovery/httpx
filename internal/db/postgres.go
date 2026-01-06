@@ -45,6 +45,13 @@ func (p *postgresDatabase) Close() error {
 }
 
 func (p *postgresDatabase) EnsureSchema(ctx context.Context) error {
+	tableName := pq.QuoteIdentifier(p.cfg.TableName)
+	idxTimestamp := pq.QuoteIdentifier("idx_" + p.cfg.TableName + "_timestamp")
+	idxURL := pq.QuoteIdentifier("idx_" + p.cfg.TableName + "_url")
+	idxHost := pq.QuoteIdentifier("idx_" + p.cfg.TableName + "_host")
+	idxStatusCode := pq.QuoteIdentifier("idx_" + p.cfg.TableName + "_status_code")
+	idxTech := pq.QuoteIdentifier("idx_" + p.cfg.TableName + "_tech")
+
 	schema := fmt.Sprintf(`
 		CREATE TABLE IF NOT EXISTS %s (
 			id BIGSERIAL PRIMARY KEY,
@@ -146,18 +153,18 @@ func (p *postgresDatabase) EnsureSchema(ctx context.Context) error {
 			trace JSONB
 		);
 
-		CREATE INDEX IF NOT EXISTS idx_%s_timestamp ON %s(timestamp DESC);
-		CREATE INDEX IF NOT EXISTS idx_%s_url ON %s(url);
-		CREATE INDEX IF NOT EXISTS idx_%s_host ON %s(host);
-		CREATE INDEX IF NOT EXISTS idx_%s_status_code ON %s(status_code);
-		CREATE INDEX IF NOT EXISTS idx_%s_tech ON %s USING GIN(tech);
+		CREATE INDEX IF NOT EXISTS %s ON %s(timestamp DESC);
+		CREATE INDEX IF NOT EXISTS %s ON %s(url);
+		CREATE INDEX IF NOT EXISTS %s ON %s(host);
+		CREATE INDEX IF NOT EXISTS %s ON %s(status_code);
+		CREATE INDEX IF NOT EXISTS %s ON %s USING GIN(tech);
 	`,
-		p.cfg.TableName,
-		p.cfg.TableName, p.cfg.TableName,
-		p.cfg.TableName, p.cfg.TableName,
-		p.cfg.TableName, p.cfg.TableName,
-		p.cfg.TableName, p.cfg.TableName,
-		p.cfg.TableName, p.cfg.TableName,
+		tableName,
+		idxTimestamp, tableName,
+		idxURL, tableName,
+		idxHost, tableName,
+		idxStatusCode, tableName,
+		idxTech, tableName,
 	)
 
 	_, err := p.db.ExecContext(ctx, schema)
@@ -181,6 +188,7 @@ func (p *postgresDatabase) InsertBatch(ctx context.Context, results []runner.Res
 		_ = tx.Rollback()
 	}()
 
+	tableName := pq.QuoteIdentifier(p.cfg.TableName)
 	query := fmt.Sprintf(`
 		INSERT INTO %s (
 			timestamp, url, input, host, port, scheme, path, method, final_url,
@@ -206,7 +214,7 @@ func (p *postgresDatabase) InsertBatch(ctx context.Context, results []runner.Res
 			$53, $54,
 			$55, $56, $57, $58, $59,
 			$60, $61, $62
-		)`, p.cfg.TableName)
+		)`, tableName)
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {

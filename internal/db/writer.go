@@ -60,6 +60,10 @@ func NewWriter(ctx context.Context, cfg *Config) (*Writer, error) {
 
 func (w *Writer) GetWriterCallback() runner.OnResultCallback {
 	return func(r runner.Result) {
+		if w.closed.Load() {
+			return
+		}
+
 		if r.Err != nil {
 			return
 		}
@@ -68,6 +72,7 @@ func (w *Writer) GetWriterCallback() runner.OnResultCallback {
 			r.Raw = ""
 			r.Request = ""
 			r.ResponseBody = ""
+			r.RawHeaders = ""
 		}
 
 		select {
