@@ -1099,7 +1099,7 @@ func (r *Runner) RunEnumeration() {
 			// Update resume state after output to avoid skipping unprocessed targets on interrupt
 			if r.options.resumeCfg != nil {
 				r.options.resumeCfg.lastPrinted = resp.Input
-				// r.options.resumeCfg.completedIndex++
+				
 			}
 
 			// store responses or chain in directory
