@@ -110,9 +110,11 @@ PROBES:
    -title                 display page title
    -bp, -body-preview     display first N characters of response body (default 100)
    -server, -web-server   display server name
-   -td, -tech-detect      display technology in use based on wappalyzer dataset
+   -td, -tech-detect                      display technology in use based on wappalyzer dataset
    -cff, -custom-fingerprint-file string  path to a custom fingerprint file for technology detection
-   -method                display http request method
+   -cpe                                   display CPE (Common Platform Enumeration) based on awesome-search-queries
+   -wp, -wordpress                        display WordPress plugins and themes
+   -method                                display http request method
    -ws, -websocket        display server using websocket
    -ip                    display host ip
    -cname                 display host cname

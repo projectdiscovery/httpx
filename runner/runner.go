@@ -81,6 +81,8 @@ type Runner struct {
 	options            *Options
 	hp                 *httpx.HTTPX
 	wappalyzer         *wappalyzer.Wappalyze
+	cpeDetector        *CPEDetector
+	wpDetector         *WordPressDetector
 	scanopts           ScanOptions
 	hm                 *hybrid.HybridMap
 	excludeCdn         bool
@@ -131,6 +133,20 @@ func New(options *Options) (*Runner, error) {
 	}
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
+	}
+
+	if options.CPEDetect || options.JSONOutput || options.CSVOutput {
+		runner.cpeDetector, err = NewCPEDetector()
+		if err != nil {
+			gologger.Warning().Msgf("Could not create CPE detector: %s", err)
+		}
+	}
+
+	if options.WordPress || options.JSONOutput || options.CSVOutput {
+		runner.wpDetector, err = NewWordPressDetector()
+		if err != nil {
+			gologger.Warning().Msgf("Could not create WordPress detector: %s", err)
+		}
 	}
 
 	if options.StoreResponseDir != "" {
@@ -297,6 +313,8 @@ func New(options *Options) (*Runner, error) {
 	scanopts.NoFallback = options.NoFallback
 	scanopts.NoFallbackScheme = options.NoFallbackScheme
 	scanopts.TechDetect = options.TechDetect || options.JSONOutput || options.CSVOutput || options.AssetUpload
+	scanopts.CPEDetect = options.CPEDetect || options.JSONOutput || options.CSVOutput
+	scanopts.WordPress = options.WordPress || options.JSONOutput || options.CSVOutput
 	scanopts.StoreChain = options.StoreChain
 	scanopts.StoreVisionReconClusters = options.StoreVisionReconClusters
 	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
@@ -2311,6 +2329,47 @@ retry:
 		}
 	}
 
+	var cpeMatches []CPEInfo
+	if r.cpeDetector != nil {
+		cpeMatches = r.cpeDetector.Detect(title, string(resp.Data), faviconMMH3)
+		if len(cpeMatches) > 0 && r.options.CPEDetect {
+			for _, cpe := range cpeMatches {
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Cyan(cpe.CPE).String())
+				} else {
+					builder.WriteString(cpe.CPE)
+				}
+				builder.WriteRune(']')
+			}
+		}
+	}
+
+	var wpInfo *WordPressInfo
+	if r.wpDetector != nil {
+		wpInfo = r.wpDetector.Detect(string(resp.Data))
+		if wpInfo.HasData() && r.options.WordPress {
+			if len(wpInfo.Plugins) > 0 {
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Green("wp-plugins:" + strings.Join(wpInfo.Plugins, ",")).String())
+				} else {
+					builder.WriteString("wp-plugins:" + strings.Join(wpInfo.Plugins, ","))
+				}
+				builder.WriteRune(']')
+			}
+			if len(wpInfo.Themes) > 0 {
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Green("wp-themes:" + strings.Join(wpInfo.Themes, ",")).String())
+				} else {
+					builder.WriteString("wp-themes:" + strings.Join(wpInfo.Themes, ","))
+				}
+				builder.WriteRune(']')
+			}
+		}
+	}
+
 	result := Result{
 		Timestamp:        time.Now(),
 		Request:          request,
@@ -2374,6 +2433,8 @@ retry:
 		RequestRaw:        requestDump,
 		Response:          resp,
 		FaviconData:       faviconData,
+		CPE:               cpeMatches,
+		WordPress:         wpInfo,
 	}
 	if resp.BodyDomains != nil {
 		result.Fqdns = resp.BodyDomains.Fqdns
