@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/mapcidr/asn"
@@ -154,7 +155,9 @@ func TestRunner_asn_targets(t *testing.T) {
 }
 
 func TestRunner_countTargetFromRawTarget(t *testing.T) {
-	options := &Options{}
+	options := &Options{
+		SkipDedupe: false,
+	}
 	r, err := New(options)
 	require.Nil(t, err, "could not create httpx runner")
 
@@ -169,7 +172,7 @@ func TestRunner_countTargetFromRawTarget(t *testing.T) {
 	err = r.hm.Set(input, nil)
 	require.Nil(t, err, "could not set value to hm")
 	got, err = r.countTargetFromRawTarget(input)
-	require.Nil(t, err, "could not count targets")
+	require.True(t, errors.Is(err, duplicateTargetErr), "expected duplicate target error")
 	require.Equal(t, expected, got, "got wrong output")
 
 	input = "173.0.84.0/24"
