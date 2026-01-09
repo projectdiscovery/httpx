@@ -110,9 +110,11 @@ PROBES:
    -title                 display page title
    -bp, -body-preview     display first N characters of response body (default 100)
    -server, -web-server   display server name
-   -td, -tech-detect      display technology in use based on wappalyzer dataset
+   -td, -tech-detect                      display technology in use based on wappalyzer dataset
    -cff, -custom-fingerprint-file string  path to a custom fingerprint file for technology detection
-   -method                display http request method
+   -cpe                                   display CPE (Common Platform Enumeration) based on awesome-search-queries
+   -wp, -wordpress                        display WordPress plugins and themes
+   -method                                display http request method
    -ws, -websocket        display server using websocket
    -ip                    display host ip
    -cname                 display host cname
@@ -130,6 +132,7 @@ HEADLESS:
    -ehb, -exclude-headless-body     enable excluding headless header from json output
    -st, -screenshot-timeout value   set timeout for screenshot in seconds (default 10s)
    -sid, -screenshot-idle value     set idle time before taking screenshot in seconds (default 1s)
+   -jsc, -javascript-code string[]   execute JavaScript code after navigation
 
 MATCHERS:
    -mc, -match-code string            match response with specified status code (-mc 200,302)

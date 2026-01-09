@@ -39,7 +39,6 @@ import (
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
-	errorutil "github.com/projectdiscovery/utils/errors" //nolint
 	osutil "github.com/projectdiscovery/utils/os"
 	"github.com/projectdiscovery/utils/structs"
 
@@ -69,6 +68,7 @@ import (
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/projectdiscovery/rawhttp"
 	converstionutil "github.com/projectdiscovery/utils/conversion"
+	errkit "github.com/projectdiscovery/utils/errkit"
 	fileutil "github.com/projectdiscovery/utils/file"
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	iputil "github.com/projectdiscovery/utils/ip"
@@ -81,6 +81,8 @@ type Runner struct {
 	options            *Options
 	hp                 *httpx.HTTPX
 	wappalyzer         *wappalyzer.Wappalyze
+	cpeDetector        *CPEDetector
+	wpDetector         *WordPressDetector
 	scanopts           ScanOptions
 	hm                 *hybrid.HybridMap
 	excludeCdn         bool
@@ -131,6 +133,20 @@ func New(options *Options) (*Runner, error) {
 	}
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
+	}
+
+	if options.CPEDetect || options.JSONOutput || options.CSVOutput {
+		runner.cpeDetector, err = NewCPEDetector()
+		if err != nil {
+			gologger.Warning().Msgf("Could not create CPE detector: %s", err)
+		}
+	}
+
+	if options.WordPress || options.JSONOutput || options.CSVOutput {
+		runner.wpDetector, err = NewWordPressDetector()
+		if err != nil {
+			gologger.Warning().Msgf("Could not create WordPress detector: %s", err)
+		}
 	}
 
 	if options.StoreResponseDir != "" {
@@ -300,6 +316,8 @@ func New(options *Options) (*Runner, error) {
 	scanopts.NoFallback = options.NoFallback
 	scanopts.NoFallbackScheme = options.NoFallbackScheme
 	scanopts.TechDetect = options.TechDetect || options.JSONOutput || options.CSVOutput || options.AssetUpload
+	scanopts.CPEDetect = options.CPEDetect || options.JSONOutput || options.CSVOutput
+	scanopts.WordPress = options.WordPress || options.JSONOutput || options.CSVOutput
 	scanopts.StoreChain = options.StoreChain
 	scanopts.StoreVisionReconClusters = options.StoreVisionReconClusters
 	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
@@ -388,7 +406,11 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
-	runner.pageTypeClassifier = pagetypeclassifier.New()
+	pageTypeClassifier, err := pagetypeclassifier.New()
+	if err != nil {
+		return nil, err
+	}
+	runner.pageTypeClassifier = pageTypeClassifier
 
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)
@@ -1590,7 +1612,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 				results <- httpx.Target{Host: target}
 				return
 			}
-			ips, _, _, err := getDNSData(hp, URL.Host)
+			ips, _, _, err := getDNSData(hp, URL.Hostname())
 			if err != nil || len(ips) == 0 {
 				results <- httpx.Target{Host: target}
 				return
@@ -1611,7 +1633,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 func (r *Runner) analyze(hp *httpx.HTTPX, protocol string, target httpx.Target, method, origInput string, scanopts *ScanOptions) Result {
 	origProtocol := protocol
 	if protocol == httpx.HTTPorHTTPS || protocol == httpx.HTTPandHTTPS {
-		protocol = httpx.HTTPS
+		protocol = determineMostLikelySchemeOrder(target.Host)
 	}
 	retried := false
 retry:
@@ -1751,7 +1773,11 @@ retry:
 	}
 
 	builder := &strings.Builder{}
-	builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
+	if scanopts.LeaveDefaultPorts {
+		builder.WriteString(stringz.AddURLDefaultPort(fullURL))
+	} else {
+		builder.WriteString(stringz.RemoveURLDefaultPort(fullURL))
+	}
 
 	if r.options.Probe {
 		builder.WriteString(" [")
@@ -1778,10 +1804,21 @@ retry:
 		errString = strings.TrimSpace(splitErr[len(splitErr)-1])
 
 		if !retried && origProtocol == httpx.HTTPorHTTPS {
+			// switch protocol and adjust port accordingly
 			if protocol == httpx.HTTPS {
 				protocol = httpx.HTTP
+				// if port is 443 (default HTTPS), switch to 80 (default HTTP)
+				if URL.Port() == "443" {
+					URL.UpdatePort("80")
+					target.Host = net.JoinHostPort(URL.Hostname(), "80")
+				}
 			} else {
 				protocol = httpx.HTTPS
+				// if port is 80 (default HTTP), switch to 443 (default HTTPS)
+				if URL.Port() == "80" {
+					URL.UpdatePort("443")
+					target.Host = net.JoinHostPort(URL.Hostname(), "443")
+				}
 			}
 			retried = true
 			goto retry
@@ -2299,7 +2336,14 @@ retry:
 	var pHash uint64
 	if scanopts.Screenshot {
 		var err error
-		screenshotBytes, headlessBody, linkRequest, err = r.browser.ScreenshotWithBody(fullURL, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle, r.options.CustomHeaders, scanopts.IsScreenshotFullPage())
+		screenshotBytes, headlessBody, linkRequest, err = r.browser.ScreenshotWithBody(
+			fullURL,
+			scanopts.ScreenshotTimeout,
+			scanopts.ScreenshotIdle,
+			r.options.CustomHeaders,
+			scanopts.IsScreenshotFullPage(),
+			r.options.JavascriptCodes,
+		)
 		if err != nil {
 			gologger.Warning().Msgf("Could not take screenshot '%s': %s", fullURL, err)
 		} else {
@@ -2341,6 +2385,47 @@ retry:
 		}
 	}
 
+	var cpeMatches []CPEInfo
+	if r.cpeDetector != nil {
+		cpeMatches = r.cpeDetector.Detect(title, string(resp.Data), faviconMMH3)
+		if len(cpeMatches) > 0 && r.options.CPEDetect {
+			for _, cpe := range cpeMatches {
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Cyan(cpe.CPE).String())
+				} else {
+					builder.WriteString(cpe.CPE)
+				}
+				builder.WriteRune(']')
+			}
+		}
+	}
+
+	var wpInfo *WordPressInfo
+	if r.wpDetector != nil {
+		wpInfo = r.wpDetector.Detect(string(resp.Data))
+		if wpInfo.HasData() && r.options.WordPress {
+			if len(wpInfo.Plugins) > 0 {
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Green("wp-plugins:" + strings.Join(wpInfo.Plugins, ",")).String())
+				} else {
+					builder.WriteString("wp-plugins:" + strings.Join(wpInfo.Plugins, ","))
+				}
+				builder.WriteRune(']')
+			}
+			if len(wpInfo.Themes) > 0 {
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Green("wp-themes:" + strings.Join(wpInfo.Themes, ",")).String())
+				} else {
+					builder.WriteString("wp-themes:" + strings.Join(wpInfo.Themes, ","))
+				}
+				builder.WriteRune(']')
+			}
+		}
+	}
+
 	result := Result{
 		Timestamp:        time.Now(),
 		Request:          request,
@@ -2371,7 +2456,8 @@ retry:
 		Pipeline:         pipeline,
 		HTTP2:            http2,
 		Method:           method,
-		Host:             ip,
+		Host:             parsed.Hostname(),
+		HostIP:           ip,
 		A:                ips4,
 		AAAA:             ips6,
 		CNAMEs:           cnames,
@@ -2404,6 +2490,8 @@ retry:
 		Response:          resp,
 		FaviconData:       faviconData,
 		FileNameHash:      fileNameHash,
+		CPE:               cpeMatches,
+		WordPress:         wpInfo,
 	}
 	if resp.BodyDomains != nil {
 		result.Fqdns = resp.BodyDomains.Fqdns
@@ -2564,7 +2652,7 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, string, error) {
 	hashNum, md5Hash, err := stringz.FaviconHash(data)
 	if err != nil {
-		return "", "", errorutil.NewWithTag("favicon", "could not calculate favicon hash").Wrap(err) //nolint
+		return "", "", errkit.Wrapf(err, "could not calculate favicon hash")
 	}
 	return fmt.Sprintf("%d", hashNum), md5Hash, nil
 }

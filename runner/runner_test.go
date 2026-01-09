@@ -68,6 +68,36 @@ func TestRunner_probeall_targets(t *testing.T) {
 	require.ElementsMatch(t, expected, got, "could not expected output")
 }
 
+func TestRunner_probeall_targets_with_port(t *testing.T) {
+	options := &Options{
+		ProbeAllIPS: true,
+	}
+	r, err := New(options)
+	require.Nil(t, err, "could not create httpx runner")
+
+	inputWithPort := "http://one.one.one.one:8080"
+	inputWithoutPort := "one.one.one.one"
+
+	gotWithPort := []httpx.Target{}
+	for target := range r.targets(r.hp, inputWithPort) {
+		gotWithPort = append(gotWithPort, target)
+	}
+
+	gotWithoutPort := []httpx.Target{}
+	for target := range r.targets(r.hp, inputWithoutPort) {
+		gotWithoutPort = append(gotWithoutPort, target)
+	}
+
+	require.True(t, len(gotWithPort) > 0, "probe-all-ips with port should return at least one target")
+	require.True(t, len(gotWithoutPort) > 0, "probe-all-ips without port should return at least one target")
+	require.Equal(t, len(gotWithPort), len(gotWithoutPort), "probe-all-ips should return same number of IPs with or without port")
+
+	for _, target := range gotWithPort {
+		require.Equal(t, inputWithPort, target.Host, "Host should be preserved with port")
+		require.NotEmpty(t, target.CustomIP, "CustomIP should be populated")
+	}
+}
+
 func TestRunner_cidr_targets(t *testing.T) {
 	options := &Options{}
 	r, err := New(options)
@@ -230,10 +260,10 @@ func TestCreateNetworkpolicyInstance_AllowDenyFlags(t *testing.T) {
 	runner := &Runner{}
 
 	tests := []struct {
-		name        string
-		allow       []string
-		deny        []string
-		testCases   []struct {
+		name      string
+		allow     []string
+		deny      []string
+		testCases []struct {
 			ip       string
 			expected bool
 			reason   string

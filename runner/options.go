@@ -2,7 +2,6 @@ package runner
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -23,7 +22,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/customlist"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
-	"github.com/projectdiscovery/httpx/common/httpx"
+	httpxcommon "github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/networkpolicy"
 	pdcpauth "github.com/projectdiscovery/utils/auth/pdcp"
@@ -86,6 +85,8 @@ type ScanOptions struct {
 	NoFallback                bool
 	NoFallbackScheme          bool
 	TechDetect                bool
+	CPEDetect                 bool
+	WordPress                 bool
 	StoreChain                bool
 	StoreVisionReconClusters  bool
 	MaxResponseBodySizeToSave int
@@ -149,6 +150,8 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		NoFallback:                s.NoFallback,
 		NoFallbackScheme:          s.NoFallbackScheme,
 		TechDetect:                s.TechDetect,
+		CPEDetect:                 s.CPEDetect,
+		WordPress:                 s.WordPress,
 		StoreChain:                s.StoreChain,
 		OutputExtractRegex:        s.OutputExtractRegex,
 		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
@@ -257,6 +260,8 @@ type Options struct {
 	NoFallback                bool
 	NoFallbackScheme          bool
 	TechDetect                bool
+	CPEDetect                 bool
+	WordPress                 bool
 	CustomFingerprintFile     string
 	TLSGrab                   bool
 	protocol                  string
@@ -334,6 +339,9 @@ type Options struct {
 	Protocol                  string
 	OutputFilterErrorPagePath string
 	DisableStdout             bool
+
+	JavascriptCodes goflags.StringSlice
+
 	// AssetUpload
 	AssetUpload bool
 	// AssetName
@@ -385,6 +393,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
 		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
 		flagSet.StringVarP(&options.CustomFingerprintFile, "custom-fingerprint-file", "cff", "", "path to a custom fingerprint file for technology detection"),
+		flagSet.BoolVar(&options.CPEDetect, "cpe", false, "display CPE (Common Platform Enumeration) based on awesome-search-queries"),
+		flagSet.BoolVarP(&options.WordPress, "wordpress", "wp", false, "display WordPress plugins and themes"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
 		flagSet.BoolVarP(&options.OutputWebSocket, "websocket", "ws", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
@@ -404,6 +414,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.NoScreenshotFullPage, "no-screenshot-full-page", false, "disable saving full page screenshot"),
 		flagSet.DurationVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10*time.Second, "set timeout for screenshot in seconds"),
 		flagSet.DurationVarP(&options.ScreenshotIdle, "screenshot-idle", "sid", 1*time.Second, "set idle time before taking screenshot in seconds"),
+		flagSet.StringSliceVarP(&options.JavascriptCodes, "javascript-code", "jsc", nil, "execute JavaScript code after navigation", goflags.StringSliceOptions),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",
@@ -537,8 +548,8 @@ func ParseOptions() *Options {
 		flagSet.IntVar(&options.Retries, "retries", 0, "number of retries"),
 		flagSet.IntVar(&options.Timeout, "timeout", 10, "timeout in seconds"),
 		flagSet.DurationVar(&options.Delay, "delay", -1, "duration between each http request (eg: 200ms, 1s)"),
-		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", math.MaxInt32, "max response size to save in bytes"),
-		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", math.MaxInt32, "max response size to read in bytes"),
+		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", int(httpxcommon.DefaultMaxResponseBodySize), "max response size to save in bytes"),
+		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", int(httpxcommon.DefaultMaxResponseBodySize), "max response size to read in bytes"),
 	)
 
 	flagSet.CreateGroup("cloud", "Cloud",
@@ -768,7 +779,7 @@ func (options *Options) ValidateOptions() error {
 		options.OutputCDN = "true"
 	}
 
-	if !stringsutil.EqualFoldAny(options.Protocol, string(httpx.UNKNOWN), string(httpx.HTTP11)) {
+	if !stringsutil.EqualFoldAny(options.Protocol, string(httpxcommon.UNKNOWN), string(httpxcommon.HTTP11)) {
 		return fmt.Errorf("invalid protocol: %s", options.Protocol)
 	}
 

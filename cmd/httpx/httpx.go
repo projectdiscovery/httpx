@@ -106,9 +106,6 @@ func setupOptionalAssetUpload(opts *runner.Options) *pdcp.UploadWriter {
 		}
 		return nil
 	}
-	if opts.Screenshot {
-		gologger.Fatal().Msgf("Screenshot option is not supported for dashboard upload yet")
-	}
 	gologger.Info().Msgf("To view results in UI dashboard, visit https://cloud.projectdiscovery.io/assets upon completion.")
 	h := &pdcpauth.PDCPCredHandler{}
 	creds, err := h.GetCreds()
@@ -131,10 +128,11 @@ func setupOptionalAssetUpload(opts *runner.Options) *pdcp.UploadWriter {
 	opts.OnClose = func() {
 		writer.Close()
 	}
+
 	// add additional metadata
 	if opts.AssetID != "" {
 		// silently ignore
-		_ = writer.SetAssetID(opts.AssetID)
+		writer.SetAssetID(opts.AssetID)
 	}
 	if opts.AssetName != "" {
 		// silently ignore

@@ -99,12 +99,11 @@ func (u *UploadWriter) GetWriterCallback() runner.OnResultCallback {
 }
 
 // SetAssetID sets the scan id for the upload writer
-func (u *UploadWriter) SetAssetID(id string) error {
+func (u *UploadWriter) SetAssetID(id string) {
 	if !xidRegex.MatchString(id) {
-		return fmt.Errorf("invalid asset id provided")
+		gologger.Warning().Msgf("invalid asset id provided (unknown xid format): %s", id)
 	}
 	u.assetGroupID = id
-	return nil
 }
 
 // SetAssetGroupName sets the scan name for the upload writer

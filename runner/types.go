@@ -59,6 +59,7 @@ type Result struct {
 	ContentType        string                        `json:"content_type,omitempty" csv:"content_type" mapstructure:"content_type"`
 	Method             string                        `json:"method,omitempty" csv:"method" mapstructure:"method"`
 	Host               string                        `json:"host,omitempty" csv:"host" mapstructure:"host"`
+	HostIP             string                        `json:"host_ip,omitempty" csv:"host_ip" mapstructure:"host_ip"`
 	Path               string                        `json:"path,omitempty" csv:"path" mapstructure:"path"`
 	FavIconMMH3        string                        `json:"favicon,omitempty" csv:"favicon" mapstructure:"favicon"`
 	FavIconMD5         string                        `json:"favicon_md5,omitempty" csv:"favicon_md5" mapstructure:"favicon_md5"`
@@ -102,6 +103,8 @@ type Result struct {
 	FaviconData        []byte                        `json:"-" csv:"-" mapstructure:"-"`
 	Trace              *retryablehttp.TraceInfo      `json:"trace,omitempty" csv:"-"  mapstructure:"trace"`
 	FileNameHash       string                        `json:"-" csv:"-" mapstructure:"-"`
+	CPE                []CPEInfo                     `json:"cpe,omitempty" csv:"cpe" mapstructure:"cpe"`
+	WordPress          *WordPressInfo                `json:"wordpress,omitempty" csv:"wordpress" mapstructure:"wordpress"`
 }
 
 type Trace struct {

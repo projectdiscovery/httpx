@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -25,7 +26,6 @@ import (
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	urlutil "github.com/projectdiscovery/utils/url"
-	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 )
 
@@ -235,6 +235,14 @@ get_response:
 
 	resp.Headers = httpresp.Header.Clone()
 
+	if h.Options.MaxResponseBodySizeToRead > 0 {
+		httpresp.Body = io.NopCloser(io.LimitReader(httpresp.Body, h.Options.MaxResponseBodySizeToRead))
+		defer func() {
+			_, _ = io.Copy(io.Discard, httpresp.Body)
+			_ = httpresp.Body.Close()
+		}()
+	}
+
 	// httputil.DumpResponse does not handle websockets
 	headers, rawResp, err := pdhttputil.DumpResponseHeadersAndRaw(httpresp)
 	if err != nil {
@@ -424,6 +432,9 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 		switch strings.ToLower(name) {
 		case "host":
 			r.Host = value
+			if h.Options.Unsafe {
+				r.Header.Set("Host", value)
+			}
 		case "cookie":
 			// cookies are set in the default branch, and reset during the follow redirect flow
 			fallthrough
