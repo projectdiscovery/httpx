@@ -134,8 +134,11 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	if options.StoreResponseDir != "" {
-		_ = os.RemoveAll(filepath.Join(options.StoreResponseDir, "response", "index.txt"))
-		_ = os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
+		// Don't remove index files if skip-dedupe is enabled (we want to append, not truncate)
+		if !options.SkipDedupe {
+			_ = os.RemoveAll(filepath.Join(options.StoreResponseDir, "response", "index.txt"))
+			_ = os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
+		}
 	}
 
 	httpxOptions := httpx.DefaultOptions
@@ -904,7 +907,8 @@ func (r *Runner) RunEnumeration() {
 				gologger.Fatal().Msgf("Could not create response directory '%s': %s\n", responseDirPath, err)
 			}
 			indexPath := filepath.Join(responseDirPath, "index.txt")
-			if r.options.Resume {
+			// Append if resume is enabled or skip-dedupe is enabled (never truncate with -sd)
+			if r.options.Resume || r.options.SkipDedupe {
 				indexFile, err = os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 			} else {
 				indexFile, err = os.Create(indexPath)
@@ -918,7 +922,8 @@ func (r *Runner) RunEnumeration() {
 		if r.options.Screenshot {
 			var err error
 			indexScreenshotPath := filepath.Join(r.options.StoreResponseDir, "screenshot", "index_screenshot.txt")
-			if r.options.Resume {
+			// Append if resume is enabled or skip-dedupe is enabled (never truncate with -sd)
+			if r.options.Resume || r.options.SkipDedupe {
 				indexScreenshotFile, err = os.OpenFile(indexScreenshotPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 			} else {
 				indexScreenshotFile, err = os.Create(indexScreenshotPath)
