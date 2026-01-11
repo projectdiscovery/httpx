@@ -2611,6 +2611,10 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		}
 
 		clone.SetURL(resolvedURL)
+		// Update Host header to match resolved URL host (important after redirects)
+		if resolvedURL.Host != "" && resolvedURL.Host != clone.Host {
+			clone.Host = resolvedURL.Host
+		}
 		respFav, err := hp.Do(clone, httpx.UnsafeOptions{})
 		if err != nil || len(respFav.Data) == 0 {
 			tries++
