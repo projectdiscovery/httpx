@@ -506,7 +506,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.ResultDatabase, "result-db", "rdb", false, "store results in database"),
 		flagSet.StringVarP(&options.ResultDatabaseConfig, "result-db-config", "rdbc", "", "path to database config file"),
 		flagSet.StringVarP(&options.ResultDatabaseType, "result-db-type", "rdbt", "", "database type (mongodb, postgres, mysql)"),
-		flagSet.StringVarP(&options.ResultDatabaseConnStr, "result-db-conn", "rdbcs", "", "database connection string (env: HTTPX_DB_CONNECTION_STRING)"),
+		flagSet.StringVarEnv(&options.ResultDatabaseConnStr, "result-db-conn", "rdbcs", "", "HTTPX_DB_CONNECTION_STRING", "database connection string"),
 		flagSet.StringVarP(&options.ResultDatabaseName, "result-db-name", "rdbn", "httpx", "database name"),
 		flagSet.StringVarP(&options.ResultDatabaseTable, "result-db-table", "rdbtb", "results", "table/collection name"),
 		flagSet.IntVarP(&options.ResultDatabaseBatchSize, "result-db-batch-size", "rdbbs", 100, "batch size for database inserts"),

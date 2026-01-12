@@ -2,25 +2,21 @@ package db
 
 import (
 	"context"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/httpx/runner"
+	"github.com/projectdiscovery/utils/batcher"
 )
 
 type Writer struct {
-	db       Database
-	cfg      *Config
-	data     chan runner.Result
-	done     chan struct{}
-	counter  atomic.Int64
-	closed   atomic.Bool
-	wg       sync.WaitGroup
-	ctx      context.Context
-	cancel   context.CancelFunc
-	omitRaw  bool
+	db      Database
+	cfg     *Config
+	batcher *batcher.Batcher[runner.Result]
+	counter atomic.Int64
+	closed  atomic.Bool
+	omitRaw bool
 }
 
 func NewWriter(ctx context.Context, cfg *Config) (*Writer, error) {
@@ -38,24 +34,39 @@ func NewWriter(ctx context.Context, cfg *Config) (*Writer, error) {
 		return nil, err
 	}
 
-	writerCtx, cancel := context.WithCancel(ctx)
-
 	w := &Writer{
 		db:      db,
 		cfg:     cfg,
-		data:    make(chan runner.Result, cfg.BatchSize),
-		done:    make(chan struct{}),
-		ctx:     writerCtx,
-		cancel:  cancel,
 		omitRaw: cfg.OmitRaw,
 	}
 
-	w.wg.Add(1)
-	go w.run()
+	w.batcher = batcher.New(
+		batcher.WithMaxCapacity[runner.Result](cfg.BatchSize),
+		batcher.WithFlushInterval[runner.Result](cfg.FlushInterval),
+		batcher.WithFlushCallback(w.flush),
+	)
+
+	w.batcher.Run()
 
 	gologger.Info().Msgf("Database output enabled: %s (%s/%s)", cfg.Type, cfg.DatabaseName, cfg.TableName)
 
 	return w, nil
+}
+
+func (w *Writer) flush(batch []runner.Result) {
+	if len(batch) == 0 {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := w.db.InsertBatch(ctx, batch); err != nil {
+		gologger.Error().Msgf("Failed to insert batch to database: %v", err)
+	} else {
+		w.counter.Add(int64(len(batch)))
+		gologger.Verbose().Msgf("Inserted %d results to database (total: %d)", len(batch), w.counter.Load())
+	}
 }
 
 func (w *Writer) GetWriterCallback() runner.OnResultCallback {
@@ -75,60 +86,7 @@ func (w *Writer) GetWriterCallback() runner.OnResultCallback {
 			r.RawHeaders = ""
 		}
 
-		select {
-		case w.data <- r:
-		case <-w.ctx.Done():
-		}
-	}
-}
-
-func (w *Writer) run() {
-	defer w.wg.Done()
-	defer close(w.done)
-
-	batch := make([]runner.Result, 0, w.cfg.BatchSize)
-	ticker := time.NewTicker(w.cfg.FlushInterval)
-	defer ticker.Stop()
-
-	flush := func() {
-		if len(batch) == 0 {
-			return
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		if err := w.db.InsertBatch(ctx, batch); err != nil {
-			gologger.Error().Msgf("Failed to insert batch to database: %v", err)
-		} else {
-			w.counter.Add(int64(len(batch)))
-			gologger.Verbose().Msgf("Inserted %d results to database (total: %d)", len(batch), w.counter.Load())
-		}
-
-		batch = batch[:0]
-	}
-
-	for {
-		select {
-		case <-w.ctx.Done():
-			flush()
-			return
-
-		case <-ticker.C:
-			flush()
-
-		case result, ok := <-w.data:
-			if !ok {
-				flush()
-				return
-			}
-
-			batch = append(batch, result)
-
-			if len(batch) >= w.cfg.BatchSize {
-				flush()
-			}
-		}
+		w.batcher.Append(r)
 	}
 }
 
@@ -137,9 +95,8 @@ func (w *Writer) Close() {
 		return
 	}
 
-	w.cancel()
-	close(w.data)
-	<-w.done
+	w.batcher.Stop()
+	w.batcher.WaitDone()
 
 	if err := w.db.Close(); err != nil {
 		gologger.Error().Msgf("Error closing database connection: %v", err)

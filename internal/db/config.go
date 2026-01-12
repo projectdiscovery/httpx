@@ -111,10 +111,6 @@ func (o *Options) ToConfig() (*Config, error) {
 		OmitRaw:          o.OmitRaw,
 	}
 
-	if cfg.ConnectionString == "" {
-		cfg.ConnectionString = os.Getenv(EnvConnectionString)
-	}
-
 	cfg.ApplyDefaults()
 
 	if err := cfg.Validate(); err != nil {
