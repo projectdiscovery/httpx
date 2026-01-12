@@ -353,6 +353,8 @@ type Options struct {
 	// AssetFileUpload
 	AssetFileUpload string
 	TeamID          string
+	// SecretFile is the path to the secret file for authentication
+	SecretFile string
 	// OnClose adds a callback function that is invoked when httpx is closed
 	// to be exact at end of existing closures
 	OnClose func()
@@ -526,6 +528,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.TlsImpersonate, "tls-impersonate", "tlsi", false, "enable experimental client hello (ja3) tls randomization"),
 		flagSet.BoolVar(&options.DisableStdin, "no-stdin", false, "Disable Stdin processing"),
 		flagSet.StringVarP(&options.HttpApiEndpoint, "http-api-endpoint", "hae", "", "experimental http api endpoint"),
+		flagSet.StringVarP(&options.SecretFile, "secret-file", "sf", "", "path to the secret file for authentication"),
 	)
 
 	flagSet.CreateGroup("debug", "Debug",
@@ -680,6 +683,9 @@ func (options *Options) ValidateOptions() error {
 		return fmt.Errorf("file '%s' does not exist", options.InputRawRequest)
 	}
 
+	if options.SecretFile != "" && !fileutil.FileExists(options.SecretFile) {
+		return fmt.Errorf("secret file '%s' does not exist", options.SecretFile)
+	}
 	if options.InputMode != "" && inputformats.GetFormat(options.InputMode) == nil {
 		return fmt.Errorf("invalid input mode '%s', supported formats: %s", options.InputMode, inputformats.SupportedFormats())
 	}
