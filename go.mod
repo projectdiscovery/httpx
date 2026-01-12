@@ -54,6 +54,8 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1
+	github.com/projectdiscovery/awesome-search-queries v0.0.0-20260104120501-961ef30f7193
+	github.com/seh-msft/burpxml v1.0.1
 	github.com/weppos/publicsuffix-go v0.50.2
 )
 
@@ -128,7 +130,6 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.23 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
-	github.com/projectdiscovery/awesome-search-queries v0.0.0-20260104120501-961ef30f7193 // indirect
 	github.com/projectdiscovery/blackrock v0.0.1 // indirect
 	github.com/projectdiscovery/freeport v0.0.7 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
