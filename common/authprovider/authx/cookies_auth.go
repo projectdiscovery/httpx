@@ -2,7 +2,6 @@ package authx
 
 import (
 	"net/http"
-	"slices"
 
 	"github.com/projectdiscovery/retryablehttp-go"
 )
@@ -24,30 +23,33 @@ func NewCookiesAuthStrategy(data *Secret) *CookiesAuthStrategy {
 // Apply applies the cookies auth strategy to the request
 func (s *CookiesAuthStrategy) Apply(req *http.Request) {
 	for _, cookie := range s.Data.Cookies {
-		c := &http.Cookie{
+		req.AddCookie(&http.Cookie{
 			Name:  cookie.Key,
 			Value: cookie.Value,
-		}
-		req.AddCookie(c)
+		})
 	}
 }
 
 // ApplyOnRR applies the cookies auth strategy to the retryable request
 func (s *CookiesAuthStrategy) ApplyOnRR(req *retryablehttp.Request) {
-	existingCookies := req.Cookies()
+	// Build a set of cookie names to replace
+	newCookieNames := make(map[string]struct{}, len(s.Data.Cookies))
+	for _, cookie := range s.Data.Cookies {
+		newCookieNames[cookie.Key] = struct{}{}
+	}
 
-	for _, newCookie := range s.Data.Cookies {
-		for i, existing := range existingCookies {
-			if existing.Name == newCookie.Key {
-				existingCookies = slices.Delete(existingCookies, i, i+1)
-				break
-			}
+	// Filter existing cookies, keeping only those not being replaced
+	existingCookies := req.Cookies()
+	filteredCookies := make([]*http.Cookie, 0, len(existingCookies))
+	for _, cookie := range existingCookies {
+		if _, shouldReplace := newCookieNames[cookie.Name]; !shouldReplace {
+			filteredCookies = append(filteredCookies, cookie)
 		}
 	}
 
-	// Clear and reset remaining cookies
+	// Clear and reset cookies
 	req.Header.Del("Cookie")
-	for _, cookie := range existingCookies {
+	for _, cookie := range filteredCookies {
 		req.AddCookie(cookie)
 	}
 	// Add new cookies

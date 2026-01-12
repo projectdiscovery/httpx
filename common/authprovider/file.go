@@ -44,7 +44,7 @@ func NewFileAuthProvider(path string) (AuthProvider, error) {
 // init initializes the file auth provider
 func (f *FileAuthProvider) init() {
 	for _, _secret := range f.store.Secrets {
-		secret := _secret // allocate copy of pointer
+		secret := _secret // capture loop variable for use in GetStrategy()
 		if len(secret.DomainsRegex) > 0 {
 			for _, domain := range secret.DomainsRegex {
 				if f.compiled == nil {
@@ -83,7 +83,7 @@ func (f *FileAuthProvider) LookupAddr(addr string) []authx.AuthStrategy {
 	var strategies []authx.AuthStrategy
 
 	if strings.Contains(addr, ":") {
-		// default normalization for host:port
+		// strip default ports (80/443) for consistent domain matching
 		host, port, err := net.SplitHostPort(addr)
 		if err == nil && (port == "80" || port == "443") {
 			addr = host

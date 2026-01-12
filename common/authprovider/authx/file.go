@@ -139,8 +139,6 @@ func (s *Secret) Validate() error {
 				return fmt.Errorf("invalid query in queryAuth: %s", err)
 			}
 		}
-	default:
-		return fmt.Errorf("invalid type: %s", s.Type)
 	}
 	return nil
 }
@@ -192,18 +190,22 @@ func (c *Cookie) Parse() error {
 		return fmt.Errorf("invalid raw cookie no ; found")
 	}
 	// first element is the cookie name and value
-	cookie := strings.Split(slice[0], "=")
-	if len(cookie) == 2 {
-		c.Key = cookie[0]
-		c.Value = cookie[1]
-		return nil
+	// Use SplitN to preserve '=' characters in the cookie value
+	cookie := strings.SplitN(slice[0], "=", 2)
+	if len(cookie) != 2 {
+		return fmt.Errorf("invalid raw cookie: missing '=' in cookie name=value: %s", c.Raw)
 	}
-	return fmt.Errorf("invalid raw cookie: %s", c.Raw)
+	c.Key = strings.TrimSpace(cookie[0])
+	c.Value = strings.TrimSpace(cookie[1])
+	if c.Key == "" {
+		return fmt.Errorf("invalid raw cookie: empty cookie name: %s", c.Raw)
+	}
+	return nil
 }
 
 // GetAuthDataFromFile reads the auth data from file
 func GetAuthDataFromFile(file string) (*Authx, error) {
-	ext := filepath.Ext(file)
+	ext := strings.ToLower(filepath.Ext(file))
 	if !generic.EqualsAny(ext, ".yml", ".yaml", ".json") {
 		return nil, fmt.Errorf("invalid file extension: supported extensions are .yml,.yaml and .json got %s", ext)
 	}

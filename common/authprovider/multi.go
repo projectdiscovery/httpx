@@ -32,7 +32,7 @@ func (m *MultiAuthProvider) LookupAddr(host string) []authx.AuthStrategy {
 func (m *MultiAuthProvider) LookupURL(u *url.URL) []authx.AuthStrategy {
 	for _, provider := range m.Providers {
 		strategy := provider.LookupURL(u)
-		if strategy != nil {
+		if len(strategy) > 0 {
 			return strategy
 		}
 	}
@@ -42,7 +42,7 @@ func (m *MultiAuthProvider) LookupURL(u *url.URL) []authx.AuthStrategy {
 func (m *MultiAuthProvider) LookupURLX(u *urlutil.URL) []authx.AuthStrategy {
 	for _, provider := range m.Providers {
 		strategy := provider.LookupURLX(u)
-		if strategy != nil {
+		if len(strategy) > 0 {
 			return strategy
 		}
 	}
