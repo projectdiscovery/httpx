@@ -684,6 +684,10 @@ func (options *Options) ValidateOptions() error {
 		return fmt.Errorf("invalid input mode '%s', supported formats: %s", options.InputMode, inputformats.SupportedFormats())
 	}
 
+	if options.InputMode != "" && options.InputFile == "" {
+		return errors.New("-im/-input-mode requires -l/-list to specify an input file")
+	}
+
 	if options.Silent {
 		incompatibleFlagsList := flagsIncompatibleWithSilent(options)
 		if len(incompatibleFlagsList) > 0 {

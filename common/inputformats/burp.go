@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
+	"github.com/projectdiscovery/gologger"
 	"github.com/seh-msft/burpxml"
 )
 
@@ -30,8 +31,9 @@ func (b *BurpFormat) Parse(input io.Reader, callback func(url string) bool) erro
 		return errors.Wrap(err, "could not parse burp xml")
 	}
 
-	for _, item := range items.Items {
+	for i, item := range items.Items {
 		if item.Url == "" {
+			gologger.Debug().Msgf("Skipping burp item %d: empty URL", i)
 			continue
 		}
 		if !callback(item.Url) {
