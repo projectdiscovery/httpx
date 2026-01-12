@@ -36,6 +36,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/httpx/common/pagetypeclassifier"
+	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
@@ -94,6 +95,7 @@ type Runner struct {
 	pHashClusters      []pHashCluster
 	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
 	httpApiEndpoint    *Server
+	authProvider       authprovider.AuthProvider
 }
 
 func (r *Runner) HTTPX() *httpx.HTTPX {
@@ -411,6 +413,16 @@ func New(options *Options) (*Runner, error) {
 		return nil, err
 	}
 	runner.pageTypeClassifier = pageTypeClassifier
+
+	if options.SecretFile != "" {
+		authProviderOpts := &authprovider.AuthProviderOptions{
+			SecretsFiles: []string{options.SecretFile},
+		}
+		runner.authProvider, err = authprovider.NewAuthProvider(authProviderOpts)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not create auth provider")
+		}
+	}
 
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)
@@ -1705,6 +1717,16 @@ retry:
 	}
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
+
+	// Apply auth strategies if auth provider is configured
+	if r.authProvider != nil {
+		if strategies := r.authProvider.LookupURLX(URL); len(strategies) > 0 {
+			for _, strategy := range strategies {
+				strategy.ApplyOnRR(req)
+			}
+		}
+	}
+
 	// We set content-length even if zero to allow net/http to follow 307/308 redirects (it fails on unknown size)
 	if scanopts.RequestBody != "" {
 		req.ContentLength = int64(len(scanopts.RequestBody))
