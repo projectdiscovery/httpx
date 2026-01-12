@@ -234,6 +234,7 @@ CONFIGURATIONS:
    -tlsi, -tls-impersonate          enable experimental client hello (ja3) tls randomization
    -no-stdin                        Disable Stdin processing
    -hae, -http-api-endpoint string  experimental http api endpoint
+   -sf, -secret-file string         path to secret file for authentication
 
 DEBUG:
    -health-check, -hc        run diagnostic check up
@@ -284,6 +285,24 @@ For details about running httpx, see https://docs.projectdiscovery.io/tools/http
 - The `-no-fallback` flag can be used to probe and display both **HTTP** and **HTTPS** result.
 - Custom scheme for ports can be defined, for example `-ports http:443,http:80,https:8443`
 - Custom resolver supports multiple protocol (**doh|tcp|udp**) in form of `protocol:resolver:port` (e.g. `udp:127.0.0.1:53`)
+- Secret files can be used for domain-based authentication via `-sf secrets.yaml`. Supported auth types: `BasicAuth`, `BearerToken`, `Header`, `Cookie`, `Query`. Example:
+  ```yaml
+  id: example-auth
+  info:
+    name: Example Auth Config
+  static:
+    - type: Header
+      domains:
+        - api.example.com
+      headers:
+        - key: X-API-Key
+          value: secret-key-here
+    - type: BasicAuth
+      domains-regex:
+        - ".*\\.internal\\.com$"
+      username: admin
+      password: secret
+  ```
 - The following flags should be used for specific use cases instead of running them as default with other probes:
    - `-ports`
    - `-path`
