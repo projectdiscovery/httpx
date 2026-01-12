@@ -91,6 +91,7 @@ func TestHeadersAuthStrategy(t *testing.T) {
 		strategy.Apply(req)
 
 		// Use direct map access since headers preserve exact casing
+		//nolint
 		if got := req.Header["X-API-Key"]; len(got) == 0 || got[0] != "secret123" {
 			t.Errorf("X-API-Key = %v, want [secret123]", got)
 		}
@@ -104,6 +105,7 @@ func TestHeadersAuthStrategy(t *testing.T) {
 		strategy.ApplyOnRR(req)
 
 		// Use direct map access since headers preserve exact casing
+		//nolint
 		if got := req.Header["X-API-Key"]; len(got) == 0 || got[0] != "secret123" {
 			t.Errorf("X-API-Key = %v, want [secret123]", got)
 		}
