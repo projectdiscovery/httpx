@@ -526,11 +526,7 @@ func (r *Runner) prepareInput() {
 	// check if file has been provided
 	if fileutil.FileExists(r.options.InputFile) {
 		// check if input mode is specified for special format handling
-		if r.options.InputMode != "" {
-			format := inputformats.GetFormat(r.options.InputMode)
-			if format == nil {
-				gologger.Fatal().Msgf("Invalid input mode '%s'. Supported: %s\n", r.options.InputMode, inputformats.SupportedFormats())
-			}
+		if format := r.getInputFormat(); format != nil {
 			numTargets, err := r.loadFromFormat(r.options.InputFile, format)
 			if err != nil {
 				gologger.Fatal().Msgf("Could not parse input file '%s': %s\n", r.options.InputFile, err)
@@ -638,6 +634,19 @@ func (r *Runner) testAndSet(k string) bool {
 	return true
 }
 
+// getInputFormat returns the format for the configured input mode.
+// Returns nil if no input mode is configured, or logs fatal if the format is invalid.
+func (r *Runner) getInputFormat() inputformats.Format {
+	if r.options.InputMode == "" {
+		return nil
+	}
+	format := inputformats.GetFormat(r.options.InputMode)
+	if format == nil {
+		gologger.Fatal().Msgf("Invalid input mode '%s'. Supported: %s\n", r.options.InputMode, inputformats.SupportedFormats())
+	}
+	return format
+}
+
 func (r *Runner) streamInput() (chan string, error) {
 	out := make(chan string)
 	go func() {
@@ -645,24 +654,23 @@ func (r *Runner) streamInput() (chan string, error) {
 
 		if fileutil.FileExists(r.options.InputFile) {
 			// check if input mode is specified for special format handling
-			if r.options.InputMode != "" {
-				format := inputformats.GetFormat(r.options.InputMode)
-				if format == nil {
-					gologger.Fatal().Msgf("Invalid input mode '%s'. Supported: %s\n", r.options.InputMode, inputformats.SupportedFormats())
-				}
+			if format := r.getInputFormat(); format != nil {
 				finput, err := os.Open(r.options.InputFile)
 				if err != nil {
 					gologger.Error().Msgf("Could not open input file '%s': %s\n", r.options.InputFile, err)
 					return
 				}
 				defer finput.Close()
-				_ = format.Parse(finput, func(item string) bool {
+				if err := format.Parse(finput, func(item string) bool {
 					item = strings.TrimSpace(item)
 					if r.options.SkipDedupe || r.testAndSet(item) {
 						out <- item
 					}
 					return true
-				})
+				}); err != nil {
+					gologger.Error().Msgf("Could not parse input file '%s': %s\n", r.options.InputFile, err)
+					return
+				}
 			} else {
 				fchan, err := fileutil.ReadFile(r.options.InputFile)
 				if err != nil {
@@ -736,11 +744,11 @@ func (r *Runner) loadFromFormat(filePath string, format inputformats.Format) (nu
 
 	err = format.Parse(finput, func(target string) bool {
 		target = strings.TrimSpace(target)
-		expandedTarget, err := r.countTargetFromRawTarget(target)
-		if err == nil && expandedTarget > 0 {
+		expandedTarget, countErr := r.countTargetFromRawTarget(target)
+		if countErr == nil && expandedTarget > 0 {
 			numTargets += expandedTarget
 			r.hm.Set(target, []byte("1")) //nolint
-		} else if r.options.SkipDedupe && errors.Is(err, duplicateTargetErr) {
+		} else if r.options.SkipDedupe && errors.Is(countErr, duplicateTargetErr) {
 			if v, ok := r.hm.Get(target); ok {
 				cnt, _ := strconv.Atoi(string(v))
 				_ = r.hm.Set(target, []byte(strconv.Itoa(cnt+1)))

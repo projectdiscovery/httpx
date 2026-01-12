@@ -66,6 +66,9 @@ func TestBurpFormat_Parse(t *testing.T) {
 	}
 
 	expectedURLs := []string{"http://example.com/path1", "https://example.com/path2"}
+	if len(urls) != len(expectedURLs) {
+		t.Fatalf("Expected %d URLs, got %d: %v", len(expectedURLs), len(urls), urls)
+	}
 	for i, expected := range expectedURLs {
 		if urls[i] != expected {
 			t.Errorf("Expected URL %d to be '%s', got '%s'", i, expected, urls[i])
@@ -144,5 +147,23 @@ func TestBurpFormat_ParseStopEarly(t *testing.T) {
 
 	if len(urls) != 1 {
 		t.Errorf("Expected 1 URL (stopped early), got %d", len(urls))
+	}
+}
+
+func TestBurpFormat_ParseMalformed(t *testing.T) {
+	malformedXML := `<?xml version="1.0"?>
+<items burpVersion="2023.10.1.2">
+  <item>
+    <url><![CDATA[http://example.com/path1]]></url>
+    <!-- missing closing tags -->
+</items>`
+
+	b := NewBurpFormat()
+	err := b.Parse(strings.NewReader(malformedXML), func(url string) bool {
+		return true
+	})
+
+	if err == nil {
+		t.Error("Expected error for malformed XML, got nil")
 	}
 }

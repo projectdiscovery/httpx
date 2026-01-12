@@ -680,6 +680,10 @@ func (options *Options) ValidateOptions() error {
 		return fmt.Errorf("file '%s' does not exist", options.InputRawRequest)
 	}
 
+	if options.InputMode != "" && inputformats.GetFormat(options.InputMode) == nil {
+		return fmt.Errorf("invalid input mode '%s', supported formats: %s", options.InputMode, inputformats.SupportedFormats())
+	}
+
 	if options.Silent {
 		incompatibleFlagsList := flagsIncompatibleWithSilent(options)
 		if len(incompatibleFlagsList) > 0 {
