@@ -23,6 +23,7 @@ import (
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	httpxcommon "github.com/projectdiscovery/httpx/common/httpx"
+	"github.com/projectdiscovery/httpx/common/inputformats"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/networkpolicy"
 	pdcpauth "github.com/projectdiscovery/utils/auth/pdcp"
@@ -191,6 +192,7 @@ type Options struct {
 	SocksProxy                string
 	Proxy                     string
 	InputFile                 string
+	InputMode                 string
 	InputTargetHost           goflags.StringSlice
 	Methods                   string
 	RequestURI                string
@@ -377,6 +379,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.InputFile, "list", "l", "", "input file containing list of hosts to process"),
 		flagSet.StringVarP(&options.InputRawRequest, "request", "rr", "", "file containing raw request"),
 		flagSet.StringSliceVarP(&options.InputTargetHost, "target", "u", nil, "input target host(s) to probe", goflags.CommaSeparatedStringSliceOptions),
+		flagSet.StringVarP(&options.InputMode, "input-mode", "im", "", fmt.Sprintf("mode of input file (%s)", inputformats.SupportedFormats())),
 	)
 
 	flagSet.CreateGroup("Probes", "Probes",
@@ -682,6 +685,13 @@ func (options *Options) ValidateOptions() error {
 
 	if options.SecretFile != "" && !fileutil.FileExists(options.SecretFile) {
 		return fmt.Errorf("secret file '%s' does not exist", options.SecretFile)
+	}
+	if options.InputMode != "" && inputformats.GetFormat(options.InputMode) == nil {
+		return fmt.Errorf("invalid input mode '%s', supported formats: %s", options.InputMode, inputformats.SupportedFormats())
+	}
+
+	if options.InputMode != "" && options.InputFile == "" {
+		return errors.New("-im/-input-mode requires -l/-list to specify an input file")
 	}
 
 	if options.Silent {
