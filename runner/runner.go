@@ -35,6 +35,7 @@ import (
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
+	"github.com/projectdiscovery/httpx/common/inputformats"
 	"github.com/projectdiscovery/httpx/common/pagetypeclassifier"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
@@ -524,13 +525,26 @@ func (r *Runner) prepareInput() {
 	}
 	// check if file has been provided
 	if fileutil.FileExists(r.options.InputFile) {
-		finput, err := os.Open(r.options.InputFile)
-		if err != nil {
-			gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
-		}
-		numHosts, err = r.loadAndCloseFile(finput)
-		if err != nil {
-			gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
+		// check if input mode is specified for special format handling
+		if r.options.InputMode != "" {
+			format := inputformats.GetFormat(r.options.InputMode)
+			if format == nil {
+				gologger.Fatal().Msgf("Invalid input mode '%s'. Supported: %s\n", r.options.InputMode, inputformats.SupportedFormats())
+			}
+			numTargets, err := r.loadFromFormat(r.options.InputFile, format)
+			if err != nil {
+				gologger.Fatal().Msgf("Could not parse input file '%s': %s\n", r.options.InputFile, err)
+			}
+			numHosts = numTargets
+		} else {
+			finput, err := os.Open(r.options.InputFile)
+			if err != nil {
+				gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
+			}
+			numHosts, err = r.loadAndCloseFile(finput)
+			if err != nil {
+				gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
+			}
 		}
 	} else if r.options.InputFile != "" {
 		files, err := fileutilz.ListFilesWithPattern(r.options.InputFile)
@@ -630,13 +644,34 @@ func (r *Runner) streamInput() (chan string, error) {
 		defer close(out)
 
 		if fileutil.FileExists(r.options.InputFile) {
-			fchan, err := fileutil.ReadFile(r.options.InputFile)
-			if err != nil {
-				return
-			}
-			for item := range fchan {
-				if r.options.SkipDedupe || r.testAndSet(item) {
-					out <- item
+			// check if input mode is specified for special format handling
+			if r.options.InputMode != "" {
+				format := inputformats.GetFormat(r.options.InputMode)
+				if format == nil {
+					gologger.Fatal().Msgf("Invalid input mode '%s'. Supported: %s\n", r.options.InputMode, inputformats.SupportedFormats())
+				}
+				finput, err := os.Open(r.options.InputFile)
+				if err != nil {
+					gologger.Error().Msgf("Could not open input file '%s': %s\n", r.options.InputFile, err)
+					return
+				}
+				defer finput.Close()
+				_ = format.Parse(finput, func(item string) bool {
+					item = strings.TrimSpace(item)
+					if r.options.SkipDedupe || r.testAndSet(item) {
+						out <- item
+					}
+					return true
+				})
+			} else {
+				fchan, err := fileutil.ReadFile(r.options.InputFile)
+				if err != nil {
+					return
+				}
+				for item := range fchan {
+					if r.options.SkipDedupe || r.testAndSet(item) {
+						out <- item
+					}
 				}
 			}
 		} else if r.options.InputFile != "" {
@@ -689,6 +724,31 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 		}
 	}
 	err = finput.Close()
+	return numTargets, err
+}
+
+func (r *Runner) loadFromFormat(filePath string, format inputformats.Format) (numTargets int, err error) {
+	finput, err := os.Open(filePath)
+	if err != nil {
+		return 0, err
+	}
+	defer finput.Close()
+
+	err = format.Parse(finput, func(target string) bool {
+		target = strings.TrimSpace(target)
+		expandedTarget, err := r.countTargetFromRawTarget(target)
+		if err == nil && expandedTarget > 0 {
+			numTargets += expandedTarget
+			r.hm.Set(target, []byte("1")) //nolint
+		} else if r.options.SkipDedupe && errors.Is(err, duplicateTargetErr) {
+			if v, ok := r.hm.Get(target); ok {
+				cnt, _ := strconv.Atoi(string(v))
+				_ = r.hm.Set(target, []byte(strconv.Itoa(cnt+1)))
+				numTargets += 1
+			}
+		}
+		return true
+	})
 	return numTargets, err
 }
 

@@ -23,6 +23,7 @@ import (
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	httpxcommon "github.com/projectdiscovery/httpx/common/httpx"
+	"github.com/projectdiscovery/httpx/common/inputformats"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/networkpolicy"
 	pdcpauth "github.com/projectdiscovery/utils/auth/pdcp"
@@ -191,6 +192,7 @@ type Options struct {
 	SocksProxy                string
 	Proxy                     string
 	InputFile                 string
+	InputMode                 string
 	InputTargetHost           goflags.StringSlice
 	Methods                   string
 	RequestURI                string
@@ -375,6 +377,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.InputFile, "list", "l", "", "input file containing list of hosts to process"),
 		flagSet.StringVarP(&options.InputRawRequest, "request", "rr", "", "file containing raw request"),
 		flagSet.StringSliceVarP(&options.InputTargetHost, "target", "u", nil, "input target host(s) to probe", goflags.CommaSeparatedStringSliceOptions),
+		flagSet.StringVarP(&options.InputMode, "input-mode", "im", "", fmt.Sprintf("mode of input file (%s)", inputformats.SupportedFormats())),
 	)
 
 	flagSet.CreateGroup("Probes", "Probes",
