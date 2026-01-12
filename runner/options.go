@@ -483,7 +483,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.StoreResponse, "store-response", "sr", false, "store http response to output directory"),
 		flagSet.StringVarP(&options.StoreResponseDir, "store-response-dir", "srd", "", "store http response to custom directory"),
 		flagSet.BoolVarP(&options.OmitBody, "omit-body", "ob", false, "omit response body in output"),
-		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in csv format"),
+		flagSet.BoolVarP(&options.CSVOutput, "csv", "c", false, "store output in csv format"),
 		flagSet.StringVarP(&options.CSVOutputEncoding, "csv-output-encoding", "csvo", "", "define output encoding"),
 		flagSet.BoolVarP(&options.JSONOutput, "json", "j", false, "store output in JSONL(ines) format"),
 		flagSet.BoolVarP(&options.ResponseHeadersInStdout, "include-response-header", "irh", false, "include http response (headers) in JSON output (-json only)"),
