@@ -19,10 +19,10 @@ require (
 	github.com/miekg/dns v1.1.68 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/asnmap v1.1.1
-	github.com/projectdiscovery/cdncheck v1.2.17
+	github.com/projectdiscovery/cdncheck v1.2.19
 	github.com/projectdiscovery/clistats v0.1.1
-	github.com/projectdiscovery/dsl v0.8.11
-	github.com/projectdiscovery/fastdialer v0.5.2
+	github.com/projectdiscovery/dsl v0.8.12
+	github.com/projectdiscovery/fastdialer v0.5.3
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.74
@@ -32,32 +32,34 @@ require (
 	github.com/projectdiscovery/networkpolicy v0.1.33
 	github.com/projectdiscovery/ratelimit v0.0.83
 	github.com/projectdiscovery/rawhttp v0.1.90
-	github.com/projectdiscovery/retryablehttp-go v1.3.2
+	github.com/projectdiscovery/retryablehttp-go v1.3.4
 	github.com/projectdiscovery/tlsx v1.2.2
 	github.com/projectdiscovery/useragent v0.0.106
-	github.com/projectdiscovery/utils v0.8.0
-	github.com/projectdiscovery/wappalyzergo v0.2.62
+	github.com/projectdiscovery/utils v0.9.0
+	github.com/projectdiscovery/wappalyzergo v0.2.64
 	github.com/rs/xid v1.6.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.11.1
-	github.com/zmap/zcrypto v0.0.0-20240512203510-0fef58d9a9db
+	github.com/zmap/zcrypto v0.0.0-20240803002437-3a861682ac77
 	go.etcd.io/bbolt v1.4.0 // indirect
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20250911091902-df9299821621
-	golang.org/x/net v0.48.0
-	golang.org/x/sys v0.39.0 // indirect
-	golang.org/x/text v0.32.0
+	golang.org/x/net v0.49.0
+	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/text v0.33.0
 )
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-sql-driver/mysql v1.9.3
-	github.com/go-viper/mapstructure/v2 v2.4.0
-	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1
 	github.com/lib/pq v1.10.9
-	github.com/weppos/publicsuffix-go v0.50.2
 	go.mongodb.org/mongo-driver v1.17.6
+	github.com/go-viper/mapstructure/v2 v2.5.0
+	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1
+	github.com/projectdiscovery/awesome-search-queries v0.0.0-20260104120501-961ef30f7193
+	github.com/seh-msft/burpxml v1.0.1
+	github.com/weppos/publicsuffix-go v0.50.3-0.20260104170930-90713dec78f2
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -134,7 +136,6 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.23 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
-	github.com/projectdiscovery/awesome-search-queries v0.0.0-20260104120501-961ef30f7193 // indirect
 	github.com/projectdiscovery/blackrock v0.0.1 // indirect
 	github.com/projectdiscovery/freeport v0.0.7 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
@@ -177,12 +178,12 @@ require (
 	github.com/zcalusic/sysinfo v1.0.2 // indirect
 	github.com/zmap/rc2 v0.0.0-20190804163417-abaa70531248 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
-	golang.org/x/crypto v0.46.0 // indirect
-	golang.org/x/mod v0.30.0 // indirect
+	golang.org/x/crypto v0.47.0 // indirect
+	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/term v0.38.0 // indirect
+	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	golang.org/x/tools v0.39.0 // indirect
+	golang.org/x/tools v0.40.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )

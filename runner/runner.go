@@ -35,7 +35,9 @@ import (
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
+	"github.com/projectdiscovery/httpx/common/inputformats"
 	"github.com/projectdiscovery/httpx/common/pagetypeclassifier"
+	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
@@ -94,6 +96,7 @@ type Runner struct {
 	pHashClusters      []pHashCluster
 	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
 	httpApiEndpoint    *Server
+	authProvider       authprovider.AuthProvider
 }
 
 func (r *Runner) HTTPX() *httpx.HTTPX {
@@ -412,6 +415,16 @@ func New(options *Options) (*Runner, error) {
 	}
 	runner.pageTypeClassifier = pageTypeClassifier
 
+	if options.SecretFile != "" {
+		authProviderOpts := &authprovider.AuthProviderOptions{
+			SecretsFiles: []string{options.SecretFile},
+		}
+		runner.authProvider, err = authprovider.NewAuthProvider(authProviderOpts)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not create auth provider")
+		}
+	}
+
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)
 		gologger.Info().Msgf("Listening api endpoint on: %s", options.HttpApiEndpoint)
@@ -524,13 +537,22 @@ func (r *Runner) prepareInput() {
 	}
 	// check if file has been provided
 	if fileutil.FileExists(r.options.InputFile) {
-		finput, err := os.Open(r.options.InputFile)
-		if err != nil {
-			gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
-		}
-		numHosts, err = r.loadAndCloseFile(finput)
-		if err != nil {
-			gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
+		// check if input mode is specified for special format handling
+		if format := r.getInputFormat(); format != nil {
+			numTargets, err := r.loadFromFormat(r.options.InputFile, format)
+			if err != nil {
+				gologger.Fatal().Msgf("Could not parse input file '%s': %s\n", r.options.InputFile, err)
+			}
+			numHosts = numTargets
+		} else {
+			finput, err := os.Open(r.options.InputFile)
+			if err != nil {
+				gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
+			}
+			numHosts, err = r.loadAndCloseFile(finput)
+			if err != nil {
+				gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
+			}
 		}
 	} else if r.options.InputFile != "" {
 		files, err := fileutilz.ListFilesWithPattern(r.options.InputFile)
@@ -624,19 +646,52 @@ func (r *Runner) testAndSet(k string) bool {
 	return true
 }
 
+// getInputFormat returns the format for the configured input mode.
+// Returns nil if no input mode is configured, or logs fatal if the format is invalid.
+func (r *Runner) getInputFormat() inputformats.Format {
+	if r.options.InputMode == "" {
+		return nil
+	}
+	format := inputformats.GetFormat(r.options.InputMode)
+	if format == nil {
+		gologger.Fatal().Msgf("Invalid input mode '%s'. Supported: %s\n", r.options.InputMode, inputformats.SupportedFormats())
+	}
+	return format
+}
+
 func (r *Runner) streamInput() (chan string, error) {
 	out := make(chan string)
 	go func() {
 		defer close(out)
 
 		if fileutil.FileExists(r.options.InputFile) {
-			fchan, err := fileutil.ReadFile(r.options.InputFile)
-			if err != nil {
-				return
-			}
-			for item := range fchan {
-				if r.options.SkipDedupe || r.testAndSet(item) {
-					out <- item
+			// check if input mode is specified for special format handling
+			if format := r.getInputFormat(); format != nil {
+				finput, err := os.Open(r.options.InputFile)
+				if err != nil {
+					gologger.Error().Msgf("Could not open input file '%s': %s\n", r.options.InputFile, err)
+					return
+				}
+				defer finput.Close()
+				if err := format.Parse(finput, func(item string) bool {
+					item = strings.TrimSpace(item)
+					if r.options.SkipDedupe || r.testAndSet(item) {
+						out <- item
+					}
+					return true
+				}); err != nil {
+					gologger.Error().Msgf("Could not parse input file '%s': %s\n", r.options.InputFile, err)
+					return
+				}
+			} else {
+				fchan, err := fileutil.ReadFile(r.options.InputFile)
+				if err != nil {
+					return
+				}
+				for item := range fchan {
+					if r.options.SkipDedupe || r.testAndSet(item) {
+						out <- item
+					}
 				}
 			}
 		} else if r.options.InputFile != "" {
@@ -689,6 +744,31 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 		}
 	}
 	err = finput.Close()
+	return numTargets, err
+}
+
+func (r *Runner) loadFromFormat(filePath string, format inputformats.Format) (numTargets int, err error) {
+	finput, err := os.Open(filePath)
+	if err != nil {
+		return 0, err
+	}
+	defer finput.Close()
+
+	err = format.Parse(finput, func(target string) bool {
+		target = strings.TrimSpace(target)
+		expandedTarget, countErr := r.countTargetFromRawTarget(target)
+		if countErr == nil && expandedTarget > 0 {
+			numTargets += expandedTarget
+			r.hm.Set(target, []byte("1")) //nolint
+		} else if r.options.SkipDedupe && errors.Is(countErr, duplicateTargetErr) {
+			if v, ok := r.hm.Get(target); ok {
+				cnt, _ := strconv.Atoi(string(v))
+				_ = r.hm.Set(target, []byte(strconv.Itoa(cnt+1)))
+				numTargets += 1
+			}
+		}
+		return true
+	})
 	return numTargets, err
 }
 
@@ -1705,6 +1785,16 @@ retry:
 	}
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
+
+	// Apply auth strategies if auth provider is configured
+	if r.authProvider != nil {
+		if strategies := r.authProvider.LookupURLX(URL); len(strategies) > 0 {
+			for _, strategy := range strategies {
+				strategy.ApplyOnRR(req)
+			}
+		}
+	}
+
 	// We set content-length even if zero to allow net/http to follow 307/308 redirects (it fails on unknown size)
 	if scanopts.RequestBody != "" {
 		req.ContentLength = int64(len(scanopts.RequestBody))
@@ -2611,6 +2701,10 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		}
 
 		clone.SetURL(resolvedURL)
+		// Update Host header to match resolved URL host (important after redirects)
+		if resolvedURL.Host != "" && resolvedURL.Host != clone.Host {
+			clone.Host = resolvedURL.Host
+		}
 		respFav, err := hp.Do(clone, httpx.UnsafeOptions{})
 		if err != nil || len(respFav.Data) == 0 {
 			tries++
