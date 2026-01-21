@@ -5,9 +5,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/networkpolicy"
 )
+
+// DefaultMaxResponseBodySize is the default maximum response body size
+var DefaultMaxResponseBodySize int64
+
+func init() {
+	maxResponseBodySize, _ := humanize.ParseBytes("512Mb")
+	DefaultMaxResponseBodySize = int64(maxResponseBodySize)
+}
 
 // Options contains configuration options for the client
 type Options struct {
@@ -66,7 +75,7 @@ var DefaultOptions = Options{
 	Unsafe:                    false,
 	CdnCheck:                  "true",
 	ExcludeCdn:                false,
-	MaxResponseBodySizeToRead: 1024 * 1024 * 10,
+	MaxResponseBodySizeToRead: DefaultMaxResponseBodySize,
 	// VHOSTs options
 	VHostIgnoreStatusCode:    false,
 	VHostIgnoreContentLength: true,

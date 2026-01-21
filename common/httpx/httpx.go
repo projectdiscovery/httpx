@@ -235,6 +235,14 @@ get_response:
 
 	resp.Headers = httpresp.Header.Clone()
 
+	if h.Options.MaxResponseBodySizeToRead > 0 {
+		httpresp.Body = io.NopCloser(io.LimitReader(httpresp.Body, h.Options.MaxResponseBodySizeToRead))
+		defer func() {
+			_, _ = io.Copy(io.Discard, httpresp.Body)
+			_ = httpresp.Body.Close()
+		}()
+	}
+
 	// httputil.DumpResponse does not handle websockets
 	headers, rawResp, err := pdhttputil.DumpResponseHeadersAndRaw(httpresp)
 	if err != nil {
