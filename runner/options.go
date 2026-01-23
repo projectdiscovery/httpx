@@ -859,9 +859,9 @@ func (options *Options) configureOutput() {
 
 func (options *Options) configureResume() error {
 	options.resumeCfg = &ResumeCfg{}
+	options.resumeCfg.SetThreadCount(options.Threads)
 	if options.Resume && fileutil.FileExists(DefaultResumeFile) {
 		return goconfig.Load(&options.resumeCfg, DefaultResumeFile)
-
 	}
 	return nil
 }

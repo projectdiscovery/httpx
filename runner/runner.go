@@ -1403,9 +1403,8 @@ func (r *Runner) RunEnumeration() {
 
 	processItem := func(k string) error {
 		if r.options.resumeCfg != nil {
-			r.options.resumeCfg.current = k
-			r.options.resumeCfg.currentIndex++
-			if r.options.resumeCfg.currentIndex <= r.options.resumeCfg.Index {
+			itemIndex := r.options.resumeCfg.TrackItemStart(k)
+			if r.options.resumeCfg.ShouldSkip(itemIndex) {
 				return nil
 			}
 		}
@@ -2792,10 +2791,16 @@ func extractPotentialFavIconsURLs(resp []byte) (candidates []string, baseHref st
 
 // SaveResumeConfig to file
 func (r *Runner) SaveResumeConfig() error {
-	var resumeCfg ResumeCfg
-	resumeCfg.Index = r.options.resumeCfg.currentIndex
-	resumeCfg.ResumeFrom = r.options.resumeCfg.current
-	return goconfig.Save(resumeCfg, DefaultResumeFile)
+	// Use a simple struct for serialization to avoid copying mutex
+	type resumeFile struct {
+		ResumeFrom string
+		Index      int
+	}
+	cfg := resumeFile{
+		Index:      r.options.resumeCfg.GetSafeResumeIndex(),
+		ResumeFrom: r.options.resumeCfg.GetCurrentTarget(),
+	}
+	return goconfig.Save(cfg, DefaultResumeFile)
 }
 
 // JSON the result
