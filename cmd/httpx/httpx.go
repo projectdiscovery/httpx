@@ -10,6 +10,7 @@ import (
 
 	"github.com/logrusorgru/aurora"
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/httpx/internal/db"
 	"github.com/projectdiscovery/httpx/internal/pdcp"
 	"github.com/projectdiscovery/httpx/runner"
 	pdcpauth "github.com/projectdiscovery/utils/auth/pdcp"
@@ -63,6 +64,9 @@ func main() {
 
 	// setup optional asset upload
 	_ = setupOptionalAssetUpload(options)
+
+	// setup optional database output
+	_ = setupDatabaseOutput(options)
 
 	httpxRunner, err := runner.New(options)
 	if err != nil {
@@ -141,5 +145,64 @@ func setupOptionalAssetUpload(opts *runner.Options) *pdcp.UploadWriter {
 	if opts.TeamID != "" {
 		writer.SetTeamID(opts.TeamID)
 	}
+	return writer
+}
+
+// setupDatabaseOutput sets up database output for storing results
+// This is optional and only initialized when explicitly enabled via -rdb flag
+func setupDatabaseOutput(opts *runner.Options) *db.Writer {
+	if !opts.ResultDatabase {
+		return nil
+	}
+
+	var cfg *db.Config
+	var err error
+
+	if opts.ResultDatabaseConfig != "" {
+		// Load configuration from file
+		cfg, err = db.LoadConfigFromFile(opts.ResultDatabaseConfig)
+		if err != nil {
+			gologger.Fatal().Msgf("Could not load database config: %s\n", err)
+		}
+	} else {
+		// Build configuration from CLI options
+		dbOpts := &db.Options{
+			Enabled:          opts.ResultDatabase,
+			Type:             opts.ResultDatabaseType,
+			ConnectionString: opts.ResultDatabaseConnStr,
+			DatabaseName:     opts.ResultDatabaseName,
+			TableName:        opts.ResultDatabaseTable,
+			BatchSize:        opts.ResultDatabaseBatchSize,
+			OmitRaw:          opts.ResultDatabaseOmitRaw,
+		}
+		cfg, err = dbOpts.ToConfig()
+		if err != nil {
+			gologger.Fatal().Msgf("Invalid database configuration: %s\n", err)
+		}
+	}
+
+	writer, err := db.NewWriter(context.Background(), cfg)
+	if err != nil {
+		gologger.Fatal().Msgf("Could not setup database output: %s\n", err)
+	}
+
+	// Chain with existing OnResult callback if present
+	existingCallback := opts.OnResult
+	opts.OnResult = func(r runner.Result) {
+		if existingCallback != nil {
+			existingCallback(r)
+		}
+		writer.GetWriterCallback()(r)
+	}
+
+	// Chain with existing OnClose callback if present
+	existingClose := opts.OnClose
+	opts.OnClose = func() {
+		writer.Close()
+		if existingClose != nil {
+			existingClose()
+		}
+	}
+
 	return writer
 }
