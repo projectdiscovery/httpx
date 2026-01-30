@@ -1214,6 +1214,12 @@ func (r *Runner) RunEnumeration() {
 				gologger.Silent().Msgf("%s\n", resp.str)
 			}
 
+			// Update resume state after output to avoid skipping unprocessed targets on interrupt
+			if r.options.resumeCfg != nil {
+				r.options.resumeCfg.lastPrinted = resp.Input
+				
+			}
+
 			// store responses or chain in directory
 			if resp.Err == nil {
 				URL, _ := urlutil.Parse(resp.URL)
@@ -2794,7 +2800,7 @@ func extractPotentialFavIconsURLs(resp []byte) (candidates []string, baseHref st
 func (r *Runner) SaveResumeConfig() error {
 	var resumeCfg ResumeCfg
 	resumeCfg.Index = r.options.resumeCfg.currentIndex
-	resumeCfg.ResumeFrom = r.options.resumeCfg.current
+	resumeCfg.ResumeFrom = r.options.resumeCfg.lastPrinted
 	return goconfig.Save(resumeCfg, DefaultResumeFile)
 }
 

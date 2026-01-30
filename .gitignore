@@ -12,5 +12,5 @@ cmd/functional-test/*.cfg
 .devcontainer
 /httpx
 /dist
-/resume.cfg
+resume.cfg
 vendor/

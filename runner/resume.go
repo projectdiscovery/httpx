@@ -5,4 +5,5 @@ type ResumeCfg struct {
 	Index        int
 	current      string
 	currentIndex int
+	lastPrinted  string
 }
