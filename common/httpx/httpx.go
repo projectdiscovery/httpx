@@ -183,6 +183,18 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
+	// When http11 protocol is explicitly requested, disable HTTP/2 fallback in retryablehttp
+	// by setting HTTPClient2 to use the same HTTP/1.1-only transport. This prevents
+	// retryablehttp from falling back to HTTP/2 when it encounters HTTP/1.x errors.
+	// See: https://github.com/projectdiscovery/httpx/issues/2240
+	if httpx.Options.Protocol == "http11" {
+		httpx.client.HTTPClient2 = &http.Client{
+			Transport:     transport,
+			Timeout:       httpx.Options.Timeout,
+			CheckRedirect: redirectFunc,
+		}
+	}
+
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
