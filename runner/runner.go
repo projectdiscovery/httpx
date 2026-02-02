@@ -97,6 +97,14 @@ type Runner struct {
 	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
 	httpApiEndpoint    *Server
 	authProvider       authprovider.AuthProvider
+	// shutdown handling
+	shutdownChan       chan struct{}
+	interrupted        bool
+	interruptMu        sync.Mutex
+	// track last completed item for accurate resume
+	completedIndex     int
+	completedInput     string
+	completedMu        sync.Mutex
 }
 
 func (r *Runner) HTTPX() *httpx.HTTPX {
@@ -121,7 +129,8 @@ type pHashUrl struct {
 // New creates a new client for running enumeration process.
 func New(options *Options) (*Runner, error) {
 	runner := &Runner{
-		options: options,
+		options:      options,
+		shutdownChan: make(chan struct{}),
 	}
 	var err error
 	if options.Wappalyzer != nil {
@@ -850,6 +859,24 @@ func makePrintCallback() func(stats clistats.StatisticsClient) interface{} {
 	}
 }
 
+// Interrupt signals the runner to stop accepting new work gracefully.
+// Call this on SIGINT to allow in-flight work to complete before saving resume state.
+func (r *Runner) Interrupt() {
+	r.interruptMu.Lock()
+	defer r.interruptMu.Unlock()
+	if !r.interrupted {
+		r.interrupted = true
+		close(r.shutdownChan)
+	}
+}
+
+// IsInterrupted returns true if the runner has been interrupted.
+func (r *Runner) IsInterrupted() bool {
+	r.interruptMu.Lock()
+	defer r.interruptMu.Unlock()
+	return r.interrupted
+}
+
 // Close closes the httpx scan instance
 func (r *Runner) Close() {
 	// nolint:errcheck // ignore
@@ -1401,7 +1428,17 @@ func (r *Runner) RunEnumeration() {
 
 	wg, _ := syncutil.New(syncutil.WithSize(r.options.Threads))
 
+	// errInterrupted is returned when scanning is interrupted
+	var errInterrupted = errors.New("interrupted")
+
 	processItem := func(k string) error {
+		// Check for interrupt before processing new items
+		select {
+		case <-r.shutdownChan:
+			return errInterrupted
+		default:
+		}
+
 		if r.options.resumeCfg != nil {
 			r.options.resumeCfg.current = k
 			r.options.resumeCfg.currentIndex++
@@ -1442,12 +1479,22 @@ func (r *Runner) RunEnumeration() {
 			runProcess(cnt)
 		}
 
+		// Update completed tracking after work is submitted
+		// Since wg.Wait() will ensure all submitted work completes,
+		// tracking submitted index here is correct for resume purposes
+		r.completedMu.Lock()
+		r.completedIndex = r.options.resumeCfg.currentIndex
+		r.completedInput = k
+		r.completedMu.Unlock()
+
 		return nil
 	}
 
 	if r.options.Stream {
 		for item := range streamChan {
-			_ = processItem(item)
+			if err := processItem(item); err == errInterrupted {
+				break
+			}
 		}
 	} else {
 		r.hm.Scan(func(k, _ []byte) error {

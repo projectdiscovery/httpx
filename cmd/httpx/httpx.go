@@ -70,25 +70,37 @@ func main() {
 	}
 
 	// Setup graceful exits
+	// Instead of calling os.Exit immediately on SIGINT, we signal the runner
+	// to stop accepting new work and let in-flight work complete.
+	// This ensures resume.cfg is only written after all submitted work finishes.
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		for range c {
 			gologger.Info().Msgf("CTRL+C pressed: Exiting\n")
-			httpxRunner.Close()
-			if options.ShouldSaveResume() {
-				gologger.Info().Msgf("Creating resume file: %s\n", runner.DefaultResumeFile)
-				err := httpxRunner.SaveResumeConfig()
-				if err != nil {
-					gologger.Error().Msgf("Couldn't create resume file: %s\n", err)
-				}
-			}
-			os.Exit(1)
+			// Signal runner to stop accepting new work (but let in-flight work complete)
+			httpxRunner.Interrupt()
 		}
 	}()
 
 	httpxRunner.RunEnumeration()
+
+	// After RunEnumeration completes (including wg.Wait() for all in-flight work),
+	// save resume config if the run was interrupted
+	if httpxRunner.IsInterrupted() && options.ShouldSaveResume() {
+		gologger.Info().Msgf("Creating resume file: %s\n", runner.DefaultResumeFile)
+		err := httpxRunner.SaveResumeConfig()
+		if err != nil {
+			gologger.Error().Msgf("Couldn't create resume file: %s\n", err)
+		}
+	}
+
 	httpxRunner.Close()
+
+	// Exit with code 1 if interrupted
+	if httpxRunner.IsInterrupted() {
+		os.Exit(1)
+	}
 }
 
 // setupOptionalAssetUpload is used to setup optional asset upload
