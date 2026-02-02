@@ -669,6 +669,17 @@ func (r *Runner) streamInput() (chan string, error) {
 	go func() {
 		defer close(out)
 
+		// trySend attempts to send an item to the output channel.
+		// Returns false if shutdown is signaled, allowing the goroutine to exit cleanly.
+		trySend := func(item string) bool {
+			select {
+			case out <- item:
+				return true
+			case <-r.shutdownChan:
+				return false
+			}
+		}
+
 		if fileutil.FileExists(r.options.InputFile) {
 			// check if input mode is specified for special format handling
 			if format := r.getInputFormat(); format != nil {
@@ -679,9 +690,17 @@ func (r *Runner) streamInput() (chan string, error) {
 				}
 				defer finput.Close()
 				if err := format.Parse(finput, func(item string) bool {
+					// Check for shutdown before processing
+					select {
+					case <-r.shutdownChan:
+						return false
+					default:
+					}
 					item = strings.TrimSpace(item)
 					if r.options.SkipDedupe || r.testAndSet(item) {
-						out <- item
+						if !trySend(item) {
+							return false
+						}
 					}
 					return true
 				}); err != nil {
@@ -695,7 +714,9 @@ func (r *Runner) streamInput() (chan string, error) {
 				}
 				for item := range fchan {
 					if r.options.SkipDedupe || r.testAndSet(item) {
-						out <- item
+						if !trySend(item) {
+							return
+						}
 					}
 				}
 			}
@@ -711,7 +732,9 @@ func (r *Runner) streamInput() (chan string, error) {
 				}
 				for item := range fchan {
 					if r.options.SkipDedupe || r.testAndSet(item) {
-						out <- item
+						if !trySend(item) {
+							return
+						}
 					}
 				}
 			}
@@ -723,7 +746,9 @@ func (r *Runner) streamInput() (chan string, error) {
 			}
 			for item := range fchan {
 				if r.options.SkipDedupe || r.testAndSet(item) {
-					out <- item
+					if !trySend(item) {
+						return
+					}
 				}
 			}
 		}
