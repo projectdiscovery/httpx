@@ -2793,7 +2793,16 @@ func extractPotentialFavIconsURLs(resp []byte) (candidates []string, baseHref st
 // SaveResumeConfig to file
 func (r *Runner) SaveResumeConfig() error {
 	var resumeCfg ResumeCfg
-	resumeCfg.Index = r.options.resumeCfg.currentIndex
+	// Subtract the thread count to ensure we don't skip in-flight items.
+	// When Ctrl+C is pressed, up to Threads items may be in-flight (queued for
+	// processing but not yet completed). By saving a lower index, we ensure
+	// these items will be re-processed on resume rather than skipped.
+	// Re-processing is safe (httpx handles duplicates), while skipping is not.
+	safeIndex := r.options.resumeCfg.currentIndex - r.options.Threads
+	if safeIndex < 0 {
+		safeIndex = 0
+	}
+	resumeCfg.Index = safeIndex
 	resumeCfg.ResumeFrom = r.options.resumeCfg.current
 	return goconfig.Save(resumeCfg, DefaultResumeFile)
 }
