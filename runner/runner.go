@@ -101,10 +101,6 @@ type Runner struct {
 	shutdownChan       chan struct{}
 	interrupted        bool
 	interruptMu        sync.Mutex
-	// track last completed item for accurate resume
-	completedIndex     int
-	completedInput     string
-	completedMu        sync.Mutex
 }
 
 func (r *Runner) HTTPX() *httpx.HTTPX {
@@ -1478,14 +1474,6 @@ func (r *Runner) RunEnumeration() {
 			}
 			runProcess(cnt)
 		}
-
-		// Update completed tracking after work is submitted
-		// Since wg.Wait() will ensure all submitted work completes,
-		// tracking submitted index here is correct for resume purposes
-		r.completedMu.Lock()
-		r.completedIndex = r.options.resumeCfg.currentIndex
-		r.completedInput = k
-		r.completedMu.Unlock()
 
 		return nil
 	}
