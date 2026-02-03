@@ -33,11 +33,11 @@ import (
 	"github.com/mfonda/simhash"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
+	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/httpx/common/inputformats"
 	"github.com/projectdiscovery/httpx/common/pagetypeclassifier"
-	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
@@ -1342,6 +1342,14 @@ func (r *Runner) RunEnumeration() {
 				if csvFile != nil {
 					csvFile.WriteString(row + "\n")
 				}
+			}
+
+			// Update resume state after output to avoid skipping unprocessed targets on interrupt
+			if r.options.resumeCfg != nil {
+				r.options.resumeCfg.mu.Lock()
+				r.options.resumeCfg.completedIndex++
+				r.options.resumeCfg.completedInput = resp.Input
+				r.options.resumeCfg.mu.Unlock()
 			}
 
 			for _, nextStep := range nextSteps {
@@ -2793,8 +2801,10 @@ func extractPotentialFavIconsURLs(resp []byte) (candidates []string, baseHref st
 // SaveResumeConfig to file
 func (r *Runner) SaveResumeConfig() error {
 	var resumeCfg ResumeCfg
-	resumeCfg.Index = r.options.resumeCfg.currentIndex
-	resumeCfg.ResumeFrom = r.options.resumeCfg.current
+	r.options.resumeCfg.mu.Lock()
+	resumeCfg.Index = r.options.resumeCfg.completedIndex
+	resumeCfg.ResumeFrom = r.options.resumeCfg.completedInput
+	r.options.resumeCfg.mu.Unlock()
 	return goconfig.Save(resumeCfg, DefaultResumeFile)
 }
 

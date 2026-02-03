@@ -860,8 +860,12 @@ func (options *Options) configureOutput() {
 func (options *Options) configureResume() error {
 	options.resumeCfg = &ResumeCfg{}
 	if options.Resume && fileutil.FileExists(DefaultResumeFile) {
-		return goconfig.Load(&options.resumeCfg, DefaultResumeFile)
-
+		if err := goconfig.Load(&options.resumeCfg, DefaultResumeFile); err != nil {
+			return err
+		}
+		// Initialize runtime fields from loaded config
+		options.resumeCfg.completedIndex = options.resumeCfg.Index
+		options.resumeCfg.completedInput = options.resumeCfg.ResumeFrom
 	}
 	return nil
 }
