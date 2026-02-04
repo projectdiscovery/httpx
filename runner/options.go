@@ -743,11 +743,14 @@ func (options *Options) ValidateOptions() error {
 							resolvers = append(resolvers, item)
 						}
 					}
-				} else {
+				} else if line != "" {
 					resolvers = append(resolvers, line)
 				}
 			}
 		} else {
+			if strings.ContainsAny(resolver, `/\`) {
+				gologger.Warning().Msgf("Resolver argument \"%s\" looks like a file path but the file does not exist", resolver)
+			}
 			resolvers = append(resolvers, resolver)
 		}
 	}
