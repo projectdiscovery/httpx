@@ -97,10 +97,30 @@ type Runner struct {
 	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
 	httpApiEndpoint    *Server
 	authProvider       authprovider.AuthProvider
+	interruptCh        chan struct{}
 }
 
 func (r *Runner) HTTPX() *httpx.HTTPX {
 	return r.hp
+}
+
+// Interrupt signals the runner to stop dispatching new items.
+func (r *Runner) Interrupt() {
+	select {
+	case <-r.interruptCh:
+	default:
+		close(r.interruptCh)
+	}
+}
+
+// IsInterrupted returns true if the runner was interrupted.
+func (r *Runner) IsInterrupted() bool {
+	select {
+	case <-r.interruptCh:
+		return true
+	default:
+		return false
+	}
 }
 
 // picked based on try-fail but it seems to close to one it's used https://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html#c1992
@@ -121,7 +141,8 @@ type pHashUrl struct {
 // New creates a new client for running enumeration process.
 func New(options *Options) (*Runner, error) {
 	runner := &Runner{
-		options: options,
+		options:     options,
+		interruptCh: make(chan struct{}),
 	}
 	var err error
 	if options.Wappalyzer != nil {
@@ -664,6 +685,16 @@ func (r *Runner) streamInput() (chan string, error) {
 	go func() {
 		defer close(out)
 
+		// trySend sends item to out, returning false if interrupted
+		trySend := func(item string) bool {
+			select {
+			case <-r.interruptCh:
+				return false
+			case out <- item:
+				return true
+			}
+		}
+
 		if fileutil.FileExists(r.options.InputFile) {
 			// check if input mode is specified for special format handling
 			if format := r.getInputFormat(); format != nil {
@@ -676,9 +707,9 @@ func (r *Runner) streamInput() (chan string, error) {
 				if err := format.Parse(finput, func(item string) bool {
 					item = strings.TrimSpace(item)
 					if r.options.SkipDedupe || r.testAndSet(item) {
-						out <- item
+						return trySend(item)
 					}
-					return true
+					return !r.IsInterrupted()
 				}); err != nil {
 					gologger.Error().Msgf("Could not parse input file '%s': %s\n", r.options.InputFile, err)
 					return
@@ -690,7 +721,9 @@ func (r *Runner) streamInput() (chan string, error) {
 				}
 				for item := range fchan {
 					if r.options.SkipDedupe || r.testAndSet(item) {
-						out <- item
+						if !trySend(item) {
+							return
+						}
 					}
 				}
 			}
@@ -706,7 +739,9 @@ func (r *Runner) streamInput() (chan string, error) {
 				}
 				for item := range fchan {
 					if r.options.SkipDedupe || r.testAndSet(item) {
-						out <- item
+						if !trySend(item) {
+							return
+						}
 					}
 				}
 			}
@@ -718,7 +753,9 @@ func (r *Runner) streamInput() (chan string, error) {
 			}
 			for item := range fchan {
 				if r.options.SkipDedupe || r.testAndSet(item) {
-					out <- item
+					if !trySend(item) {
+						return
+					}
 				}
 			}
 		}
@@ -1402,6 +1439,12 @@ func (r *Runner) RunEnumeration() {
 	wg, _ := syncutil.New(syncutil.WithSize(r.options.Threads))
 
 	processItem := func(k string) error {
+		select {
+		case <-r.interruptCh:
+			return nil
+		default:
+		}
+
 		if r.options.resumeCfg != nil {
 			r.options.resumeCfg.current = k
 			r.options.resumeCfg.currentIndex++
@@ -1447,6 +1490,9 @@ func (r *Runner) RunEnumeration() {
 
 	if r.options.Stream {
 		for item := range streamChan {
+			if r.IsInterrupted() {
+				break
+			}
 			_ = processItem(item)
 		}
 	} else {
