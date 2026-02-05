@@ -23,6 +23,7 @@ import (
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
 	httpxcommon "github.com/projectdiscovery/httpx/common/httpx"
+	"github.com/projectdiscovery/httpx/common/inputformats"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/networkpolicy"
 	pdcpauth "github.com/projectdiscovery/utils/auth/pdcp"
@@ -85,6 +86,8 @@ type ScanOptions struct {
 	NoFallback                bool
 	NoFallbackScheme          bool
 	TechDetect                bool
+	CPEDetect                 bool
+	WordPress                 bool
 	StoreChain                bool
 	StoreVisionReconClusters  bool
 	MaxResponseBodySizeToSave int
@@ -148,6 +151,8 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		NoFallback:                s.NoFallback,
 		NoFallbackScheme:          s.NoFallbackScheme,
 		TechDetect:                s.TechDetect,
+		CPEDetect:                 s.CPEDetect,
+		WordPress:                 s.WordPress,
 		StoreChain:                s.StoreChain,
 		OutputExtractRegex:        s.OutputExtractRegex,
 		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
@@ -187,6 +192,7 @@ type Options struct {
 	SocksProxy                string
 	Proxy                     string
 	InputFile                 string
+	InputMode                 string
 	InputTargetHost           goflags.StringSlice
 	Methods                   string
 	RequestURI                string
@@ -257,6 +263,8 @@ type Options struct {
 	NoFallback                bool
 	NoFallbackScheme          bool
 	TechDetect                bool
+	CPEDetect                 bool
+	WordPress                 bool
 	CustomFingerprintFile     string
 	TLSGrab                   bool
 	protocol                  string
@@ -346,6 +354,8 @@ type Options struct {
 	// AssetFileUpload
 	AssetFileUpload string
 	TeamID          string
+	// SecretFile is the path to the secret file for authentication
+	SecretFile string
 	// OnClose adds a callback function that is invoked when httpx is closed
 	// to be exact at end of existing closures
 	OnClose func()
@@ -370,6 +380,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.InputFile, "list", "l", "", "input file containing list of hosts to process"),
 		flagSet.StringVarP(&options.InputRawRequest, "request", "rr", "", "file containing raw request"),
 		flagSet.StringSliceVarP(&options.InputTargetHost, "target", "u", nil, "input target host(s) to probe", goflags.CommaSeparatedStringSliceOptions),
+		flagSet.StringVarP(&options.InputMode, "input-mode", "im", "", fmt.Sprintf("mode of input file (%s)", inputformats.SupportedFormats())),
 	)
 
 	flagSet.CreateGroup("Probes", "Probes",
@@ -388,6 +399,8 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
 		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
 		flagSet.StringVarP(&options.CustomFingerprintFile, "custom-fingerprint-file", "cff", "", "path to a custom fingerprint file for technology detection"),
+		flagSet.BoolVar(&options.CPEDetect, "cpe", false, "display CPE (Common Platform Enumeration) based on awesome-search-queries"),
+		flagSet.BoolVarP(&options.WordPress, "wordpress", "wp", false, "display WordPress plugins and themes"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
 		flagSet.BoolVarP(&options.OutputWebSocket, "websocket", "ws", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
@@ -517,6 +530,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.TlsImpersonate, "tls-impersonate", "tlsi", false, "enable experimental client hello (ja3) tls randomization"),
 		flagSet.BoolVar(&options.DisableStdin, "no-stdin", false, "Disable Stdin processing"),
 		flagSet.StringVarP(&options.HttpApiEndpoint, "http-api-endpoint", "hae", "", "experimental http api endpoint"),
+		flagSet.StringVarP(&options.SecretFile, "secret-file", "sf", "", "path to the secret file for authentication"),
 	)
 
 	flagSet.CreateGroup("debug", "Debug",
@@ -669,6 +683,17 @@ func (options *Options) ValidateOptions() error {
 
 	if options.InputRawRequest != "" && !fileutil.FileExists(options.InputRawRequest) {
 		return fmt.Errorf("file '%s' does not exist", options.InputRawRequest)
+	}
+
+	if options.SecretFile != "" && !fileutil.FileExists(options.SecretFile) {
+		return fmt.Errorf("secret file '%s' does not exist", options.SecretFile)
+	}
+	if options.InputMode != "" && inputformats.GetFormat(options.InputMode) == nil {
+		return fmt.Errorf("invalid input mode '%s', supported formats: %s", options.InputMode, inputformats.SupportedFormats())
+	}
+
+	if options.InputMode != "" && options.InputFile == "" {
+		return errors.New("-im/-input-mode requires -l/-list to specify an input file")
 	}
 
 	if options.Silent {

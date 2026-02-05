@@ -35,7 +35,9 @@ import (
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
+	"github.com/projectdiscovery/httpx/common/inputformats"
 	"github.com/projectdiscovery/httpx/common/pagetypeclassifier"
+	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
@@ -81,6 +83,8 @@ type Runner struct {
 	options            *Options
 	hp                 *httpx.HTTPX
 	wappalyzer         *wappalyzer.Wappalyze
+	cpeDetector        *CPEDetector
+	wpDetector         *WordPressDetector
 	scanopts           ScanOptions
 	hm                 *hybrid.HybridMap
 	excludeCdn         bool
@@ -92,6 +96,7 @@ type Runner struct {
 	pHashClusters      []pHashCluster
 	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
 	httpApiEndpoint    *Server
+	authProvider       authprovider.AuthProvider
 }
 
 func (r *Runner) HTTPX() *httpx.HTTPX {
@@ -133,9 +138,26 @@ func New(options *Options) (*Runner, error) {
 		return nil, errors.Wrap(err, "could not create wappalyzer client")
 	}
 
+	if options.CPEDetect || options.JSONOutput || options.CSVOutput {
+		runner.cpeDetector, err = NewCPEDetector()
+		if err != nil {
+			gologger.Warning().Msgf("Could not create CPE detector: %s", err)
+		}
+	}
+
+	if options.WordPress || options.JSONOutput || options.CSVOutput {
+		runner.wpDetector, err = NewWordPressDetector()
+		if err != nil {
+			gologger.Warning().Msgf("Could not create WordPress detector: %s", err)
+		}
+	}
+
 	if options.StoreResponseDir != "" {
-		_ = os.RemoveAll(filepath.Join(options.StoreResponseDir, "response", "index.txt"))
-		_ = os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
+		// Don't remove index files if skip-dedupe is enabled (we want to append, not truncate)
+		if !options.SkipDedupe {
+			_ = os.RemoveAll(filepath.Join(options.StoreResponseDir, "response", "index.txt"))
+			_ = os.RemoveAll(filepath.Join(options.StoreResponseDir, "screenshot", "index_screenshot.txt"))
+		}
 	}
 
 	httpxOptions := httpx.DefaultOptions
@@ -297,6 +319,8 @@ func New(options *Options) (*Runner, error) {
 	scanopts.NoFallback = options.NoFallback
 	scanopts.NoFallbackScheme = options.NoFallbackScheme
 	scanopts.TechDetect = options.TechDetect || options.JSONOutput || options.CSVOutput || options.AssetUpload
+	scanopts.CPEDetect = options.CPEDetect || options.JSONOutput || options.CSVOutput
+	scanopts.WordPress = options.WordPress || options.JSONOutput || options.CSVOutput
 	scanopts.StoreChain = options.StoreChain
 	scanopts.StoreVisionReconClusters = options.StoreVisionReconClusters
 	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
@@ -391,6 +415,16 @@ func New(options *Options) (*Runner, error) {
 	}
 	runner.pageTypeClassifier = pageTypeClassifier
 
+	if options.SecretFile != "" {
+		authProviderOpts := &authprovider.AuthProviderOptions{
+			SecretsFiles: []string{options.SecretFile},
+		}
+		runner.authProvider, err = authprovider.NewAuthProvider(authProviderOpts)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not create auth provider")
+		}
+	}
+
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)
 		gologger.Info().Msgf("Listening api endpoint on: %s", options.HttpApiEndpoint)
@@ -481,27 +515,44 @@ func (r *Runner) prepareInputPaths() {
 	}
 }
 
+var duplicateTargetErr = errors.New("duplicate target")
+
 func (r *Runner) prepareInput() {
 	var numHosts int
 	// check if input target host(s) have been provided
 	if len(r.options.InputTargetHost) > 0 {
 		for _, target := range r.options.InputTargetHost {
-			expandedTarget, _ := r.countTargetFromRawTarget(target)
-			if expandedTarget > 0 {
+			expandedTarget, err := r.countTargetFromRawTarget(target)
+			if err == nil && expandedTarget > 0 {
 				numHosts += expandedTarget
-				r.hm.Set(target, nil) //nolint
+				r.hm.Set(target, []byte("1")) //nolint
+			} else if r.options.SkipDedupe && errors.Is(err, duplicateTargetErr) {
+				if v, ok := r.hm.Get(target); ok {
+					cnt, _ := strconv.Atoi(string(v))
+					_ = r.hm.Set(target, []byte(strconv.Itoa(cnt+1)))
+					numHosts += 1
+				}
 			}
 		}
 	}
 	// check if file has been provided
 	if fileutil.FileExists(r.options.InputFile) {
-		finput, err := os.Open(r.options.InputFile)
-		if err != nil {
-			gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
-		}
-		numHosts, err = r.loadAndCloseFile(finput)
-		if err != nil {
-			gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
+		// check if input mode is specified for special format handling
+		if format := r.getInputFormat(); format != nil {
+			numTargets, err := r.loadFromFormat(r.options.InputFile, format)
+			if err != nil {
+				gologger.Fatal().Msgf("Could not parse input file '%s': %s\n", r.options.InputFile, err)
+			}
+			numHosts = numTargets
+		} else {
+			finput, err := os.Open(r.options.InputFile)
+			if err != nil {
+				gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
+			}
+			numHosts, err = r.loadAndCloseFile(finput)
+			if err != nil {
+				gologger.Fatal().Msgf("Could not read input file '%s': %s\n", r.options.InputFile, err)
+			}
 		}
 	} else if r.options.InputFile != "" {
 		files, err := fileutilz.ListFilesWithPattern(r.options.InputFile)
@@ -595,19 +646,52 @@ func (r *Runner) testAndSet(k string) bool {
 	return true
 }
 
+// getInputFormat returns the format for the configured input mode.
+// Returns nil if no input mode is configured, or logs fatal if the format is invalid.
+func (r *Runner) getInputFormat() inputformats.Format {
+	if r.options.InputMode == "" {
+		return nil
+	}
+	format := inputformats.GetFormat(r.options.InputMode)
+	if format == nil {
+		gologger.Fatal().Msgf("Invalid input mode '%s'. Supported: %s\n", r.options.InputMode, inputformats.SupportedFormats())
+	}
+	return format
+}
+
 func (r *Runner) streamInput() (chan string, error) {
 	out := make(chan string)
 	go func() {
 		defer close(out)
 
 		if fileutil.FileExists(r.options.InputFile) {
-			fchan, err := fileutil.ReadFile(r.options.InputFile)
-			if err != nil {
-				return
-			}
-			for item := range fchan {
-				if r.options.SkipDedupe || r.testAndSet(item) {
-					out <- item
+			// check if input mode is specified for special format handling
+			if format := r.getInputFormat(); format != nil {
+				finput, err := os.Open(r.options.InputFile)
+				if err != nil {
+					gologger.Error().Msgf("Could not open input file '%s': %s\n", r.options.InputFile, err)
+					return
+				}
+				defer finput.Close()
+				if err := format.Parse(finput, func(item string) bool {
+					item = strings.TrimSpace(item)
+					if r.options.SkipDedupe || r.testAndSet(item) {
+						out <- item
+					}
+					return true
+				}); err != nil {
+					gologger.Error().Msgf("Could not parse input file '%s': %s\n", r.options.InputFile, err)
+					return
+				}
+			} else {
+				fchan, err := fileutil.ReadFile(r.options.InputFile)
+				if err != nil {
+					return
+				}
+				for item := range fchan {
+					if r.options.SkipDedupe || r.testAndSet(item) {
+						out <- item
+					}
 				}
 			}
 		} else if r.options.InputFile != "" {
@@ -647,13 +731,44 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	for scanner.Scan() {
 		target := strings.TrimSpace(scanner.Text())
 		// Used just to get the exact number of targets
-		expandedTarget, _ := r.countTargetFromRawTarget(target)
-		if expandedTarget > 0 {
+		expandedTarget, err := r.countTargetFromRawTarget(target)
+		if err == nil && expandedTarget > 0 {
 			numTargets += expandedTarget
-			r.hm.Set(target, nil) //nolint
+			r.hm.Set(target, []byte("1")) //nolint
+		} else if r.options.SkipDedupe && errors.Is(err, duplicateTargetErr) {
+			if v, ok := r.hm.Get(target); ok {
+				cnt, _ := strconv.Atoi(string(v))
+				_ = r.hm.Set(target, []byte(strconv.Itoa(cnt+1)))
+				numTargets += 1
+			}
 		}
 	}
 	err = finput.Close()
+	return numTargets, err
+}
+
+func (r *Runner) loadFromFormat(filePath string, format inputformats.Format) (numTargets int, err error) {
+	finput, err := os.Open(filePath)
+	if err != nil {
+		return 0, err
+	}
+	defer finput.Close()
+
+	err = format.Parse(finput, func(target string) bool {
+		target = strings.TrimSpace(target)
+		expandedTarget, countErr := r.countTargetFromRawTarget(target)
+		if countErr == nil && expandedTarget > 0 {
+			numTargets += expandedTarget
+			r.hm.Set(target, []byte("1")) //nolint
+		} else if r.options.SkipDedupe && errors.Is(countErr, duplicateTargetErr) {
+			if v, ok := r.hm.Get(target); ok {
+				cnt, _ := strconv.Atoi(string(v))
+				_ = r.hm.Set(target, []byte(strconv.Itoa(cnt+1)))
+				numTargets += 1
+			}
+		}
+		return true
+	})
 	return numTargets, err
 }
 
@@ -661,8 +776,9 @@ func (r *Runner) countTargetFromRawTarget(rawTarget string) (numTargets int, err
 	if rawTarget == "" {
 		return 0, nil
 	}
+
 	if _, ok := r.hm.Get(rawTarget); ok {
-		return 0, nil
+		return 0, duplicateTargetErr
 	}
 
 	expandedTarget := 0
@@ -909,7 +1025,8 @@ func (r *Runner) RunEnumeration() {
 				gologger.Fatal().Msgf("Could not create response directory '%s': %s\n", responseDirPath, err)
 			}
 			indexPath := filepath.Join(responseDirPath, "index.txt")
-			if r.options.Resume {
+			// Append if resume is enabled or skip-dedupe is enabled (never truncate with -sd)
+			if r.options.Resume || r.options.SkipDedupe {
 				indexFile, err = os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 			} else {
 				indexFile, err = os.Create(indexPath)
@@ -923,7 +1040,8 @@ func (r *Runner) RunEnumeration() {
 		if r.options.Screenshot {
 			var err error
 			indexScreenshotPath := filepath.Join(r.options.StoreResponseDir, "screenshot", "index_screenshot.txt")
-			if r.options.Resume {
+			// Append if resume is enabled or skip-dedupe is enabled (never truncate with -sd)
+			if r.options.Resume || r.options.SkipDedupe {
 				indexScreenshotFile, err = os.OpenFile(indexScreenshotPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 			} else {
 				indexScreenshotFile, err = os.Create(indexScreenshotPath)
@@ -1115,10 +1233,8 @@ func (r *Runner) RunEnumeration() {
 			// store responses or chain in directory
 			if resp.Err == nil {
 				URL, _ := urlutil.Parse(resp.URL)
-				domainFile := resp.Method + ":" + URL.EscapedString()
-				hash := hashes.Sha1([]byte(domainFile))
-				domainResponseFile := fmt.Sprintf("%s.txt", hash)
-				screenshotResponseFile := fmt.Sprintf("%s.png", hash)
+				domainResponseFile := fmt.Sprintf("%s.txt", resp.FileNameHash)
+				screenshotResponseFile := fmt.Sprintf("%s.png", resp.FileNameHash)
 				hostFilename := strings.ReplaceAll(URL.Host, ":", "_")
 				domainResponseBaseDir := filepath.Join(r.options.StoreResponseDir, "response")
 				domainScreenshotBaseDir := filepath.Join(r.options.StoreResponseDir, "screenshot")
@@ -1340,14 +1456,28 @@ func (r *Runner) RunEnumeration() {
 			}
 		}
 
-		if len(r.options.requestURIs) > 0 {
-			for _, p := range r.options.requestURIs {
-				scanopts := r.scanopts.Clone()
-				scanopts.RequestURI = p
-				r.process(k, wg, r.hp, protocol, scanopts, output)
+		runProcess := func(times int) {
+			for i := 0; i < times; i++ {
+				if len(r.options.requestURIs) > 0 {
+					for _, p := range r.options.requestURIs {
+						scanopts := r.scanopts.Clone()
+						scanopts.RequestURI = p
+						r.process(k, wg, r.hp, protocol, scanopts, output)
+					}
+				} else {
+					r.process(k, wg, r.hp, protocol, &r.scanopts, output)
+				}
 			}
-		} else {
-			r.process(k, wg, r.hp, protocol, &r.scanopts, output)
+		}
+
+		if r.options.Stream {
+			runProcess(1)
+		} else if v, ok := r.hm.Get(k); ok {
+			cnt, err := strconv.Atoi(string(v))
+			if err != nil || cnt <= 0 {
+				cnt = 1
+			}
+			runProcess(cnt)
 		}
 
 		return nil
@@ -1600,7 +1730,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 				results <- httpx.Target{Host: target}
 				return
 			}
-			ips, _, _, err := getDNSData(hp, URL.Host)
+			ips, _, _, err := getDNSData(hp, URL.Hostname())
 			if err != nil || len(ips) == 0 {
 				results <- httpx.Target{Host: target}
 				return
@@ -1693,6 +1823,16 @@ retry:
 	}
 
 	hp.SetCustomHeaders(req, hp.CustomHeaders)
+
+	// Apply auth strategies if auth provider is configured
+	if r.authProvider != nil {
+		if strategies := r.authProvider.LookupURLX(URL); len(strategies) > 0 {
+			for _, strategy := range strategies {
+				strategy.ApplyOnRR(req)
+			}
+		}
+	}
+
 	// We set content-length even if zero to allow net/http to follow 307/308 redirects (it fails on unknown size)
 	if scanopts.RequestBody != "" {
 		req.ContentLength = int64(len(scanopts.RequestBody))
@@ -2239,7 +2379,7 @@ retry:
 	domainResponseBaseDir := filepath.Join(scanopts.StoreResponseDirectory, "response")
 	responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
 
-	var responsePath string
+	var responsePath, fileNameHash string
 	// store response
 	if scanopts.StoreResponse || scanopts.StoreChain {
 		if r.options.OmitBody {
@@ -2260,9 +2400,33 @@ retry:
 		data = append(data, []byte("\n\n\n")...)
 		data = append(data, []byte(fullURL)...)
 		_ = fileutil.CreateFolder(responseBaseDir)
-		writeErr := os.WriteFile(responsePath, data, 0644)
-		if writeErr != nil {
-			gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
+
+		basePath := strings.TrimSuffix(responsePath, ".txt")
+		var idx int
+		for idx = 0; ; idx++ {
+			targetPath := responsePath
+			if idx > 0 {
+				targetPath = fmt.Sprintf("%s_%d.txt", basePath, idx)
+			}
+			f, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+			if err == nil {
+				_, writeErr := f.Write(data)
+				_ = f.Close()
+				if writeErr != nil {
+					gologger.Error().Msgf("Could not write to '%s': %s", targetPath, writeErr)
+				}
+				break
+			}
+			if !os.IsExist(err) {
+				gologger.Error().Msgf("Failed to create file '%s': %s", targetPath, err)
+				break
+			}
+		}
+
+		if idx == 0 {
+			fileNameHash = hash
+		} else {
+			fileNameHash = fmt.Sprintf("%s_%d", hash, idx)
 		}
 	}
 
@@ -2349,6 +2513,47 @@ retry:
 		}
 	}
 
+	var cpeMatches []CPEInfo
+	if r.cpeDetector != nil {
+		cpeMatches = r.cpeDetector.Detect(title, string(resp.Data), faviconMMH3)
+		if len(cpeMatches) > 0 && r.options.CPEDetect {
+			for _, cpe := range cpeMatches {
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Cyan(cpe.CPE).String())
+				} else {
+					builder.WriteString(cpe.CPE)
+				}
+				builder.WriteRune(']')
+			}
+		}
+	}
+
+	var wpInfo *WordPressInfo
+	if r.wpDetector != nil {
+		wpInfo = r.wpDetector.Detect(string(resp.Data))
+		if wpInfo.HasData() && r.options.WordPress {
+			if len(wpInfo.Plugins) > 0 {
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Green("wp-plugins:" + strings.Join(wpInfo.Plugins, ",")).String())
+				} else {
+					builder.WriteString("wp-plugins:" + strings.Join(wpInfo.Plugins, ","))
+				}
+				builder.WriteRune(']')
+			}
+			if len(wpInfo.Themes) > 0 {
+				builder.WriteString(" [")
+				if !scanopts.OutputWithNoColor {
+					builder.WriteString(aurora.Green("wp-themes:" + strings.Join(wpInfo.Themes, ",")).String())
+				} else {
+					builder.WriteString("wp-themes:" + strings.Join(wpInfo.Themes, ","))
+				}
+				builder.WriteRune(']')
+			}
+		}
+	}
+
 	result := Result{
 		Timestamp:        time.Now(),
 		Request:          request,
@@ -2412,6 +2617,9 @@ retry:
 		RequestRaw:        requestDump,
 		Response:          resp,
 		FaviconData:       faviconData,
+		FileNameHash:      fileNameHash,
+		CPE:               cpeMatches,
+		WordPress:         wpInfo,
 	}
 	if resp.BodyDomains != nil {
 		result.Fqdns = resp.BodyDomains.Fqdns
@@ -2531,6 +2739,10 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		}
 
 		clone.SetURL(resolvedURL)
+		// Update Host header to match resolved URL host (important after redirects)
+		if resolvedURL.Host != "" && resolvedURL.Host != clone.Host {
+			clone.Host = resolvedURL.Host
+		}
 		respFav, err := hp.Do(clone, httpx.UnsafeOptions{})
 		if err != nil || len(respFav.Data) == 0 {
 			tries++
