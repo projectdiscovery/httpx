@@ -15,6 +15,74 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestRunner_resumeAfterInterrupt(t *testing.T) {
+	domains := []string{"a.com", "b.com", "c.com", "d.com", "e.com", "f.com", "g.com", "h.com", "i.com", "j.com"}
+	interruptAfter := 4
+
+	// --- Full scan (reference): process all domains without interrupt ---
+	rFull, err := New(&Options{})
+	require.Nil(t, err, "could not create httpx runner")
+	rFull.options.resumeCfg = &ResumeCfg{}
+	var fullOutput []string
+	for _, d := range domains {
+		rFull.options.resumeCfg.current = d
+		rFull.options.resumeCfg.currentIndex++
+		fullOutput = append(fullOutput, d)
+	}
+
+	// --- Interrupted scan: process items, interrupt after interruptAfter ---
+	rInt, err := New(&Options{})
+	require.Nil(t, err, "could not create httpx runner")
+	rInt.options.resumeCfg = &ResumeCfg{}
+	var interruptedOutput []string
+	for _, d := range domains {
+		// same check as processItem: bail out if interrupted
+		select {
+		case <-rInt.interruptCh:
+			continue
+		default:
+		}
+
+		rInt.options.resumeCfg.current = d
+		rInt.options.resumeCfg.currentIndex++
+		interruptedOutput = append(interruptedOutput, d)
+
+		if len(interruptedOutput) == interruptAfter {
+			rInt.Interrupt()
+		}
+	}
+
+	// simulate SaveResumeConfig: save the index after interrupt
+	savedIndex := rInt.options.resumeCfg.currentIndex
+
+	// the saved index must equal exactly the number of items that were processed
+	require.Equal(t, interruptAfter, savedIndex, "resume index should equal number of completed items")
+	// every domain before the index must be in the interrupted output
+	require.Equal(t, domains[:interruptAfter], interruptedOutput, "interrupted output should contain exactly the first N domains")
+
+	// --- Resumed scan: load saved index, skip already-processed items ---
+	rRes, err := New(&Options{})
+	require.Nil(t, err, "could not create httpx runner")
+	rRes.options.resumeCfg = &ResumeCfg{Index: savedIndex}
+	var resumedOutput []string
+	for _, d := range domains {
+		// same resume-skip logic as processItem
+		rRes.options.resumeCfg.current = d
+		rRes.options.resumeCfg.currentIndex++
+		if rRes.options.resumeCfg.currentIndex <= rRes.options.resumeCfg.Index {
+			continue
+		}
+		resumedOutput = append(resumedOutput, d)
+	}
+
+	// every domain after the index must be in the resumed output
+	require.Equal(t, domains[interruptAfter:], resumedOutput, "resumed output should contain exactly the remaining domains")
+
+	// union of interrupted + resumed must equal the full scan
+	combined := append(interruptedOutput, resumedOutput...)
+	require.Equal(t, fullOutput, combined, "interrupted + resumed should equal full scan")
+}
+
 func TestRunner_domain_targets(t *testing.T) {
 	options := &Options{}
 	r, err := New(options)
