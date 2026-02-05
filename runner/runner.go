@@ -1442,6 +1442,13 @@ func (r *Runner) RunEnumeration() {
 			runProcess(cnt)
 		}
 
+		// Update lastCompleted AFTER the item has been submitted for processing
+		// This ensures resume.cfg reflects items that have at least been queued
+		if r.options.resumeCfg != nil {
+			r.options.resumeCfg.lastCompletedIndex = r.options.resumeCfg.currentIndex
+			r.options.resumeCfg.lastCompletedItem = k
+		}
+
 		return nil
 	}
 
@@ -2793,8 +2800,10 @@ func extractPotentialFavIconsURLs(resp []byte) (candidates []string, baseHref st
 // SaveResumeConfig to file
 func (r *Runner) SaveResumeConfig() error {
 	var resumeCfg ResumeCfg
-	resumeCfg.Index = r.options.resumeCfg.currentIndex
-	resumeCfg.ResumeFrom = r.options.resumeCfg.current
+	// Use lastCompletedIndex instead of currentIndex to ensure we don't skip
+	// items that were in-progress but not completed when interrupted
+	resumeCfg.Index = r.options.resumeCfg.lastCompletedIndex
+	resumeCfg.ResumeFrom = r.options.resumeCfg.lastCompletedItem
 	return goconfig.Save(resumeCfg, DefaultResumeFile)
 }
 
