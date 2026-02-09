@@ -153,7 +153,7 @@ func New(options *Options) (*HTTPX, error) {
 		DisableKeepAlives: true,
 	}
 
-	if httpx.Options.Protocol == "http11" {
+	if httpx.Options.Protocol == HTTP11 {
 		// disable http2
 		_ = os.Setenv("GODEBUG", "http2client=0")
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
