@@ -324,8 +324,8 @@ github.com/projectdiscovery/awesome-search-queries v0.0.0-20260104120501-961ef30
 github.com/projectdiscovery/awesome-search-queries v0.0.0-20260104120501-961ef30f7193/go.mod h1:nSovPcipgSx/EzAefF+iCfORolkKAuodiRWL3RCGHOM=
 github.com/projectdiscovery/blackrock v0.0.1 h1:lHQqhaaEFjgf5WkuItbpeCZv2DUIE45k0VbGJyft6LQ=
 github.com/projectdiscovery/blackrock v0.0.1/go.mod h1:ANUtjDfaVrqB453bzToU+YB4cUbvBRpLvEwoWIwlTss=
-github.com/projectdiscovery/cdncheck v1.2.21 h1:+y77BGCZoduX5bja2SGn4AdBXFwfOycaLnWWUIiZCBM=
-github.com/projectdiscovery/cdncheck v1.2.21/go.mod h1:gpeX5OrzaC4DmeUGDcKrC7cPUXQvRGTY/Ui0XrVfdzU=
+github.com/projectdiscovery/cdncheck v1.2.22 h1:7Uv6ZsdsyOmi/662KXXlEi3NXE+Ba1z1qGlEH91ztj8=
+github.com/projectdiscovery/cdncheck v1.2.22/go.mod h1:Y1KQmACY+AifbuPX/W7o8lWssiWmAZ5d/KG8qkmFm9I=
 github.com/projectdiscovery/clistats v0.1.1 h1:8mwbdbwTU4aT88TJvwIzTpiNeow3XnAB72JIg66c8wE=
 github.com/projectdiscovery/clistats v0.1.1/go.mod h1:4LtTC9Oy//RiuT1+76MfTg8Hqs7FQp1JIGBM3nHK6a0=
 github.com/projectdiscovery/dsl v0.8.13 h1:HjjHta7c02saH2tUGs8CN5vDeE2MyWvCV32koT8ZCWs=
@@ -368,8 +368,8 @@ github.com/projectdiscovery/useragent v0.0.107 h1:45gSBda052fv2Gtxtnpx7cu2rWtUpZ
 github.com/projectdiscovery/useragent v0.0.107/go.mod h1:yv5ZZLDT/kq6P+NvBcCPq6sjEVQtZGgO+OvvHzZ+WtY=
 github.com/projectdiscovery/utils v0.9.0 h1:eu9vdbP0VYXI9nGSLfnOpUqBeW9/B/iSli7U8gPKZw8=
 github.com/projectdiscovery/utils v0.9.0/go.mod h1:zcVu1QTlMi5763qCol/L3ROnbd/UPSBP8fI5PmcnF6s=
-github.com/projectdiscovery/wappalyzergo v0.2.66 h1:DEF7wthjvBo6oYKxfKL6vPNaqsKYUmiWODt7Mybcins=
-github.com/projectdiscovery/wappalyzergo v0.2.66/go.mod h1:Oc+U2RPJObmpi6LW5lTMEDiKagcKZNkEfZfwrVMURa0=
+github.com/projectdiscovery/wappalyzergo v0.2.67 h1:d5NoR3glz868NsTLq5Ogon390SEoYVc5WioNal4gV/o=
+github.com/projectdiscovery/wappalyzergo v0.2.67/go.mod h1:Oc+U2RPJObmpi6LW5lTMEDiKagcKZNkEfZfwrVMURa0=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
 github.com/refraction-networking/utls v1.7.1 h1:dxg+jla3uocgN8HtX+ccwDr68uCBBO3qLrkZUbqkcw0=
 github.com/refraction-networking/utls v1.7.1/go.mod h1:TUhh27RHMGtQvjQq+RyO11P6ZNQNBb3N0v7wsEjKAIQ=
