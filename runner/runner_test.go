@@ -324,6 +324,74 @@ func TestRunner_CSVRow(t *testing.T) {
 	}
 }
 
+func TestRunner_DuplicateFilterWithIP(t *testing.T) {
+	options := &Options{
+		FilterOutDuplicates: true,
+	}
+	r, err := New(options)
+	require.Nil(t, err, "could not create httpx runner")
+
+	// Test 1: Same response content, same IP - should be duplicate
+	result1 := &Result{
+		URL:    "https://example.com",
+		HostIP: "192.168.1.1",
+		Raw:    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body>Hello World</body></html>",
+	}
+	result2 := &Result{
+		URL:    "https://test.example.com",
+		HostIP: "192.168.1.1",
+		Raw:    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body>Hello World</body></html>",
+	}
+
+	isDuplicate1 := r.duplicate(result1)
+	require.False(t, isDuplicate1, "First result should not be duplicate")
+
+	isDuplicate2 := r.duplicate(result2)
+	require.True(t, isDuplicate2, "Second result with same content and IP should be duplicate")
+
+	// Test 2: Same response content, different IP - should NOT be duplicate
+	r2, err := New(options)
+	require.Nil(t, err, "could not create httpx runner")
+
+	result3 := &Result{
+		URL:    "https://example.com",
+		HostIP: "192.168.1.1",
+		Raw:    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body>Hello World</body></html>",
+	}
+	result4 := &Result{
+		URL:    "https://test.example.com",
+		HostIP: "192.168.1.2", // Different IP
+		Raw:    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body>Hello World</body></html>",
+	}
+
+	isDuplicate3 := r2.duplicate(result3)
+	require.False(t, isDuplicate3, "First result should not be duplicate")
+
+	isDuplicate4 := r2.duplicate(result4)
+	require.False(t, isDuplicate4, "Result with same content but different IP should NOT be duplicate")
+
+	// Test 3: Different content, same IP - should NOT be duplicate
+	r3, err := New(options)
+	require.Nil(t, err, "could not create httpx runner")
+
+	result5 := &Result{
+		URL:    "https://example.com",
+		HostIP: "192.168.1.1",
+		Raw:    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body>Hello World</body></html>",
+	}
+	result6 := &Result{
+		URL:    "https://test.example.com",
+		HostIP: "192.168.1.1",
+		Raw:    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body>Different Content</body></html>",
+	}
+
+	isDuplicate5 := r3.duplicate(result5)
+	require.False(t, isDuplicate5, "First result should not be duplicate")
+
+	isDuplicate6 := r3.duplicate(result6)
+	require.False(t, isDuplicate6, "Result with different content should NOT be duplicate")
+}
+
 func TestCreateNetworkpolicyInstance_AllowDenyFlags(t *testing.T) {
 	runner := &Runner{}
 

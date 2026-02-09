@@ -94,7 +94,7 @@ type Runner struct {
 	browser            *Browser
 	pageTypeClassifier *pagetypeclassifier.PageTypeClassifier // Include this for general page classification
 	pHashClusters      []pHashCluster
-	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
+	simHashes          gcache.Cache[string, struct{}] // Include simHashes for efficient duplicate detection (key: "simhash:ip")
 	httpApiEndpoint    *Server
 	authProvider       authprovider.AuthProvider
 	interruptCh        chan struct{}
@@ -429,7 +429,7 @@ func New(options *Options) (*Runner, error) {
 		runner.HostErrorsCache = gc
 	}
 
-	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
+	runner.simHashes = gcache.New[string, struct{}](1000).ARC().Build()
 	pageTypeClassifier, err := pagetypeclassifier.New()
 	if err != nil {
 		return nil, err
@@ -636,19 +636,38 @@ func (r *Runner) seen(k string) bool {
 
 func (r *Runner) duplicate(result *Result) bool {
 	respSimHash := simhash.Simhash(simhash.NewWordFeatureSet(converstionutil.Bytes(result.Raw)))
-	if r.simHashes.Has(respSimHash) {
-		gologger.Debug().Msgf("Skipping duplicate response with simhash %d for URL %s\n", respSimHash, result.URL)
+	// Create a composite key with simhash and IP address
+	// This ensures that responses are only considered duplicates if they have
+	// the same content AND come from the same IP address
+	compositeKey := fmt.Sprintf("%d:%s", respSimHash, result.HostIP)
+
+	if r.simHashes.Has(compositeKey) {
+		gologger.Debug().Msgf("Skipping duplicate response with simhash %d and IP %s for URL %s\n", respSimHash, result.HostIP, result.URL)
 		return true
 	}
 
-	for simHash := range r.simHashes.GetALL(false) {
-		// lower threshold for increased precision
-		if simhash.Compare(simHash, respSimHash) <= 3 {
-			gologger.Debug().Msgf("Skipping near-duplicate response with simhash %d for URL %s\n", respSimHash, result.URL)
+	for key := range r.simHashes.GetALL(false) {
+		// Parse the composite key to extract simhash and IP
+		parts := strings.SplitN(key, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		var existingSimHash uint64
+		if _, err := fmt.Sscanf(parts[0], "%d", &existingSimHash); err != nil {
+			continue
+		}
+		existingIP := parts[1]
+
+		// Only consider it a duplicate if:
+		// 1. The response content is similar (simhash comparison)
+		// 2. AND it's from the same IP address
+		if existingIP == result.HostIP && simhash.Compare(existingSimHash, respSimHash) <= 3 {
+			gologger.Debug().Msgf("Skipping near-duplicate response with simhash %d and IP %s for URL %s\n", respSimHash, result.HostIP, result.URL)
 			return true
 		}
 	}
-	_ = r.simHashes.Set(respSimHash, struct{}{})
+	_ = r.simHashes.Set(compositeKey, struct{}{})
 	return false
 }
 
