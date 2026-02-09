@@ -153,7 +153,7 @@ func New(options *Options) (*HTTPX, error) {
 		DisableKeepAlives: true,
 	}
 
-	if httpx.Options.Protocol == "http11" {
+	if httpx.Options.Protocol == HTTP11 {
 		// disable http2
 		_ = os.Setenv("GODEBUG", "http2client=0")
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
@@ -182,6 +182,14 @@ func New(options *Options) (*HTTPX, error) {
 		Timeout:       httpx.Options.Timeout,
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
+
+	// When the user explicitly requested HTTP/1.1, prevent retryablehttp from
+	// falling back to its built-in HTTP/2 client on protocol-mismatch errors.
+	// retryablehttp keeps a secondary HTTPClient2 configured with native HTTP/2;
+	// pointing it at the same (HTTP/1.1-only) client disables that fallback path.
+	if httpx.Options.Protocol == HTTP11 {
+		httpx.client.HTTPClient2 = httpx.client.HTTPClient
+	}
 
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
