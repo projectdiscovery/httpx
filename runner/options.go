@@ -760,9 +760,22 @@ func (options *Options) ValidateOptions() error {
 				return errors.Wrapf(err, "Couldn't process resolver file \"%s\"", resolver)
 			}
 			for line := range chFile {
-				resolvers = append(resolvers, line)
+				line = strings.TrimSpace(line)
+				if line != "" && strings.Contains(line, ",") {
+					for item := range strings.SplitSeq(line, ",") {
+						item = strings.TrimSpace(item)
+						if item != "" {
+							resolvers = append(resolvers, item)
+						}
+					}
+				} else if line != "" {
+					resolvers = append(resolvers, line)
+				}
 			}
 		} else {
+			if strings.ContainsAny(resolver, `/\`) {
+				gologger.Warning().Msgf("Resolver argument \"%s\" looks like a file path but the file does not exist", resolver)
+			}
 			resolvers = append(resolvers, resolver)
 		}
 	}
