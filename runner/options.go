@@ -228,6 +228,7 @@ type Options struct {
 	RespectHSTS               bool
 	StoreResponse             bool
 	JSONOutput                bool
+	MarkDownOutput            bool
 	CSVOutput                 bool
 	CSVOutputEncoding         string
 	PdcpAuth                  string
@@ -491,6 +492,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in csv format"),
 		flagSet.StringVarP(&options.CSVOutputEncoding, "csv-output-encoding", "csvo", "", "define output encoding"),
 		flagSet.BoolVarP(&options.JSONOutput, "json", "j", false, "store output in JSONL(ines) format"),
+		flagSet.BoolVarP(&options.MarkDownOutput, "markdown", "md", false, "store output in Markdown table format"),
 		flagSet.BoolVarP(&options.ResponseHeadersInStdout, "include-response-header", "irh", false, "include http response (headers) in JSON output (-json only)"),
 		flagSet.BoolVarP(&options.ResponseInStdout, "include-response", "irr", false, "include http request/response (headers + body) in JSON output (-json only)"),
 		flagSet.BoolVarP(&options.Base64ResponseInStdout, "include-response-base64", "irrb", false, "include base64 encoded http request/response in JSON output (-json only)"),

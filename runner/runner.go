@@ -968,7 +968,8 @@ func (r *Runner) RunEnumeration() {
 			}
 		}()
 
-		var plainFile, jsonFile, csvFile, indexFile, indexScreenshotFile *os.File
+		var plainFile, jsonFile, csvFile, mdFile, indexFile, indexScreenshotFile *os.File
+		markdownHeaderWritten := false // guard to prevent writing the header multiple times
 
 		if r.options.Output != "" && r.options.OutputAll {
 			plainFile = openOrCreateFile(r.options.Resume, r.options.Output)
@@ -983,11 +984,15 @@ func (r *Runner) RunEnumeration() {
 			defer func() {
 				_ = csvFile.Close()
 			}()
+			mdFile = openOrCreateFile(r.options.Resume, r.options.Output+".md")
+			defer func() {
+				_ = mdFile.Close()
+			}()
 		}
 
-		jsonOrCsv := (r.options.JSONOutput || r.options.CSVOutput)
-		jsonAndCsv := (r.options.JSONOutput && r.options.CSVOutput)
-		if r.options.Output != "" && plainFile == nil && !jsonOrCsv {
+		jsonOrCsvOrMD := (r.options.JSONOutput || r.options.CSVOutput || r.options.MarkDownOutput)
+		jsonAndCsvAndMD := (r.options.JSONOutput && r.options.CSVOutput && r.options.MarkDownOutput)
+		if r.options.Output != "" && plainFile == nil && !jsonOrCsvOrMD {
 			plainFile = openOrCreateFile(r.options.Resume, r.options.Output)
 			defer func() {
 				_ = plainFile.Close()
@@ -996,7 +1001,7 @@ func (r *Runner) RunEnumeration() {
 
 		if r.options.Output != "" && r.options.JSONOutput && jsonFile == nil {
 			ext := ""
-			if jsonAndCsv {
+			if jsonAndCsvAndMD {
 				ext = ".json"
 			}
 			jsonFile = openOrCreateFile(r.options.Resume, r.options.Output+ext)
@@ -1007,12 +1012,23 @@ func (r *Runner) RunEnumeration() {
 
 		if r.options.Output != "" && r.options.CSVOutput && csvFile == nil {
 			ext := ""
-			if jsonAndCsv {
+			if jsonAndCsvAndMD {
 				ext = ".csv"
 			}
 			csvFile = openOrCreateFile(r.options.Resume, r.options.Output+ext)
 			defer func() {
 				_ = csvFile.Close()
+			}()
+		}
+
+		if r.options.Output != "" && r.options.MarkDownOutput && mdFile == nil {
+			ext := ""
+			if jsonAndCsvAndMD {
+				ext = ".md"
+			}
+			mdFile = openOrCreateFile(r.options.Resume, r.options.Output+ext)
+			defer func() {
+				_ = mdFile.Close()
 			}()
 		}
 
@@ -1030,7 +1046,7 @@ func (r *Runner) RunEnumeration() {
 				gologger.Fatal().Msgf("unknown csv output encoding: %s\n", r.options.CSVOutputEncoding)
 			}
 			headers := Result{}.CSVHeader()
-			if !r.options.OutputAll && !jsonAndCsv {
+			if !r.options.OutputAll && !jsonAndCsvAndMD {
 				gologger.Silent().Msgf("%s\n", headers)
 			}
 
@@ -1247,7 +1263,7 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
-			if !r.options.DisableStdout && (!jsonOrCsv || jsonAndCsv || r.options.OutputAll) {
+			if !r.options.DisableStdout && (!jsonOrCsvOrMD || jsonAndCsvAndMD || r.options.OutputAll) {
 				gologger.Silent().Msgf("%s\n", resp.str)
 			}
 
@@ -1358,7 +1374,7 @@ func (r *Runner) RunEnumeration() {
 			if r.options.JSONOutput {
 				row := resp.JSON(&r.scanopts)
 
-				if !r.options.OutputAll && !jsonAndCsv {
+				if !r.options.OutputAll && !jsonAndCsvAndMD {
 					gologger.Silent().Msgf("%s\n", row)
 				}
 
@@ -1371,13 +1387,35 @@ func (r *Runner) RunEnumeration() {
 			if r.options.CSVOutput {
 				row := resp.CSVRow(&r.scanopts)
 
-				if !r.options.OutputAll && !jsonAndCsv {
+				if !r.options.OutputAll && !jsonAndCsvAndMD {
 					gologger.Silent().Msgf("%s\n", row)
 				}
 
 				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				if csvFile != nil {
 					csvFile.WriteString(row + "\n")
+				}
+			}
+
+			if r.options.MarkDownOutput || r.options.OutputAll {
+				if !markdownHeaderWritten {
+					header := resp.MarkdownHeader()
+					if !r.options.OutputAll {
+						gologger.Silent().Msgf("%s", header)
+					}
+					if mdFile != nil {
+						_, _ = mdFile.WriteString(header)
+					}
+					markdownHeaderWritten = true
+				}
+
+				row := resp.MarkdownRow(&r.scanopts)
+
+				if !r.options.OutputAll {
+					gologger.Silent().Msgf("%s", row)
+				}
+				if mdFile != nil {
+					_, _ = mdFile.WriteString(row)
 				}
 			}
 
