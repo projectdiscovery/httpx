@@ -361,6 +361,15 @@ type Options struct {
 
 	Trace bool
 
+	ResultDatabase          bool
+	ResultDatabaseConfig    string
+	ResultDatabaseType      string
+	ResultDatabaseConnStr   string
+	ResultDatabaseName      string
+	ResultDatabaseTable     string
+	ResultDatabaseBatchSize int
+	ResultDatabaseOmitRaw   bool
+
 	// Optional pre-created objects to reduce allocations
 	Wappalyzer     *wappalyzer.Wappalyze
 	Networkpolicy  *networkpolicy.NetworkPolicy
@@ -499,6 +508,14 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.StoreVisionReconClusters, "store-vision-recon-cluster", "svrc", false, "include visual recon clusters (-ss and -sr only)"),
 		flagSet.StringVarP(&options.Protocol, "protocol", "pr", "", "protocol to use (unknown, http11, http2 [experimental], http3 [experimental])"),
 		flagSet.StringVarP(&options.OutputFilterErrorPagePath, "filter-error-page-path", "fepp", "filtered_error_page.json", "path to store filtered error pages"),
+		flagSet.BoolVarP(&options.ResultDatabase, "result-db", "rdb", false, "store results in database"),
+		flagSet.StringVarP(&options.ResultDatabaseConfig, "result-db-config", "rdbc", "", "path to database config file"),
+		flagSet.StringVarP(&options.ResultDatabaseType, "result-db-type", "rdbt", "", "database type (mongodb, postgres, mysql)"),
+		flagSet.StringVarEnv(&options.ResultDatabaseConnStr, "result-db-conn", "rdbcs", "", "HTTPX_DB_CONNECTION_STRING", "database connection string"),
+		flagSet.StringVarP(&options.ResultDatabaseName, "result-db-name", "rdbn", "httpx", "database name"),
+		flagSet.StringVarP(&options.ResultDatabaseTable, "result-db-table", "rdbtb", "results", "table/collection name"),
+		flagSet.IntVarP(&options.ResultDatabaseBatchSize, "result-db-batch-size", "rdbbs", 100, "batch size for database inserts"),
+		flagSet.BoolVarP(&options.ResultDatabaseOmitRaw, "result-db-omit-raw", "rdbor", false, "omit raw request/response data from database"),
 	)
 
 	flagSet.CreateGroup("configs", "Configurations",
