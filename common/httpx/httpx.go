@@ -183,6 +183,18 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
+	// When HTTP/1.1 is explicitly requested, override the retryablehttp fallback
+	// client (HTTPClient2) to also use the HTTP/1.1-only transport. Without this,
+	// retryablehttp falls back to HTTPClient2 (which has HTTP/2 enabled) when it
+	// encounters "malformed HTTP version" errors, silently ignoring the -pr http11 flag.
+	if httpx.Options.Protocol == "http11" {
+		httpx.client.HTTPClient2 = &http.Client{
+			Transport:     transport,
+			Timeout:       httpx.Options.Timeout,
+			CheckRedirect: redirectFunc,
+		}
+	}
+
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
