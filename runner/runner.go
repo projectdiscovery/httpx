@@ -430,11 +430,13 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
-	ditClassifier, err := dit.New()
-	if err != nil {
-		gologger.Warning().Msgf("Could not initialize page classifier: %s", err)
+	if options.JSONOutput || options.CSVOutput || len(options.OutputFilterPageType) > 0 {
+		ditClassifier, err := dit.New()
+		if err != nil {
+			gologger.Warning().Msgf("Could not initialize page classifier: %s", err)
+		}
+		runner.ditClassifier = ditClassifier
 	}
-	runner.ditClassifier = ditClassifier
 
 	if options.SecretFile != "" {
 		authProviderOpts := &authprovider.AuthProviderOptions{
@@ -652,12 +654,16 @@ func (r *Runner) duplicate(result *Result) bool {
 	return false
 }
 
-func (r *Runner) classifyPage(body string, pHash uint64) map[string]interface{} {
+func (r *Runner) classifyPage(headlessBody, body string, pHash uint64) map[string]any {
 	kb := map[string]any{"pHash": pHash}
 	if r.ditClassifier == nil {
 		return kb
 	}
-	result, err := r.ditClassifier.ExtractPageType(body)
+	html := body
+	if headlessBody != "" {
+		html = headlessBody
+	}
+	result, err := r.ditClassifier.ExtractPageType(html)
 	if err != nil {
 		return kb
 	}
@@ -2636,7 +2642,7 @@ retry:
 		ExtractRegex:     extractRegex,
 		ScreenshotBytes:  screenshotBytes,
 		HeadlessBody:     headlessBody,
-		KnowledgeBase: r.classifyPage(respData, pHash),
+		KnowledgeBase: r.classifyPage(headlessBody, respData, pHash),
 		TechnologyDetails: technologyDetails,
 		Resolvers:         resolvers,
 		RequestRaw:        requestDump,
