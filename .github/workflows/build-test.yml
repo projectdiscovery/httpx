@@ -15,12 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: projectdiscovery/actions/setup/go@v1
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v7
-        with:
-          version: v2
-          args: --timeout 5m
-          working-directory: .
+      - uses: projectdiscovery/actions/golangci-lint/v2@v1
 
   build:
     name: Test Builds
