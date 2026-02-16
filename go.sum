@@ -226,6 +226,8 @@ github.com/iangcarroll/cookiemonster v1.6.0/go.mod h1:n3MvoAq56NkNyCEyhcYs3ZJMzT
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/ianlancetaylor/demangle v0.0.0-20230524184225-eabc099b10ab/go.mod h1:gx7rwoVhcfuVKG5uya9Hs3Sxj7EIvldVofAWIUtGouw=
 github.com/josharian/intern v1.0.0/go.mod h1:5DoeVV0s6jJacbCEi61lwdGj/aVlrQvzHFFd8Hwg//Y=
+github.com/jpirstin/retryablehttp-go v1.3.7-0.20260216171522-ed815bc09ccf h1:X+wesMRUSJV4wJuT+vcegI6pYwTAHYcFDWTJYyY+dJs=
+github.com/jpirstin/retryablehttp-go v1.3.7-0.20260216171522-ed815bc09ccf/go.mod h1:tKVxmL4ixWy1MjYk5GJvFL0Cp10fnQgSp2F6bSBEypI=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
 github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1:6v2b51hI/fHJwM22ozAgKL4VKDeJcHhJFhtBdhmNjmU=
@@ -358,8 +360,6 @@ github.com/projectdiscovery/rawhttp v0.1.90 h1:LOSZ6PUH08tnKmWsIwvwv1Z/4zkiYKYOS
 github.com/projectdiscovery/rawhttp v0.1.90/go.mod h1:VZYAM25UI/wVB3URZ95ZaftgOnsbphxyAw/XnQRRz4Y=
 github.com/projectdiscovery/retryabledns v1.0.113 h1:s+DAzdJ8XhLxRgt5636H0HG9OqHsGRjX9wTrLSTMqlQ=
 github.com/projectdiscovery/retryabledns v1.0.113/go.mod h1:+DyanDr8naxQ2dRO9c4Ezo3NHHXhz8L0tTSRYWhiwyA=
-github.com/projectdiscovery/retryablehttp-go v1.3.6 h1:dLb0/YVX+oX70gpWxN5GXT8pCKpn8fdXfwOq2TsXxNY=
-github.com/projectdiscovery/retryablehttp-go v1.3.6/go.mod h1:tKVxmL4ixWy1MjYk5GJvFL0Cp10fnQgSp2F6bSBEypI=
 github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZAja8BH3LqqJXMA=
 github.com/projectdiscovery/stringsutil v0.0.2/go.mod h1:EJ3w6bC5fBYjVou6ryzodQq37D5c6qbAYQpGmAy+DC0=
 github.com/projectdiscovery/tlsx v1.2.2 h1:Y96QBqeD2anpzEtBl4kqNbwzXh2TrzJuXfgiBLvK+SE=
