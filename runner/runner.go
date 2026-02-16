@@ -36,7 +36,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/httpx/common/inputformats"
-	"github.com/projectdiscovery/httpx/common/pagetypeclassifier"
+	"github.com/happyhackingspace/dit"
 	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
@@ -92,7 +92,7 @@ type Runner struct {
 	ratelimiter        ratelimit.Limiter
 	HostErrorsCache    gcache.Cache[string, int]
 	browser            *Browser
-	pageTypeClassifier *pagetypeclassifier.PageTypeClassifier // Include this for general page classification
+	ditClassifier *dit.Classifier
 	pHashClusters      []pHashCluster
 	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
 	httpApiEndpoint    *Server
@@ -430,11 +430,13 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
-	pageTypeClassifier, err := pagetypeclassifier.New()
-	if err != nil {
-		return nil, err
+	if options.JSONOutput || options.CSVOutput || len(options.OutputFilterPageType) > 0 {
+		ditClassifier, err := dit.New()
+		if err != nil {
+			gologger.Warning().Msgf("Could not initialize page classifier: %s", err)
+		}
+		runner.ditClassifier = ditClassifier
 	}
-	runner.pageTypeClassifier = pageTypeClassifier
 
 	if options.SecretFile != "" {
 		authProviderOpts := &authprovider.AuthProviderOptions{
@@ -652,6 +654,26 @@ func (r *Runner) duplicate(result *Result) bool {
 	return false
 }
 
+func (r *Runner) classifyPage(headlessBody, body string, pHash uint64) map[string]any {
+	kb := map[string]any{"pHash": pHash}
+	if r.ditClassifier == nil {
+		return kb
+	}
+	html := body
+	if headlessBody != "" {
+		html = headlessBody
+	}
+	result, err := r.ditClassifier.ExtractPageType(html)
+	if err != nil {
+		return kb
+	}
+	kb["PageType"] = result.Type
+	if len(result.Forms) > 0 {
+		kb["Forms"] = result.Forms
+	}
+	return kb
+}
+
 func (r *Runner) testAndSet(k string) bool {
 	// skip empty lines
 	k = strings.TrimSpace(k)
@@ -703,7 +725,7 @@ func (r *Runner) streamInput() (chan string, error) {
 					gologger.Error().Msgf("Could not open input file '%s': %s\n", r.options.InputFile, err)
 					return
 				}
-				defer finput.Close()
+				defer finput.Close() //nolint:errcheck
 				if err := format.Parse(finput, func(item string) bool {
 					item = strings.TrimSpace(item)
 					if r.options.SkipDedupe || r.testAndSet(item) {
@@ -789,7 +811,7 @@ func (r *Runner) loadFromFormat(filePath string, format inputformats.Format) (nu
 	if err != nil {
 		return 0, err
 	}
-	defer finput.Close()
+	defer finput.Close() //nolint:errcheck
 
 	err = format.Parse(finput, func(target string) bool {
 		target = strings.TrimSpace(target)
@@ -1105,9 +1127,13 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
-			if r.options.OutputFilterErrorPage && resp.KnowledgeBase["PageType"] == "error" {
-				logFilteredErrorPage(r.options.OutputFilterErrorPagePath, resp.URL)
-				continue
+			if len(r.options.OutputFilterPageType) > 0 {
+				if pageType, ok := resp.KnowledgeBase["PageType"].(string); ok {
+					if stringsutil.EqualFoldAny(pageType, r.options.OutputFilterPageType...) {
+						logFilteredErrorPage(r.options.OutputFilterErrorPagePath, resp.URL)
+						continue
+					}
+				}
 			}
 
 			if r.options.FilterOutDuplicates && r.duplicate(&resp) {
@@ -2616,10 +2642,7 @@ retry:
 		ExtractRegex:     extractRegex,
 		ScreenshotBytes:  screenshotBytes,
 		HeadlessBody:     headlessBody,
-		KnowledgeBase: map[string]interface{}{
-			"PageType": r.pageTypeClassifier.Classify(respData),
-			"pHash":    pHash,
-		},
+		KnowledgeBase: r.classifyPage(headlessBody, respData, pHash),
 		TechnologyDetails: technologyDetails,
 		Resolvers:         resolvers,
 		RequestRaw:        requestDump,
