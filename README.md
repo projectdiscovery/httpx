@@ -62,7 +62,7 @@
 
 # Installation Instructions
 
-`httpx` requires **go >=1.24.0** to install successfully. Run the following command to get the repo:
+`httpx` requires **go >=1.25.0** to install successfully. Run the following command to get the repo:
 
 ```sh
 go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
@@ -153,7 +153,8 @@ EXTRACTOR:
 
 FILTERS:
    -fc, -filter-code string            filter response with specified status code (-fc 403,401)
-   -fep, -filter-error-page            filter response with ML based error page detection
+   -fpt, -filter-page-type string[]   filter response with specified page type (e.g. -fpt login,captcha,parked)
+   -fep, -filter-error-page            [DEPRECATED: use -fpt] filter response with ML based error page detection
    -fd, -filter-duplicates             filter out near-duplicate responses (only first response is retained)
    -fl, -filter-length string          filter response with specified content length (-fl 23,33)
    -flc, -filter-line-count string     filter response body with specified line count (-flc 423,532)

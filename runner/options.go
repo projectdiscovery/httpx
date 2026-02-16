@@ -202,6 +202,7 @@ type Options struct {
 	OutputMatchContentLength  string
 	OutputFilterStatusCode    string
 	OutputFilterErrorPage     bool
+	OutputFilterPageType      goflags.StringSlice
 	FilterOutDuplicates       bool
 	OutputFilterContentLength string
 	InputRawRequest           string
@@ -442,7 +443,8 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("filters", "Filters",
 		flagSet.StringVarP(&options.OutputFilterStatusCode, "filter-code", "fc", "", "filter response with specified status code (-fc 403,401)"),
-		flagSet.BoolVarP(&options.OutputFilterErrorPage, "filter-error-page", "fep", false, "filter response with ML based error page detection"),
+		flagSet.StringSliceVarP(&options.OutputFilterPageType, "filter-page-type", "fpt", nil, "filter response with specified page type (e.g. -fpt login,captcha,parked)", goflags.CommaSeparatedStringSliceOptions),
+		flagSet.BoolVarP(&options.OutputFilterErrorPage, "filter-error-page", "fep", false, "[DEPRECATED: use -fpt] filter response with ML based error page detection"),
 		flagSet.BoolVarP(&options.FilterOutDuplicates, "filter-duplicates", "fd", false, "filter out near-duplicate responses (only first response is retained)"),
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "filter response with specified content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "filter response body with specified line count (-flc 423,532)"),
@@ -854,6 +856,10 @@ func (options *Options) configureOutput() {
 	}
 	if options.CSVOutputEncoding != "" {
 		options.CSVOutput = true
+	}
+	if options.OutputFilterErrorPage && len(options.OutputFilterPageType) == 0 {
+		gologger.Info().Msg("-fep is deprecated, use -fpt error instead")
+		options.OutputFilterPageType = goflags.StringSlice{"error"}
 	}
 }
 

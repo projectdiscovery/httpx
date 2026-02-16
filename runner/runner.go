@@ -36,7 +36,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/httpx/common/inputformats"
-	"github.com/projectdiscovery/httpx/common/pagetypeclassifier"
+	"github.com/happyhackingspace/dit"
 	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
@@ -92,7 +92,7 @@ type Runner struct {
 	ratelimiter        ratelimit.Limiter
 	HostErrorsCache    gcache.Cache[string, int]
 	browser            *Browser
-	pageTypeClassifier *pagetypeclassifier.PageTypeClassifier // Include this for general page classification
+	ditClassifier *dit.Classifier
 	pHashClusters      []pHashCluster
 	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
 	httpApiEndpoint    *Server
@@ -430,11 +430,11 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
-	pageTypeClassifier, err := pagetypeclassifier.New()
+	ditClassifier, err := dit.New()
 	if err != nil {
-		return nil, err
+		gologger.Warning().Msgf("Could not initialize page classifier: %s", err)
 	}
-	runner.pageTypeClassifier = pageTypeClassifier
+	runner.ditClassifier = ditClassifier
 
 	if options.SecretFile != "" {
 		authProviderOpts := &authprovider.AuthProviderOptions{
@@ -650,6 +650,22 @@ func (r *Runner) duplicate(result *Result) bool {
 	}
 	_ = r.simHashes.Set(respSimHash, struct{}{})
 	return false
+}
+
+func (r *Runner) classifyPage(body string, pHash uint64) map[string]interface{} {
+	kb := map[string]any{"pHash": pHash}
+	if r.ditClassifier == nil {
+		return kb
+	}
+	result, err := r.ditClassifier.ExtractPageType(body)
+	if err != nil {
+		return kb
+	}
+	kb["PageType"] = result.Type
+	if len(result.Forms) > 0 {
+		kb["Forms"] = result.Forms
+	}
+	return kb
 }
 
 func (r *Runner) testAndSet(k string) bool {
@@ -1105,9 +1121,13 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
-			if r.options.OutputFilterErrorPage && resp.KnowledgeBase["PageType"] == "error" {
-				logFilteredErrorPage(r.options.OutputFilterErrorPagePath, resp.URL)
-				continue
+			if len(r.options.OutputFilterPageType) > 0 {
+				if pageType, ok := resp.KnowledgeBase["PageType"].(string); ok {
+					if stringsutil.EqualFoldAny(pageType, r.options.OutputFilterPageType...) {
+						logFilteredErrorPage(r.options.OutputFilterErrorPagePath, resp.URL)
+						continue
+					}
+				}
 			}
 
 			if r.options.FilterOutDuplicates && r.duplicate(&resp) {
@@ -2616,10 +2636,7 @@ retry:
 		ExtractRegex:     extractRegex,
 		ScreenshotBytes:  screenshotBytes,
 		HeadlessBody:     headlessBody,
-		KnowledgeBase: map[string]interface{}{
-			"PageType": r.pageTypeClassifier.Classify(respData),
-			"pHash":    pHash,
-		},
+		KnowledgeBase: r.classifyPage(respData, pHash),
 		TechnologyDetails: technologyDetails,
 		Resolvers:         resolvers,
 		RequestRaw:        requestDump,
