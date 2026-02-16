@@ -719,7 +719,7 @@ func (r *Runner) streamInput() (chan string, error) {
 					gologger.Error().Msgf("Could not open input file '%s': %s\n", r.options.InputFile, err)
 					return
 				}
-				defer finput.Close()
+				defer finput.Close() //nolint:errcheck
 				if err := format.Parse(finput, func(item string) bool {
 					item = strings.TrimSpace(item)
 					if r.options.SkipDedupe || r.testAndSet(item) {
@@ -805,7 +805,7 @@ func (r *Runner) loadFromFormat(filePath string, format inputformats.Format) (nu
 	if err != nil {
 		return 0, err
 	}
-	defer finput.Close()
+	defer finput.Close() //nolint:errcheck
 
 	err = format.Parse(finput, func(target string) bool {
 		target = strings.TrimSpace(target)
