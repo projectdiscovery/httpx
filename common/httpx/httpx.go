@@ -183,6 +183,21 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
+	// When HTTP/1.1 is explicitly requested, override the retryablehttp
+	// fallback client (HTTPClient2) to also use HTTP/1.1 only. Without this,
+	// retryablehttp-go falls back to HTTPClient2 (which uses HTTP/2) on
+	// certain errors, effectively ignoring the -pr http11 flag.
+	// See: https://github.com/projectdiscovery/httpx/issues/2240
+	if httpx.Options.Protocol == HTTP11 {
+		http11Transport := transport.Clone()
+		http11Transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
+		httpx.client.HTTPClient2 = &http.Client{
+			Transport:     http11Transport,
+			Timeout:       httpx.Options.Timeout,
+			CheckRedirect: redirectFunc,
+		}
+	}
+
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
