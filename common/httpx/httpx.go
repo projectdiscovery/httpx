@@ -183,6 +183,15 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
+	// When HTTP/1.1 is explicitly requested, prevent retryablehttp-go from
+	// falling back to its internal HTTP/2 client on protocol errors.
+	// Without this, retryablehttp's do.go switches to HTTPClient2 (which has
+	// HTTP/2 configured) whenever it sees "malformed HTTP version" errors,
+	// effectively ignoring the -pr http11 flag.
+	if httpx.Options.Protocol == "http11" {
+		httpx.client.HTTPClient2 = httpx.client.HTTPClient
+	}
+
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
