@@ -153,7 +153,7 @@ func New(options *Options) (*HTTPX, error) {
 		DisableKeepAlives: true,
 	}
 
-	if httpx.Options.Protocol == "http11" {
+	if httpx.Options.Protocol == HTTP11 {
 		// disable http2
 		_ = os.Setenv("GODEBUG", "http2client=0")
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
@@ -185,7 +185,7 @@ func New(options *Options) (*HTTPX, error) {
 
 	// honor explicit HTTP/1.1 mode by disabling retryablehttp-go's internal
 	// HTTP/2 fallback client and HTTPX's own HTTP/2 probing client
-	if httpx.Options.Protocol == "http11" {
+	if httpx.Options.Protocol == HTTP11 {
 		httpx.client.HTTPClient2 = httpx.client.HTTPClient
 		httpx.client2 = httpx.client.HTTPClient
 	} else {

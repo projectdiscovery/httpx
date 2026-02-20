@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"os"
 	"testing"
 
 	"golang.org/x/net/http2"
@@ -11,6 +12,15 @@ import (
 func TestNew_HTTP11DisablesRetryableHTTP2Fallback(t *testing.T) {
 	opts := DefaultOptions
 	opts.Protocol = HTTP11
+
+	originalGODEBUG, hadGODEBUG := os.LookupEnv("GODEBUG")
+	t.Cleanup(func() {
+		if hadGODEBUG {
+			_ = os.Setenv("GODEBUG", originalGODEBUG)
+		} else {
+			_ = os.Unsetenv("GODEBUG")
+		}
+	})
 
 	ht, err := New(&opts)
 	require.NoError(t, err)
