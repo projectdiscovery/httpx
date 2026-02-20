@@ -183,19 +183,26 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
-	transport2 := &http2.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-			MinVersion:         tls.VersionTLS10,
-		},
-		AllowHTTP: true,
-	}
-	if httpx.Options.SniName != "" {
-		transport2.TLSClientConfig.ServerName = httpx.Options.SniName
-	}
-	httpx.client2 = &http.Client{
-		Transport: transport2,
-		Timeout:   httpx.Options.Timeout,
+	// honor explicit HTTP/1.1 mode by disabling retryablehttp-go's internal
+	// HTTP/2 fallback client and HTTPX's own HTTP/2 probing client
+	if httpx.Options.Protocol == "http11" {
+		httpx.client.HTTPClient2 = httpx.client.HTTPClient
+		httpx.client2 = httpx.client.HTTPClient
+	} else {
+		transport2 := &http2.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+				MinVersion:         tls.VersionTLS10,
+			},
+			AllowHTTP: true,
+		}
+		if httpx.Options.SniName != "" {
+			transport2.TLSClientConfig.ServerName = httpx.Options.SniName
+		}
+		httpx.client2 = &http.Client{
+			Transport: transport2,
+			Timeout:   httpx.Options.Timeout,
+		}
 	}
 
 	httpx.htmlPolicy = bluemonday.NewPolicy()
