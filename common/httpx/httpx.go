@@ -77,6 +77,10 @@ func New(options *Options) (*HTTPX, error) {
 	retryablehttpOptions.Timeout = httpx.Options.Timeout
 	retryablehttpOptions.RetryMax = httpx.Options.RetryMax
 	retryablehttpOptions.Trace = options.Trace
+	// Disable HTTP/2 fallback when HTTP/1.1 is explicitly requested
+	if httpx.Options.Protocol == "http11" {
+		retryablehttpOptions.DisableHTTP2Fallback = true
+	}
 	handleHSTS := func(req *http.Request) {
 		if req.Response.Header.Get("Strict-Transport-Security") == "" {
 			return
