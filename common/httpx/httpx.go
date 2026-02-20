@@ -183,6 +183,17 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
+	// When HTTP/1.1 is explicitly requested, also disable HTTP/2 fallback
+	// in the retryablehttp client's secondary HTTP client to prevent
+	// automatic HTTP/2 upgrade on retry (see retryablehttp-go do.go).
+	if httpx.Options.Protocol == "http11" {
+		httpx.client.HTTPClient2 = &http.Client{
+			Transport:     transport,
+			Timeout:       httpx.Options.Timeout,
+			CheckRedirect: redirectFunc,
+		}
+	}
+
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
