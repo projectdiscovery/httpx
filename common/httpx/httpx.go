@@ -182,6 +182,11 @@ func New(options *Options) (*HTTPX, error) {
 		Timeout:       httpx.Options.Timeout,
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
+	if httpx.Options.Protocol == HTTP11 {
+		// retryablehttp client retries malformed HTTP/2 responses with HTTPClient2.
+		// Keep both clients on the same HTTP/1.1 transport when protocol is forced.
+		httpx.client.HTTPClient2 = httpx.client.HTTPClient
+	}
 
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
