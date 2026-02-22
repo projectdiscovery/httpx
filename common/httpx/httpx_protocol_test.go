@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestNew_HTTP11DisablesRetryableHTTP2Fallback verifies that forcing HTTP/1.1 disables retryablehttp-go's HTTP/2 fallback and prevents HTTP/2 probing client creation.
 func TestNew_HTTP11DisablesRetryableHTTP2Fallback(t *testing.T) {
 	opts := DefaultOptions
 	opts.Protocol = HTTP11
@@ -33,6 +34,7 @@ func TestNew_HTTP11DisablesRetryableHTTP2Fallback(t *testing.T) {
 	require.False(t, isHTTP2)
 }
 
+// TestNew_NonHTTP11KeepsRetryableHTTP2FallbackClient verifies that non-HTTP/1.1 mode keeps a dedicated HTTP/2 client2 transport and allows retryable fallback behavior.
 func TestNew_NonHTTP11KeepsRetryableHTTP2FallbackClient(t *testing.T) {
 	opts := DefaultOptions
 	opts.Protocol = HTTP2
