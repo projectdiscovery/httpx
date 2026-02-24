@@ -77,6 +77,9 @@ func New(options *Options) (*HTTPX, error) {
 	retryablehttpOptions.Timeout = httpx.Options.Timeout
 	retryablehttpOptions.RetryMax = httpx.Options.RetryMax
 	retryablehttpOptions.Trace = options.Trace
+	if httpx.Options.Protocol == HTTP11 {
+		retryablehttpOptions.DisableHTTP2Fallback = true
+	}
 	handleHSTS := func(req *http.Request) {
 		if req.Response.Header.Get("Strict-Transport-Security") == "" {
 			return
@@ -153,7 +156,7 @@ func New(options *Options) (*HTTPX, error) {
 		DisableKeepAlives: true,
 	}
 
-	if httpx.Options.Protocol == "http11" {
+	if httpx.Options.Protocol == HTTP11 {
 		// disable http2
 		_ = os.Setenv("GODEBUG", "http2client=0")
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
