@@ -28,3 +28,26 @@ func TestDo(t *testing.T) {
 		require.Greater(t, len(resp.Raw), 800)
 	})
 }
+
+func TestHTTP11DisablesHTTP2Fallback(t *testing.T) {
+	opts := DefaultOptions
+	opts.Protocol = HTTP11
+
+	ht, err := New(&opts)
+	require.Nil(t, err)
+
+	// When http11 is requested, HTTPClient2 must point to the same client
+	// as HTTPClient so retryablehttp-go's fallback path does not switch to HTTP/2.
+	require.Same(t, ht.client.HTTPClient, ht.client.HTTPClient2,
+		"HTTPClient2 should equal HTTPClient when Protocol is HTTP11")
+}
+
+func TestDefaultProtocolKeepsHTTP2Fallback(t *testing.T) {
+	ht, err := New(&DefaultOptions)
+	require.Nil(t, err)
+
+	// By default the two clients must remain separate so that the HTTP/2
+	// fallback in retryablehttp-go works as designed.
+	require.NotSame(t, ht.client.HTTPClient, ht.client.HTTPClient2,
+		"HTTPClient2 should differ from HTTPClient by default")
+}
