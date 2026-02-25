@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/projectdiscovery/retryablehttp-go"
@@ -9,7 +10,8 @@ import (
 )
 
 func TestDo(t *testing.T) {
-	ht, err := New(&DefaultOptions)
+	opts := DefaultOptions
+	ht, err := New(&opts)
 	require.Nil(t, err)
 
 	t.Run("content-length in header", func(t *testing.T) {
@@ -33,7 +35,10 @@ func TestHTTP11DisablesHTTP2Fallback(t *testing.T) {
 	opts := DefaultOptions
 	opts.Protocol = HTTP11
 
+	// Capture GODEBUG before New() sets it; t.Setenv restores it after the test.
+	prev := os.Getenv("GODEBUG")
 	ht, err := New(&opts)
+	t.Setenv("GODEBUG", prev)
 	require.Nil(t, err)
 
 	// When http11 is requested, HTTPClient2 must point to the same client
@@ -43,7 +48,8 @@ func TestHTTP11DisablesHTTP2Fallback(t *testing.T) {
 }
 
 func TestDefaultProtocolKeepsHTTP2Fallback(t *testing.T) {
-	ht, err := New(&DefaultOptions)
+	opts := DefaultOptions
+	ht, err := New(&opts)
 	require.Nil(t, err)
 
 	// By default the two clients must remain separate so that the HTTP/2

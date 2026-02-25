@@ -153,6 +153,11 @@ func New(options *Options) (*HTTPX, error) {
 		DisableKeepAlives: true,
 	}
 
+	// Protocol enforcement is split into two blocks: this one disables HTTP/2 at
+	// the transport level before the client is constructed; the second block
+	// (below, after httpx.client is initialised) redirects the retryablehttp-go
+	// fallback client so it cannot re-upgrade to HTTP/2 on malformed-protocol
+	// errors. Both checks are required because neither alone is sufficient.
 	if httpx.Options.Protocol == HTTP11 {
 		// disable http2
 		_ = os.Setenv("GODEBUG", "http2client=0")
@@ -185,6 +190,8 @@ func New(options *Options) (*HTTPX, error) {
 	// When HTTP/1.1 is explicitly requested, prevent retryablehttp-go from
 	// falling back to its internal HTTP/2 client on malformed protocol errors.
 	// See: https://github.com/projectdiscovery/httpx/issues/2240
+	// TODO: replace this alias with a DisableHTTPFallback option once
+	// retryablehttp-go exposes one upstream (#2240).
 	if httpx.Options.Protocol == HTTP11 {
 		httpx.client.HTTPClient2 = httpx.client.HTTPClient
 	}
