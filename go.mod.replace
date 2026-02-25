@@ -1,0 +1,1 @@
+replace github.com/projectdiscovery/retryablehttp-go => github.com/bigeric08/retryablehttp-go v1.3.6

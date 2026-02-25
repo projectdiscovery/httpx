@@ -178,3 +178,5 @@ require (
 	golang.org/x/tools v0.41.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
+
+replace github.com/projectdiscovery/retryablehttp-go => github.com/bigeric08/retryablehttp-go v1.3.6
