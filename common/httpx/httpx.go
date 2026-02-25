@@ -182,6 +182,10 @@ func New(options *Options) (*HTTPX, error) {
 		Timeout:       httpx.Options.Timeout,
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
+	if httpx.Options.Protocol == HTTP11 {
+		// Keep retryablehttp-go on HTTP/1.1 as well when it retries internally.
+		httpx.client.HTTPClient2 = httpx.client.HTTPClient
+	}
 
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{

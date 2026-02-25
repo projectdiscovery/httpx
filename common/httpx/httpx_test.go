@@ -28,3 +28,12 @@ func TestDo(t *testing.T) {
 		require.Greater(t, len(resp.Raw), 800)
 	})
 }
+
+func TestHTTP11DisablesRetryableHTTP2Fallback(t *testing.T) {
+	opts := DefaultOptions
+	opts.Protocol = HTTP11
+
+	ht, err := New(&opts)
+	require.NoError(t, err)
+	require.Same(t, ht.client.HTTPClient, ht.client.HTTPClient2)
+}
