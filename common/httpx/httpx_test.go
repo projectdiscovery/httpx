@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/projectdiscovery/retryablehttp-go"
@@ -9,7 +10,8 @@ import (
 )
 
 func TestDo(t *testing.T) {
-	ht, err := New(&DefaultOptions)
+	opts := DefaultOptions
+	ht, err := New(&opts)
 	require.Nil(t, err)
 
 	t.Run("content-length in header", func(t *testing.T) {
@@ -27,4 +29,32 @@ func TestDo(t *testing.T) {
 		require.Nil(t, err)
 		require.Greater(t, len(resp.Raw), 800)
 	})
+}
+
+func TestHTTP11DisablesHTTP2Fallback(t *testing.T) {
+	// Save and restore GODEBUG to prevent pollution of other tests
+	prevGodebug := os.Getenv("GODEBUG")
+	defer os.Setenv("GODEBUG", prevGodebug)
+
+	opts := DefaultOptions
+	opts.Protocol = HTTP11
+	ht, err := New(&opts)
+	require.Nil(t, err)
+
+	// When HTTP/1.1 is explicitly selected, the retryablehttp client's
+	// HTTPClient2 should be the same instance as HTTPClient so the
+	// fallback path in do.go cannot switch to HTTP/2.
+	require.Same(t, ht.client.HTTPClient, ht.client.HTTPClient2,
+		"HTTPClient2 should point to the same client as HTTPClient when protocol is http11")
+}
+
+func TestDefaultProtocolKeepsHTTP2Fallback(t *testing.T) {
+	opts := DefaultOptions
+	ht, err := New(&opts)
+	require.Nil(t, err)
+
+	// With the default protocol (no explicit -pr flag), HTTPClient2
+	// should remain a distinct client with HTTP/2 support for fallback.
+	require.NotSame(t, ht.client.HTTPClient, ht.client.HTTPClient2,
+		"HTTPClient2 should be a separate client when no protocol is specified")
 }
