@@ -2,7 +2,6 @@ package httpx
 
 import (
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/projectdiscovery/retryablehttp-go"
@@ -32,10 +31,6 @@ func TestDo(t *testing.T) {
 }
 
 func TestHTTP11DisablesHTTP2Fallback(t *testing.T) {
-	// Save and restore GODEBUG to prevent pollution of other tests
-	prevGodebug := os.Getenv("GODEBUG")
-	defer os.Setenv("GODEBUG", prevGodebug)
-
 	opts := DefaultOptions
 	opts.Protocol = HTTP11
 	ht, err := New(&opts)
