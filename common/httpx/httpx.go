@@ -183,6 +183,11 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
+	if httpx.Options.Protocol == "http11" {
+		// disable HTTP/2 fallback in retryablehttp-go
+		httpx.client.HTTPClient2 = nil
+	}
+
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
