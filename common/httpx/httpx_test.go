@@ -10,8 +10,9 @@ import (
 )
 
 // TestHTTP11DisablesHTTP2Fallback verifies that setting Protocol to HTTP11
-// causes the retryablehttp client to have HTTPClient2 set to nil, disabling
-// the automatic HTTP/2 fallback on malformed HTTP version errors.
+// causes the retryablehttp client's HTTPClient2 to be the same as HTTPClient,
+// preventing retryablehttp-go from silently upgrading to HTTP/2 on malformed
+// HTTP version errors.
 func TestHTTP11DisablesHTTP2Fallback(t *testing.T) {
 	opts := Options{
 		Timeout:  5 * time.Second,
@@ -20,7 +21,8 @@ func TestHTTP11DisablesHTTP2Fallback(t *testing.T) {
 	}
 	ht, err := New(&opts)
 	require.Nil(t, err)
-	require.Nil(t, ht.client.HTTPClient2, "HTTPClient2 should be nil when Protocol is HTTP11")
+	require.Same(t, ht.client.HTTPClient, ht.client.HTTPClient2,
+		"HTTPClient2 should be the same as HTTPClient when Protocol is HTTP11, preventing HTTP/2 fallback")
 }
 
 // TestDefaultProtocolKeepsHTTP2Fallback verifies that when Protocol is not set,

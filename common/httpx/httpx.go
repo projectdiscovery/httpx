@@ -77,9 +77,6 @@ func New(options *Options) (*HTTPX, error) {
 	retryablehttpOptions.Timeout = httpx.Options.Timeout
 	retryablehttpOptions.RetryMax = httpx.Options.RetryMax
 	retryablehttpOptions.Trace = options.Trace
-	if httpx.Options.Protocol == HTTP11 {
-		retryablehttpOptions.DisableHTTP2Fallback = true
-	}
 	handleHSTS := func(req *http.Request) {
 		if req.Response.Header.Get("Strict-Transport-Security") == "" {
 			return
@@ -185,6 +182,14 @@ func New(options *Options) (*HTTPX, error) {
 		Timeout:       httpx.Options.Timeout,
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
+
+	// When HTTP/1.1-only mode is requested, override the retryablehttp fallback
+	// client (HTTPClient2) to use the same HTTP/1.1 transport. This prevents
+	// retryablehttp-go from silently upgrading to HTTP/2 when it encounters
+	// "malformed HTTP version" errors (see retryablehttp-go do.go).
+	if httpx.Options.Protocol == HTTP11 {
+		httpx.client.HTTPClient2 = httpx.client.HTTPClient
+	}
 
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
