@@ -35,6 +35,8 @@ func TestDefaultProtocolKeepsHTTP2Fallback(t *testing.T) {
 	ht, err := New(&opts)
 	require.Nil(t, err)
 	require.NotNil(t, ht.client.HTTPClient2, "HTTPClient2 should not be nil when Protocol is not HTTP11")
+	require.NotSame(t, ht.client.HTTPClient, ht.client.HTTPClient2,
+		"HTTPClient2 should be a separate client from HTTPClient when Protocol is not HTTP11")
 }
 
 func TestDo(t *testing.T) {
