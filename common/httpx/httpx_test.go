@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -14,6 +15,16 @@ import (
 // preventing retryablehttp-go from silently upgrading to HTTP/2 on malformed
 // HTTP version errors.
 func TestHTTP11DisablesHTTP2Fallback(t *testing.T) {
+	// New() sets GODEBUG=http2client=0 for HTTP11 — isolate this side effect
+	originalGodebug, hadGodebug := os.LookupEnv("GODEBUG")
+	t.Cleanup(func() {
+		if hadGodebug {
+			os.Setenv("GODEBUG", originalGodebug)
+		} else {
+			os.Unsetenv("GODEBUG")
+		}
+	})
+
 	opts := Options{
 		Timeout:  5 * time.Second,
 		RetryMax: 1,
