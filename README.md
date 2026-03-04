@@ -289,6 +289,14 @@ For details about running httpx, see https://docs.projectdiscovery.io/tools/http
 - As default, `httpx` probe with **HTTPS** scheme and fall-back to **HTTP** only if **HTTPS** is not reachable.
 - Burp Suite XML exports can be used as input with `-l burp-export.xml -im burp`
 - The `-no-fallback` flag can be used to probe and display both **HTTP** and **HTTPS** result.
+- ### Disable HTTP/2 Fallback
+
+Use the `-dhf` flag to prevent automatic fallback to HTTP/2 when using HTTP/1.1 mode:
+```bash
+httpx -u http://target.com -pr http11 -dhf
+```
+
+This ensures strict HTTP/1.1 protocol compliance and prevents automatic protocol switching during retries.
 - Custom scheme for ports can be defined, for example `-ports http:443,http:80,https:8443`
 - Custom resolver supports multiple protocol (**doh|tcp|udp**) in form of `protocol:resolver:port` (e.g. `udp:127.0.0.1:53`)
 - Secret files can be used for domain-based authentication via `-sf secrets.yaml`. Supported auth types: `BasicAuth`, `BearerToken`, `Header`, `Cookie`, `Query`. Example:
