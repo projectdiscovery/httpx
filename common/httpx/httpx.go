@@ -153,11 +153,10 @@ func New(options *Options) (*HTTPX, error) {
 		DisableKeepAlives: true,
 	}
 
-	if httpx.Options.Protocol == "http11" {
-		// disable http2
-		_ = os.Setenv("GODEBUG", "http2client=0")
+	if httpx.Options.Protocol == HTTP11 {
+		// disable HTTP/2 for HTTP/1.1-only preference
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
-	}
+	}  // use typed constant, remove global env hack
 
 	if httpx.Options.SniName != "" {
 		transport.TLSClientConfig.ServerName = httpx.Options.SniName
@@ -196,6 +195,16 @@ func New(options *Options) (*HTTPX, error) {
 	httpx.client2 = &http.Client{
 		Transport: transport2,
 		Timeout:   httpx.Options.Timeout,
+	}
+	if httpx.Options.Protocol == HTTP11 {
+		// use same HTTP/1.1 client to disable HTTP/2 probe
+		httpx.client.HTTPClient2 = httpx.client.HTTPClient
+		httpx.client2 = httpx.client.HTTPClient
+	}
+	// If HTTP1.1 only, disable retryablehttp HTTP/2 fallback and unify clients
+	if httpx.Options.Protocol == HTTP11 {
+		httpx.client.HTTPClient2 = httpx.client.HTTPClient
+		httpx.client2 = httpx.client.HTTPClient
 	}
 
 	httpx.htmlPolicy = bluemonday.NewPolicy()
