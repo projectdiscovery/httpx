@@ -518,11 +518,11 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.ResultDatabaseOmitRaw, "result-db-omit-raw", "rdbor", false, "omit raw request/response data from database"),
 	)
 
-	flagSet.CreateGroup("configs", "Configurations",
-		flagSet.StringVar(&cfgFile, "config", "", "path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)"),
-		flagSet.StringSliceVarP(&options.Resolvers, "resolvers", "r", nil, "list of custom resolver (file or comma separated)", goflags.NormalizedStringSliceOptions),
-		flagSet.Var(&options.Allow, "allow", "allowed list of IP/CIDR's to process (file or comma separated)"),
-		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
+    	flagSet.CreateGroup("configs", "Configurations",
+	    flagSet.StringVar(&cfgFile, "config", "", "path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)"),
+    	flagSet.StringSliceVarP(&options.Resolvers, "resolvers", "r", nil, "list of custom resolver (file or comma separated)", goflags.NormalizedStringSliceOptions),
+    	flagSet.Var(&options.Allow, "allow", "allowed list of IP/CIDR's to process (file or comma separated)"),
+  		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.StringVarP(&options.SniName, "sni-name", "sni", "", "custom TLS SNI name"),
 		flagSet.BoolVar(&options.RandomAgent, "random-agent", true, "enable Random User-Agent to use"),
 		flagSet.BoolVar(&options.AutoReferer, "auto-referer", false, "set the Referer header to the current URL"),
@@ -530,8 +530,8 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.Proxy, "proxy", "http-proxy", "", "proxy (http|socks) to use (eg http://127.0.0.1:8080)"),
 		flagSet.BoolVar(&options.Unsafe, "unsafe", false, "send raw requests skipping golang normalization"),
 		flagSet.BoolVar(&options.Resume, "resume", false, "resume scan using resume.cfg"),
-		(&options.FollowRedirects, "follow-redirects", "fr", false, "follow http redirects"),
-	    flagSet.BoolVarP(&options.DisableHTTPFallback, "dhf", "", false, "Disable HTTP/2 fallback on protocol errors when using HTTP/1.1 (-pr http11)"),
+		flagSet.BoolVarP(&options.FollowRedirects, "follow-redirects", "fr", false, "follow http redirects"),
+		flagSet.BoolVarP(&options.DisableHTTPFallback, "dhf", "", false, "Disable HTTP/2 fallback on protocol errors when using HTTP/1.1 (-pr http11)"),
 		flagSet.IntVarP(&options.MaxRedirects, "max-redirects", "maxr", 10, "max number of redirects to follow per host"),
 		flagSet.BoolVarP(&options.FollowHostRedirects, "follow-host-redirects", "fhr", false, "follow redirects on the same host"),
 		flagSet.BoolVarP(&options.RespectHSTS, "respect-hsts", "rhsts", false, "respect HSTS response headers for redirect requests"),
@@ -547,7 +547,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.DisableStdin, "no-stdin", false, "Disable Stdin processing"),
 		flagSet.StringVarP(&options.HttpApiEndpoint, "http-api-endpoint", "hae", "", "experimental http api endpoint"),
 		flagSet.StringVarP(&options.SecretFile, "secret-file", "sf", "", "path to the secret file for authentication"),
-	)
+)	
 
 	flagSet.CreateGroup("debug", "Debug",
 		flagSet.BoolVarP(&options.HealthCheck, "hc", "health-check", false, "run diagnostic check up"),
@@ -562,8 +562,8 @@ func ParseOptions() *Options {
 		flagSet.IntVarP(&options.StatsInterval, "stats-interval", "si", 0, "number of seconds to wait between showing a statistics update (default: 5)"),
 		flagSet.BoolVarP(&options.NoColor, "no-color", "nc", false, "disable colors in cli output"),
 		flagSet.BoolVarP(&options.Trace, "trace", "tr", false, "trace"),
-		flagSet.BoolVar(&options.DisableHTTPFallback, "dhf", false,"Disable HTTP/2 fallback on protocol errors when using HTTP/1.1 (-pr http11)")
-	)
+	
+)
 
 	flagSet.CreateGroup("Optimizations", "Optimizations",
 		flagSet.BoolVarP(&options.NoFallback, "no-fallback", "nf", false, "display both probed protocol (HTTPS and HTTP)"),
