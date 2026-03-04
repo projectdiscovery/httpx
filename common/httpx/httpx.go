@@ -152,7 +152,7 @@ func New(options *Options) (*HTTPX, error) {
 		DisableKeepAlives: true,
 	}
 
-	if httpx.Options.Protocol == HTTP11 {
+	if isHTTP11Protocol(httpx.Options.Protocol) {
 		// disable http2
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
 	}
@@ -180,7 +180,7 @@ func New(options *Options) (*HTTPX, error) {
 		Timeout:       httpx.Options.Timeout,
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
-	if httpx.Options.Protocol == HTTP11 {
+	if isHTTP11Protocol(httpx.Options.Protocol) {
 		// Keep retryablehttp-go on HTTP/1.1 as well when it retries internally.
 		httpx.client.HTTPClient2 = httpx.client.HTTPClient
 	}
@@ -212,6 +212,10 @@ func New(options *Options) (*HTTPX, error) {
 	}
 
 	return httpx, nil
+}
+
+func isHTTP11Protocol(protocol Proto) bool {
+	return strings.EqualFold(string(protocol), string(HTTP11))
 }
 
 // Do http request

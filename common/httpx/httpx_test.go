@@ -38,6 +38,15 @@ func TestHTTP11DisablesRetryableHTTP2Fallback(t *testing.T) {
 	require.Same(t, ht.client.HTTPClient, ht.client.HTTPClient2)
 }
 
+func TestHTTP11MixedCaseDisablesRetryableHTTP2Fallback(t *testing.T) {
+	opts := DefaultOptions
+	opts.Protocol = Proto("HTTP11")
+
+	ht, err := New(&opts)
+	require.NoError(t, err)
+	require.Same(t, ht.client.HTTPClient, ht.client.HTTPClient2)
+}
+
 func TestDefaultProtocolKeepsRetryableHTTP2Fallback(t *testing.T) {
 	opts := DefaultOptions
 
