@@ -9,6 +9,22 @@ import (
 )
 
 func TestDo(t *testing.T) {
+    // ensure HTTP/2 fallback and probe are active by default
+    htDefault, err := New(&DefaultOptions)
+    require.NoError(t, err)
+    // HTTPClient2 differs from primary client
+    require.NotSame(t, htDefault.client.HTTPClient, htDefault.client.HTTPClient2)
+
+    // Test HTTP/1.1 enforcement disables fallback and probes
+    opts := DefaultOptions
+    opts.Protocol = HTTP11
+    ht, err := New(&opts)
+    require.NoError(t, err)
+    require.Same(t, ht.client.HTTPClient, ht.client.HTTPClient2)
+    require.Same(t, ht.client.HTTPClient, ht.client2)
+
+    // existing tests follow
+
 	ht, err := New(&DefaultOptions)
 	require.Nil(t, err)
 

@@ -153,9 +153,8 @@ func New(options *Options) (*HTTPX, error) {
 		DisableKeepAlives: true,
 	}
 
-	if httpx.Options.Protocol == "http11" {
+	if httpx.Options.Protocol == HTTP11 {
 		// disable http2
-		_ = os.Setenv("GODEBUG", "http2client=0")
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
 	}
 
@@ -177,7 +176,8 @@ func New(options *Options) (*HTTPX, error) {
 		transport.Proxy = http.ProxyURL(proxyURL)
 	}
 
-	httpx.client = retryablehttp.NewWithHTTPClient(&http.Client{
+	 // primary HTTP/1.1 client
+
 		Transport:     transport,
 		Timeout:       httpx.Options.Timeout,
 		CheckRedirect: redirectFunc,
@@ -196,6 +196,14 @@ func New(options *Options) (*HTTPX, error) {
 	httpx.client2 = &http.Client{
 		Transport: transport2,
 		Timeout:   httpx.Options.Timeout,
+	}
+
+	// when HTTP11-only mode, disable any HTTP/2 fallback or probe
+	if httpx.Options.Protocol == HTTP11 {
+		// unify retryablehttp fallback client to HTTP/1.1 client
+		httpx.client.HTTPClient2 = httpx.client.HTTPClient
+		// unify httpx.client2 (probe client) to HTTP/1.1 client
+		httpx.client2 = httpx.client.HTTPClient
 	}
 
 	httpx.htmlPolicy = bluemonday.NewPolicy()
