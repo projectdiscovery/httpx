@@ -63,6 +63,7 @@ type Options struct {
 	CDNCheckClient            *cdncheck.Client
 	Protocol                  Proto
 	Trace                     bool
+	DisableHTTPFallback       bool
 }
 
 // DefaultOptions contains the default options
