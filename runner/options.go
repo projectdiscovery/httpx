@@ -561,6 +561,7 @@ func ParseOptions() *Options {
 		flagSet.IntVarP(&options.StatsInterval, "stats-interval", "si", 0, "number of seconds to wait between showing a statistics update (default: 5)"),
 		flagSet.BoolVarP(&options.NoColor, "no-color", "nc", false, "disable colors in cli output"),
 		flagSet.BoolVarP(&options.Trace, "trace", "tr", false, "trace"),
+		flagSet.BoolVar(&options.DisableHTTPFallback, "dhf", false,"Disable HTTP/2 fallback on protocol errors when using HTTP/1.1 (-pr http11)")
 	)
 
 	flagSet.CreateGroup("Optimizations", "Optimizations",
