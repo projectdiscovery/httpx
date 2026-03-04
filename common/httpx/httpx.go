@@ -183,6 +183,10 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
+	 if httpx.Options.Protocol == "http11" && httpx.Options.DisableHTTPFallback {
+	     httpx.client.CheckRetry = getCustomCheckRetry(httpx.Options)
+}
+
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -468,4 +472,15 @@ func (httpx *HTTPX) Sanitize(respStr string, trimLine, normalizeSpaces bool) str
 		respStr = httputilz.NormalizeSpaces(respStr)
 	}
 	return respStr
+	// getCustomCheckRetry returns a custom CheckRetry function that respects DisableHTTPFallback
+ func getCustomCheckRetry(opts *Options) retryablehttp.CheckRetryFunc {
+	return func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		if opts.Protocol == "http11" && opts.DisableHTTPFallback {
+			if isHTTP2FallbackError(err) {
+				return false, err
+			}
+		}
+		return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
+	}
+}
 }
