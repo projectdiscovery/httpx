@@ -369,7 +369,7 @@ type Options struct {
 	ResultDatabaseTable     string
 	ResultDatabaseBatchSize int
 	ResultDatabaseOmitRaw   bool
-
+    DisableHTTPFallback     bool
 	// Optional pre-created objects to reduce allocations
 	Wappalyzer     *wappalyzer.Wappalyze
 	Networkpolicy  *networkpolicy.NetworkPolicy
