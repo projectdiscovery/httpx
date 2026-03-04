@@ -530,7 +530,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.Proxy, "proxy", "http-proxy", "", "proxy (http|socks) to use (eg http://127.0.0.1:8080)"),
 		flagSet.BoolVar(&options.Unsafe, "unsafe", false, "send raw requests skipping golang normalization"),
 		flagSet.BoolVar(&options.Resume, "resume", false, "resume scan using resume.cfg"),
-		flagSet.BoolVarP(&options.FollowRedirects, "follow-redirects", "fr", false, "follow http redirects"),
+		(&options.FollowRedirects, "follow-redirects", "fr", false, "follow http redirects"),
 	    flagSet.BoolVarP(&options.DisableHTTPFallback, "dhf", "", false, "Disable HTTP/2 fallback on protocol errors when using HTTP/1.1 (-pr http11)"),
 		flagSet.IntVarP(&options.MaxRedirects, "max-redirects", "maxr", 10, "max number of redirects to follow per host"),
 		flagSet.BoolVarP(&options.FollowHostRedirects, "follow-host-redirects", "fhr", false, "follow redirects on the same host"),
