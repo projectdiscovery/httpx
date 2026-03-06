@@ -154,9 +154,13 @@ func New(options *Options) (*HTTPX, error) {
 	}
 
 	if httpx.Options.Protocol == "http11" {
-		// disable http2
+		// disable http2 at transport level
 		_ = os.Setenv("GODEBUG", "http2client=0")
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
+		// also disable the HTTP/2 fallback in retryablehttp-go so that
+		// malformed-HTTP/2 errors do not cause a silent protocol upgrade
+		// via HTTPClient2 (see projectdiscovery/retryablehttp-go#532)
+		retryablehttpOptions.DisableHTTP2Fallback = true
 	}
 
 	if httpx.Options.SniName != "" {
