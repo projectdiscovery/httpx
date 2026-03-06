@@ -183,6 +183,13 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
+	// When protocol is explicitly forced to HTTP/1.1, prevent retryablehttp from
+	// falling back to its dedicated HTTP/2 client path on malformed HTTP/2 errors.
+	// Keep retries enabled, but pinned to the same HTTP/1.1 transport settings.
+	if httpx.Options.Protocol == HTTP11 {
+		httpx.client.HTTPClient2 = httpx.client.HTTPClient
+	}
+
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
