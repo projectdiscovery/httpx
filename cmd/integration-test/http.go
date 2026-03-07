@@ -49,7 +49,7 @@ type standardHttpGet struct {
 func (h *standardHttpGet) Execute() error {
 	router := httprouter.New()
 	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		fmt.Fprintf(w, "This is a test")
+		_, _ = fmt.Fprintf(w, "This is a test")
 		r.Close = true
 	}))
 	var ts *httptest.Server
@@ -100,7 +100,7 @@ func (h *issue276) Execute() error {
 	router.GET("/redirect", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		w.Header().Add("Location", ts.URL+"/redirect")
 		w.WriteHeader(302)
-		fmt.Fprintf(w, "<html><body><title>Object moved</title></body></html>")
+		_, _ = fmt.Fprintf(w, "<html><body><title>Object moved</title></body></html>")
 	}))
 	ts = httptest.NewServer(router)
 	defer ts.Close()
@@ -163,7 +163,7 @@ func (h *issue303) Execute() error {
 		// mimic a misconfigured web server behavior declaring gzip body
 		w.Header().Add("Content-Encoding", "gzip")
 		// but sending it uncompressed
-		fmt.Fprint(w, "<html><body>This is a test</body></html>")
+		_, _ = fmt.Fprint(w, "<html><body>This is a test</body></html>")
 	}))
 	ts = httptest.NewServer(router)
 	defer ts.Close()
@@ -191,7 +191,7 @@ func (h *issue363) Execute() error {
 	router.GET("/redirect", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		w.Header().Add("Location", ts.URL+"/redirect")
 		w.WriteHeader(302)
-		fmt.Fprintf(w, "<html><body><title>Object moved</title></body></html>")
+		_, _ = fmt.Fprintf(w, "<html><body><title>Object moved</title></body></html>")
 	}))
 	ts = httptest.NewServer(router)
 	defer ts.Close()
@@ -214,7 +214,7 @@ func (h *issue400) Execute() error {
 	router.POST("/receive", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Add("Content-Type", "application/json")
 		data, _ := io.ReadAll(r.Body)
-		fmt.Fprintf(w, "data received %s", data)
+		_, _ = fmt.Fprintf(w, "data received %s", data)
 	}))
 	ts = httptest.NewServer(router)
 	defer ts.Close()
@@ -238,7 +238,7 @@ func (h *issue414) Execute() error {
 	router.POST(uripath, httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Add("Content-Type", "application/json")
 		data, _ := io.ReadAll(r.Body)
-		fmt.Fprintf(w, "data received %s", data)
+		_, _ = fmt.Fprintf(w, "data received %s", data)
 	}))
 	ts = httptest.NewServer(router)
 	defer ts.Close()
@@ -265,7 +265,7 @@ func (h *titleUnwantedChars) Execute() error {
 	uriPath := "/index"
 	router.GET(uriPath, httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		htmlResponse := "<html><head><title>\v\fProject\n\r Discovery\n - Httpx\t></title></head><body>test data</body></html>"
-		fmt.Fprint(w, htmlResponse)
+		_, _ = fmt.Fprint(w, htmlResponse)
 	}))
 	ts = httptest.NewServer(router)
 	defer ts.Close()
@@ -290,7 +290,7 @@ func (h *issue480) Execute() error {
 	uriPath := "////////////////../../../../../../../../etc/passwd"
 	router.GET(uriPath, httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		htmlResponse := "<html><body>ok from uri</body></html>"
-		fmt.Fprint(w, htmlResponse)
+		_, _ = fmt.Fprint(w, htmlResponse)
 	}))
 	ts = httptest.NewServer(router)
 	defer ts.Close()
@@ -314,7 +314,7 @@ func (h *customHeader) Execute() error {
 	router := httprouter.New()
 	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Add("Content-Type", "application/json")
-		fmt.Fprint(w, `{"status": "ok"}`)
+		_, _ = fmt.Fprint(w, `{"status": "ok"}`)
 	}))
 	ts = httptest.NewServer(router)
 	defer ts.Close()
@@ -341,7 +341,7 @@ func (h *outputMatchCondition) Execute() error {
 	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(200)
-		fmt.Fprint(w, `{"status": "ok"}`)
+		_, _ = fmt.Fprint(w, `{"status": "ok"}`)
 	}))
 	ts = httptest.NewServer(router)
 	defer ts.Close()
@@ -365,7 +365,7 @@ func (h *outputFilterCondition) Execute() error {
 	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(200)
-		fmt.Fprint(w, `{"status": "ok"}`)
+		_, _ = fmt.Fprint(w, `{"status": "ok"}`)
 	}))
 	ts = httptest.NewServer(router)
 	defer ts.Close()
@@ -390,7 +390,7 @@ func (h *outputAll) Execute() error {
 	router.GET("/", httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(200)
-		fmt.Fprint(w, `{"status": "ok"}`)
+		_, _ = fmt.Fprint(w, `{"status": "ok"}`)
 	}))
 	ts = httptest.NewServer(router)
 	defer ts.Close()

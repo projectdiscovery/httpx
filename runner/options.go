@@ -2,7 +2,6 @@ package runner
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -23,7 +22,8 @@ import (
 	"github.com/projectdiscovery/httpx/common/customlist"
 	customport "github.com/projectdiscovery/httpx/common/customports"
 	fileutilz "github.com/projectdiscovery/httpx/common/fileutil"
-	"github.com/projectdiscovery/httpx/common/httpx"
+	httpxcommon "github.com/projectdiscovery/httpx/common/httpx"
+	"github.com/projectdiscovery/httpx/common/inputformats"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/networkpolicy"
 	pdcpauth "github.com/projectdiscovery/utils/auth/pdcp"
@@ -31,6 +31,7 @@ import (
 	fileutil "github.com/projectdiscovery/utils/file"
 	sliceutil "github.com/projectdiscovery/utils/slice"
 	stringsutil "github.com/projectdiscovery/utils/strings"
+	"github.com/projectdiscovery/utils/structs"
 	updateutils "github.com/projectdiscovery/utils/update"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 )
@@ -85,6 +86,8 @@ type ScanOptions struct {
 	NoFallback                bool
 	NoFallbackScheme          bool
 	TechDetect                bool
+	CPEDetect                 bool
+	WordPress                 bool
 	StoreChain                bool
 	StoreVisionReconClusters  bool
 	MaxResponseBodySizeToSave int
@@ -148,6 +151,8 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		NoFallback:                s.NoFallback,
 		NoFallbackScheme:          s.NoFallbackScheme,
 		TechDetect:                s.TechDetect,
+		CPEDetect:                 s.CPEDetect,
+		WordPress:                 s.WordPress,
 		StoreChain:                s.StoreChain,
 		OutputExtractRegex:        s.OutputExtractRegex,
 		MaxResponseBodySizeToSave: s.MaxResponseBodySizeToSave,
@@ -184,18 +189,21 @@ type Options struct {
 	// Deprecated: use Proxy
 	HTTPProxy string
 	// Deprecated: use Proxy
-	SocksProxy                string
-	Proxy                     string
-	InputFile                 string
-	InputTargetHost           goflags.StringSlice
-	Methods                   string
-	RequestURI                string
-	RequestURIs               string
-	requestURIs               []string
-	OutputMatchStatusCode     string
-	OutputMatchContentLength  string
-	OutputFilterStatusCode    string
+	SocksProxy               string
+	Proxy                    string
+	InputFile                string
+	InputMode                string
+	InputTargetHost          goflags.StringSlice
+	Methods                  string
+	RequestURI               string
+	RequestURIs              string
+	requestURIs              []string
+	OutputMatchStatusCode    string
+	OutputMatchContentLength string
+	OutputFilterStatusCode   string
+	// Deprecated: use OutputFilterPageType with "error" instead.
 	OutputFilterErrorPage     bool
+	OutputFilterPageType      goflags.StringSlice
 	FilterOutDuplicates       bool
 	OutputFilterContentLength string
 	InputRawRequest           string
@@ -222,6 +230,7 @@ type Options struct {
 	RespectHSTS               bool
 	StoreResponse             bool
 	JSONOutput                bool
+	MarkDownOutput            bool
 	CSVOutput                 bool
 	CSVOutputEncoding         string
 	PdcpAuth                  string
@@ -256,11 +265,15 @@ type Options struct {
 	NoFallback                bool
 	NoFallbackScheme          bool
 	TechDetect                bool
+	CPEDetect                 bool
+	WordPress                 bool
+	CustomFingerprintFile     string
 	TLSGrab                   bool
 	protocol                  string
 	ShowStatistics            bool
 	StatsInterval             int
 	RandomAgent               bool
+	AutoReferer               bool
 	StoreChain                bool
 	StoreVisionReconClusters  bool
 	Deny                      customlist.CustomList
@@ -312,6 +325,8 @@ type Options struct {
 	OutputFilterCondition     string
 	OutputMatchCondition      string
 	StripFilter               string
+	ListOutputFields          bool
+	ExcludeOutputFields       goflags.StringSlice
 	//The OnResult callback function is invoked for each result. It is important to check for errors in the result before using Result.Err.
 	OnResult             OnResultCallback
 	DisableUpdateCheck   bool
@@ -331,6 +346,9 @@ type Options struct {
 	Protocol                  string
 	OutputFilterErrorPagePath string
 	DisableStdout             bool
+
+	JavascriptCodes goflags.StringSlice
+
 	// AssetUpload
 	AssetUpload bool
 	// AssetName
@@ -340,11 +358,22 @@ type Options struct {
 	// AssetFileUpload
 	AssetFileUpload string
 	TeamID          string
+	// SecretFile is the path to the secret file for authentication
+	SecretFile string
 	// OnClose adds a callback function that is invoked when httpx is closed
 	// to be exact at end of existing closures
 	OnClose func()
 
 	Trace bool
+
+	ResultDatabase          bool
+	ResultDatabaseConfig    string
+	ResultDatabaseType      string
+	ResultDatabaseConnStr   string
+	ResultDatabaseName      string
+	ResultDatabaseTable     string
+	ResultDatabaseBatchSize int
+	ResultDatabaseOmitRaw   bool
 
 	// Optional pre-created objects to reduce allocations
 	Wappalyzer     *wappalyzer.Wappalyze
@@ -364,6 +393,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.InputFile, "list", "l", "", "input file containing list of hosts to process"),
 		flagSet.StringVarP(&options.InputRawRequest, "request", "rr", "", "file containing raw request"),
 		flagSet.StringSliceVarP(&options.InputTargetHost, "target", "u", nil, "input target host(s) to probe", goflags.CommaSeparatedStringSliceOptions),
+		flagSet.StringVarP(&options.InputMode, "input-mode", "im", "", fmt.Sprintf("mode of input file (%s)", inputformats.SupportedFormats())),
 	)
 
 	flagSet.CreateGroup("Probes", "Probes",
@@ -381,8 +411,11 @@ func ParseOptions() *Options {
 		flagSet.DynamicVarP(&options.ResponseBodyPreviewSize, "body-preview", "bp", 100, "display first N characters of response body"),
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
 		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
+		flagSet.StringVarP(&options.CustomFingerprintFile, "custom-fingerprint-file", "cff", "", "path to a custom fingerprint file for technology detection"),
+		flagSet.BoolVar(&options.CPEDetect, "cpe", false, "display CPE (Common Platform Enumeration) based on awesome-search-queries"),
+		flagSet.BoolVarP(&options.WordPress, "wordpress", "wp", false, "display WordPress plugins and themes"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
-		flagSet.BoolVar(&options.OutputWebSocket, "websocket", false, "display server using websocket"),
+		flagSet.BoolVarP(&options.OutputWebSocket, "websocket", "ws", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
 		flagSet.BoolVar(&options.OutputCName, "cname", false, "display host cname"),
 		flagSet.BoolVarP(&options.ExtractFqdn, "efqdn", "extract-fqdn", false, "get domain and subdomains from response body and header in jsonl/csv output"),
@@ -400,6 +433,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.NoScreenshotFullPage, "no-screenshot-full-page", false, "disable saving full page screenshot"),
 		flagSet.DurationVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10*time.Second, "set timeout for screenshot in seconds"),
 		flagSet.DurationVarP(&options.ScreenshotIdle, "screenshot-idle", "sid", 1*time.Second, "set idle time before taking screenshot in seconds"),
+		flagSet.StringSliceVarP(&options.JavascriptCodes, "javascript-code", "jsc", nil, "execute JavaScript code after navigation", goflags.StringSliceOptions),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",
@@ -422,7 +456,8 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("filters", "Filters",
 		flagSet.StringVarP(&options.OutputFilterStatusCode, "filter-code", "fc", "", "filter response with specified status code (-fc 403,401)"),
-		flagSet.BoolVarP(&options.OutputFilterErrorPage, "filter-error-page", "fep", false, "filter response with ML based error page detection"),
+		flagSet.StringSliceVarP(&options.OutputFilterPageType, "filter-page-type", "fpt", nil, "filter response with specified page type (e.g. -fpt login,captcha,parked)", goflags.CommaSeparatedStringSliceOptions),
+		flagSet.BoolVarP(&options.OutputFilterErrorPage, "filter-error-page", "fep", false, "[DEPRECATED: use -fpt] filter response with ML based error page detection"),
 		flagSet.BoolVarP(&options.FilterOutDuplicates, "filter-duplicates", "fd", false, "filter out near-duplicate responses (only first response is retained)"),
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "filter response with specified content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "filter response body with specified line count (-flc 423,532)"),
@@ -434,6 +469,8 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
 		flagSet.StringVarP(&options.OutputFilterCondition, "filter-condition", "fdc", "", "filter response with dsl expression condition"),
 		flagSet.DynamicVar(&options.StripFilter, "strip", "html", "strips all tags in response. supported formats: html,xml"),
+		flagSet.BoolVarP(&options.ListOutputFields, "list-output-fields", "lof", false, "list of fields to output (comma separated)"),
+		flagSet.StringSliceVarP(&options.ExcludeOutputFields, "exclude-output-fields", "eof", nil, "exclude output fields output based on a condition", goflags.NormalizedOriginalStringSliceOptions),
 	)
 
 	flagSet.CreateGroup("rate-limit", "Rate-Limit",
@@ -469,6 +506,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.CSVOutput, "csv", false, "store output in csv format"),
 		flagSet.StringVarP(&options.CSVOutputEncoding, "csv-output-encoding", "csvo", "", "define output encoding"),
 		flagSet.BoolVarP(&options.JSONOutput, "json", "j", false, "store output in JSONL(ines) format"),
+		flagSet.BoolVarP(&options.MarkDownOutput, "markdown", "md", false, "store output in Markdown table format"),
 		flagSet.BoolVarP(&options.ResponseHeadersInStdout, "include-response-header", "irh", false, "include http response (headers) in JSON output (-json only)"),
 		flagSet.BoolVarP(&options.ResponseInStdout, "include-response", "irr", false, "include http request/response (headers + body) in JSON output (-json only)"),
 		flagSet.BoolVarP(&options.Base64ResponseInStdout, "include-response-base64", "irrb", false, "include base64 encoded http request/response in JSON output (-json only)"),
@@ -477,6 +515,14 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.StoreVisionReconClusters, "store-vision-recon-cluster", "svrc", false, "include visual recon clusters (-ss and -sr only)"),
 		flagSet.StringVarP(&options.Protocol, "protocol", "pr", "", "protocol to use (unknown, http11, http2 [experimental], http3 [experimental])"),
 		flagSet.StringVarP(&options.OutputFilterErrorPagePath, "filter-error-page-path", "fepp", "filtered_error_page.json", "path to store filtered error pages"),
+		flagSet.BoolVarP(&options.ResultDatabase, "result-db", "rdb", false, "store results in database"),
+		flagSet.StringVarP(&options.ResultDatabaseConfig, "result-db-config", "rdbc", "", "path to database config file"),
+		flagSet.StringVarP(&options.ResultDatabaseType, "result-db-type", "rdbt", "", "database type (mongodb, postgres, mysql)"),
+		flagSet.StringVarEnv(&options.ResultDatabaseConnStr, "result-db-conn", "rdbcs", "", "HTTPX_DB_CONNECTION_STRING", "database connection string"),
+		flagSet.StringVarP(&options.ResultDatabaseName, "result-db-name", "rdbn", "httpx", "database name"),
+		flagSet.StringVarP(&options.ResultDatabaseTable, "result-db-table", "rdbtb", "results", "table/collection name"),
+		flagSet.IntVarP(&options.ResultDatabaseBatchSize, "result-db-batch-size", "rdbbs", 100, "batch size for database inserts"),
+		flagSet.BoolVarP(&options.ResultDatabaseOmitRaw, "result-db-omit-raw", "rdbor", false, "omit raw request/response data from database"),
 	)
 
 	flagSet.CreateGroup("configs", "Configurations",
@@ -486,6 +532,7 @@ func ParseOptions() *Options {
 		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.StringVarP(&options.SniName, "sni-name", "sni", "", "custom TLS SNI name"),
 		flagSet.BoolVar(&options.RandomAgent, "random-agent", true, "enable Random User-Agent to use"),
+		flagSet.BoolVar(&options.AutoReferer, "auto-referer", false, "set the Referer header to the current URL"),
 		flagSet.VarP(&options.CustomHeaders, "header", "H", "custom http headers to send with request"),
 		flagSet.StringVarP(&options.Proxy, "proxy", "http-proxy", "", "proxy (http|socks) to use (eg http://127.0.0.1:8080)"),
 		flagSet.BoolVar(&options.Unsafe, "unsafe", false, "send raw requests skipping golang normalization"),
@@ -505,6 +552,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.TlsImpersonate, "tls-impersonate", "tlsi", false, "enable experimental client hello (ja3) tls randomization"),
 		flagSet.BoolVar(&options.DisableStdin, "no-stdin", false, "Disable Stdin processing"),
 		flagSet.StringVarP(&options.HttpApiEndpoint, "http-api-endpoint", "hae", "", "experimental http api endpoint"),
+		flagSet.StringVarP(&options.SecretFile, "secret-file", "sf", "", "path to the secret file for authentication"),
 	)
 
 	flagSet.CreateGroup("debug", "Debug",
@@ -530,8 +578,8 @@ func ParseOptions() *Options {
 		flagSet.IntVar(&options.Retries, "retries", 0, "number of retries"),
 		flagSet.IntVar(&options.Timeout, "timeout", 10, "timeout in seconds"),
 		flagSet.DurationVar(&options.Delay, "delay", -1, "duration between each http request (eg: 200ms, 1s)"),
-		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", math.MaxInt32, "max response size to save in bytes"),
-		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", math.MaxInt32, "max response size to read in bytes"),
+		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", int(httpxcommon.DefaultMaxResponseBodySize), "max response size to save in bytes"),
+		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", int(httpxcommon.DefaultMaxResponseBodySize), "max response size to read in bytes"),
 		flagSet.IntVar(&options.RetryRounds, "retry-rounds", 0, "number of retry rounds for HTTP 429 responses (Too Many Requests)"),
 		flagSet.IntVar(&options.RetryDelay, "retry-delay", 500, "delay between retry rounds for HTTP 429 responses (e.g. 5ms, 30ms)"),
 	)
@@ -547,6 +595,17 @@ func ParseOptions() *Options {
 	)
 
 	_ = flagSet.Parse()
+
+	if options.ListOutputFields {
+		fields, err := structs.GetStructFields(Result{})
+		if err != nil {
+			gologger.Fatal().Msgf("Could not get struct fields: %s\n", err)
+		}
+		for _, field := range fields {
+			fmt.Println(field)
+		}
+		os.Exit(0)
+	}
 
 	if options.OutputAll && options.Output == "" {
 		gologger.Fatal().Msg("Please specify an output file using -o/-output when using -oa/-output-all")
@@ -650,6 +709,17 @@ func (options *Options) ValidateOptions() error {
 		return fmt.Errorf("file '%s' does not exist", options.InputRawRequest)
 	}
 
+	if options.SecretFile != "" && !fileutil.FileExists(options.SecretFile) {
+		return fmt.Errorf("secret file '%s' does not exist", options.SecretFile)
+	}
+	if options.InputMode != "" && inputformats.GetFormat(options.InputMode) == nil {
+		return fmt.Errorf("invalid input mode '%s', supported formats: %s", options.InputMode, inputformats.SupportedFormats())
+	}
+
+	if options.InputMode != "" && options.InputFile == "" {
+		return errors.New("-im/-input-mode requires -l/-list to specify an input file")
+	}
+
 	if options.Silent {
 		incompatibleFlagsList := flagsIncompatibleWithSilent(options)
 		if len(incompatibleFlagsList) > 0 {
@@ -716,9 +786,22 @@ func (options *Options) ValidateOptions() error {
 				return errors.Wrapf(err, "Couldn't process resolver file \"%s\"", resolver)
 			}
 			for line := range chFile {
-				resolvers = append(resolvers, line)
+				line = strings.TrimSpace(line)
+				if line != "" && strings.Contains(line, ",") {
+					for item := range strings.SplitSeq(line, ",") {
+						item = strings.TrimSpace(item)
+						if item != "" {
+							resolvers = append(resolvers, item)
+						}
+					}
+				} else if line != "" {
+					resolvers = append(resolvers, line)
+				}
 			}
 		} else {
+			if strings.ContainsAny(resolver, `/\`) {
+				gologger.Warning().Msgf("Resolver argument \"%s\" looks like a file path but the file does not exist", resolver)
+			}
 			resolvers = append(resolvers, resolver)
 		}
 	}
@@ -752,7 +835,7 @@ func (options *Options) ValidateOptions() error {
 		options.OutputCDN = "true"
 	}
 
-	if !stringsutil.EqualFoldAny(options.Protocol, string(httpx.UNKNOWN), string(httpx.HTTP11)) {
+	if !stringsutil.EqualFoldAny(options.Protocol, string(httpxcommon.UNKNOWN), string(httpxcommon.HTTP11)) {
 		return fmt.Errorf("invalid protocol: %s", options.Protocol)
 	}
 
@@ -814,6 +897,10 @@ func (options *Options) configureOutput() {
 	}
 	if options.CSVOutputEncoding != "" {
 		options.CSVOutput = true
+	}
+	if options.OutputFilterErrorPage && len(options.OutputFilterPageType) == 0 {
+		gologger.Info().Msg("-fep is deprecated, use -fpt error instead")
+		options.OutputFilterPageType = goflags.StringSlice{"error"}
 	}
 }
 

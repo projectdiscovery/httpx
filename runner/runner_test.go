@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/mapcidr/asn"
@@ -19,6 +20,74 @@ import (
 	syncutil "github.com/projectdiscovery/utils/sync"
 	"github.com/stretchr/testify/require"
 )
+
+func TestRunner_resumeAfterInterrupt(t *testing.T) {
+	domains := []string{"a.com", "b.com", "c.com", "d.com", "e.com", "f.com", "g.com", "h.com", "i.com", "j.com"}
+	interruptAfter := 4
+
+	// --- Full scan (reference): process all domains without interrupt ---
+	rFull, err := New(&Options{})
+	require.Nil(t, err, "could not create httpx runner")
+	rFull.options.resumeCfg = &ResumeCfg{}
+	var fullOutput []string
+	for _, d := range domains {
+		rFull.options.resumeCfg.current = d
+		rFull.options.resumeCfg.currentIndex++
+		fullOutput = append(fullOutput, d)
+	}
+
+	// --- Interrupted scan: process items, interrupt after interruptAfter ---
+	rInt, err := New(&Options{})
+	require.Nil(t, err, "could not create httpx runner")
+	rInt.options.resumeCfg = &ResumeCfg{}
+	var interruptedOutput []string
+	for _, d := range domains {
+		// same check as processItem: bail out if interrupted
+		select {
+		case <-rInt.interruptCh:
+			continue
+		default:
+		}
+
+		rInt.options.resumeCfg.current = d
+		rInt.options.resumeCfg.currentIndex++
+		interruptedOutput = append(interruptedOutput, d)
+
+		if len(interruptedOutput) == interruptAfter {
+			rInt.Interrupt()
+		}
+	}
+
+	// simulate SaveResumeConfig: save the index after interrupt
+	savedIndex := rInt.options.resumeCfg.currentIndex
+
+	// the saved index must equal exactly the number of items that were processed
+	require.Equal(t, interruptAfter, savedIndex, "resume index should equal number of completed items")
+	// every domain before the index must be in the interrupted output
+	require.Equal(t, domains[:interruptAfter], interruptedOutput, "interrupted output should contain exactly the first N domains")
+
+	// --- Resumed scan: load saved index, skip already-processed items ---
+	rRes, err := New(&Options{})
+	require.Nil(t, err, "could not create httpx runner")
+	rRes.options.resumeCfg = &ResumeCfg{Index: savedIndex}
+	var resumedOutput []string
+	for _, d := range domains {
+		// same resume-skip logic as processItem
+		rRes.options.resumeCfg.current = d
+		rRes.options.resumeCfg.currentIndex++
+		if rRes.options.resumeCfg.currentIndex <= rRes.options.resumeCfg.Index {
+			continue
+		}
+		resumedOutput = append(resumedOutput, d)
+	}
+
+	// every domain after the index must be in the resumed output
+	require.Equal(t, domains[interruptAfter:], resumedOutput, "resumed output should contain exactly the remaining domains")
+
+	// union of interrupted + resumed must equal the full scan
+	combined := append(interruptedOutput, resumedOutput...)
+	require.Equal(t, fullOutput, combined, "interrupted + resumed should equal full scan")
+}
 
 func TestRunner_domain_targets(t *testing.T) {
 	options := &Options{}
@@ -71,6 +140,36 @@ func TestRunner_probeall_targets(t *testing.T) {
 	}
 
 	require.ElementsMatch(t, expected, got, "could not expected output")
+}
+
+func TestRunner_probeall_targets_with_port(t *testing.T) {
+	options := &Options{
+		ProbeAllIPS: true,
+	}
+	r, err := New(options)
+	require.Nil(t, err, "could not create httpx runner")
+
+	inputWithPort := "http://one.one.one.one:8080"
+	inputWithoutPort := "one.one.one.one"
+
+	gotWithPort := []httpx.Target{}
+	for target := range r.targets(r.hp, inputWithPort) {
+		gotWithPort = append(gotWithPort, target)
+	}
+
+	gotWithoutPort := []httpx.Target{}
+	for target := range r.targets(r.hp, inputWithoutPort) {
+		gotWithoutPort = append(gotWithoutPort, target)
+	}
+
+	require.True(t, len(gotWithPort) > 0, "probe-all-ips with port should return at least one target")
+	require.True(t, len(gotWithoutPort) > 0, "probe-all-ips without port should return at least one target")
+	require.Equal(t, len(gotWithPort), len(gotWithoutPort), "probe-all-ips should return same number of IPs with or without port")
+
+	for _, target := range gotWithPort {
+		require.Equal(t, inputWithPort, target.Host, "Host should be preserved with port")
+		require.NotEmpty(t, target.CustomIP, "CustomIP should be populated")
+	}
 }
 
 func TestRunner_cidr_targets(t *testing.T) {
@@ -130,7 +229,9 @@ func TestRunner_asn_targets(t *testing.T) {
 }
 
 func TestRunner_countTargetFromRawTarget(t *testing.T) {
-	options := &Options{}
+	options := &Options{
+		SkipDedupe: false,
+	}
 	r, err := New(options)
 	require.Nil(t, err, "could not create httpx runner")
 
@@ -145,7 +246,7 @@ func TestRunner_countTargetFromRawTarget(t *testing.T) {
 	err = r.hm.Set(input, nil)
 	require.Nil(t, err, "could not set value to hm")
 	got, err = r.countTargetFromRawTarget(input)
-	require.Nil(t, err, "could not count targets")
+	require.True(t, errors.Is(err, duplicateTargetErr), "expected duplicate target error")
 	require.Equal(t, expected, got, "got wrong output")
 
 	input = "173.0.84.0/24"

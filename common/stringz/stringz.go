@@ -83,6 +83,15 @@ func AddURLDefaultPort(rawURL string) string {
 	if err != nil {
 		return rawURL
 	}
+	// Force default port to be added if not present
+	if u.Port() == "" {
+		switch u.Scheme {
+		case urlutil.HTTP:
+			u.UpdatePort("80")
+		case urlutil.HTTPS:
+			u.UpdatePort("443")
+		}
+	}
 	return u.String()
 }
 

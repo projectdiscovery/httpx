@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -25,7 +26,6 @@ import (
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	urlutil "github.com/projectdiscovery/utils/url"
-	"golang.org/x/net/context"
 	"golang.org/x/net/http2"
 )
 
@@ -155,7 +155,7 @@ func New(options *Options) (*HTTPX, error) {
 
 	if httpx.Options.Protocol == "http11" {
 		// disable http2
-		os.Setenv("GODEBUG", "http2client=0")
+		_ = os.Setenv("GODEBUG", "http2client=0")
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
 	}
 
@@ -234,6 +234,14 @@ get_response:
 	resp.Input = req.Host
 
 	resp.Headers = httpresp.Header.Clone()
+
+	if h.Options.MaxResponseBodySizeToRead > 0 {
+		httpresp.Body = io.NopCloser(io.LimitReader(httpresp.Body, h.Options.MaxResponseBodySizeToRead))
+		defer func() {
+			_, _ = io.Copy(io.Discard, httpresp.Body)
+			_ = httpresp.Body.Close()
+		}()
+	}
 
 	// httputil.DumpResponse does not handle websockets
 	headers, rawResp, err := pdhttputil.DumpResponseHeadersAndRaw(httpresp)
@@ -359,7 +367,7 @@ func (h *HTTPX) getResponse(req *retryablehttp.Request, unsafeOptions UnsafeOpti
 func (h *HTTPX) doUnsafeWithOptions(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (*http.Response, error) {
 	method := req.Method
 	headers := req.Header
-	targetURL := req.URL.String()
+	targetURL := req.String()
 	body := req.Body
 	options := rawhttp.DefaultOptions
 	options.Timeout = h.Options.Timeout
@@ -424,6 +432,9 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 		switch strings.ToLower(name) {
 		case "host":
 			r.Host = value
+			if h.Options.Unsafe {
+				r.Header.Set("Host", value)
+			}
 		case "cookie":
 			// cookies are set in the default branch, and reset during the follow redirect flow
 			fallthrough
@@ -434,6 +445,9 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]st
 	if h.Options.RandomAgent {
 		userAgent := useragent.PickRandom()
 		r.Header.Set("User-Agent", userAgent.Raw) //nolint
+	}
+	if h.Options.AutoReferer && r.Header.Get("Referer") == "" {
+		r.Header.Set("Referer", r.String())
 	}
 }
 
@@ -448,7 +462,7 @@ func (httpx *HTTPX) setCustomCookies(req *http.Request) {
 func (httpx *HTTPX) Sanitize(respStr string, trimLine, normalizeSpaces bool) string {
 	respStr = httpx.htmlPolicy.Sanitize(respStr)
 	if trimLine {
-		respStr = strings.Replace(respStr, "\n", "", -1)
+		respStr = strings.ReplaceAll(respStr, "\n", "")
 	}
 	if normalizeSpaces {
 		respStr = httputilz.NormalizeSpaces(respStr)

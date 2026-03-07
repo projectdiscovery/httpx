@@ -22,7 +22,9 @@ func (h *httpxLibrary) Execute() error {
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(testFile)
+	defer func() {
+		_ = os.RemoveAll(testFile)
+	}()
 
 	var got string
 
@@ -64,7 +66,9 @@ func (h *httpxLibraryWithStream) Execute() error {
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(testFile)
+	defer func() {
+		_ = os.RemoveAll(testFile)
+	}()
 
 	var got string
 
