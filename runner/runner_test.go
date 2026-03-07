@@ -607,9 +607,10 @@ func TestRetryLoop_RespectsRetryAfterHeader(t *testing.T) {
 
 	var n429, n200 int
 	for res := range output {
-		if res.StatusCode == http.StatusTooManyRequests {
+		switch res.StatusCode {
+		case http.StatusTooManyRequests:
 			n429++
-		} else if res.StatusCode == http.StatusOK {
+		case http.StatusOK:
 			n200++
 		}
 	}
