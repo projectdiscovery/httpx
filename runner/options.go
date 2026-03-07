@@ -289,6 +289,7 @@ type Options struct {
 	Resume                    bool
 	RetryRounds               int
 	RetryDelay                int
+	RetryTimeout              int
 	resumeCfg                 *ResumeCfg
 	Exclude                   goflags.StringSlice
 	HostMaxErrors             int
@@ -581,7 +582,8 @@ func ParseOptions() *Options {
 		flagSet.IntVarP(&options.MaxResponseBodySizeToSave, "response-size-to-save", "rsts", int(httpxcommon.DefaultMaxResponseBodySize), "max response size to save in bytes"),
 		flagSet.IntVarP(&options.MaxResponseBodySizeToRead, "response-size-to-read", "rstr", int(httpxcommon.DefaultMaxResponseBodySize), "max response size to read in bytes"),
 		flagSet.IntVar(&options.RetryRounds, "retry-rounds", 0, "number of retry rounds for HTTP 429 responses (Too Many Requests)"),
-		flagSet.IntVar(&options.RetryDelay, "retry-delay", 500, "delay between retry rounds for HTTP 429 responses (e.g. 5ms, 30ms)"),
+		flagSet.IntVar(&options.RetryDelay, "retry-delay", 500, "fallback delay in ms when Retry-After header is absent (HTTP 429)"),
+		flagSet.IntVar(&options.RetryTimeout, "retry-timeout", 30, "max total time in seconds for retry rounds (HTTP 429)"),
 	)
 
 	flagSet.CreateGroup("cloud", "Cloud",
@@ -844,8 +846,13 @@ func (options *Options) ValidateOptions() error {
 		options.Threads = defaultThreads
 	}
 
-	if options.RetryRounds > 0 && options.RetryDelay <= 0 {
-		return errors.New(fmt.Sprintf("invalid retry-delay: must be >0 when retry-rounds=%d (got %d)", options.RetryRounds, options.RetryDelay))
+	if options.RetryRounds > 0 {
+		if options.RetryDelay <= 0 {
+			return errors.New(fmt.Sprintf("invalid retry-delay: must be >0 when retry-rounds=%d (got %d)", options.RetryRounds, options.RetryDelay))
+		}
+		if options.RetryTimeout <= 0 {
+			return errors.New(fmt.Sprintf("invalid retry-timeout: must be >0 when retry-rounds=%d (got %d)", options.RetryRounds, options.RetryTimeout))
+		}
 	}
 
 	return nil

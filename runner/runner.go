@@ -1504,7 +1504,13 @@ func (r *Runner) RunEnumeration() {
 	wg, _ := syncutil.New(syncutil.WithSize(r.options.Threads))
 	retryCh := make(chan retryJob)
 
-	_, drainedCh := r.retryLoop(context.Background(), retryCh, output, r.analyze)
+	retryCtx := context.Background()
+	var retryCancel context.CancelFunc
+	if r.options.RetryRounds > 0 && r.options.RetryTimeout > 0 {
+		retryCtx, retryCancel = context.WithTimeout(retryCtx, time.Duration(r.options.RetryTimeout)*time.Second)
+		defer retryCancel()
+	}
+	_, drainedCh := r.retryLoop(retryCtx, retryCh, output, r.analyze)
 
 	processItem := func(k string) error {
 		select {
@@ -1599,6 +1605,22 @@ func (r *Runner) RunEnumeration() {
 
 type analyzeFunc func(*httpx.HTTPX, string, httpx.Target, string, string, *ScanOptions) Result
 
+func retryDelay(res Result, fallbackMs int) time.Duration {
+	if res.Response != nil {
+		if ra, ok := res.Response.Headers["Retry-After"]; ok && len(ra) > 0 {
+			if seconds, err := strconv.Atoi(ra[0]); err == nil && seconds > 0 {
+				return time.Duration(seconds) * time.Second
+			}
+			if t, err := http.ParseTime(ra[0]); err == nil {
+				if d := time.Until(t); d > 0 {
+					return d
+				}
+			}
+		}
+	}
+	return time.Duration(fallbackMs) * time.Millisecond
+}
+
 func (r *Runner) retryLoop(
 	parent context.Context,
 	retryCh chan retryJob,
@@ -1630,6 +1652,9 @@ func (r *Runner) retryLoop(
 						select {
 						case <-ctx.Done():
 							timer.Stop()
+							if remaining.Add(-1) == 0 {
+								close(drainedCh)
+							}
 							return
 						case <-timer.C:
 						}
@@ -1640,11 +1665,10 @@ func (r *Runner) retryLoop(
 
 					if res.StatusCode == http.StatusTooManyRequests && j.attempt < r.options.RetryRounds {
 						j.attempt++
-						j.when = time.Now().Add(time.Duration(r.options.RetryDelay) * time.Millisecond)
+						j.when = time.Now().Add(retryDelay(res, r.options.RetryDelay))
 
 						select {
 						case <-ctx.Done():
-							return
 						case retryCh <- j:
 							return
 						}
@@ -1754,44 +1778,44 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 					wg.Add()
 					go func(target httpx.Target, method, protocol string) {
 						defer wg.Done()
-						result := r.analyze(hp, protocol, target, method, t, scanopts)
-						output <- result
-						if result.StatusCode == http.StatusTooManyRequests &&
-							r.options.RetryRounds > 0 {
-							retryCh <- retryJob{
-								hp:        hp,
-								protocol:  protocol,
-								target:    target,
-								method:    method,
-								origInput: t,
-								scanopts:  scanopts.Clone(),
-								attempt:   1,
-								when:      time.Now().Add(time.Duration(r.options.RetryDelay) * time.Millisecond),
-							}
+					result := r.analyze(hp, protocol, target, method, t, scanopts)
+					output <- result
+					if result.StatusCode == http.StatusTooManyRequests &&
+						r.options.RetryRounds > 0 {
+						retryCh <- retryJob{
+							hp:        hp,
+							protocol:  protocol,
+							target:    target,
+							method:    method,
+							origInput: t,
+							scanopts:  scanopts.Clone(),
+							attempt:   1,
+							when:      time.Now().Add(retryDelay(result, r.options.RetryDelay)),
 						}
-						if scanopts.TLSProbe && result.TLSData != nil {
-							for _, tt := range result.TLSData.SubjectAN {
-								if !r.testAndSet(tt) {
-									continue
-								}
-								r.process(tt, wg, hp, protocol, scanopts, output, retryCh)
+					}
+					if scanopts.TLSProbe && result.TLSData != nil {
+						for _, tt := range result.TLSData.SubjectAN {
+							if !r.testAndSet(tt) {
+								continue
 							}
-							if r.testAndSet(result.TLSData.SubjectCN) {
-								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output, retryCh)
-							}
+							r.process(tt, wg, hp, protocol, scanopts, output, retryCh)
 						}
-						if scanopts.CSPProbe && result.CSPData != nil {
-							scanopts.CSPProbe = false
-							domains := result.CSPData.Domains
-							domains = append(domains, result.CSPData.Fqdns...)
-							for _, tt := range domains {
-								if !r.testAndSet(tt) {
-									continue
-								}
-								r.process(tt, wg, hp, protocol, scanopts, output, retryCh)
-							}
+						if r.testAndSet(result.TLSData.SubjectCN) {
+							r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output, retryCh)
 						}
-					}(target, method, prot)
+					}
+					if scanopts.CSPProbe && result.CSPData != nil {
+						scanopts.CSPProbe = false
+						domains := result.CSPData.Domains
+						domains = append(domains, result.CSPData.Fqdns...)
+						for _, tt := range domains {
+							if !r.testAndSet(tt) {
+								continue
+							}
+							r.process(tt, wg, hp, protocol, scanopts, output, retryCh)
+						}
+					}
+				}(target, method, prot)
 				}
 			}
 		}
@@ -1821,33 +1845,33 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 							urlx.UpdatePort(fmt.Sprint(port))
 							target.Host = urlx.String()
 						}
-						result := r.analyze(hp, protocol, target, method, t, scanopts)
-						output <- result
-						if result.StatusCode == http.StatusTooManyRequests &&
-							r.options.RetryRounds > 0 {
-							retryCh <- retryJob{
-								hp:        hp,
-								protocol:  protocol,
-								target:    target,
-								method:    method,
-								origInput: t,
-								scanopts:  scanopts.Clone(),
-								attempt:   1,
-								when:      time.Now().Add(time.Duration(r.options.RetryDelay) * time.Millisecond),
-							}
+					result := r.analyze(hp, protocol, target, method, t, scanopts)
+					output <- result
+					if result.StatusCode == http.StatusTooManyRequests &&
+						r.options.RetryRounds > 0 {
+						retryCh <- retryJob{
+							hp:        hp,
+							protocol:  protocol,
+							target:    target,
+							method:    method,
+							origInput: t,
+							scanopts:  scanopts.Clone(),
+							attempt:   1,
+							when:      time.Now().Add(retryDelay(result, r.options.RetryDelay)),
 						}
-						if scanopts.TLSProbe && result.TLSData != nil {
-							for _, tt := range result.TLSData.SubjectAN {
-								if !r.testAndSet(tt) {
-									continue
-								}
-								r.process(tt, wg, hp, protocol, scanopts, output, retryCh)
+					}
+					if scanopts.TLSProbe && result.TLSData != nil {
+						for _, tt := range result.TLSData.SubjectAN {
+							if !r.testAndSet(tt) {
+								continue
 							}
-							if r.testAndSet(result.TLSData.SubjectCN) {
-								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output, retryCh)
-							}
+							r.process(tt, wg, hp, protocol, scanopts, output, retryCh)
 						}
-					}(port, target, method, wantedProtocol)
+						if r.testAndSet(result.TLSData.SubjectCN) {
+							r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output, retryCh)
+						}
+					}
+				}(port, target, method, wantedProtocol)
 				}
 			}
 		}

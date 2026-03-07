@@ -267,6 +267,9 @@ OPTIMIZATIONS:
    -delay value                       duration between each http request (eg: 200ms, 1s) (default -1ns)
    -rsts, -response-size-to-save int  max response size to save in bytes (default 512000000)
    -rstr, -response-size-to-read int  max response size to read in bytes (default 512000000)
+   -retry-rounds int                  number of retry rounds for HTTP 429 responses (Too Many Requests)
+   -retry-delay int                   fallback delay in ms when Retry-After header is absent (HTTP 429) (default 500)
+   -retry-timeout int                 max total time in seconds for retry rounds (HTTP 429) (default 30)
 
 CLOUD:
    -auth                           configure projectdiscovery cloud (pdcp) api key (default true)
@@ -310,6 +313,7 @@ For details about running httpx, see https://docs.projectdiscovery.io/tools/http
       username: admin
       password: secret
   ```
+- The `-retry-rounds` flag enables automatic retries for HTTP 429 (Too Many Requests) responses. When a server returns a `Retry-After` header, httpx respects it to determine the wait time before retrying. If the header is absent, the `-retry-delay` value is used as a fallback. The `-retry-timeout` flag sets a hard upper bound on total retry time to prevent indefinite blocking.
 - The following flags should be used for specific use cases instead of running them as default with other probes:
    - `-ports`
    - `-path`

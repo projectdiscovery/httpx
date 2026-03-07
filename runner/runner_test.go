@@ -444,10 +444,11 @@ func TestRunner_Process_And_RetryLoop(t *testing.T) {
 	defer srv2.Close()
 
 	r, err := New(&Options{
-		Threads:     1,
-		RetryRounds: 2,
-		RetryDelay:  5,
-		Timeout:     3,
+		Threads:      1,
+		RetryRounds:  2,
+		RetryDelay:   5,
+		RetryTimeout: 30,
+		Timeout:      3,
 	})
 	require.NoError(t, err)
 
@@ -499,7 +500,6 @@ func TestRunner_Process_And_RetryLoop(t *testing.T) {
 	close(output)
 	drainWG.Wait()
 
-	// Verify expected results
 	// srv1: should have 3x 429 responses and no 200 (never succeeds within retries)
 	require.Equal(t, 3, s1n429)
 	require.Equal(t, 0, s1n200)
@@ -507,4 +507,160 @@ func TestRunner_Process_And_RetryLoop(t *testing.T) {
 	// srv2: should have 2x 429 responses and 1x 200 (succeeds on 3rd attempt)
 	require.Equal(t, 2, s2n429)
 	require.Equal(t, 1, s2n200)
+}
+
+func TestRetryDelay_RetryAfterHeader(t *testing.T) {
+	fallbackMs := 500
+
+	t.Run("uses Retry-After seconds header", func(t *testing.T) {
+		res := Result{
+			Response: &httpx.Response{
+				Headers: map[string][]string{
+					"Retry-After": {"3"},
+				},
+			},
+		}
+		d := retryDelay(res, fallbackMs)
+		require.Equal(t, 3*time.Second, d)
+	})
+
+	t.Run("uses Retry-After HTTP-date header", func(t *testing.T) {
+		future := time.Now().Add(10 * time.Second)
+		res := Result{
+			Response: &httpx.Response{
+				Headers: map[string][]string{
+					"Retry-After": {future.UTC().Format(http.TimeFormat)},
+				},
+			},
+		}
+		d := retryDelay(res, fallbackMs)
+		require.InDelta(t, 10*time.Second, d, float64(2*time.Second))
+	})
+
+	t.Run("falls back when no header", func(t *testing.T) {
+		res := Result{
+			Response: &httpx.Response{
+				Headers: map[string][]string{},
+			},
+		}
+		d := retryDelay(res, fallbackMs)
+		require.Equal(t, 500*time.Millisecond, d)
+	})
+
+	t.Run("falls back when response is nil", func(t *testing.T) {
+		res := Result{}
+		d := retryDelay(res, fallbackMs)
+		require.Equal(t, 500*time.Millisecond, d)
+	})
+
+	t.Run("falls back when Retry-After is unparseable", func(t *testing.T) {
+		res := Result{
+			Response: &httpx.Response{
+				Headers: map[string][]string{
+					"Retry-After": {"not-a-number"},
+				},
+			},
+		}
+		d := retryDelay(res, fallbackMs)
+		require.Equal(t, 500*time.Millisecond, d)
+	})
+}
+
+func TestRetryLoop_RespectsRetryAfterHeader(t *testing.T) {
+	var hits int32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := atomic.AddInt32(&hits, 1)
+		if n < 3 {
+			w.Header().Set("Retry-After", "1")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	rn, err := New(&Options{
+		Threads:      1,
+		RetryRounds:  3,
+		RetryDelay:   5,
+		RetryTimeout: 30,
+		Timeout:      3,
+	})
+	require.NoError(t, err)
+
+	output := make(chan Result, 10)
+	retryCh := make(chan retryJob)
+
+	_, drainedCh := rn.retryLoop(context.Background(), retryCh, output, rn.analyze)
+
+	wg, _ := syncutil.New(syncutil.WithSize(1))
+	so := rn.scanopts.Clone()
+	so.Methods = []string{"GET"}
+	so.TLSProbe = false
+	so.CSPProbe = false
+
+	rn.process(srv.URL, wg, rn.hp, httpx.HTTP, so, output, retryCh)
+	wg.Wait()
+	<-drainedCh
+	close(output)
+
+	var n429, n200 int
+	for res := range output {
+		if res.StatusCode == http.StatusTooManyRequests {
+			n429++
+		} else if res.StatusCode == http.StatusOK {
+			n200++
+		}
+	}
+	require.Equal(t, 2, n429)
+	require.Equal(t, 1, n200)
+}
+
+func TestRetryLoop_RespectsTimeout(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Retry-After", "60")
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer srv.Close()
+
+	rn, err := New(&Options{
+		Threads:      1,
+		RetryRounds:  10,
+		RetryDelay:   60000,
+		RetryTimeout: 2,
+		Timeout:      3,
+	})
+	require.NoError(t, err)
+
+	output := make(chan Result, 100)
+	retryCh := make(chan retryJob)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	_, drainedCh := rn.retryLoop(ctx, retryCh, output, rn.analyze)
+
+	wg, _ := syncutil.New(syncutil.WithSize(1))
+	so := rn.scanopts.Clone()
+	so.Methods = []string{"GET"}
+	so.TLSProbe = false
+	so.CSPProbe = false
+
+	start := time.Now()
+	rn.process(srv.URL, wg, rn.hp, httpx.HTTP, so, output, retryCh)
+	wg.Wait()
+	<-drainedCh
+	close(output)
+	elapsed := time.Since(start)
+
+	require.Less(t, elapsed, 10*time.Second, "retry loop should have been cancelled by timeout")
+
+	var n429 int
+	for res := range output {
+		if res.StatusCode == http.StatusTooManyRequests {
+			n429++
+		}
+	}
+	require.GreaterOrEqual(t, n429, 1, "should have received at least the initial 429")
 }

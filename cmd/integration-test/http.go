@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync/atomic"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/projectdiscovery/httpx/internal/testutils"
@@ -33,6 +34,9 @@ var httpTestcases = map[string]testutils.TestCase{
 	"Output Match Condition":                                                              &outputMatchCondition{inputData: []string{"-silent", "-mdc", "\"status_code == 200\""}},
 	"Output Filter Condition":                                                             &outputFilterCondition{inputData: []string{"-silent", "-fdc", "\"status_code == 400\""}},
 	"Output All":                                                                          &outputAll{},
+	"Retry 429 with Retry-After header":                                                   &retry429WithHeader{},
+	"Retry 429 with fallback delay":                                                       &retry429FallbackDelay{},
+	"Retry 429 respects timeout":                                                          &retry429Timeout{},
 }
 
 type standardHttpGet struct {
@@ -417,5 +421,121 @@ func (h *outputAll) Execute() error {
 		_ = os.Remove(file)
 	}
 
+	return nil
+}
+
+type retry429WithHeader struct{}
+
+func (h *retry429WithHeader) Execute() error {
+	var hits int32
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := atomic.AddInt32(&hits, 1)
+		if n < 3 {
+			w.Header().Set("Retry-After", "1")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprint(w, "OK")
+	}))
+	defer ts.Close()
+
+	results, err := testutils.RunHttpxAndGetResults(ts.URL, debug,
+		"-retry-rounds", "3",
+		"-retry-delay", "100",
+		"-retry-timeout", "15",
+		"-status-code", "-no-color",
+	)
+	if err != nil {
+		return err
+	}
+
+	var has200 bool
+	for _, line := range results {
+		if strings.Contains(line, "[200]") {
+			has200 = true
+		}
+	}
+	if !has200 {
+		return fmt.Errorf("expected 200 after retrying 429, got results: %v", results)
+	}
+
+	totalHits := atomic.LoadInt32(&hits)
+	if totalHits < 3 {
+		return fmt.Errorf("expected at least 3 server hits (429->429->200), got %d", totalHits)
+	}
+	return nil
+}
+
+type retry429FallbackDelay struct{}
+
+func (h *retry429FallbackDelay) Execute() error {
+	var hits int32
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := atomic.AddInt32(&hits, 1)
+		if n < 2 {
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprint(w, "OK")
+	}))
+	defer ts.Close()
+
+	results, err := testutils.RunHttpxAndGetResults(ts.URL, debug,
+		"-retry-rounds", "3",
+		"-retry-delay", "200",
+		"-retry-timeout", "15",
+		"-status-code", "-no-color",
+	)
+	if err != nil {
+		return err
+	}
+
+	var has200 bool
+	for _, line := range results {
+		if strings.Contains(line, "[200]") {
+			has200 = true
+		}
+	}
+	if !has200 {
+		return fmt.Errorf("expected 200 after retrying 429 with fallback delay, got results: %v", results)
+	}
+
+	totalHits := atomic.LoadInt32(&hits)
+	if totalHits < 2 {
+		return fmt.Errorf("expected at least 2 server hits (429->200), got %d", totalHits)
+	}
+	return nil
+}
+
+type retry429Timeout struct{}
+
+func (h *retry429Timeout) Execute() error {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Retry-After", "60")
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer ts.Close()
+
+	results, err := testutils.RunHttpxAndGetResults(ts.URL, debug,
+		"-retry-rounds", "5",
+		"-retry-delay", "60000",
+		"-retry-timeout", "3",
+		"-status-code", "-no-color",
+	)
+	if err != nil {
+		return err
+	}
+
+	var has429 bool
+	for _, line := range results {
+		if strings.Contains(line, "[429]") {
+			has429 = true
+		}
+	}
+	if !has429 {
+		return fmt.Errorf("expected 429 in output, got results: %v", results)
+	}
 	return nil
 }
