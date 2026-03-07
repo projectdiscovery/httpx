@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -451,11 +450,10 @@ func TestRunner_Process_And_RetryLoop(t *testing.T) {
 		Timeout:      3,
 	})
 	require.NoError(t, err)
+	defer r.Close()
 
-	output := make(chan Result)
-	retryCh := make(chan retryJob)
-
-	_, drainedCh := r.retryLoop(context.Background(), retryCh, output, r.analyze)
+	output := make(chan Result, 20)
+	var rq retryQueue
 
 	wg, _ := syncutil.New(syncutil.WithSize(r.options.Threads))
 	so := r.scanopts.Clone()
@@ -468,43 +466,35 @@ func TestRunner_Process_And_RetryLoop(t *testing.T) {
 		"srv2": srv2.URL,
 	}
 
-	var drainWG sync.WaitGroup
-	drainWG.Add(1)
-	var s1n429, s1n200, s2n429, s2n200 int
-	go func() {
-		defer drainWG.Done()
-		for res := range output {
-			switch res.StatusCode {
-			case http.StatusTooManyRequests:
-				if res.URL == srv1.URL {
-					s1n429++
-				} else {
-					s2n429++
-				}
-			case http.StatusOK:
-				if res.URL == srv1.URL {
-					s1n200++
-				} else {
-					s2n200++
-				}
-			}
-		}
-	}()
-
 	for _, url := range seed {
-		r.process(url, wg, r.hp, httpx.HTTP, so, output, retryCh)
+		r.process(url, wg, r.hp, httpx.HTTP, so, output, &rq)
 	}
 
 	wg.Wait()
-	<-drainedCh
+	r.processRetries(context.Background(), &rq, output)
 	close(output)
-	drainWG.Wait()
 
-	// srv1: should have 3x 429 responses and no 200 (never succeeds within retries)
+	var s1n429, s1n200, s2n429, s2n200 int
+	for res := range output {
+		switch res.StatusCode {
+		case http.StatusTooManyRequests:
+			if res.URL == srv1.URL {
+				s1n429++
+			} else {
+				s2n429++
+			}
+		case http.StatusOK:
+			if res.URL == srv1.URL {
+				s1n200++
+			} else {
+				s2n200++
+			}
+		}
+	}
+
 	require.Equal(t, 3, s1n429)
 	require.Equal(t, 0, s1n200)
 
-	// srv2: should have 2x 429 responses and 1x 200 (succeeds on 3rd attempt)
 	require.Equal(t, 2, s2n429)
 	require.Equal(t, 1, s2n200)
 }
@@ -566,7 +556,7 @@ func TestRetryDelay_RetryAfterHeader(t *testing.T) {
 	})
 }
 
-func TestRetryLoop_RespectsRetryAfterHeader(t *testing.T) {
+func TestRetryRespectsRetryAfterHeader(t *testing.T) {
 	var hits int32
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -588,11 +578,10 @@ func TestRetryLoop_RespectsRetryAfterHeader(t *testing.T) {
 		Timeout:      3,
 	})
 	require.NoError(t, err)
+	defer rn.Close()
 
 	output := make(chan Result, 10)
-	retryCh := make(chan retryJob)
-
-	_, drainedCh := rn.retryLoop(context.Background(), retryCh, output, rn.analyze)
+	var rq retryQueue
 
 	wg, _ := syncutil.New(syncutil.WithSize(1))
 	so := rn.scanopts.Clone()
@@ -600,9 +589,12 @@ func TestRetryLoop_RespectsRetryAfterHeader(t *testing.T) {
 	so.TLSProbe = false
 	so.CSPProbe = false
 
-	rn.process(srv.URL, wg, rn.hp, httpx.HTTP, so, output, retryCh)
+	rn.process(srv.URL, wg, rn.hp, httpx.HTTP, so, output, &rq)
 	wg.Wait()
-	<-drainedCh
+
+	start := time.Now()
+	rn.processRetries(context.Background(), &rq, output)
+	elapsed := time.Since(start)
 	close(output)
 
 	var n429, n200 int
@@ -616,9 +608,10 @@ func TestRetryLoop_RespectsRetryAfterHeader(t *testing.T) {
 	}
 	require.Equal(t, 2, n429)
 	require.Equal(t, 1, n200)
+	require.GreaterOrEqual(t, elapsed, 2*time.Second, "should have waited ~1s per Retry-After")
 }
 
-func TestRetryLoop_RespectsTimeout(t *testing.T) {
+func TestRetryRespectsTimeout(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Retry-After", "60")
 		w.WriteHeader(http.StatusTooManyRequests)
@@ -633,14 +626,10 @@ func TestRetryLoop_RespectsTimeout(t *testing.T) {
 		Timeout:      3,
 	})
 	require.NoError(t, err)
+	defer rn.Close()
 
 	output := make(chan Result, 100)
-	retryCh := make(chan retryJob)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	_, drainedCh := rn.retryLoop(ctx, retryCh, output, rn.analyze)
+	var rq retryQueue
 
 	wg, _ := syncutil.New(syncutil.WithSize(1))
 	so := rn.scanopts.Clone()
@@ -648,14 +637,18 @@ func TestRetryLoop_RespectsTimeout(t *testing.T) {
 	so.TLSProbe = false
 	so.CSPProbe = false
 
-	start := time.Now()
-	rn.process(srv.URL, wg, rn.hp, httpx.HTTP, so, output, retryCh)
+	rn.process(srv.URL, wg, rn.hp, httpx.HTTP, so, output, &rq)
 	wg.Wait()
-	<-drainedCh
-	close(output)
-	elapsed := time.Since(start)
 
-	require.Less(t, elapsed, 10*time.Second, "retry loop should have been cancelled by timeout")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	start := time.Now()
+	rn.processRetries(ctx, &rq, output)
+	elapsed := time.Since(start)
+	close(output)
+
+	require.Less(t, elapsed, 10*time.Second, "retry should have been cancelled by context timeout")
 
 	var n429 int
 	for res := range output {
@@ -664,4 +657,44 @@ func TestRetryLoop_RespectsTimeout(t *testing.T) {
 		}
 	}
 	require.GreaterOrEqual(t, n429, 1, "should have received at least the initial 429")
+}
+
+func TestRetryNo429_CompletesNormally(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	rn, err := New(&Options{
+		Threads:      1,
+		RetryRounds:  3,
+		RetryDelay:   500,
+		RetryTimeout: 30,
+		Timeout:      3,
+	})
+	require.NoError(t, err)
+	defer rn.Close()
+
+	output := make(chan Result, 10)
+	var rq retryQueue
+
+	wg, _ := syncutil.New(syncutil.WithSize(1))
+	so := rn.scanopts.Clone()
+	so.Methods = []string{"GET"}
+	so.TLSProbe = false
+	so.CSPProbe = false
+
+	rn.process(srv.URL, wg, rn.hp, httpx.HTTP, so, output, &rq)
+	wg.Wait()
+	rn.processRetries(context.Background(), &rq, output)
+	close(output)
+
+	var n200 int
+	for res := range output {
+		if res.StatusCode == http.StatusOK {
+			n200++
+		}
+	}
+	require.Equal(t, 1, n200)
+	require.Empty(t, rq.items, "no retries should have been queued")
 }

@@ -23,7 +23,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"golang.org/x/exp/maps"
@@ -1502,15 +1501,7 @@ func (r *Runner) RunEnumeration() {
 	}(nextStep)
 
 	wg, _ := syncutil.New(syncutil.WithSize(r.options.Threads))
-	retryCh := make(chan retryJob)
-
-	retryCtx := context.Background()
-	var retryCancel context.CancelFunc
-	if r.options.RetryRounds > 0 && r.options.RetryTimeout > 0 {
-		retryCtx, retryCancel = context.WithTimeout(retryCtx, time.Duration(r.options.RetryTimeout)*time.Second)
-		defer retryCancel()
-	}
-	_, drainedCh := r.retryLoop(retryCtx, retryCh, output, r.analyze)
+	var rq retryQueue
 
 	processItem := func(k string) error {
 		select {
@@ -1541,10 +1532,10 @@ func (r *Runner) RunEnumeration() {
 					for _, p := range r.options.requestURIs {
 						scanopts := r.scanopts.Clone()
 						scanopts.RequestURI = p
-						r.process(k, wg, r.hp, protocol, scanopts, output, retryCh)
+						r.process(k, wg, r.hp, protocol, scanopts, output, &rq)
 					}
 				} else {
-					r.process(k, wg, r.hp, protocol, &r.scanopts, output, retryCh)
+					r.process(k, wg, r.hp, protocol, &r.scanopts, output, &rq)
 				}
 			}
 		}
@@ -1576,9 +1567,17 @@ func (r *Runner) RunEnumeration() {
 	}
 
 	wg.Wait()
+
 	if r.options.RetryRounds > 0 {
-		<-drainedCh
+		retryCtx := context.Background()
+		if r.options.RetryTimeout > 0 {
+			var cancel context.CancelFunc
+			retryCtx, cancel = context.WithTimeout(retryCtx, time.Duration(r.options.RetryTimeout)*time.Second)
+			defer cancel()
+		}
+		r.processRetries(retryCtx, &rq, output)
 	}
+
 	close(output)
 	wgoutput.Wait()
 
@@ -1603,8 +1602,6 @@ func (r *Runner) RunEnumeration() {
 	}
 }
 
-type analyzeFunc func(*httpx.HTTPX, string, httpx.Target, string, string, *ScanOptions) Result
-
 func retryDelay(res Result, fallbackMs int) time.Duration {
 	if res.Response != nil {
 		if ra, ok := res.Response.Headers["Retry-After"]; ok && len(ra) > 0 {
@@ -1621,68 +1618,60 @@ func retryDelay(res Result, fallbackMs int) time.Duration {
 	return time.Duration(fallbackMs) * time.Millisecond
 }
 
-func (r *Runner) retryLoop(
-	parent context.Context,
-	retryCh chan retryJob,
-	output chan<- Result,
-	analyze analyzeFunc,
-) (stop func(), drained <-chan struct{}) {
-	var remaining atomic.Int64
-	ctx, cancel := context.WithCancel(parent)
-	drainedCh := make(chan struct{})
+type retryItem struct {
+	hp       *httpx.HTTPX
+	protocol string
+	target   httpx.Target
+	method   string
+	input    string
+	scanopts *ScanOptions
+	delay    time.Duration
+}
 
-	go func() {
-		defer close(retryCh)
+type retryQueue struct {
+	mu    sync.Mutex
+	items []retryItem
+}
 
-		for {
+func (q *retryQueue) push(item retryItem) {
+	q.mu.Lock()
+	q.items = append(q.items, item)
+	q.mu.Unlock()
+}
+
+func (q *retryQueue) drain() []retryItem {
+	q.mu.Lock()
+	items := q.items
+	q.items = nil
+	q.mu.Unlock()
+	return items
+}
+
+func (r *Runner) processRetries(ctx context.Context, rq *retryQueue, output chan Result) {
+	for round := 0; round < r.options.RetryRounds; round++ {
+		items := rq.drain()
+		if len(items) == 0 {
+			return
+		}
+		for _, item := range items {
+			timer := time.NewTimer(item.delay)
 			select {
 			case <-ctx.Done():
+				timer.Stop()
 				return
-			case job, ok := <-retryCh:
-				if !ok {
-					return
-				}
-				if job.attempt == 1 {
-					remaining.Add(1)
-				}
-
-				go func(j retryJob) {
-					if wait := time.Until(j.when); wait > 0 {
-						timer := time.NewTimer(wait)
-						select {
-						case <-ctx.Done():
-							timer.Stop()
-							if remaining.Add(-1) == 0 {
-								close(drainedCh)
-							}
-							return
-						case <-timer.C:
-						}
-					}
-
-					res := analyze(j.hp, j.protocol, j.target, j.method, j.origInput, j.scanopts)
-					output <- res
-
-					if res.StatusCode == http.StatusTooManyRequests && j.attempt < r.options.RetryRounds {
-						j.attempt++
-						j.when = time.Now().Add(retryDelay(res, r.options.RetryDelay))
-
-						select {
-						case <-ctx.Done():
-						case retryCh <- j:
-							return
-						}
-					}
-
-					if remaining.Add(-1) == 0 {
-						close(drainedCh)
-					}
-				}(job)
+			case <-timer.C:
+			}
+			result := r.analyze(item.hp, item.protocol, item.target, item.method, item.input, item.scanopts)
+			output <- result
+			if result.StatusCode == http.StatusTooManyRequests {
+				rq.push(retryItem{
+					hp: item.hp, protocol: item.protocol, target: item.target,
+					method: item.method, input: item.input, scanopts: item.scanopts,
+					delay: retryDelay(result, r.options.RetryDelay),
+				})
 			}
 		}
-	}()
-
-	return func() { cancel() }, drainedCh
+	}
 }
 
 func handleStripAnsiCharacters(data string, skip bool) string {
@@ -1751,11 +1740,11 @@ func (r *Runner) GetScanOpts() ScanOptions {
 	return r.scanopts
 }
 
-func (r *Runner) Process(t string, wg *syncutil.AdaptiveWaitGroup, protocol string, scanopts *ScanOptions, output chan Result, retryCh chan retryJob) {
-	r.process(t, wg, r.hp, protocol, scanopts, output, retryCh)
+func (r *Runner) Process(t string, wg *syncutil.AdaptiveWaitGroup, protocol string, scanopts *ScanOptions, output chan Result, rq *retryQueue) {
+	r.process(t, wg, r.hp, protocol, scanopts, output, rq)
 }
 
-func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result, retryCh chan retryJob) {
+func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result, rq *retryQueue) {
 	// attempts to set the workpool size to the number of threads
 	if r.options.Threads > 0 && wg.Size != r.options.Threads {
 		if err := wg.Resize(context.Background(), r.options.Threads); err != nil {
@@ -1780,28 +1769,22 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 						defer wg.Done()
 					result := r.analyze(hp, protocol, target, method, t, scanopts)
 					output <- result
-					if result.StatusCode == http.StatusTooManyRequests &&
-						r.options.RetryRounds > 0 {
-						retryCh <- retryJob{
-							hp:        hp,
-							protocol:  protocol,
-							target:    target,
-							method:    method,
-							origInput: t,
-							scanopts:  scanopts.Clone(),
-							attempt:   1,
-							when:      time.Now().Add(retryDelay(result, r.options.RetryDelay)),
-						}
+					if result.StatusCode == http.StatusTooManyRequests && r.options.RetryRounds > 0 && rq != nil {
+						rq.push(retryItem{
+							hp: hp, protocol: protocol, target: target,
+							method: method, input: t, scanopts: scanopts.Clone(),
+							delay: retryDelay(result, r.options.RetryDelay),
+						})
 					}
 					if scanopts.TLSProbe && result.TLSData != nil {
 						for _, tt := range result.TLSData.SubjectAN {
 							if !r.testAndSet(tt) {
 								continue
 							}
-							r.process(tt, wg, hp, protocol, scanopts, output, retryCh)
+							r.process(tt, wg, hp, protocol, scanopts, output, rq)
 						}
 						if r.testAndSet(result.TLSData.SubjectCN) {
-							r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output, retryCh)
+							r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output, rq)
 						}
 					}
 					if scanopts.CSPProbe && result.CSPData != nil {
@@ -1812,7 +1795,7 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 							if !r.testAndSet(tt) {
 								continue
 							}
-							r.process(tt, wg, hp, protocol, scanopts, output, retryCh)
+							r.process(tt, wg, hp, protocol, scanopts, output, rq)
 						}
 					}
 				}(target, method, prot)
@@ -1847,28 +1830,22 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 						}
 					result := r.analyze(hp, protocol, target, method, t, scanopts)
 					output <- result
-					if result.StatusCode == http.StatusTooManyRequests &&
-						r.options.RetryRounds > 0 {
-						retryCh <- retryJob{
-							hp:        hp,
-							protocol:  protocol,
-							target:    target,
-							method:    method,
-							origInput: t,
-							scanopts:  scanopts.Clone(),
-							attempt:   1,
-							when:      time.Now().Add(retryDelay(result, r.options.RetryDelay)),
-						}
+					if result.StatusCode == http.StatusTooManyRequests && r.options.RetryRounds > 0 && rq != nil {
+						rq.push(retryItem{
+							hp: hp, protocol: protocol, target: target,
+							method: method, input: t, scanopts: scanopts.Clone(),
+							delay: retryDelay(result, r.options.RetryDelay),
+						})
 					}
 					if scanopts.TLSProbe && result.TLSData != nil {
 						for _, tt := range result.TLSData.SubjectAN {
 							if !r.testAndSet(tt) {
 								continue
 							}
-							r.process(tt, wg, hp, protocol, scanopts, output, retryCh)
+							r.process(tt, wg, hp, protocol, scanopts, output, rq)
 						}
 						if r.testAndSet(result.TLSData.SubjectCN) {
-							r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output, retryCh)
+							r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output, rq)
 						}
 					}
 				}(port, target, method, wantedProtocol)
