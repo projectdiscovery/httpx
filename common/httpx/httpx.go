@@ -157,6 +157,7 @@ func New(options *Options) (*HTTPX, error) {
 		// disable http2
 		_ = os.Setenv("GODEBUG", "http2client=0")
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
+		transport.ForceAttemptHTTP2 = false
 	}
 
 	if httpx.Options.SniName != "" {
