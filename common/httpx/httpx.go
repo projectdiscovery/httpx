@@ -183,6 +183,15 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
+	// When HTTP/1.1-only mode is enforced via -pr http11, prevent retryablehttp-go
+	// from silently upgrading to HTTP/2 on retry. retryablehttp-go falls back to
+	// HTTPClient2 (an HTTP/2-capable client) when it encounters "malformed HTTP
+	// version" errors from servers that speak HTTP/2. Pointing HTTPClient2 at the
+	// same HTTP/1.1-only client neutralises the fallback. See: #2240
+	if httpx.Options.Protocol == "http11" {
+		httpx.client.HTTPClient2 = httpx.client.HTTPClient
+	}
+
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
