@@ -177,11 +177,22 @@ func New(options *Options) (*HTTPX, error) {
 		transport.Proxy = http.ProxyURL(proxyURL)
 	}
 
-	httpx.client = retryablehttp.NewWithHTTPClient(&http.Client{
+	httpClient := &http.Client{
 		Transport:     transport,
 		Timeout:       httpx.Options.Timeout,
 		CheckRedirect: redirectFunc,
-	}, retryablehttpOptions)
+	}
+	httpx.client = retryablehttp.NewWithHTTPClient(httpClient, retryablehttpOptions)
+
+	// When HTTP/1.1-only mode is requested, the retryablehttp-go library still
+	// has an internal fallback (HTTPClient2) that retries with a native HTTP/2
+	// client when it encounters certain error messages about malformed HTTP/2
+	// responses. Override that fallback client with the same HTTP/1.1 transport
+	// so the -pr http11 flag is respected throughout the entire request
+	// lifecycle, including retries.
+	if httpx.Options.Protocol == "http11" {
+		httpx.client.HTTPClient2 = httpClient
+	}
 
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
