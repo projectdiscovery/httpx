@@ -13,14 +13,14 @@ func TestHTTP11ProtocolDisablesHTTP2Fallback(t *testing.T) {
 	opts.Protocol = HTTP11
 	ht, err := New(&opts)
 	require.Nil(t, err)
-	require.Equal(t, ht.client.HTTPClient, ht.client.HTTPClient2,
+	require.Same(t, ht.client.HTTPClient, ht.client.HTTPClient2,
 		"HTTPClient2 should equal HTTPClient when Protocol is HTTP11")
 }
 
 func TestDefaultProtocolKeepsHTTP2Fallback(t *testing.T) {
 	ht, err := New(&DefaultOptions)
 	require.Nil(t, err)
-	require.NotEqual(t, ht.client.HTTPClient, ht.client.HTTPClient2,
+	require.NotSame(t, ht.client.HTTPClient, ht.client.HTTPClient2,
 		"HTTPClient2 should differ from HTTPClient with default protocol")
 }
 
