@@ -183,6 +183,13 @@ func New(options *Options) (*HTTPX, error) {
 		CheckRedirect: redirectFunc,
 	}, retryablehttpOptions)
 
+	// When http11 is forced, override HTTPClient2 to also use the HTTP/1.1-only
+	// transport. Without this, retryablehttp silently falls back to HTTPClient2
+	// (which has HTTP/2 enabled) on certain transport errors, bypassing -pr http11.
+	if httpx.Options.Protocol == "http11" {
+		httpx.client.HTTPClient2 = httpx.client.HTTPClient
+	}
+
 	transport2 := &http2.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
