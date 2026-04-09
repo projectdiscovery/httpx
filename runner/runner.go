@@ -330,6 +330,15 @@ func New(options *Options) (*Runner, error) {
 	scanopts.VHostInput = options.VHostInput
 	scanopts.OutputContentType = options.OutputContentType
 	scanopts.RequestBody = options.RequestBody
+	if options.SecurityTxt {
+		options.OutputMatchString = append(options.OutputMatchString, "Contact:")
+		options.OutputMatchStatusCode = appendCommaSeparatedValue(options.OutputMatchStatusCode, "200")
+		options.RequestURIs = appendCommaSeparatedValue(options.RequestURIs, "/.well-known/security.txt,/security.txt")
+		options.JSONOutput = true
+	}
+	if options.RequestURIs != "" {
+		options.requestURIs = normalizeRequestURIs(options.RequestURIs)
+	}
 	scanopts.Unsafe = options.Unsafe
 	scanopts.Pipeline = options.Pipeline
 	scanopts.HTTP2Probe = options.HTTP2Probe
@@ -2632,6 +2641,11 @@ retry:
 		}
 	}
 
+	securityTxt := false
+	if r.options.SecurityTxt {
+		securityTxt = isSecurityTxt(resp)
+	}
+
 	result := Result{
 		Timestamp:        time.Now(),
 		Request:          request,
@@ -2650,6 +2664,7 @@ retry:
 		StatusCode:       resp.StatusCode,
 		Location:         resp.GetHeaderPart("Location", ";"),
 		ContentType:      resp.GetHeaderPart("Content-Type", ";"),
+		SecurityTxt:      securityTxt,
 		Title:            title,
 		str:              builder.String(),
 		VHost:            isvhost,
@@ -2971,6 +2986,48 @@ func (r Result) CSVRow(scanopts *ScanOptions) string { //nolint
 	}
 
 	return res
+}
+
+func appendCommaSeparatedValue(current string, values string) string {
+	current = strings.TrimSpace(current)
+	values = strings.TrimSpace(values)
+	if current == "" {
+		return values
+	}
+	if values == "" {
+		return current
+	}
+	return current + "," + values
+}
+
+func normalizeRequestURIs(requestURIs string) []string {
+	items := stringsutil.SplitAny(requestURIs, ",")
+	cleaned := make([]string, 0, len(items))
+	seen := make(map[string]struct{}, len(items))
+	for _, item := range items {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		if _, ok := seen[item]; ok {
+			continue
+		}
+		seen[item] = struct{}{}
+		cleaned = append(cleaned, item)
+	}
+	return cleaned
+}
+
+func isSecurityTxt(resp *httpx.Response) bool {
+	if resp == nil || resp.StatusCode != 200 {
+		return false
+	}
+	contentType := strings.ToLower(resp.GetHeaderPart("Content-Type", ";"))
+	if contentType != "" && !strings.Contains(contentType, "text/plain") {
+		return false
+	}
+	body := string(resp.RawData)
+	return strings.Contains(body, "Contact:")
 }
 
 func (r *Runner) skipCDNPort(host string, port string) bool {

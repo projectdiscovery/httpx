@@ -286,6 +286,63 @@ func TestRunner_urlWithComma_targets(t *testing.T) {
 	require.ElementsMatch(t, expected, got, "could not expected output")
 }
 
+func TestNormalizeRequestURIs(t *testing.T) {
+	got := normalizeRequestURIs("/.well-known/security.txt, /security.txt, /.well-known/security.txt,,")
+	require.Equal(t, []string{"/.well-known/security.txt", "/security.txt"}, got)
+}
+
+func TestAppendCommaSeparatedValue(t *testing.T) {
+	require.Equal(t, "200", appendCommaSeparatedValue("", "200"))
+	require.Equal(t, "200,302", appendCommaSeparatedValue("200", "302"))
+	require.Equal(t, "200", appendCommaSeparatedValue("200", ""))
+}
+
+func TestIsSecurityTxt(t *testing.T) {
+	t.Run("valid security txt", func(t *testing.T) {
+		resp := &httpx.Response{
+			StatusCode: 200,
+			Headers: map[string][]string{
+				"Content-Type": {"text/plain; charset=utf-8"},
+			},
+			RawData: []byte("Contact: mailto:security@example.com\nExpires: 2027-01-01T00:00:00.000Z\n"),
+		}
+		require.True(t, isSecurityTxt(resp))
+	})
+
+	t.Run("soft 404 html", func(t *testing.T) {
+		resp := &httpx.Response{
+			StatusCode: 200,
+			Headers: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+			},
+			RawData: []byte("<html><body>Contact: support@example.com</body></html>"),
+		}
+		require.False(t, isSecurityTxt(resp))
+	})
+
+	t.Run("missing contact field", func(t *testing.T) {
+		resp := &httpx.Response{
+			StatusCode: 200,
+			Headers: map[string][]string{
+				"Content-Type": {"text/plain"},
+			},
+			RawData: []byte("Expires: 2027-01-01T00:00:00.000Z\n"),
+		}
+		require.False(t, isSecurityTxt(resp))
+	})
+
+	t.Run("wrong status", func(t *testing.T) {
+		resp := &httpx.Response{
+			StatusCode: 404,
+			Headers: map[string][]string{
+				"Content-Type": {"text/plain"},
+			},
+			RawData: []byte("Contact: mailto:security@example.com\n"),
+		}
+		require.False(t, isSecurityTxt(resp))
+	})
+}
+
 func TestRunner_CSVRow(t *testing.T) {
 	// Create a result with fields that would be vulnerable to CSV injection
 	result := Result{

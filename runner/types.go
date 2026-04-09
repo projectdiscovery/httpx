@@ -57,6 +57,7 @@ type Result struct {
 	ResponseBody       string                        `json:"body,omitempty" csv:"-" md:"-" mapstructure:"body"`
 	BodyPreview        string                        `json:"body_preview,omitempty" csv:"body_preview" md:"body_preview" mapstructure:"body_preview"`
 	ContentType        string                        `json:"content_type,omitempty" csv:"content_type" md:"content_type" mapstructure:"content_type"`
+	SecurityTxt        bool                          `json:"security_txt,omitempty" csv:"security_txt" md:"security_txt" mapstructure:"security_txt"`
 	Method             string                        `json:"method,omitempty" csv:"method" md:"method" mapstructure:"method"`
 	Host               string                        `json:"host,omitempty" csv:"host" md:"host" mapstructure:"host"`
 	HostIP             string                        `json:"host_ip,omitempty" csv:"host_ip" md:"host_ip" mapstructure:"host_ip"`
