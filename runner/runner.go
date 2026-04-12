@@ -2988,6 +2988,8 @@ func (r Result) CSVRow(scanopts *ScanOptions) string { //nolint
 	return res
 }
 
+// appendCommaSeparatedValue appends comma-separated values to an existing
+// comma-separated string, handling empty inputs gracefully.
 func appendCommaSeparatedValue(current string, values string) string {
 	current = strings.TrimSpace(current)
 	values = strings.TrimSpace(values)
@@ -3000,6 +3002,8 @@ func appendCommaSeparatedValue(current string, values string) string {
 	return current + "," + values
 }
 
+// normalizeRequestURIs splits a comma-separated URI string into a deduplicated,
+// trimmed slice preserving first-occurrence order.
 func normalizeRequestURIs(requestURIs string) []string {
 	items := stringsutil.SplitAny(requestURIs, ",")
 	cleaned := make([]string, 0, len(items))
@@ -3018,6 +3022,8 @@ func normalizeRequestURIs(requestURIs string) []string {
 	return cleaned
 }
 
+// isSecurityTxt validates whether an HTTP response represents a valid security.txt
+// file: HTTP 200, text/plain content type, and a Contact field present in the body.
 func isSecurityTxt(resp *httpx.Response) bool {
 	if resp == nil || resp.StatusCode != 200 {
 		return false

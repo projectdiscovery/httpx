@@ -286,17 +286,20 @@ func TestRunner_urlWithComma_targets(t *testing.T) {
 	require.ElementsMatch(t, expected, got, "could not expected output")
 }
 
+// TestNormalizeRequestURIs verifies deduplication and trimming of comma-separated URI strings.
 func TestNormalizeRequestURIs(t *testing.T) {
 	got := normalizeRequestURIs("/.well-known/security.txt, /security.txt, /.well-known/security.txt,,")
 	require.Equal(t, []string{"/.well-known/security.txt", "/security.txt"}, got)
 }
 
+// TestAppendCommaSeparatedValue verifies appending values to comma-separated strings.
 func TestAppendCommaSeparatedValue(t *testing.T) {
 	require.Equal(t, "200", appendCommaSeparatedValue("", "200"))
 	require.Equal(t, "200,302", appendCommaSeparatedValue("200", "302"))
 	require.Equal(t, "200", appendCommaSeparatedValue("200", ""))
 }
 
+// TestIsSecurityTxt verifies security.txt detection across valid, invalid, and edge-case responses.
 func TestIsSecurityTxt(t *testing.T) {
 	t.Run("valid security txt", func(t *testing.T) {
 		resp := &httpx.Response{
