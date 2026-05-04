@@ -19,9 +19,9 @@ require (
 	github.com/miekg/dns v1.1.68 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/asnmap v1.1.1
-	github.com/projectdiscovery/cdncheck v1.2.33
+	github.com/projectdiscovery/cdncheck v1.2.34
 	github.com/projectdiscovery/clistats v0.1.2
-	github.com/projectdiscovery/dsl v0.8.16
+	github.com/projectdiscovery/dsl v0.8.17
 	github.com/projectdiscovery/fastdialer v0.5.6
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
@@ -32,11 +32,11 @@ require (
 	github.com/projectdiscovery/networkpolicy v0.1.37
 	github.com/projectdiscovery/ratelimit v0.0.86
 	github.com/projectdiscovery/rawhttp v0.1.90
-	github.com/projectdiscovery/retryablehttp-go v1.3.9
+	github.com/projectdiscovery/retryablehttp-go v1.3.10
 	github.com/projectdiscovery/tlsx v1.2.2
 	github.com/projectdiscovery/useragent v0.0.107
 	github.com/projectdiscovery/utils v0.10.1
-	github.com/projectdiscovery/wappalyzergo v0.2.78
+	github.com/projectdiscovery/wappalyzergo v0.2.79
 	github.com/rs/xid v1.6.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.11.1
@@ -147,6 +147,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.26.3 // indirect
 	github.com/sorairolake/lzip-go v0.3.8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
+	github.com/spf13/cast v1.10.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tidwall/btree v1.7.0 // indirect
 	github.com/tidwall/buntdb v1.3.1 // indirect
