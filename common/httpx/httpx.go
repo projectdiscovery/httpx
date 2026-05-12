@@ -175,6 +175,8 @@ func New(options *Options) (*HTTPX, error) {
 			return nil, parseErr
 		}
 		transport.Proxy = http.ProxyURL(proxyURL)
+	} else {
+		transport.Proxy = http.ProxyFromEnvironment
 	}
 
 	httpx.client = retryablehttp.NewWithHTTPClient(&http.Client{
