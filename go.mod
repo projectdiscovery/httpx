@@ -19,10 +19,10 @@ require (
 	github.com/miekg/dns v1.1.68 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/asnmap v1.1.1
-	github.com/projectdiscovery/cdncheck v1.2.34
+	github.com/projectdiscovery/cdncheck v1.2.35
 	github.com/projectdiscovery/clistats v0.1.2
-	github.com/projectdiscovery/dsl v0.8.17
-	github.com/projectdiscovery/fastdialer v0.5.6
+	github.com/projectdiscovery/dsl v0.8.18
+	github.com/projectdiscovery/fastdialer v0.5.7
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.74
@@ -36,7 +36,7 @@ require (
 	github.com/projectdiscovery/tlsx v1.2.2
 	github.com/projectdiscovery/useragent v0.0.107
 	github.com/projectdiscovery/utils v0.11.0
-	github.com/projectdiscovery/wappalyzergo v0.2.79
+	github.com/projectdiscovery/wappalyzergo v0.2.80
 	github.com/rs/xid v1.6.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.11.1
@@ -46,7 +46,7 @@ require (
 	golang.org/x/exp v0.0.0-20250911091902-df9299821621
 	golang.org/x/net v0.53.0
 	golang.org/x/sys v0.43.0 // indirect
-	golang.org/x/text v0.36.0
+	golang.org/x/text v0.37.0
 )
 
 require (
@@ -66,7 +66,6 @@ require (
 require (
 	aead.dev/minisign v0.2.0 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
-	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/Mzack9999/go-http-digest-auth-client v0.6.1-0.20220414142836-eb8883508809 // indirect
 	github.com/STARRY-S/zip v0.2.3 // indirect
@@ -137,6 +136,7 @@ require (
 	github.com/projectdiscovery/blackrock v0.0.1 // indirect
 	github.com/projectdiscovery/freeport v0.0.7 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
+	github.com/projectdiscovery/govaluate v0.0.0-20260504230327-80320480bb6e // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20250715113114-c77eb3567582 // indirect
 	github.com/projectdiscovery/retryabledns v1.0.114 // indirect
 	github.com/refraction-networking/utls v1.8.2 // indirect
@@ -177,11 +177,11 @@ require (
 	github.com/zmap/rc2 v0.0.0-20190804163417-abaa70531248 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/crypto v0.50.0 // indirect
-	golang.org/x/mod v0.34.0 // indirect
+	golang.org/x/mod v0.35.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/term v0.42.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
-	golang.org/x/tools v0.43.0 // indirect
+	golang.org/x/tools v0.44.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
