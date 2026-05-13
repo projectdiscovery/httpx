@@ -156,6 +156,12 @@ func (p *postgresDatabase) EnsureSchema(ctx context.Context) error {
 			cpe JSONB
 		);
 
+		-- Back-compat for databases whose schema was created before CPE support.
+		-- New installs already get this column via the CREATE TABLE above; this
+		-- statement only matters for in-place upgrades.
+		-- TODO: replace these ad-hoc ALTER TABLE statements with a proper
+		-- migration framework (e.g. golang-migrate / goose) once more schema
+		-- changes accumulate.
 		ALTER TABLE %s ADD COLUMN IF NOT EXISTS cpe JSONB;
 
 		CREATE INDEX IF NOT EXISTS %s ON %s(timestamp DESC);

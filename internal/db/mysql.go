@@ -166,6 +166,11 @@ func (m *mysqlDatabase) EnsureSchema(ctx context.Context) error {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}
 
+	// Back-compat for databases whose schema was created before CPE support.
+	// New installs already get this column via the CREATE TABLE above; this
+	// path only matters for in-place upgrades.
+	// TODO: replace these ad-hoc ensureColumn calls with a proper migration
+	// framework (e.g. golang-migrate / goose) once more schema changes accumulate.
 	if err := m.ensureColumn(ctx, "cpe", "JSON"); err != nil {
 		return fmt.Errorf("failed to ensure cpe column: %w", err)
 	}
