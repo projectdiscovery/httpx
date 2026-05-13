@@ -801,11 +801,10 @@ func (options *Options) ValidateOptions() error {
 	var resolvers []string
 	for _, resolver := range options.Resolvers {
 		if fileutil.FileExists(resolver) {
-			chFile, err := fileutil.ReadFile(resolver)
-			if err != nil {
-				return errors.Wrapf(err, "Couldn't process resolver file \"%s\"", resolver)
-			}
-			for line := range chFile {
+			for line, err := range fileutil.Lines(resolver) {
+				if err != nil {
+					return errors.Wrapf(err, "Couldn't process resolver file \"%s\"", resolver)
+				}
 				line = strings.TrimSpace(line)
 				if line != "" && strings.Contains(line, ",") {
 					for item := range strings.SplitSeq(line, ",") {
