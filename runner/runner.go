@@ -434,6 +434,9 @@ func New(options *Options) (*Runner, error) {
 	if options.JSONOutput || options.CSVOutput || len(options.OutputFilterPageType) > 0 {
 		ditClassifier, err := dit.New()
 		if err != nil {
+			if len(options.OutputFilterPageType) > 0 {
+				return nil, fmt.Errorf("could not initialize page classifier for -fpt filter: %w (run 'dit data download' to install the model)", err)
+			}
 			gologger.Warning().Msgf("Could not initialize page classifier: %s", err)
 		}
 		runner.ditClassifier = ditClassifier
