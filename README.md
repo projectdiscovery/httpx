@@ -36,7 +36,7 @@
  - Simple and modular code base making it easy to contribute.
  - Fast And fully configurable flags to probe multiple elements.
  - Supports multiple HTTP based probings.
- - Smart auto fallback from https to http as default. 
+ - Smart auto fallback from https to http by default. 
  - Supports hosts, URLs and CIDR as input.
  - Handles edge cases doing retries, backoffs etc for handling WAFs.
 
@@ -283,7 +283,7 @@ CLOUD:
 For details about running httpx, see https://docs.projectdiscovery.io/tools/httpx/running.
 
 ### Using `httpx` as a library
-`httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. A minimal example of how to do it is in the [examples](examples/) folder
+`httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. A minimal example of how to do it is in the [examples](examples/) folder.
 
 # Notes
 

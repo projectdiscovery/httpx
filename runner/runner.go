@@ -95,7 +95,7 @@ type Runner struct {
 	browser            *Browser
 	ditClassifier *dit.Classifier
 	pHashClusters      []pHashCluster
-	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
+	simHashes          gcache.Cache[uint64, []string]
 	httpApiEndpoint    *Server
 	authProvider       authprovider.AuthProvider
 	interruptCh        chan struct{}
@@ -430,7 +430,7 @@ func New(options *Options) (*Runner, error) {
 		runner.HostErrorsCache = gc
 	}
 
-	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
+	runner.simHashes = gcache.New[uint64, []string](1000).ARC().Build()
 	if options.JSONOutput || options.CSVOutput || len(options.OutputFilterPageType) > 0 {
 		ditClassifier, err := dit.New()
 		if err != nil {
@@ -639,19 +639,21 @@ func (r *Runner) seen(k string) bool {
 
 func (r *Runner) duplicate(result *Result) bool {
 	respSimHash := simhash.Simhash(simhash.NewWordFeatureSet(converstionutil.Bytes(result.Raw)))
-	if r.simHashes.Has(respSimHash) {
-		gologger.Debug().Msgf("Skipping duplicate response with simhash %d for URL %s\n", respSimHash, result.URL)
-		return true
-	}
+	ip := result.HostIP
 
-	for simHash := range r.simHashes.GetALL(false) {
-		// lower threshold for increased precision
-		if simhash.Compare(simHash, respSimHash) <= 3 {
-			gologger.Debug().Msgf("Skipping near-duplicate response with simhash %d for URL %s\n", respSimHash, result.URL)
+	for storedHash, storedIPs := range r.simHashes.GetALL(false) {
+		if simhash.Compare(storedHash, respSimHash) > 3 {
+			continue
+		}
+		if ip == "" || sliceutil.Contains(storedIPs, ip) {
+			gologger.Debug().Msgf("Skipping duplicate response (simhash %d, ip %s) for URL %s\n", respSimHash, ip, result.URL)
 			return true
 		}
+		_ = r.simHashes.Set(storedHash, append(storedIPs, ip))
+		return false
 	}
-	_ = r.simHashes.Set(respSimHash, struct{}{})
+
+	_ = r.simHashes.Set(respSimHash, []string{ip})
 	return false
 }
 
@@ -741,11 +743,10 @@ func (r *Runner) streamInput() (chan string, error) {
 					return
 				}
 			} else {
-				fchan, err := fileutil.ReadFile(r.options.InputFile)
-				if err != nil {
-					return
-				}
-				for item := range fchan {
+				for item, err := range fileutil.Lines(r.options.InputFile) {
+					if err != nil {
+						return
+					}
 					if r.options.SkipDedupe || r.testAndSet(item) {
 						if !trySend(item) {
 							return
@@ -759,11 +760,10 @@ func (r *Runner) streamInput() (chan string, error) {
 				gologger.Fatal().Msgf("No input provided: %s", err)
 			}
 			for _, file := range files {
-				fchan, err := fileutil.ReadFile(file)
-				if err != nil {
-					return
-				}
-				for item := range fchan {
+				for item, err := range fileutil.Lines(file) {
+					if err != nil {
+						return
+					}
 					if r.options.SkipDedupe || r.testAndSet(item) {
 						if !trySend(item) {
 							return
@@ -773,11 +773,10 @@ func (r *Runner) streamInput() (chan string, error) {
 			}
 		}
 		if fileutil.HasStdin() {
-			fchan, err := fileutil.ReadFileWithReader(os.Stdin)
-			if err != nil {
-				return
-			}
-			for item := range fchan {
+			for item, err := range fileutil.LinesReader(os.Stdin) {
+				if err != nil {
+					return
+				}
 				if r.options.SkipDedupe || r.testAndSet(item) {
 					if !trySend(item) {
 						return
@@ -2456,53 +2455,56 @@ retry:
 	responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
 
 	var responsePath, fileNameHash string
-	// store response
+	// store response — when matchers/filters are active, defer writing to the
+	// output loop so only matched responses are persisted to disk.
 	if scanopts.StoreResponse || scanopts.StoreChain {
-		if r.options.OmitBody {
-			resp.Raw = strings.ReplaceAll(resp.Raw, string(resp.Data), "")
-		}
-		responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
-		// URL.EscapedString returns that can be used as filename
-		respRaw := resp.Raw
-		reqRaw := requestDump
-		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
-			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
-		}
-		data := reqRaw
-		if scanopts.StoreChain && resp.HasChain() {
-			data = append(data, append([]byte("\n"), []byte(resp.GetChain())...)...)
-		}
-		data = append(data, respRaw...)
-		data = append(data, []byte("\n\n\n")...)
-		data = append(data, []byte(fullURL)...)
-		_ = fileutil.CreateFolder(responseBaseDir)
+		fileNameHash = hash
 
-		basePath := strings.TrimSuffix(responsePath, ".txt")
-		var idx int
-		for idx = 0; ; idx++ {
-			targetPath := responsePath
-			if idx > 0 {
-				targetPath = fmt.Sprintf("%s_%d.txt", basePath, idx)
+		if !r.options.HasMatcherOrFilter() {
+			if r.options.OmitBody {
+				resp.Raw = strings.ReplaceAll(resp.Raw, string(resp.Data), "")
 			}
-			f, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
-			if err == nil {
-				_, writeErr := f.Write(data)
-				_ = f.Close()
-				if writeErr != nil {
-					gologger.Error().Msgf("Could not write to '%s': %s", targetPath, writeErr)
+			responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
+			// URL.EscapedString returns that can be used as filename
+			respRaw := resp.Raw
+			reqRaw := requestDump
+			if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
+				respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
+			}
+			data := reqRaw
+			if scanopts.StoreChain && resp.HasChain() {
+				data = append(data, append([]byte("\n"), []byte(resp.GetChain())...)...)
+			}
+			data = append(data, respRaw...)
+			data = append(data, []byte("\n\n\n")...)
+			data = append(data, []byte(fullURL)...)
+			_ = fileutil.CreateFolder(responseBaseDir)
+
+			basePath := strings.TrimSuffix(responsePath, ".txt")
+			var idx int
+			for idx = 0; ; idx++ {
+				targetPath := responsePath
+				if idx > 0 {
+					targetPath = fmt.Sprintf("%s_%d.txt", basePath, idx)
 				}
-				break
+				f, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+				if err == nil {
+					_, writeErr := f.Write(data)
+					_ = f.Close()
+					if writeErr != nil {
+						gologger.Error().Msgf("Could not write to '%s': %s", targetPath, writeErr)
+					}
+					break
+				}
+				if !os.IsExist(err) {
+					gologger.Error().Msgf("Failed to create file '%s': %s", targetPath, err)
+					break
+				}
 			}
-			if !os.IsExist(err) {
-				gologger.Error().Msgf("Failed to create file '%s': %s", targetPath, err)
-				break
-			}
-		}
 
-		if idx == 0 {
-			fileNameHash = hash
-		} else {
-			fileNameHash = fmt.Sprintf("%s_%d", hash, idx)
+			if idx > 0 {
+				fileNameHash = fmt.Sprintf("%s_%d", hash, idx)
+			}
 		}
 	}
 
