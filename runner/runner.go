@@ -743,11 +743,10 @@ func (r *Runner) streamInput() (chan string, error) {
 					return
 				}
 			} else {
-				fchan, err := fileutil.ReadFile(r.options.InputFile)
-				if err != nil {
-					return
-				}
-				for item := range fchan {
+				for item, err := range fileutil.Lines(r.options.InputFile) {
+					if err != nil {
+						return
+					}
 					if r.options.SkipDedupe || r.testAndSet(item) {
 						if !trySend(item) {
 							return
@@ -761,11 +760,10 @@ func (r *Runner) streamInput() (chan string, error) {
 				gologger.Fatal().Msgf("No input provided: %s", err)
 			}
 			for _, file := range files {
-				fchan, err := fileutil.ReadFile(file)
-				if err != nil {
-					return
-				}
-				for item := range fchan {
+				for item, err := range fileutil.Lines(file) {
+					if err != nil {
+						return
+					}
 					if r.options.SkipDedupe || r.testAndSet(item) {
 						if !trySend(item) {
 							return
@@ -775,11 +773,10 @@ func (r *Runner) streamInput() (chan string, error) {
 			}
 		}
 		if fileutil.HasStdin() {
-			fchan, err := fileutil.ReadFileWithReader(os.Stdin)
-			if err != nil {
-				return
-			}
-			for item := range fchan {
+			for item, err := range fileutil.LinesReader(os.Stdin) {
+				if err != nil {
+					return
+				}
 				if r.options.SkipDedupe || r.testAndSet(item) {
 					if !trySend(item) {
 						return
@@ -2458,53 +2455,56 @@ retry:
 	responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
 
 	var responsePath, fileNameHash string
-	// store response
+	// store response — when matchers/filters are active, defer writing to the
+	// output loop so only matched responses are persisted to disk.
 	if scanopts.StoreResponse || scanopts.StoreChain {
-		if r.options.OmitBody {
-			resp.Raw = strings.ReplaceAll(resp.Raw, string(resp.Data), "")
-		}
-		responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
-		// URL.EscapedString returns that can be used as filename
-		respRaw := resp.Raw
-		reqRaw := requestDump
-		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
-			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
-		}
-		data := reqRaw
-		if scanopts.StoreChain && resp.HasChain() {
-			data = append(data, append([]byte("\n"), []byte(resp.GetChain())...)...)
-		}
-		data = append(data, respRaw...)
-		data = append(data, []byte("\n\n\n")...)
-		data = append(data, []byte(fullURL)...)
-		_ = fileutil.CreateFolder(responseBaseDir)
+		fileNameHash = hash
 
-		basePath := strings.TrimSuffix(responsePath, ".txt")
-		var idx int
-		for idx = 0; ; idx++ {
-			targetPath := responsePath
-			if idx > 0 {
-				targetPath = fmt.Sprintf("%s_%d.txt", basePath, idx)
+		if !r.options.HasMatcherOrFilter() {
+			if r.options.OmitBody {
+				resp.Raw = strings.ReplaceAll(resp.Raw, string(resp.Data), "")
 			}
-			f, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
-			if err == nil {
-				_, writeErr := f.Write(data)
-				_ = f.Close()
-				if writeErr != nil {
-					gologger.Error().Msgf("Could not write to '%s': %s", targetPath, writeErr)
+			responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
+			// URL.EscapedString returns that can be used as filename
+			respRaw := resp.Raw
+			reqRaw := requestDump
+			if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
+				respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
+			}
+			data := reqRaw
+			if scanopts.StoreChain && resp.HasChain() {
+				data = append(data, append([]byte("\n"), []byte(resp.GetChain())...)...)
+			}
+			data = append(data, respRaw...)
+			data = append(data, []byte("\n\n\n")...)
+			data = append(data, []byte(fullURL)...)
+			_ = fileutil.CreateFolder(responseBaseDir)
+
+			basePath := strings.TrimSuffix(responsePath, ".txt")
+			var idx int
+			for idx = 0; ; idx++ {
+				targetPath := responsePath
+				if idx > 0 {
+					targetPath = fmt.Sprintf("%s_%d.txt", basePath, idx)
 				}
-				break
+				f, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+				if err == nil {
+					_, writeErr := f.Write(data)
+					_ = f.Close()
+					if writeErr != nil {
+						gologger.Error().Msgf("Could not write to '%s': %s", targetPath, writeErr)
+					}
+					break
+				}
+				if !os.IsExist(err) {
+					gologger.Error().Msgf("Failed to create file '%s': %s", targetPath, err)
+					break
+				}
 			}
-			if !os.IsExist(err) {
-				gologger.Error().Msgf("Failed to create file '%s': %s", targetPath, err)
-				break
-			}
-		}
 
-		if idx == 0 {
-			fileNameHash = hash
-		} else {
-			fileNameHash = fmt.Sprintf("%s_%d", hash, idx)
+			if idx > 0 {
+				fileNameHash = fmt.Sprintf("%s_%d", hash, idx)
+			}
 		}
 	}
 

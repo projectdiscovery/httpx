@@ -150,8 +150,19 @@ func (p *postgresDatabase) EnsureSchema(ctx context.Context) error {
 			link_request JSONB,
 
 			-- Trace
-			trace JSONB
+			trace JSONB,
+
+			-- CPE (Common Platform Enumeration)
+			cpe JSONB
 		);
+
+		-- Back-compat for databases whose schema was created before CPE support.
+		-- New installs already get this column via the CREATE TABLE above; this
+		-- statement only matters for in-place upgrades.
+		-- TODO: replace these ad-hoc ALTER TABLE statements with a proper
+		-- migration framework (e.g. golang-migrate / goose) once more schema
+		-- changes accumulate.
+		ALTER TABLE %s ADD COLUMN IF NOT EXISTS cpe JSONB;
 
 		CREATE INDEX IF NOT EXISTS %s ON %s(timestamp DESC);
 		CREATE INDEX IF NOT EXISTS %s ON %s(url);
@@ -159,6 +170,7 @@ func (p *postgresDatabase) EnsureSchema(ctx context.Context) error {
 		CREATE INDEX IF NOT EXISTS %s ON %s(status_code);
 		CREATE INDEX IF NOT EXISTS %s ON %s USING GIN(tech);
 	`,
+		tableName,
 		tableName,
 		idxTimestamp, tableName,
 		idxURL, tableName,
@@ -201,7 +213,8 @@ func (p *postgresDatabase) InsertBatch(ctx context.Context, results []runner.Res
 			words, lines, header, extracts, extract_regex,
 			chain, chain_status_codes,
 			headless_body, screenshot_bytes, screenshot_path, screenshot_path_rel, stored_response_path,
-			knowledgebase, link_request, trace
+			knowledgebase, link_request, trace,
+			cpe
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9,
 			$10, $11, $12, $13, $14, $15,
@@ -213,7 +226,8 @@ func (p *postgresDatabase) InsertBatch(ctx context.Context, results []runner.Res
 			$48, $49, $50, $51, $52,
 			$53, $54,
 			$55, $56, $57, $58, $59,
-			$60, $61, $62
+			$60, $61, $62,
+			$63
 		)`, tableName)
 
 	stmt, err := tx.PrepareContext(ctx, query)
@@ -235,6 +249,7 @@ func (p *postgresDatabase) InsertBatch(ctx context.Context, results []runner.Res
 		kbJSON, _ := json.Marshal(r.KnowledgeBase)
 		linkReqJSON, _ := json.Marshal(r.LinkRequest)
 		traceJSON, _ := json.Marshal(r.Trace)
+		cpeJSON, _ := json.Marshal(r.CPE)
 
 		_, err = stmt.ExecContext(ctx,
 			r.Timestamp, r.URL, r.Input, r.Host, r.Port, r.Scheme, r.Path, r.Method, r.FinalURL,
@@ -248,6 +263,7 @@ func (p *postgresDatabase) InsertBatch(ctx context.Context, results []runner.Res
 			chainJSON, pq.Array(r.ChainStatusCodes),
 			r.HeadlessBody, r.ScreenshotBytes, r.ScreenshotPath, r.ScreenshotPathRel, r.StoredResponsePath,
 			kbJSON, linkReqJSON, traceJSON,
+			cpeJSON,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert result: %w", err)

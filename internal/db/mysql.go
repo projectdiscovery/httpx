@@ -151,6 +151,9 @@ func (m *mysqlDatabase) EnsureSchema(ctx context.Context) error {
 			-- Trace
 			trace JSON,
 
+			-- CPE (Common Platform Enumeration)
+			cpe JSON,
+
 			INDEX idx_timestamp (timestamp),
 			INDEX idx_url (url(255)),
 			INDEX idx_host (host),
@@ -163,7 +166,36 @@ func (m *mysqlDatabase) EnsureSchema(ctx context.Context) error {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}
 
+	// Back-compat for databases whose schema was created before CPE support.
+	// New installs already get this column via the CREATE TABLE above; this
+	// path only matters for in-place upgrades.
+	// TODO: replace these ad-hoc ensureColumn calls with a proper migration
+	// framework (e.g. golang-migrate / goose) once more schema changes accumulate.
+	if err := m.ensureColumn(ctx, "cpe", "JSON"); err != nil {
+		return fmt.Errorf("failed to ensure cpe column: %w", err)
+	}
+
 	return nil
+}
+
+func (m *mysqlDatabase) ensureColumn(ctx context.Context, column, definition string) error {
+	var count int
+	err := m.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM information_schema.columns
+		 WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?`,
+		m.cfg.TableName, column,
+	).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+	_, err = m.db.ExecContext(ctx,
+		fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s",
+			quoteIdentifier(m.cfg.TableName), quoteIdentifier(column), definition),
+	)
+	return err
 }
 
 func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result) error {
@@ -193,7 +225,8 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 			words, `+"`lines`"+`, header, extracts, extract_regex,
 			chain, chain_status_codes,
 			headless_body, screenshot_bytes, screenshot_path, screenshot_path_rel, stored_response_path,
-			knowledgebase, link_request, trace
+			knowledgebase, link_request, trace,
+			cpe
 		) VALUES (
 			?, ?, ?, ?, ?, ?, ?, ?, ?,
 			?, ?, ?, ?, ?, ?,
@@ -205,7 +238,8 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 			?, ?, ?, ?, ?,
 			?, ?,
 			?, ?, ?, ?, ?,
-			?, ?, ?
+			?, ?, ?,
+			?
 		)`, tableName)
 
 	stmt, err := tx.PrepareContext(ctx, query)
@@ -236,6 +270,7 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 		kbJSON, _ := json.Marshal(r.KnowledgeBase)
 		linkReqJSON, _ := json.Marshal(r.LinkRequest)
 		traceJSON, _ := json.Marshal(r.Trace)
+		cpeJSON, _ := json.Marshal(r.CPE)
 
 		_, err = stmt.ExecContext(ctx,
 			r.Timestamp, r.URL, r.Input, r.Host, r.Port, r.Scheme, r.Path, r.Method, r.FinalURL,
@@ -249,6 +284,7 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 			chainJSON, chainStatusJSON,
 			r.HeadlessBody, r.ScreenshotBytes, r.ScreenshotPath, r.ScreenshotPathRel, r.StoredResponsePath,
 			kbJSON, linkReqJSON, traceJSON,
+			cpeJSON,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert result: %w", err)

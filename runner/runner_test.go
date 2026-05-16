@@ -386,6 +386,158 @@ func TestRunner_testAndSet_concurrent(t *testing.T) {
 	require.Equal(t, 1, winCount, "exactly one goroutine should win testAndSet for the same key")
 }
 
+func TestOptions_hasMatcherOrFilter(t *testing.T) {
+	tests := []struct {
+		name     string
+		options  Options
+		expected bool
+	}{
+		{
+			name:     "no matchers or filters",
+			options:  Options{},
+			expected: false,
+		},
+		{
+			name:     "match status code",
+			options:  Options{OutputMatchStatusCode: "200"},
+			expected: true,
+		},
+		{
+			name:     "filter status code",
+			options:  Options{OutputFilterStatusCode: "403,401"},
+			expected: true,
+		},
+		{
+			name:     "match string",
+			options:  Options{OutputMatchString: []string{"admin"}},
+			expected: true,
+		},
+		{
+			name:     "filter string",
+			options:  Options{OutputFilterString: []string{"error"}},
+			expected: true,
+		},
+		{
+			name:     "match content length",
+			options:  Options{OutputMatchContentLength: "100"},
+			expected: true,
+		},
+		{
+			name:     "filter content length",
+			options:  Options{OutputFilterContentLength: "0"},
+			expected: true,
+		},
+		{
+			name:     "match regex",
+			options:  Options{OutputMatchRegex: []string{"admin.*panel"}},
+			expected: true,
+		},
+		{
+			name:     "filter regex",
+			options:  Options{OutputFilterRegex: []string{"error"}},
+			expected: true,
+		},
+		{
+			name:     "match lines count",
+			options:  Options{OutputMatchLinesCount: "50"},
+			expected: true,
+		},
+		{
+			name:     "filter lines count",
+			options:  Options{OutputFilterLinesCount: "0"},
+			expected: true,
+		},
+		{
+			name:     "match words count",
+			options:  Options{OutputMatchWordsCount: "100"},
+			expected: true,
+		},
+		{
+			name:     "filter words count",
+			options:  Options{OutputFilterWordsCount: "0"},
+			expected: true,
+		},
+		{
+			name:     "match favicon",
+			options:  Options{OutputMatchFavicon: []string{"1494302000"}},
+			expected: true,
+		},
+		{
+			name:     "filter favicon",
+			options:  Options{OutputFilterFavicon: []string{"1494302000"}},
+			expected: true,
+		},
+		{
+			name:     "match cdn",
+			options:  Options{OutputMatchCdn: []string{"cloudflare"}},
+			expected: true,
+		},
+		{
+			name:     "filter cdn",
+			options:  Options{OutputFilterCdn: []string{"cloudflare"}},
+			expected: true,
+		},
+		{
+			name:     "match condition",
+			options:  Options{OutputMatchCondition: "status_code == 200"},
+			expected: true,
+		},
+		{
+			name:     "filter condition",
+			options:  Options{OutputFilterCondition: "status_code == 403"},
+			expected: true,
+		},
+		{
+			name:     "match response time",
+			options:  Options{OutputMatchResponseTime: "< 1"},
+			expected: true,
+		},
+		{
+			name:     "filter response time",
+			options:  Options{OutputFilterResponseTime: "> 5"},
+			expected: true,
+		},
+		{
+			name:     "filter page type",
+			options:  Options{OutputFilterPageType: []string{"error"}},
+			expected: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := tc.options
+			err := opts.ValidateOptions()
+			require.Nil(t, err)
+			require.Equal(t, tc.expected, opts.HasMatcherOrFilter(),
+				"HasMatcherOrFilter() should be %v for %s", tc.expected, tc.name)
+		})
+	}
+}
+
+func TestStoreResponse_withoutMatchersStoresAll(t *testing.T) {
+	dir := t.TempDir()
+	opts := &Options{
+		StoreResponse:    true,
+		StoreResponseDir: dir,
+	}
+	err := opts.ValidateOptions()
+	require.Nil(t, err)
+	require.False(t, opts.HasMatcherOrFilter())
+}
+
+func TestStoreResponse_withMatcherSetsFlag(t *testing.T) {
+	dir := t.TempDir()
+	opts := &Options{
+		StoreResponse:       true,
+		StoreResponseDir:    dir,
+		OutputMatchStatusCode: "200",
+	}
+	err := opts.ValidateOptions()
+	require.Nil(t, err)
+	require.True(t, opts.HasMatcherOrFilter())
+}
+
 func TestRunner_duplicate(t *testing.T) {
 	const (
 		pageA = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><head><title>Welcome</title></head><body>Hello world default page content here</body></html>"

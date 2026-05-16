@@ -343,7 +343,7 @@ type Options struct {
 	HeadlessOptionalArguments goflags.StringSlice
 	Protocol                  string
 	OutputFilterErrorPagePath string
-	DisableStdout             bool
+	DisableStdout bool
 
 	JavascriptCodes goflags.StringSlice
 
@@ -532,7 +532,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.RandomAgent, "random-agent", true, "enable Random User-Agent to use"),
 		flagSet.BoolVar(&options.AutoReferer, "auto-referer", false, "set the Referer header to the current URL"),
 		flagSet.VarP(&options.CustomHeaders, "header", "H", "custom http headers to send with request"),
-		flagSet.StringVarP(&options.Proxy, "proxy", "http-proxy", "", "proxy (http|socks) to use (eg http://127.0.0.1:8080)"),
+		flagSet.StringVarP(&options.Proxy, "proxy", "http-proxy", "", "proxy (http|socks) to use (eg http://127.0.0.1:8080); falls back to HTTP_PROXY/HTTPS_PROXY/NO_PROXY env vars"),
 		flagSet.BoolVar(&options.Unsafe, "unsafe", false, "send raw requests skipping golang normalization"),
 		flagSet.BoolVar(&options.Resume, "resume", false, "resume scan using resume.cfg"),
 		flagSet.BoolVarP(&options.FollowRedirects, "follow-redirects", "fr", false, "follow http redirects"),
@@ -696,6 +696,30 @@ func ParseOptions() *Options {
 	return options
 }
 
+func (options *Options) HasMatcherOrFilter() bool {
+	return len(options.matchStatusCode) > 0 ||
+		len(options.matchContentLength) > 0 ||
+		len(options.filterStatusCode) > 0 ||
+		len(options.filterContentLength) > 0 ||
+		len(options.matchRegexes) > 0 ||
+		len(options.filterRegexes) > 0 ||
+		len(options.matchLinesCount) > 0 ||
+		len(options.matchWordsCount) > 0 ||
+		len(options.filterLinesCount) > 0 ||
+		len(options.filterWordsCount) > 0 ||
+		len(options.OutputMatchString) > 0 ||
+		len(options.OutputFilterString) > 0 ||
+		len(options.OutputMatchFavicon) > 0 ||
+		len(options.OutputFilterFavicon) > 0 ||
+		len(options.OutputMatchCdn) > 0 ||
+		len(options.OutputFilterCdn) > 0 ||
+		len(options.OutputFilterPageType) > 0 ||
+		options.OutputMatchCondition != "" ||
+		options.OutputFilterCondition != "" ||
+		options.OutputMatchResponseTime != "" ||
+		options.OutputFilterResponseTime != ""
+}
+
 func (options *Options) ValidateOptions() error {
 	if options.InputFile != "" && !fileutilz.FileNameIsGlob(options.InputFile) && !fileutil.FileExists(options.InputFile) {
 		return fmt.Errorf("file '%s' does not exist", options.InputFile)
@@ -777,11 +801,10 @@ func (options *Options) ValidateOptions() error {
 	var resolvers []string
 	for _, resolver := range options.Resolvers {
 		if fileutil.FileExists(resolver) {
-			chFile, err := fileutil.ReadFile(resolver)
-			if err != nil {
-				return errors.Wrapf(err, "Couldn't process resolver file \"%s\"", resolver)
-			}
-			for line := range chFile {
+			for line, err := range fileutil.Lines(resolver) {
+				if err != nil {
+					return errors.Wrapf(err, "Couldn't process resolver file \"%s\"", resolver)
+				}
 				line = strings.TrimSpace(line)
 				if line != "" && strings.Contains(line, ",") {
 					for item := range strings.SplitSeq(line, ",") {
