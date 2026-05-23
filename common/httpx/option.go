@@ -36,7 +36,7 @@ type Options struct {
 	Timeout time.Duration
 	// RetryMax is the maximum number of retries
 	RetryMax      int
-	CustomHeaders map[string]string
+	CustomHeaders map[string][]string
 	// VHostSimilarityRatio 1 - 100
 	VHostSimilarityRatio int
 	FollowRedirects      bool
@@ -90,7 +90,7 @@ func (options *Options) parseCustomCookies() {
 	// parse and fill the custom field
 	for k, v := range options.CustomHeaders {
 		if strings.EqualFold(k, "cookie") {
-			req := http.Request{Header: http.Header{"Cookie": []string{v}}}
+			req := http.Request{Header: http.Header{"Cookie": v}}
 			options.customCookies = req.Cookies()
 		}
 	}

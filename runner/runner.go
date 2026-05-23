@@ -30,14 +30,14 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/corona10/goimagehash"
 	"github.com/gocarina/gocsv"
+	"github.com/happyhackingspace/dit"
 	"github.com/mfonda/simhash"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
+	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/httpx/common/inputformats"
-	"github.com/happyhackingspace/dit"
-	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
@@ -238,12 +238,12 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.Protocol = httpx.Proto(options.Protocol)
 
 	var key, value string
-	httpxOptions.CustomHeaders = make(map[string]string)
+	httpxOptions.CustomHeaders = make(map[string][]string)
 	for _, customHeader := range options.CustomHeaders {
 		tokens := strings.SplitN(customHeader, ":", two)
 		// rawhttp skips all checks
 		if options.Unsafe {
-			httpxOptions.CustomHeaders[customHeader] = ""
+			httpxOptions.CustomHeaders[customHeader] = []string{""}
 			continue
 		}
 
@@ -253,7 +253,7 @@ func New(options *Options) (*Runner, error) {
 		}
 		key = strings.TrimSpace(tokens[0])
 		value = strings.TrimSpace(tokens[1])
-		httpxOptions.CustomHeaders[key] = value
+		httpxOptions.CustomHeaders[key] = append(httpxOptions.CustomHeaders[key], value)
 	}
 	httpxOptions.SniName = options.SniName
 
@@ -278,7 +278,7 @@ func New(options *Options) (*Runner, error) {
 		scanopts.Methods = append(scanopts.Methods, rrMethod)
 		scanopts.RequestURI = rrPath
 		for name, value := range rrHeaders {
-			httpxOptions.CustomHeaders[name] = value
+			httpxOptions.CustomHeaders[name] = append(httpxOptions.CustomHeaders[name], value...)
 		}
 		scanopts.RequestBody = rrBody
 		options.rawRequest = string(rawRequest)

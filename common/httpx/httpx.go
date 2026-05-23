@@ -36,7 +36,7 @@ type HTTPX struct {
 	Filters       []Filter
 	Options       *Options
 	htmlPolicy    *bluemonday.Policy
-	CustomHeaders map[string]string
+	CustomHeaders map[string][]string
 	cdn           *cdncheck.Client
 	Dialer        *fastdialer.Dialer
 	NetworkPolicy *networkpolicy.NetworkPolicy
@@ -434,19 +434,21 @@ func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL str
 }
 
 // SetCustomHeaders on the provided request
-func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]string) {
-	for name, value := range headers {
-		switch strings.ToLower(name) {
-		case "host":
-			r.Host = value
-			if h.Options.Unsafe {
-				r.Header.Set("Host", value)
+func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string][]string) {
+	for name, values := range headers {
+		for _, value := range values {
+			switch strings.ToLower(name) {
+			case "host":
+				r.Host = value
+				if h.Options.Unsafe {
+					r.Header.Add("Host", value)
+				}
+			case "cookie":
+				// cookies are set in the default branch, and reset during the follow redirect flow
+				fallthrough
+			default:
+				r.Header.Add(name, value)
 			}
-		case "cookie":
-			// cookies are set in the default branch, and reset during the follow redirect flow
-			fallthrough
-		default:
-			r.Header.Set(name, value)
 		}
 	}
 	if h.Options.RandomAgent {

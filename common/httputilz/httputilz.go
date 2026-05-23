@@ -24,8 +24,8 @@ func DumpRequest(req *retryablehttp.Request) (string, error) {
 }
 
 // ParseRequest from raw string
-func ParseRequest(req string, unsafe bool) (method, path string, headers map[string]string, body string, err error) {
-	headers = make(map[string]string)
+func ParseRequest(req string, unsafe bool) (method, path string, headers map[string][]string, body string, err error) {
+	headers = make(map[string][]string)
 	reader := bufio.NewReader(strings.NewReader(req))
 	s, err := reader.ReadString('\n')
 	if err != nil {
@@ -68,7 +68,7 @@ func ParseRequest(req string, unsafe bool) (method, path string, headers map[str
 			value = strings.TrimSpace(value)
 		}
 
-		headers[key] = value
+		headers[key] = append(headers[key], value)
 	}
 
 	// Handle case with the full http url in path. In that case,
@@ -81,7 +81,7 @@ func ParseRequest(req string, unsafe bool) (method, path string, headers map[str
 			return
 		}
 		path = parts[1]
-		headers["Host"] = parsed.Host
+		headers["Host"] = []string{parsed.Host}
 	} else {
 		path = parts[1]
 	}
