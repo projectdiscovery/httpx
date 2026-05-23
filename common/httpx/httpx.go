@@ -436,6 +436,7 @@ func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL str
 // SetCustomHeaders on the provided request
 func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string][]string) {
 	for name, values := range headers {
+		r.Header.Del(name)
 		for _, value := range values {
 			switch strings.ToLower(name) {
 			case "host":
