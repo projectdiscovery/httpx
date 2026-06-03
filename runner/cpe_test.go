@@ -64,3 +64,34 @@ func TestSetCPEVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildTechVersionMap(t *testing.T) {
+	techs := []string{
+		"Apache HTTP Server:2.4.7",
+		"PHP:5.5.9",
+		"Bootstrap", // no version -> not in map
+		"Next.js:14.2.3",
+		"jQuery:", // empty version -> not in map
+	}
+	got := buildTechVersionMap(techs)
+
+	want := map[string]string{
+		"apache http server": "2.4.7",
+		"php":                "5.5.9",
+		"next.js":            "14.2.3",
+	}
+	if len(got) != len(want) {
+		t.Fatalf("map size = %d, want %d (%v)", len(got), len(want), got)
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Fatalf("got[%q] = %q, want %q", k, got[k], v)
+		}
+	}
+	if _, ok := got["bootstrap"]; ok {
+		t.Fatalf("bootstrap should not be present (no version)")
+	}
+	if _, ok := got["jquery"]; ok {
+		t.Fatalf("jquery should not be present (empty version)")
+	}
+}

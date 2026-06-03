@@ -118,6 +118,28 @@ func setCPEVersion(cpe, version string) string {
 	return strings.Join(parts, ":")
 }
 
+// buildTechVersionMap converts wappalyzer technology entries of the form
+// "Name:version" (e.g. "Apache HTTP Server:2.4.7") into a lookup keyed by the
+// lowercased, trimmed technology name. Entries without a version, or with an
+// empty version, are skipped. This mirrors wappalyzergo's FormatAppVersion
+// convention where the version is appended after a ':' separator.
+func buildTechVersionMap(technologies []string) map[string]string {
+	versions := make(map[string]string)
+	for _, tech := range technologies {
+		parts := strings.SplitN(tech, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		name := strings.ToLower(strings.TrimSpace(parts[0]))
+		version := strings.TrimSpace(parts[1])
+		if name == "" || version == "" {
+			continue
+		}
+		versions[name] = version
+	}
+	return versions
+}
+
 func (d *CPEDetector) extractPattern(query string, info CPEInfo) {
 	query = strings.TrimSpace(query)
 
