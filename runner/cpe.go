@@ -90,6 +90,34 @@ func generateCPE(vendor, product string) string {
 		strings.ToLower(strings.ReplaceAll(product, " ", "_")))
 }
 
+// cpeVersionFieldIndex is the zero-based position of the version field in a
+// CPE 2.3 formatted string: cpe:2.3:<part>:<vendor>:<product>:<version>:...
+const cpeVersionFieldIndex = 5
+
+// sanitizeCPEVersion normalizes a detected version for embedding in a CPE
+// string, matching the lowercase + space-to-underscore convention used by
+// generateCPE for vendor/product.
+func sanitizeCPEVersion(version string) string {
+	return strings.ToLower(strings.ReplaceAll(strings.TrimSpace(version), " ", "_"))
+}
+
+// setCPEVersion returns a copy of a CPE 2.3 string with its version field
+// replaced. An empty version, an empty cpe, or a string that is not a
+// well-formed CPE 2.3 value (fewer than the expected fields, or wrong prefix)
+// is returned unchanged.
+func setCPEVersion(cpe, version string) string {
+	version = sanitizeCPEVersion(version)
+	if cpe == "" || version == "" {
+		return cpe
+	}
+	parts := strings.Split(cpe, ":")
+	if len(parts) <= cpeVersionFieldIndex || parts[0] != "cpe" || parts[1] != "2.3" {
+		return cpe
+	}
+	parts[cpeVersionFieldIndex] = version
+	return strings.Join(parts, ":")
+}
+
 func (d *CPEDetector) extractPattern(query string, info CPEInfo) {
 	query = strings.TrimSpace(query)
 
