@@ -148,7 +148,7 @@ func New(options *Options) (*Runner, error) {
 	var err error
 	if options.Wappalyzer != nil {
 		runner.wappalyzer = options.Wappalyzer
-	} else if options.TechDetect || options.JSONOutput || options.CSVOutput || options.AssetUpload {
+	} else if techDetectRequired(options) {
 		runner.wappalyzer, err = func() (*wappalyzer.Wappalyze, error) {
 			if options.CustomFingerprintFile != "" {
 				return wappalyzer.NewFromFile(options.CustomFingerprintFile, true, true)
@@ -2566,7 +2566,7 @@ retry:
 			// As we now have headless body, we can also use it for detecting
 			// more technologies in the response. This is a quick trick to get
 			// more detected technologies.
-			if r.options.TechDetect || r.options.JSONOutput || r.options.CSVOutput {
+			if techDetectRequired(r.options) {
 				moreMatches := r.wappalyzer.FingerprintWithInfo(resp.Headers, []byte(headlessBody))
 				for match, data := range moreMatches {
 					technologies = append(technologies, match)
