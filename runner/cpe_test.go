@@ -80,6 +80,12 @@ func TestSetCPEVersion(t *testing.T) {
 			want:    "not-a-cpe",
 		},
 		{
+			name:    "truncated cpe returned unchanged",
+			cpe:     "cpe:2.3:a:vendor:product:*",
+			version: "1.2.3",
+			want:    "cpe:2.3:a:vendor:product:*",
+		},
+		{
 			name:    "version with colon leaves cpe unchanged",
 			cpe:     "cpe:2.3:a:vendor:product:*:*:*:*:*:*:*:*",
 			version: "1.0:beta",

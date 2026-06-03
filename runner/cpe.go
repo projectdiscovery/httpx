@@ -107,6 +107,11 @@ func techDetectRequired(options *Options) bool {
 // CPE 2.3 formatted string: cpe:2.3:<part>:<vendor>:<product>:<version>:...
 const cpeVersionFieldIndex = 5
 
+// cpeFieldCount is the exact number of colon-separated fields in a well-formed
+// CPE 2.3 string: cpe, 2.3, part, vendor, product, version, update, edition,
+// language, sw_edition, target_sw, target_hw, other.
+const cpeFieldCount = 13
+
 // sanitizeCPEVersion normalizes a detected version for embedding in a CPE
 // string, matching the lowercase + space-to-underscore convention used by
 // generateCPE for vendor/product.
@@ -130,7 +135,7 @@ func setCPEVersion(cpe, version string) string {
 		return cpe
 	}
 	parts := strings.Split(cpe, ":")
-	if len(parts) <= cpeVersionFieldIndex || parts[0] != "cpe" || parts[1] != "2.3" {
+	if len(parts) != cpeFieldCount || parts[0] != "cpe" || parts[1] != "2.3" {
 		return cpe
 	}
 	parts[cpeVersionFieldIndex] = version
@@ -143,7 +148,7 @@ func setCPEVersion(cpe, version string) string {
 // empty version, are skipped. This mirrors wappalyzergo's FormatAppVersion
 // convention where the version is appended after a ':' separator.
 func buildTechVersionMap(technologies []string) map[string]string {
-	versions := make(map[string]string)
+	versions := make(map[string]string, len(technologies))
 	for _, tech := range technologies {
 		parts := strings.SplitN(tech, ":", 2)
 		if len(parts) != 2 {
@@ -166,7 +171,7 @@ func buildTechVersionMap(technologies []string) map[string]string {
 // product differently than awesome-search-queries, no version is injected and
 // the CPE keeps its '*' version (no regression).
 func EnrichCPEVersions(matches []CPEInfo, technologies []string) []CPEInfo {
-	if len(matches) == 0 {
+	if len(matches) == 0 || len(technologies) == 0 {
 		return matches
 	}
 	versions := buildTechVersionMap(technologies)
