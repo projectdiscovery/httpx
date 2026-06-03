@@ -340,7 +340,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputResponseTime = options.OutputResponseTime
 	scanopts.NoFallback = options.NoFallback
 	scanopts.NoFallbackScheme = options.NoFallbackScheme
-	scanopts.TechDetect = options.TechDetect || options.JSONOutput || options.CSVOutput || options.AssetUpload
+	scanopts.TechDetect = techDetectRequired(options)
 	scanopts.CPEDetect = options.CPEDetect || options.JSONOutput || options.CSVOutput
 	scanopts.WordPress = options.WordPress || options.JSONOutput || options.CSVOutput
 	scanopts.StoreChain = options.StoreChain

@@ -24,6 +24,30 @@ func TestSanitizeCPEVersion(t *testing.T) {
 	}
 }
 
+func TestTechDetectRequired(t *testing.T) {
+	tests := []struct {
+		name    string
+		options *Options
+		want    bool
+	}{
+		{"nothing enabled", &Options{}, false},
+		{"tech-detect flag", &Options{TechDetect: true}, true},
+		{"json output", &Options{JSONOutput: true}, true},
+		{"csv output", &Options{CSVOutput: true}, true},
+		{"asset upload", &Options{AssetUpload: true}, true},
+		// issue #2476: -cpe alone must turn tech-detect on, because CPE
+		// enrichment reuses the versions wappalyzer extracts.
+		{"cpe alone enables tech-detect", &Options{CPEDetect: true}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := techDetectRequired(tt.options); got != tt.want {
+				t.Fatalf("techDetectRequired(%+v) = %v, want %v", tt.options, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestSetCPEVersion(t *testing.T) {
 	tests := []struct {
 		name    string

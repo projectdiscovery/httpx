@@ -90,6 +90,19 @@ func generateCPE(vendor, product string) string {
 		strings.ToLower(strings.ReplaceAll(product, " ", "_")))
 }
 
+// techDetectRequired reports whether technology fingerprinting must run for the
+// currently enabled options. Beyond -tech-detect itself, JSON/CSV output and
+// asset upload embed the technology list, and -cpe reuses the versions detected
+// by wappalyzer to fill the version field of CPE strings — so any of them
+// requires tech-detect to populate the technology list.
+func techDetectRequired(options *Options) bool {
+	return options.TechDetect ||
+		options.JSONOutput ||
+		options.CSVOutput ||
+		options.AssetUpload ||
+		options.CPEDetect
+}
+
 // cpeVersionFieldIndex is the zero-based position of the version field in a
 // CPE 2.3 formatted string: cpe:2.3:<part>:<vendor>:<product>:<version>:...
 const cpeVersionFieldIndex = 5
