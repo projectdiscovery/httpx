@@ -2599,6 +2599,7 @@ retry:
 	var cpeMatches []CPEInfo
 	if r.cpeDetector != nil {
 		cpeMatches = r.cpeDetector.Detect(title, string(resp.Data), faviconMMH3)
+		cpeMatches = EnrichCPEVersions(cpeMatches, technologies)
 		if len(cpeMatches) > 0 && r.options.CPEDetect {
 			for _, cpe := range cpeMatches {
 				builder.WriteString(" [")
