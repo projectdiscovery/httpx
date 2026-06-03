@@ -95,3 +95,41 @@ func TestBuildTechVersionMap(t *testing.T) {
 		t.Fatalf("jquery should not be present (empty version)")
 	}
 }
+
+func TestEnrichCPEVersions(t *testing.T) {
+	matches := []CPEInfo{
+		{Product: "next.js", Vendor: "vercel", CPE: "cpe:2.3:a:vercel:next.js:*:*:*:*:*:*:*:*"},
+		{Product: "Apache HTTP Server", Vendor: "apache", CPE: "cpe:2.3:a:apache:apache_http_server:*:*:*:*:*:*:*:*"},
+		{Product: "Bootstrap", Vendor: "getbootstrap", CPE: "cpe:2.3:a:getbootstrap:bootstrap:*:*:*:*:*:*:*:*"},
+	}
+	technologies := []string{"Next.js:14.2.3", "Apache HTTP Server:2.4.7", "Bootstrap"}
+
+	got := EnrichCPEVersions(matches, technologies)
+
+	// issue #2476: next.js version is injected
+	if got[0].CPE != "cpe:2.3:a:vercel:next.js:14.2.3:*:*:*:*:*:*:*" {
+		t.Fatalf("next.js CPE = %q, want version 14.2.3 injected", got[0].CPE)
+	}
+	// case-insensitive product match works for multi-word names
+	if got[1].CPE != "cpe:2.3:a:apache:apache_http_server:2.4.7:*:*:*:*:*:*:*" {
+		t.Fatalf("apache CPE = %q, want version 2.4.7 injected", got[1].CPE)
+	}
+	// no detected version -> unchanged (still '*')
+	if got[2].CPE != "cpe:2.3:a:getbootstrap:bootstrap:*:*:*:*:*:*:*:*" {
+		t.Fatalf("bootstrap CPE = %q, want unchanged", got[2].CPE)
+	}
+	// input must not be mutated (immutability)
+	if matches[0].CPE != "cpe:2.3:a:vercel:next.js:*:*:*:*:*:*:*:*" {
+		t.Fatalf("input matches[0] was mutated: %q", matches[0].CPE)
+	}
+}
+
+func TestEnrichCPEVersionsNoTechnologies(t *testing.T) {
+	matches := []CPEInfo{
+		{Product: "next.js", Vendor: "vercel", CPE: "cpe:2.3:a:vercel:next.js:*:*:*:*:*:*:*:*"},
+	}
+	got := EnrichCPEVersions(matches, nil)
+	if got[0].CPE != matches[0].CPE {
+		t.Fatalf("with no technologies CPE should be unchanged, got %q", got[0].CPE)
+	}
+}

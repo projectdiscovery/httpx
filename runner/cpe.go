@@ -140,6 +140,28 @@ func buildTechVersionMap(technologies []string) map[string]string {
 	return versions
 }
 
+// EnrichCPEVersions returns a new slice of CPEInfo in which the version field
+// of each CPE string is filled from a matching detected technology version,
+// when available. Matching is by product name, compared case-insensitively
+// after trimming. Inputs are not mutated. When the technology sources name a
+// product differently than awesome-search-queries, no version is injected and
+// the CPE keeps its '*' version (no regression).
+func EnrichCPEVersions(matches []CPEInfo, technologies []string) []CPEInfo {
+	if len(matches) == 0 {
+		return matches
+	}
+	versions := buildTechVersionMap(technologies)
+
+	enriched := make([]CPEInfo, len(matches))
+	for i, match := range matches {
+		enriched[i] = match
+		if version, ok := versions[strings.ToLower(strings.TrimSpace(match.Product))]; ok {
+			enriched[i].CPE = setCPEVersion(match.CPE, version)
+		}
+	}
+	return enriched
+}
+
 func (d *CPEDetector) extractPattern(query string, info CPEInfo) {
 	query = strings.TrimSpace(query)
 
