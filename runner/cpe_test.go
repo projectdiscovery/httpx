@@ -79,6 +79,18 @@ func TestSetCPEVersion(t *testing.T) {
 			version: "1.2.3",
 			want:    "not-a-cpe",
 		},
+		{
+			name:    "version with colon leaves cpe unchanged",
+			cpe:     "cpe:2.3:a:vendor:product:*:*:*:*:*:*:*:*",
+			version: "1.0:beta",
+			want:    "cpe:2.3:a:vendor:product:*:*:*:*:*:*:*:*",
+		},
+		{
+			name:    "version with wildcard leaves cpe unchanged",
+			cpe:     "cpe:2.3:a:vendor:product:*:*:*:*:*:*:*:*",
+			version: "2.*",
+			want:    "cpe:2.3:a:vendor:product:*:*:*:*:*:*:*:*",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

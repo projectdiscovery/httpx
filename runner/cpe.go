@@ -123,6 +123,12 @@ func setCPEVersion(cpe, version string) string {
 	if cpe == "" || version == "" {
 		return cpe
 	}
+	// A version that still contains CPE 2.3 structural (':') or wildcard
+	// ('*', '?') characters would corrupt the field layout or change matching
+	// semantics. Leave the CPE unenriched rather than emit a malformed value.
+	if strings.ContainsAny(version, ":*?") {
+		return cpe
+	}
 	parts := strings.Split(cpe, ":")
 	if len(parts) <= cpeVersionFieldIndex || parts[0] != "cpe" || parts[1] != "2.3" {
 		return cpe
