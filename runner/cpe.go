@@ -111,10 +111,11 @@ const cpeVersionFieldIndex = 5
 const cpeFieldCount = 13
 
 // sanitizeCPEVersion normalizes a detected version for embedding in a CPE
-// string, matching the lowercase + space-to-underscore convention used by
-// generateCPE for vendor/product.
+// string: trim surrounding space and replace inner spaces with underscores.
+// Case is preserved — CPE 2.3 matching is case-insensitive, and lowercasing
+// would corrupt semantically meaningful identifiers like 1.0.0-RC1 or 9.0.0.M1.
 func sanitizeCPEVersion(version string) string {
-	return strings.ToLower(strings.ReplaceAll(strings.TrimSpace(version), " ", "_"))
+	return strings.ReplaceAll(strings.TrimSpace(version), " ", "_")
 }
 
 // setCPEVersion returns a copy of a CPE 2.3 string with its version field
@@ -140,9 +141,11 @@ func setCPEVersion(cpe, version string) string {
 
 // buildTechVersionMap maps lowercased technology name -> version, parsing
 // wappalyzer's "Name:version" entries (FormatAppVersion convention). Entries
-// without a version are skipped.
+// without a version are skipped. A product reported with conflicting versions
+// is dropped rather than resolved by map iteration order, which is random.
 func buildTechVersionMap(technologies []string) map[string]string {
 	versions := make(map[string]string, len(technologies))
+	conflicting := make(map[string]struct{})
 	for _, tech := range technologies {
 		parts := strings.SplitN(tech, ":", 2)
 		if len(parts) != 2 {
@@ -151,6 +154,14 @@ func buildTechVersionMap(technologies []string) map[string]string {
 		name := strings.ToLower(strings.TrimSpace(parts[0]))
 		version := strings.TrimSpace(parts[1])
 		if name == "" || version == "" {
+			continue
+		}
+		if _, ok := conflicting[name]; ok {
+			continue
+		}
+		if existing, ok := versions[name]; ok && existing != version {
+			delete(versions, name)
+			conflicting[name] = struct{}{}
 			continue
 		}
 		versions[name] = version

@@ -11,7 +11,7 @@ func TestSanitizeCPEVersion(t *testing.T) {
 		want string
 	}{
 		{"plain semver", "2.4.7", "2.4.7"},
-		{"uppercase", "1.0.0-RC1", "1.0.0-rc1"},
+		{"case preserved", "1.0.0-RC1", "1.0.0-RC1"},
 		{"spaces to underscore", "10 0", "10_0"},
 		{"empty", "", ""},
 	}
@@ -135,6 +135,20 @@ func TestBuildTechVersionMap(t *testing.T) {
 	}
 	if _, ok := got["jquery"]; ok {
 		t.Fatalf("jquery should not be present (empty version)")
+	}
+}
+
+func TestBuildTechVersionMapConflict(t *testing.T) {
+	// the same product reported with two versions must be dropped, not resolved
+	// by random map iteration order.
+	techs := []string{"Foo:1.2.3", "Foo:1.2.4", "Bar:9.0"}
+	got := buildTechVersionMap(techs)
+
+	if _, ok := got["foo"]; ok {
+		t.Fatalf("conflicting product foo should be dropped, got %q", got["foo"])
+	}
+	if got["bar"] != "9.0" {
+		t.Fatalf("got[bar] = %q, want 9.0", got["bar"])
 	}
 }
 
