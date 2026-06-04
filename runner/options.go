@@ -410,7 +410,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.OutputServerHeader, "web-server", "server", false, "display server name"),
 		flagSet.BoolVarP(&options.TechDetect, "tech-detect", "td", false, "display technology in use based on wappalyzer dataset"),
 		flagSet.StringVarP(&options.CustomFingerprintFile, "custom-fingerprint-file", "cff", "", "path to a custom fingerprint file for technology detection"),
-		flagSet.BoolVar(&options.CPEDetect, "cpe", false, "display CPE (Common Platform Enumeration) based on awesome-search-queries"),
+		flagSet.BoolVar(&options.CPEDetect, "cpe", false, "display CPE (Common Platform Enumeration) with product version based on awesome-search-queries"),
 		flagSet.BoolVarP(&options.WordPress, "wordpress", "wp", false, "display WordPress plugins and themes"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
 		flagSet.BoolVarP(&options.OutputWebSocket, "websocket", "ws", false, "display server using websocket"),
