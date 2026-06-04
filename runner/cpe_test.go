@@ -188,4 +188,10 @@ func TestEnrichCPEVersionsNoTechnologies(t *testing.T) {
 	if got[0].CPE != matches[0].CPE {
 		t.Fatalf("with no technologies CPE should be unchanged, got %q", got[0].CPE)
 	}
+	// the early-return path must still return a copy: mutating the result
+	// must not reach back into the caller's input slice.
+	got[0].CPE = "mutated"
+	if matches[0].CPE == "mutated" {
+		t.Fatalf("early-return aliased the input slice; want a copy")
+	}
 }

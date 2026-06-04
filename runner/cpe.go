@@ -175,7 +175,7 @@ func buildTechVersionMap(technologies []string) map[string]string {
 // not mutated.
 func EnrichCPEVersions(matches []CPEInfo, technologies []string) []CPEInfo {
 	if len(matches) == 0 || len(technologies) == 0 {
-		return matches
+		return append([]CPEInfo(nil), matches...)
 	}
 	versions := buildTechVersionMap(technologies)
 
