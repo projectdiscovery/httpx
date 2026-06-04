@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"strconv"
@@ -435,7 +436,16 @@ func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL str
 
 // SetCustomHeaders on the provided request
 func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string][]string) {
+	// Coalesce values by canonical header key first. net/http canonicalizes keys
+	// on Del/Add, so case-variant duplicates (e.g. "X-Test" and "x-test") would
+	// otherwise have the second key's Del wipe the values added for the first.
+	normalized := make(map[string][]string, len(headers))
 	for name, values := range headers {
+		canonical := textproto.CanonicalMIMEHeaderKey(name)
+		normalized[canonical] = append(normalized[canonical], values...)
+	}
+
+	for name, values := range normalized {
 		r.Header.Del(name)
 		for _, value := range values {
 			switch strings.ToLower(name) {

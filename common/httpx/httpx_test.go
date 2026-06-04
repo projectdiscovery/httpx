@@ -29,6 +29,40 @@ func TestDo(t *testing.T) {
 	})
 }
 
+func TestSetCustomHeaders(t *testing.T) {
+	h := &HTTPX{Options: &Options{}}
+
+	t.Run("duplicate values preserved in order", func(t *testing.T) {
+		req, err := retryablehttp.NewRequest(http.MethodGet, "https://example.com", nil)
+		require.NoError(t, err)
+		h.SetCustomHeaders(req, map[string][]string{"X-Test": {"one", "two"}})
+		require.Equal(t, []string{"one", "two"}, req.Header.Values("X-Test"))
+	})
+
+	t.Run("case-variant duplicates are coalesced", func(t *testing.T) {
+		req, err := retryablehttp.NewRequest(http.MethodGet, "https://example.com", nil)
+		require.NoError(t, err)
+		h.SetCustomHeaders(req, map[string][]string{"X-Test": {"one"}, "x-test": {"two"}})
+		require.ElementsMatch(t, []string{"one", "two"}, req.Header.Values("X-Test"))
+	})
+
+	t.Run("custom header replaces existing value", func(t *testing.T) {
+		req, err := retryablehttp.NewRequest(http.MethodGet, "https://example.com", nil)
+		require.NoError(t, err)
+		req.Header.Set("User-Agent", "default-agent")
+		h.SetCustomHeaders(req, map[string][]string{"User-Agent": {"custom-agent"}})
+		require.Equal(t, []string{"custom-agent"}, req.Header.Values("User-Agent"))
+	})
+
+	t.Run("host header sets request host", func(t *testing.T) {
+		req, err := retryablehttp.NewRequest(http.MethodGet, "https://example.com", nil)
+		require.NoError(t, err)
+		h.SetCustomHeaders(req, map[string][]string{"Host": {"custom.host"}})
+		require.Equal(t, "custom.host", req.Host)
+		require.Empty(t, req.Header.Values("Host"))
+	})
+}
+
 func TestHTTP11DisablesRetryableHTTP2FallbackClient(t *testing.T) {
 	options := DefaultOptions
 	options.Protocol = HTTP11
