@@ -90,11 +90,9 @@ func generateCPE(vendor, product string) string {
 		strings.ToLower(strings.ReplaceAll(product, " ", "_")))
 }
 
-// techDetectRequired reports whether technology fingerprinting must run for the
-// currently enabled options. Beyond -tech-detect itself, JSON/CSV output and
-// asset upload embed the technology list, and -cpe reuses the versions detected
-// by wappalyzer to fill the version field of CPE strings — so any of them
-// requires tech-detect to populate the technology list.
+// techDetectRequired reports whether tech-detect must run: JSON/CSV output,
+// asset upload, and -cpe (which reuses detected versions) all consume the
+// technology list.
 func techDetectRequired(options *Options) bool {
 	return options.TechDetect ||
 		options.JSONOutput ||
@@ -120,17 +118,15 @@ func sanitizeCPEVersion(version string) string {
 }
 
 // setCPEVersion returns a copy of a CPE 2.3 string with its version field
-// replaced. An empty version, an empty cpe, or a string that is not a
-// well-formed CPE 2.3 value (fewer than the expected fields, or wrong prefix)
-// is returned unchanged.
+// replaced. The input is returned unchanged if version/cpe is empty or the CPE
+// is malformed.
 func setCPEVersion(cpe, version string) string {
 	version = sanitizeCPEVersion(version)
 	if cpe == "" || version == "" {
 		return cpe
 	}
-	// A version that still contains CPE 2.3 structural (':') or wildcard
-	// ('*', '?') characters would corrupt the field layout or change matching
-	// semantics. Leave the CPE unenriched rather than emit a malformed value.
+	// Reserved CPE 2.3 chars (':' field separator, '*'/'?' wildcards) would
+	// corrupt the field layout or matching semantics; leave the CPE unenriched.
 	if strings.ContainsAny(version, ":*?") {
 		return cpe
 	}
@@ -142,11 +138,9 @@ func setCPEVersion(cpe, version string) string {
 	return strings.Join(parts, ":")
 }
 
-// buildTechVersionMap converts wappalyzer technology entries of the form
-// "Name:version" (e.g. "Apache HTTP Server:2.4.7") into a lookup keyed by the
-// lowercased, trimmed technology name. Entries without a version, or with an
-// empty version, are skipped. This mirrors wappalyzergo's FormatAppVersion
-// convention where the version is appended after a ':' separator.
+// buildTechVersionMap maps lowercased technology name -> version, parsing
+// wappalyzer's "Name:version" entries (FormatAppVersion convention). Entries
+// without a version are skipped.
 func buildTechVersionMap(technologies []string) map[string]string {
 	versions := make(map[string]string, len(technologies))
 	for _, tech := range technologies {
@@ -164,12 +158,10 @@ func buildTechVersionMap(technologies []string) map[string]string {
 	return versions
 }
 
-// EnrichCPEVersions returns a new slice of CPEInfo in which the version field
-// of each CPE string is filled from a matching detected technology version,
-// when available. Matching is by product name, compared case-insensitively
-// after trimming. Inputs are not mutated. When the technology sources name a
-// product differently than awesome-search-queries, no version is injected and
-// the CPE keeps its '*' version (no regression).
+// EnrichCPEVersions returns a copy of matches with each CPE version field
+// filled from a matching detected technology, keyed by product name
+// (case-insensitive). Unmatched products keep their '*' version. Inputs are
+// not mutated.
 func EnrichCPEVersions(matches []CPEInfo, technologies []string) []CPEInfo {
 	if len(matches) == 0 || len(technologies) == 0 {
 		return matches
