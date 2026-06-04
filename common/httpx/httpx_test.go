@@ -61,6 +61,45 @@ func TestSetCustomHeaders(t *testing.T) {
 		require.Equal(t, "custom.host", req.Host)
 		require.Empty(t, req.Header.Values("Host"))
 	})
+
+	t.Run("multiple distinct headers preserved", func(t *testing.T) {
+		req, err := retryablehttp.NewRequest(http.MethodGet, "https://example.com", nil)
+		require.NoError(t, err)
+		h.SetCustomHeaders(req, map[string][]string{"X-One": {"1"}, "X-Two": {"2"}})
+		require.Equal(t, []string{"1"}, req.Header.Values("X-One"))
+		require.Equal(t, []string{"2"}, req.Header.Values("X-Two"))
+	})
+
+	t.Run("multiple cookie values preserved", func(t *testing.T) {
+		req, err := retryablehttp.NewRequest(http.MethodGet, "https://example.com", nil)
+		require.NoError(t, err)
+		h.SetCustomHeaders(req, map[string][]string{"Cookie": {"a=1", "b=2"}})
+		require.Equal(t, []string{"a=1", "b=2"}, req.Header.Values("Cookie"))
+	})
+
+	t.Run("empty value applied as-is", func(t *testing.T) {
+		req, err := retryablehttp.NewRequest(http.MethodGet, "https://example.com", nil)
+		require.NoError(t, err)
+		h.SetCustomHeaders(req, map[string][]string{"X-Empty": {""}})
+		require.Equal(t, []string{""}, req.Header.Values("X-Empty"))
+	})
+
+	t.Run("unsafe raw header line stored verbatim as key", func(t *testing.T) {
+		hu := &HTTPX{Options: &Options{Unsafe: true}}
+		req, err := retryablehttp.NewRequest(http.MethodGet, "https://example.com", nil)
+		require.NoError(t, err)
+		// in unsafe mode the runner stores the whole raw header line as the key
+		// with an empty value; it must survive canonicalization untouched
+		hu.SetCustomHeaders(req, map[string][]string{"X-Test: one": {""}})
+		require.Equal(t, []string{""}, req.Header.Values("X-Test: one"))
+	})
+}
+
+func TestParseCustomCookies(t *testing.T) {
+	options := &Options{CustomHeaders: map[string][]string{"Cookie": {"a=1", "b=2"}}}
+	options.parseCustomCookies()
+	require.True(t, options.hasCustomCookies())
+	require.Len(t, options.customCookies, 2)
 }
 
 func TestHTTP11DisablesRetryableHTTP2FallbackClient(t *testing.T) {
