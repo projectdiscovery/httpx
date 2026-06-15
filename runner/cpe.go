@@ -139,7 +139,28 @@ func setCPEVersion(cpe, version string) string {
 	return strings.Join(parts, ":")
 }
 
-// buildTechVersionMap maps lowercased technology name -> version, parsing
+// normalizeProductName reduces a product/technology name to its lowercase
+// alphanumeric form so the two independent datasets can be joined. The CPE
+// product names (awesome-search-queries) are mostly snake_case
+// (e.g. "weblogic_server") while wappalyzer reports display names
+// (e.g. "WebLogic Server"); stripping every non-alphanumeric rune lets those
+// align. It is strictly more permissive than a lower+trim compare, so it never
+// drops a previously matching pair, only adds new ones.
+func normalizeProductName(name string) string {
+	var b strings.Builder
+	b.Grow(len(name))
+	for _, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case r >= 'A' && r <= 'Z':
+			b.WriteRune(r + ('a' - 'A'))
+		}
+	}
+	return b.String()
+}
+
+// buildTechVersionMap maps normalized technology name -> version, parsing
 // wappalyzer's "Name:version" entries (FormatAppVersion convention). Entries
 // without a version are skipped. A product reported with conflicting versions
 // is dropped rather than resolved by map iteration order, which is random.
@@ -151,7 +172,7 @@ func buildTechVersionMap(technologies []string) map[string]string {
 		if len(parts) != 2 {
 			continue
 		}
-		name := strings.ToLower(strings.TrimSpace(parts[0]))
+		name := normalizeProductName(parts[0])
 		version := strings.TrimSpace(parts[1])
 		if name == "" || version == "" {
 			continue
@@ -170,9 +191,9 @@ func buildTechVersionMap(technologies []string) map[string]string {
 }
 
 // EnrichCPEVersions returns a copy of matches with each CPE version field
-// filled from a matching detected technology, keyed by product name
-// (case-insensitive). Unmatched products keep their '*' version. Inputs are
-// not mutated.
+// filled from a matching detected technology, keyed by normalized product name
+// (see normalizeProductName). Unmatched products keep their '*' version. Inputs
+// are not mutated.
 func EnrichCPEVersions(matches []CPEInfo, technologies []string) []CPEInfo {
 	if len(matches) == 0 || len(technologies) == 0 {
 		return append([]CPEInfo(nil), matches...)
@@ -182,7 +203,7 @@ func EnrichCPEVersions(matches []CPEInfo, technologies []string) []CPEInfo {
 	enriched := make([]CPEInfo, len(matches))
 	for i, match := range matches {
 		enriched[i] = match
-		if version, ok := versions[strings.ToLower(strings.TrimSpace(match.Product))]; ok {
+		if version, ok := versions[normalizeProductName(match.Product)]; ok {
 			enriched[i].CPE = setCPEVersion(match.CPE, version)
 		}
 	}

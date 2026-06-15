@@ -2,6 +2,8 @@ package runner
 
 import (
 	"testing"
+
+	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 )
 
 func TestSanitizeCPEVersion(t *testing.T) {
@@ -107,6 +109,25 @@ func TestSetCPEVersion(t *testing.T) {
 	}
 }
 
+func TestNormalizeProductName(t *testing.T) {
+	tests := []struct {
+		in   string
+		want string
+	}{
+		{"WebLogic Server", "weblogicserver"},          // wappalyzer display form
+		{"weblogic_server", "weblogicserver"},          // awesome-search-queries snake_case
+		{"Next.js", "nextjs"},                          // punctuation dropped
+		{"veeder-root", "veederroot"},                  // hyphen dropped
+		{"  Apache HTTP Server  ", "apachehttpserver"}, // surrounding space
+		{"", ""},
+	}
+	for _, tt := range tests {
+		if got := normalizeProductName(tt.in); got != tt.want {
+			t.Fatalf("normalizeProductName(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
 func TestBuildTechVersionMap(t *testing.T) {
 	techs := []string{
 		"Apache HTTP Server:2.4.7",
@@ -118,9 +139,9 @@ func TestBuildTechVersionMap(t *testing.T) {
 	got := buildTechVersionMap(techs)
 
 	want := map[string]string{
-		"apache http server": "2.4.7",
-		"php":                "5.5.9",
-		"next.js":            "14.2.3",
+		"apachehttpserver": "2.4.7",
+		"php":              "5.5.9",
+		"nextjs":           "14.2.3",
 	}
 	if len(got) != len(want) {
 		t.Fatalf("map size = %d, want %d (%v)", len(got), len(want), got)
@@ -157,8 +178,12 @@ func TestEnrichCPEVersions(t *testing.T) {
 		{Product: "next.js", Vendor: "vercel", CPE: "cpe:2.3:a:vercel:next.js:*:*:*:*:*:*:*:*"},
 		{Product: "Apache HTTP Server", Vendor: "apache", CPE: "cpe:2.3:a:apache:apache_http_server:*:*:*:*:*:*:*:*"},
 		{Product: "Bootstrap", Vendor: "getbootstrap", CPE: "cpe:2.3:a:getbootstrap:bootstrap:*:*:*:*:*:*:*:*"},
+		// awesome-search-queries reports this product as snake_case while
+		// wappalyzer reports the display name "WebLogic Server"; normalization
+		// must still join them.
+		{Product: "weblogic_server", Vendor: "oracle", CPE: "cpe:2.3:a:oracle:weblogic_server:*:*:*:*:*:*:*:*"},
 	}
-	technologies := []string{"Next.js:14.2.3", "Apache HTTP Server:2.4.7", "Bootstrap"}
+	technologies := []string{"Next.js:14.2.3", "Apache HTTP Server:2.4.7", "Bootstrap", "WebLogic Server:12.2.1"}
 
 	got := EnrichCPEVersions(matches, technologies)
 
@@ -174,10 +199,56 @@ func TestEnrichCPEVersions(t *testing.T) {
 	if got[2].CPE != "cpe:2.3:a:getbootstrap:bootstrap:*:*:*:*:*:*:*:*" {
 		t.Fatalf("bootstrap CPE = %q, want unchanged", got[2].CPE)
 	}
+	// snake_case product joins display-name technology via normalization
+	if got[3].CPE != "cpe:2.3:a:oracle:weblogic_server:12.2.1:*:*:*:*:*:*:*" {
+		t.Fatalf("weblogic CPE = %q, want version 12.2.1 injected", got[3].CPE)
+	}
 	// input must not be mutated (immutability)
 	if matches[0].CPE != "cpe:2.3:a:vercel:next.js:*:*:*:*:*:*:*:*" {
 		t.Fatalf("input matches[0] was mutated: %q", matches[0].CPE)
 	}
+}
+
+// TestEnrichCPEVersionsWithRealWappalyzer exercises the full contract the
+// feature depends on end-to-end: a real wappalyzer fingerprint must yield
+// "Name:version" technology entries (FormatAppVersion convention) that
+// EnrichCPEVersions can parse and inject. This guards the integration the
+// count-only functional test cannot assert.
+func TestEnrichCPEVersionsWithRealWappalyzer(t *testing.T) {
+	wappalyze, err := wappalyzer.New()
+	if err != nil {
+		t.Fatalf("could not create wappalyzer: %s", err)
+	}
+
+	// liferay-portal header carries a version; wappalyzer reports "Liferay:7.3.5".
+	info := wappalyze.FingerprintWithInfo(map[string][]string{
+		"liferay-portal": {"testserver 7.3.5"},
+	}, nil)
+
+	var technologies []string
+	for name := range info {
+		technologies = append(technologies, name)
+	}
+	if !sliceContains(technologies, "Liferay:7.3.5") {
+		t.Fatalf("expected wappalyzer to emit \"Liferay:7.3.5\", got %v", technologies)
+	}
+
+	matches := []CPEInfo{
+		{Product: "Liferay", Vendor: "liferay", CPE: "cpe:2.3:a:liferay:liferay_portal:*:*:*:*:*:*:*:*"},
+	}
+	got := EnrichCPEVersions(matches, technologies)
+	if got[0].CPE != "cpe:2.3:a:liferay:liferay_portal:7.3.5:*:*:*:*:*:*:*" {
+		t.Fatalf("liferay CPE = %q, want version 7.3.5 injected end-to-end", got[0].CPE)
+	}
+}
+
+func sliceContains(s []string, v string) bool {
+	for _, e := range s {
+		if e == v {
+			return true
+		}
+	}
+	return false
 }
 
 func TestEnrichCPEVersionsNoTechnologies(t *testing.T) {
