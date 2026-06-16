@@ -14,7 +14,6 @@ import (
 
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/httpx/runner"
-	"github.com/projectdiscovery/retryablehttp-go"
 	pdcpauth "github.com/projectdiscovery/utils/auth/pdcp"
 	"github.com/projectdiscovery/utils/conversion"
 	"github.com/projectdiscovery/utils/env"
@@ -46,7 +45,7 @@ var (
 type UploadWriter struct {
 	creds          *pdcpauth.PDCPCredentials
 	uploadURL      *url.URL
-	client         *retryablehttp.Client
+	client         *http.Client
 	done           chan struct{}
 	data           chan runner.Result
 	assetGroupID   string
@@ -78,10 +77,7 @@ func NewUploadWriterCallback(ctx context.Context, creds *pdcpauth.PDCPCredential
 	u.uploadURL = tmp.URL
 
 	// create http client
-	opts := retryablehttp.DefaultOptionsSingle
-	opts.NoAdjustTimeout = true
-	opts.Timeout = time.Duration(3) * time.Minute
-	u.client = retryablehttp.NewClient(opts)
+	u.client = &http.Client{Timeout: time.Duration(3) * time.Minute}
 	// start auto commit
 	// upload every 1 minute or when buffer is full
 	go u.autoCommit(ctx)
@@ -226,29 +222,32 @@ func (u *UploadWriter) upload(data []byte) error {
 // getRequest returns a new request for upload
 // if scanID is not provided create new scan by uploading the data
 // if scanID is provided append the data to existing scan
-func (u *UploadWriter) getRequest(bin []byte) (*retryablehttp.Request, error) {
-	var method, url string
-
-	if u.assetGroupID == "" {
+func (u *UploadWriter) getRequest(bin []byte) (*http.Request, error) {
+	var method string
+	isUpload := u.assetGroupID == ""
+	if isUpload {
 		u.uploadURL.Path = uploadEndpoint
 		method = http.MethodPost
-		url = u.uploadURL.String()
 	} else {
 		u.uploadURL.Path = fmt.Sprintf(appendEndpoint, u.assetGroupID)
 		method = http.MethodPatch
-		url = u.uploadURL.String()
 	}
-	req, err := retryablehttp.NewRequest(method, url, bytes.NewReader(bin))
+
+	// add pdtm meta params (already url-encoded)
+	values, err := url.ParseQuery(updateutils.GetpdtmParams(runner.Version))
+	if err != nil {
+		return nil, errkit.Wrap(err, "could not parse pdtm params")
+	}
+	// if it is upload endpoint also include name if it exists
+	if u.assetGroupName != "" && isUpload {
+		values.Add("name", u.assetGroupName)
+	}
+	u.uploadURL.RawQuery = values.Encode()
+
+	req, err := http.NewRequest(method, u.uploadURL.String(), bytes.NewReader(bin))
 	if err != nil {
 		return nil, errkit.Wrap(err, "could not create cloud upload request")
 	}
-	// add pdtm meta params
-	req.Params.Merge(updateutils.GetpdtmParams(runner.Version))
-	// if it is upload endpoint also include name if it exists
-	if u.assetGroupName != "" && req.Path == uploadEndpoint {
-		req.Params.Add("name", u.assetGroupName)
-	}
-	req.Update()
 
 	req.Header.Set(pdcpauth.ApiKeyHeaderName, u.creds.APIKey)
 	if u.TeamID != "" {

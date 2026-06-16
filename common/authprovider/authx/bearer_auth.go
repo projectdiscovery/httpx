@@ -2,8 +2,6 @@ package authx
 
 import (
 	"net/http"
-
-	"github.com/projectdiscovery/retryablehttp-go"
 )
 
 var (
@@ -22,10 +20,5 @@ func NewBearerTokenAuthStrategy(data *Secret) *BearerTokenAuthStrategy {
 
 // Apply applies the bearer token auth strategy to the request
 func (s *BearerTokenAuthStrategy) Apply(req *http.Request) {
-	req.Header.Set("Authorization", "Bearer "+s.Data.Token)
-}
-
-// ApplyOnRR applies the bearer token auth strategy to the retryable request
-func (s *BearerTokenAuthStrategy) ApplyOnRR(req *retryablehttp.Request) {
 	req.Header.Set("Authorization", "Bearer "+s.Data.Token)
 }

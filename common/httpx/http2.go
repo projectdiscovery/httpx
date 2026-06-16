@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/retryablehttp-go"
 )
 
 const (
@@ -25,7 +24,7 @@ const (
 func (h *HTTPX) SupportHTTP2(protocol, method, targetURL string) bool {
 	// http => supports HTTP1.1 => HTTP/2 (H2C)
 	if protocol == HTTP {
-		req, err := retryablehttp.NewRequest(method, targetURL, nil)
+		req, err := http.NewRequestWithContext(context.Background(), method, targetURL, nil)
 		if err != nil {
 			return false
 		}

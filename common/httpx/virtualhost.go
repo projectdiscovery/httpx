@@ -2,16 +2,16 @@ package httpx
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/hbakhtiyor/strsim"
-	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 	"github.com/rs/xid"
 )
 
 const simMultiplier = 100
 
 // IsVirtualHost checks if the target endpoint is a virtual host
-func (h *HTTPX) IsVirtualHost(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (bool, error) {
+func (h *HTTPX) IsVirtualHost(req *http.Request, unsafeOptions UnsafeOptions) (bool, error) {
 	httpresp1, err := h.Do(req, unsafeOptions)
 	if err != nil {
 		return false, err

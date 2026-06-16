@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"net/http"
 	"net/http/httputil"
 	"strings"
 
-	"github.com/projectdiscovery/retryablehttp-go"
 	urlutil "github.com/projectdiscovery/utils/url"
 )
 
@@ -17,8 +17,8 @@ const (
 )
 
 // DumpRequest to string
-func DumpRequest(req *retryablehttp.Request) (string, error) {
-	dump, err := httputil.DumpRequestOut(req.Request, true)
+func DumpRequest(req *http.Request) (string, error) {
+	dump, err := httputil.DumpRequestOut(req, true)
 
 	return string(dump), err
 }

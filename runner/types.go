@@ -12,7 +12,6 @@ import (
 	mapstructure "github.com/go-viper/mapstructure/v2"
 	"github.com/projectdiscovery/dsl"
 	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/tlsx/pkg/tlsx/clients"
 	mapsutil "github.com/projectdiscovery/utils/maps"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
@@ -101,7 +100,7 @@ type Result struct {
 	RequestRaw         []byte                        `json:"-" csv:"-" md:"-" mapstructure:"-"`
 	Response           *httpx.Response               `json:"-" csv:"-" md:"-" mapstructure:"-"`
 	FaviconData        []byte                        `json:"-" csv:"-" md:"-" mapstructure:"-"`
-	Trace              *retryablehttp.TraceInfo      `json:"trace,omitempty" csv:"-" md:"-" mapstructure:"trace"`
+	Trace              *httpx.TraceInfo              `json:"trace,omitempty" csv:"-" md:"-" mapstructure:"trace"`
 	FileNameHash       string                        `json:"-" csv:"-" md:"-" mapstructure:"-"`
 	CPE                []CPEInfo                     `json:"cpe,omitempty" csv:"cpe" md:"cpe" mapstructure:"cpe"`
 	WordPress          *WordPressInfo                `json:"wordpress,omitempty" csv:"wordpress" md:"wordpress" mapstructure:"wordpress"`

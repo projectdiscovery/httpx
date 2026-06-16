@@ -3,8 +3,6 @@ package authx
 import (
 	"net/http"
 	"testing"
-
-	"github.com/projectdiscovery/retryablehttp-go"
 )
 
 func TestBasicAuthStrategy(t *testing.T) {
@@ -31,8 +29,8 @@ func TestBasicAuthStrategy(t *testing.T) {
 	})
 
 	t.Run("ApplyOnRR", func(t *testing.T) {
-		req, _ := retryablehttp.NewRequest("GET", "http://example.com", nil)
-		strategy.ApplyOnRR(req)
+		req, _ := http.NewRequest("GET", "http://example.com", nil)
+		strategy.Apply(req)
 
 		user, pass, ok := req.BasicAuth()
 		if !ok {
@@ -65,8 +63,8 @@ func TestBearerTokenAuthStrategy(t *testing.T) {
 	})
 
 	t.Run("ApplyOnRR", func(t *testing.T) {
-		req, _ := retryablehttp.NewRequest("GET", "http://example.com", nil)
-		strategy.ApplyOnRR(req)
+		req, _ := http.NewRequest("GET", "http://example.com", nil)
+		strategy.Apply(req)
 
 		auth := req.Header.Get("Authorization")
 		expected := "Bearer mytoken123"
@@ -101,8 +99,8 @@ func TestHeadersAuthStrategy(t *testing.T) {
 	})
 
 	t.Run("ApplyOnRR", func(t *testing.T) {
-		req, _ := retryablehttp.NewRequest("GET", "http://example.com", nil)
-		strategy.ApplyOnRR(req)
+		req, _ := http.NewRequest("GET", "http://example.com", nil)
+		strategy.Apply(req)
 
 		// Use direct map access since headers preserve exact casing
 		//nolint
@@ -146,13 +144,13 @@ func TestCookiesAuthStrategy(t *testing.T) {
 	})
 
 	t.Run("ApplyOnRR replaces existing cookies", func(t *testing.T) {
-		req, _ := retryablehttp.NewRequest("GET", "http://example.com", nil)
+		req, _ := http.NewRequest("GET", "http://example.com", nil)
 		// Add existing cookie that should be replaced
 		req.AddCookie(&http.Cookie{Name: "session", Value: "old_value"})
 		// Add existing cookie that should be kept
 		req.AddCookie(&http.Cookie{Name: "other", Value: "keep_me"})
 
-		strategy.ApplyOnRR(req)
+		strategy.Apply(req)
 
 		cookies := req.Cookies()
 		found := make(map[string]string)
@@ -200,10 +198,10 @@ func TestQueryAuthStrategy(t *testing.T) {
 	})
 
 	t.Run("ApplyOnRR", func(t *testing.T) {
-		req, _ := retryablehttp.NewRequest("GET", "http://example.com/path?existing=value", nil)
-		strategy.ApplyOnRR(req)
+		req, _ := http.NewRequest("GET", "http://example.com/path?existing=value", nil)
+		strategy.Apply(req)
 
-		query := req.Request.URL.Query()
+		query := req.URL.Query()
 		if got := query.Get("api_key"); got != "secret123" {
 			t.Errorf("api_key = %v, want secret123", got)
 		}

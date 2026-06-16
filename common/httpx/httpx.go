@@ -2,14 +2,11 @@ package httpx
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/textproto"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -17,23 +14,20 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
-	"github.com/projectdiscovery/fastdialer/fastdialer/ja3/impersonate"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/networkpolicy"
-	"github.com/projectdiscovery/rawhttp"
-	retryablehttp "github.com/projectdiscovery/retryablehttp-go"
 	"github.com/projectdiscovery/useragent"
 	"github.com/projectdiscovery/utils/generic"
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	urlutil "github.com/projectdiscovery/utils/url"
-	"golang.org/x/net/http2"
 )
 
 // HTTPX represent an instance of the library client
 type HTTPX struct {
-	client        *retryablehttp.Client
+	client        *http.Client
 	client2       *http.Client
+	clientRaw     http.RoundTripper
 	Filters       []Filter
 	Options       *Options
 	htmlPolicy    *bluemonday.Policy
@@ -74,10 +68,6 @@ func New(options *Options) (*HTTPX, error) {
 
 	httpx.Options.parseCustomCookies()
 
-	var retryablehttpOptions = retryablehttp.DefaultOptionsSpraying
-	retryablehttpOptions.Timeout = httpx.Options.Timeout
-	retryablehttpOptions.RetryMax = httpx.Options.RetryMax
-	retryablehttpOptions.Trace = options.Trace
 	handleHSTS := func(req *http.Request) {
 		if req.Response.Header.Get("Strict-Transport-Security") == "" {
 			return
@@ -138,72 +128,43 @@ func New(options *Options) (*HTTPX, error) {
 			return nil
 		}
 	}
-	transport := &http.Transport{
-		DialContext: httpx.Dialer.Dial,
-		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			if options.TlsImpersonate {
-				return httpx.Dialer.DialTLSWithConfigImpersonate(ctx, network, addr, &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10}, impersonate.Random, nil)
-			}
-			return httpx.Dialer.DialTLS(ctx, network, addr)
-		},
-		MaxIdleConnsPerHost: -1,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-			MinVersion:         tls.VersionTLS10,
-		},
-		DisableKeepAlives: true,
-	}
-
-	if httpx.Options.Protocol == HTTP11 {
-		// disable http2
-		_ = os.Setenv("GODEBUG", "http2client=0")
-		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
-	}
-
-	if httpx.Options.SniName != "" {
-		transport.TLSClientConfig.ServerName = httpx.Options.SniName
-	}
-
 	if httpx.Options.HTTPProxy != "" {
 		httpx.Options.Proxy = httpx.Options.HTTPProxy
 	} else if httpx.Options.SocksProxy != "" {
 		httpx.Options.Proxy = httpx.Options.SocksProxy
 	}
-
 	if httpx.Options.Proxy != "" {
-		proxyURL, parseErr := url.Parse(httpx.Options.Proxy)
-		if parseErr != nil {
+		if _, parseErr := url.Parse(httpx.Options.Proxy); parseErr != nil {
 			return nil, parseErr
 		}
-		transport.Proxy = http.ProxyURL(proxyURL)
-	} else {
-		transport.Proxy = http.ProxyFromEnvironment
 	}
 
-	httpx.client = retryablehttp.NewWithHTTPClient(&http.Client{
-		Transport:     transport,
+	// reqx backs every request path except ZTLS: reqx has no zcrypto/ztls
+	// handshake yet, so -ztls keeps using fastdialer's lenient DialTLS through
+	// the net/http transport. The dedicated HTTP/2 probe client and the unsafe
+	// (raw) client always use reqx. Retries are layered on the safe client via a
+	// retry round tripper (replacing retryablehttp).
+	var safeTransport http.RoundTripper
+	if httpx.Options.ZTLS {
+		safeTransport, err = newZTLSTransport(httpx.Dialer, httpx.Options)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		safeTransport = newReqxTransport(httpx.Dialer, httpx.Options)
+	}
+	httpx.client = &http.Client{
+		Transport:     newRetryRoundTripper(safeTransport, httpx.Options.RetryMax),
 		Timeout:       httpx.Options.Timeout,
 		CheckRedirect: redirectFunc,
-	}, retryablehttpOptions)
-
-	if httpx.Options.Protocol == HTTP11 {
-		httpx.client.HTTPClient2 = httpx.client.HTTPClient
 	}
 
-	transport2 := &http2.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-			MinVersion:         tls.VersionTLS10,
-		},
-		AllowHTTP: true,
-	}
-	if httpx.Options.SniName != "" {
-		transport2.TLSClientConfig.ServerName = httpx.Options.SniName
-	}
 	httpx.client2 = &http.Client{
-		Transport: transport2,
+		Transport: newReqxHTTP2Transport(httpx.Dialer, httpx.Options),
 		Timeout:   httpx.Options.Timeout,
 	}
+
+	httpx.clientRaw = newReqxRawTransport(httpx.Dialer, httpx.Options)
 
 	httpx.htmlPolicy = bluemonday.NewPolicy()
 	httpx.CustomHeaders = httpx.Options.CustomHeaders
@@ -220,7 +181,7 @@ func New(options *Options) (*HTTPX, error) {
 }
 
 // Do http request
-func (h *HTTPX) Do(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (*Response, error) {
+func (h *HTTPX) Do(req *http.Request, unsafeOptions UnsafeOptions) (*Response, error) {
 	timeStart := time.Now()
 
 	var gzipRetry bool
@@ -228,6 +189,13 @@ get_response:
 	httpresp, err := h.getResponse(req, unsafeOptions)
 	if httpresp == nil && err != nil {
 		return nil, err
+	}
+
+	// Some transports (e.g. reqx TLS impersonation) may not populate
+	// Response.Request; ensure it is set so downstream redirect-chain
+	// extraction and request dumps don't dereference a nil request.
+	if httpresp != nil && httpresp.Request == nil {
+		httpresp.Request = req
 	}
 
 	var shouldIgnoreErrors, shouldIgnoreBodyErrors bool
@@ -364,26 +332,80 @@ type UnsafeOptions struct {
 }
 
 // getResponse returns response from safe / unsafe request
-func (h *HTTPX) getResponse(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (resp *http.Response, err error) {
+func (h *HTTPX) getResponse(req *http.Request, unsafeOptions UnsafeOptions) (resp *http.Response, err error) {
 	if h.Options.Unsafe {
 		return h.doUnsafeWithOptions(req, unsafeOptions)
 	}
 	return h.client.Do(req)
 }
 
-// doUnsafe does an unsafe http request
-func (h *HTTPX) doUnsafeWithOptions(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (*http.Response, error) {
-	method := req.Method
-	headers := req.Header
-	targetURL := req.String()
+// rawUnsafeMaxRedirects mirrors rawhttp.DefaultOptions.MaxRedirects.
+const rawUnsafeMaxRedirects = 10
+
+// isRawRedirect mirrors rawhttp's client Status.IsRedirect: any 3xx except 304.
+func isRawRedirect(code int) bool {
+	if code == http.StatusNotModified {
+		return false
+	}
+	return code >= http.StatusMultipleChoices && code < http.StatusBadRequest
+}
+
+// doUnsafeWithOptions performs an unsafe (wire-level) request via the reqx raw
+// engine. reqx's raw mode sends the request line verbatim (no URL
+// normalization) while retaining rawhttp-equivalent automatic Host and
+// Content-Length behavior.
+//
+// It follows redirects the same way as the legacy rawhttp path: preserving the
+// method, headers and custom URI path across hops, resolving root-relative
+// Location values against the current scheme/host, up to rawUnsafeMaxRedirects.
+func (h *HTTPX) doUnsafeWithOptions(req *http.Request, unsafeOptions UnsafeOptions) (*http.Response, error) {
+	header := req.Header.Clone()
+	host := req.Host
+	target := req.URL.String()
 	body := req.Body
-	options := rawhttp.DefaultOptions
-	options.Timeout = h.Options.Timeout
-	return rawhttp.DoRawWithOptions(method, targetURL, unsafeOptions.URIPath, headers, body, options)
+
+	current := 0
+	for {
+		hreq, err := http.NewRequestWithContext(req.Context(), req.Method, target, body)
+		if err != nil {
+			return nil, err
+		}
+		hreq.Header = header.Clone()
+		if host != "" {
+			hreq.Host = host
+		}
+		// send the URI path exactly as provided (no normalization) via Opaque
+		if unsafeOptions.URIPath != "" {
+			hreq.URL.Opaque = unsafeOptions.URIPath
+		}
+
+		resp, err := h.clientRaw.RoundTrip(hreq)
+		if err != nil {
+			return nil, err
+		}
+
+		if !isRawRedirect(resp.StatusCode) || current > rawUnsafeMaxRedirects {
+			return resp, nil
+		}
+		loc := resp.Header.Get("Location")
+		if loc == "" {
+			return resp, nil
+		}
+		// drain and close the intermediate response body
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+		if strings.HasPrefix(loc, "/") {
+			loc = fmt.Sprintf("%s://%s%s", hreq.URL.Scheme, hreq.URL.Host, loc)
+		}
+		target = loc
+		// the body reader is consumed after the first write (matches rawhttp)
+		body = nil
+		current++
+	}
 }
 
 // Verify the http calls and apply-cascade all the filters, as soon as one matches it returns true
-func (h *HTTPX) Verify(req *retryablehttp.Request, unsafeOptions UnsafeOptions) (bool, error) {
+func (h *HTTPX) Verify(req *http.Request, unsafeOptions UnsafeOptions) (bool, error) {
 	resp, err := h.Do(req, unsafeOptions)
 	if err != nil {
 		return false, err
@@ -409,21 +431,32 @@ func (h *HTTPX) AddFilter(f Filter) {
 }
 
 // NewRequest from url
-func (h *HTTPX) NewRequest(method, targetURL string) (req *retryablehttp.Request, err error) {
+func (h *HTTPX) NewRequest(method, targetURL string) (req *http.Request, err error) {
 	return h.NewRequestWithContext(context.Background(), method, targetURL)
 }
 
 // NewRequest from url
-func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL string) (req *retryablehttp.Request, err error) {
+func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL string) (req *http.Request, err error) {
 	urlx, err := urlutil.ParseURL(targetURL, h.Options.Unsafe)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err = retryablehttp.NewRequestFromURLWithContext(ctx, method, urlx, nil)
+	// we provide a url without path to http.NewRequest and then replace the URL
+	// instance directly: http.NewRequest internally parses with url.Parse which
+	// would otherwise drop the patches urlutil.URL applies in unsafe mode
+	// (e.g. https://scanme.sh/%invalid). Only u.Host is read by net/http; the
+	// rest of the request URL is carried by the url.URL instance we assign.
+	req, err = http.NewRequestWithContext(ctx, method, "https://"+urlx.Host, nil)
 	if err != nil {
 		return nil, err
 	}
+	urlx.Update()
+	req.URL = urlx.URL
+	if req.URL.Host != "" && req.URL.Scheme == "" {
+		req.URL.Scheme = "https"
+	}
+
 	// Skip if unsafe is used
 	if !h.Options.Unsafe {
 		// set default user agent
@@ -431,11 +464,16 @@ func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL str
 		// set default encoding to accept utf8
 		req.Header.Add("Accept-Charset", "utf-8")
 	}
+
+	// attach httptrace collection when tracing is enabled
+	if h.Options.Trace {
+		req = withTrace(req)
+	}
 	return
 }
 
 // SetCustomHeaders on the provided request
-func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string][]string) {
+func (h *HTTPX) SetCustomHeaders(r *http.Request, headers map[string][]string) {
 	// Coalesce values by canonical header key first. net/http canonicalizes keys
 	// on Del/Add, so case-variant duplicates (e.g. "X-Test" and "x-test") would
 	// otherwise have the second key's Del wipe the values added for the first.
@@ -467,7 +505,7 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string][]
 		r.Header.Set("User-Agent", userAgent.Raw) //nolint
 	}
 	if h.Options.AutoReferer && r.Header.Get("Referer") == "" {
-		r.Header.Set("Referer", r.String())
+		r.Header.Set("Referer", r.URL.String())
 	}
 }
 

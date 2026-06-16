@@ -51,7 +51,6 @@ import (
 	"github.com/projectdiscovery/clistats"
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/httpx/common/hashes"
-	"github.com/projectdiscovery/retryablehttp-go"
 	sliceutil "github.com/projectdiscovery/utils/slice"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	urlutil "github.com/projectdiscovery/utils/url"
@@ -68,7 +67,6 @@ import (
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/httpx/common/stringz"
 	"github.com/projectdiscovery/mapcidr"
-	"github.com/projectdiscovery/rawhttp"
 	converstionutil "github.com/projectdiscovery/utils/conversion"
 	errkit "github.com/projectdiscovery/utils/errkit"
 	fileutil "github.com/projectdiscovery/utils/file"
@@ -285,16 +283,6 @@ func New(options *Options) (*Runner, error) {
 		options.RequestBody = rrBody
 	}
 
-	// disable automatic host header for rawhttp if manually specified
-	// as it can be malformed the best approach is to remove spaces and check for lowercase "host" word
-	if options.Unsafe {
-		for name := range runner.hp.CustomHeaders {
-			nameLower := strings.TrimSpace(strings.ToLower(name))
-			if strings.HasPrefix(nameLower, "host") {
-				rawhttp.AutomaticHostHeader(false)
-			}
-		}
-	}
 	if strings.EqualFold(options.Methods, "all") {
 		scanopts.Methods = pdhttputil.AllHTTPMethods()
 	} else if options.Methods != "" {
@@ -1865,7 +1853,7 @@ retry:
 		gologger.Debug().Msgf("failed to merge paths of url %v and %v", URL.String(), scanopts.RequestURI)
 	}
 	var (
-		req *retryablehttp.Request
+		req *http.Request
 		ctx context.Context
 	)
 	if target.CustomIP != "" {
@@ -1903,7 +1891,7 @@ retry:
 	if r.authProvider != nil {
 		if strategies := r.authProvider.LookupURLX(URL); len(strategies) > 0 {
 			for _, strategy := range strategies {
-				strategy.ApplyOnRR(req)
+				strategy.Apply(req)
 			}
 		}
 	}
@@ -1912,6 +1900,10 @@ retry:
 	if scanopts.RequestBody != "" {
 		req.ContentLength = int64(len(scanopts.RequestBody))
 		req.Body = io.NopCloser(strings.NewReader(scanopts.RequestBody))
+		// GetBody enables the body to be rewound for retries and 307/308 redirects
+		req.GetBody = func() (io.ReadCloser, error) {
+			return io.NopCloser(strings.NewReader(scanopts.RequestBody)), nil
+		}
 	} else {
 		req.ContentLength = 0
 		req.Body = nil
@@ -1930,7 +1922,7 @@ retry:
 	var requestDump []byte
 	if scanopts.Unsafe {
 		var errDump error
-		requestDump, errDump = rawhttp.DumpRequestRaw(req.Method, req.String(), reqURI, req.Header, req.Body, rawhttp.DefaultOptions)
+		requestDump, errDump = httpx.DumpRequestRaw(req.Method, req.URL.String(), reqURI, req.Header, req.Body)
 		if errDump != nil {
 			return Result{URL: URL.String(), Input: origInput, Err: errDump}
 		}
@@ -1941,7 +1933,7 @@ retry:
 			req.Body = io.NopCloser(strings.NewReader(scanopts.RequestBody))
 		}
 		var errDump error
-		requestDump, errDump = httputil.DumpRequestOut(req.Request, true)
+		requestDump, errDump = httputil.DumpRequestOut(req, true)
 		if errDump != nil {
 			return Result{URL: URL.String(), Input: origInput, Err: errDump}
 		}
@@ -1953,7 +1945,7 @@ retry:
 		}
 	}
 	// fix the final output url
-	fullURL := req.String()
+	fullURL := req.URL.String()
 	if parsedURL, errParse := r.parseURL(fullURL); errParse != nil {
 		return Result{URL: URL.String(), Input: origInput, Err: errParse}
 	} else {
@@ -2707,7 +2699,7 @@ retry:
 		result.Domains = resp.BodyDomains.Domains
 	}
 	if r.options.Trace {
-		result.Trace = req.TraceInfo
+		result.Trace = httpx.GetTraceInfo(req)
 	}
 	return result
 }
@@ -2742,11 +2734,11 @@ func calculatePerceptionHash(screenshotBytes []byte) (uint64, error) {
 	return pHash.GetHash(), nil
 }
 
-func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, currentResp []byte, finalURL string, defaultProbe bool) (string, string, string, []byte, string, error) {
+func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *http.Request, currentResp []byte, finalURL string, defaultProbe bool) (string, string, string, []byte, string, error) {
 	// Check if current URI is ending with .ico => use current body without additional requests
-	if path.Ext(req.Path) == ".ico" {
+	if path.Ext(req.URL.Path) == ".ico" {
 		mmh3, md5h, err := r.calculateFaviconHashWithRaw(currentResp)
-		return mmh3, md5h, req.Path, currentResp, req.String(), err
+		return mmh3, md5h, req.URL.Path, currentResp, req.URL.String(), err
 	}
 
 	// Parse HTML: collect <link rel="...icon..."> hrefs + optional <base href>
@@ -2761,7 +2753,7 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 	}
 
 	// Determine base URL: prefer finalURL (redirect target) then apply <base href>
-	baseNet, _ := url.Parse(req.String())
+	baseNet, _ := url.Parse(req.URL.String())
 	if finalURL != "" {
 		if u, err := url.Parse(finalURL); err == nil {
 			baseNet = u
@@ -2819,7 +2811,8 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 			continue
 		}
 
-		clone.SetURL(resolvedURL)
+		resolvedURL.Update()
+		clone.URL = resolvedURL.URL
 		// Update Host header to match resolved URL host (important after redirects)
 		if resolvedURL.Host != "" && resolvedURL.Host != clone.Host {
 			clone.Host = resolvedURL.Host
@@ -2834,7 +2827,8 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 				if err2 != nil {
 					continue
 				}
-				clone.SetURL(rootResolvedURL)
+				rootResolvedURL.Update()
+				clone.URL = rootResolvedURL.URL
 				if respFav2, err3 := hp.Do(clone, httpx.UnsafeOptions{}); err3 == nil && len(respFav2.Data) > 0 {
 					respFav = respFav2
 				} else {
@@ -2853,7 +2847,7 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		faviconMMH3 = mmh3
 		faviconMD5 = md5h
 		faviconPath = raw
-		faviconURL = clone.String()
+		faviconURL = clone.URL.String()
 		faviconData = respFav.Data
 		gologger.Debug().Msgf("favicon resolved url=%s raw_href=%s size=%d bytes", faviconURL, faviconPath, len(faviconData))
 		break

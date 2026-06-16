@@ -2,8 +2,6 @@ package authx
 
 import (
 	"net/http"
-
-	"github.com/projectdiscovery/retryablehttp-go"
 )
 
 var (
@@ -20,18 +18,9 @@ func NewCookiesAuthStrategy(data *Secret) *CookiesAuthStrategy {
 	return &CookiesAuthStrategy{Data: data}
 }
 
-// Apply applies the cookies auth strategy to the request
+// Apply applies the cookies auth strategy to the request, replacing any
+// existing cookies that share a name with the configured cookies.
 func (s *CookiesAuthStrategy) Apply(req *http.Request) {
-	for _, cookie := range s.Data.Cookies {
-		req.AddCookie(&http.Cookie{
-			Name:  cookie.Key,
-			Value: cookie.Value,
-		})
-	}
-}
-
-// ApplyOnRR applies the cookies auth strategy to the retryable request
-func (s *CookiesAuthStrategy) ApplyOnRR(req *retryablehttp.Request) {
 	// Build a set of cookie names to replace
 	newCookieNames := make(map[string]struct{}, len(s.Data.Cookies))
 	for _, cookie := range s.Data.Cookies {

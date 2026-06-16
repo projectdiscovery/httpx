@@ -2,8 +2,6 @@ package authx
 
 import (
 	"net/http"
-
-	"github.com/projectdiscovery/retryablehttp-go"
 )
 
 var (
@@ -22,10 +20,5 @@ func NewBasicAuthStrategy(data *Secret) *BasicAuthStrategy {
 
 // Apply applies the basic auth strategy to the request
 func (s *BasicAuthStrategy) Apply(req *http.Request) {
-	req.SetBasicAuth(s.Data.Username, s.Data.Password)
-}
-
-// ApplyOnRR applies the basic auth strategy to the retryable request
-func (s *BasicAuthStrategy) ApplyOnRR(req *retryablehttp.Request) {
 	req.SetBasicAuth(s.Data.Username, s.Data.Password)
 }
