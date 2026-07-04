@@ -285,6 +285,42 @@ For details about running httpx, see https://docs.projectdiscovery.io/tools/http
 ### Using `httpx` as a library
 `httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. A minimal example of how to do it is in the [examples](examples/) folder
 
+# Common Recipes
+
+Below are practical one-liners for common use cases leveraging httpx's composable primitives:
+
+### Well-known files
+
+**Detect security.txt**  
+Probe for a valid [RFC 9116](https://www.rfc-editor.org/rfc/rfc9116.html) security.txt file at the standard paths (`/.well-known/security.txt`, `/security.txt`):
+
+```bash
+echo target.com | httpx -path '/.well-known/security.txt' -mc 200 -mct 'text/plain' -mr 'Contact:'
+```
+
+- `-path` tests custom path(s)
+- `-mc 200` matches HTTP 200
+- `-mct 'text/plain'` matches Content-Type `text/plain`
+- `-mr 'Contact:'` matches required `Contact:` field
+
+**robots.txt**
+
+```bash
+echo target.com | httpx -path '/robots.txt' -mc 200 -mct 'text/plain'
+```
+
+**sitemap.xml**
+
+```bash
+echo target.com | httpx -path '/sitemap.xml' -mc 200 -mct 'application/xml,text/xml' -mr '<urlset'
+```
+
+**Other well-known URIs** ([IANA registry](https://www.iana.org/assignments/well-known-uris/well-known-uris.xhtml)):
+
+```bash
+echo target.com | httpx -path '/.well-known/security.txt,/.well-known/change-password,/.well-known/openid-configuration' -mc 200
+```
+
 # Notes
 
 - As default, `httpx` probe with **HTTPS** scheme and fall-back to **HTTP** only if **HTTPS** is not reachable.
