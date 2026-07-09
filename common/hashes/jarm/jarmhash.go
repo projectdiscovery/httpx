@@ -75,8 +75,11 @@ func Jarm(dialer *fastdialer.Dialer, host string, duration int) string {
 			return ""
 		}
 		t.Host = u.Hostname()
-		port, _ := strconv.Atoi(u.Port())
-		t.Port = port
+		if portStr := u.Port(); portStr != "" {
+			if p, err := strconv.Atoi(portStr); err == nil {
+				t.Port = p
+			}
+		}
 	}
 	if t.Port == 0 {
 		t.Port = defaultPort

@@ -52,7 +52,7 @@ func ListFilesWithPattern(rootpattern string) ([]string, error) {
 	if len(files) == 0 {
 		return nil, errors.New("no files found")
 	}
-	return files, err
+	return files, nil
 }
 
 // FileNameIsGlob check if the filanem is a pattern

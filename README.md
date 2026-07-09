@@ -36,7 +36,7 @@
  - Simple and modular code base making it easy to contribute.
  - Fast And fully configurable flags to probe multiple elements.
  - Supports multiple HTTP based probings.
- - Smart auto fallback from https to http as default. 
+ - Smart auto fallback from https to http by default. 
  - Supports hosts, URLs and CIDR as input.
  - Handles edge cases doing retries, backoffs etc for handling WAFs.
 
@@ -265,8 +265,8 @@ OPTIMIZATIONS:
    -retries int                       number of retries
    -timeout int                       timeout in seconds (default 10)
    -delay value                       duration between each http request (eg: 200ms, 1s) (default -1ns)
-   -rsts, -response-size-to-save int  max response size to save in bytes (default 512000000)
-   -rstr, -response-size-to-read int  max response size to read in bytes (default 512000000)
+   -rsts, -response-size-to-save int  max response size to save in bytes (default 50000000)
+   -rstr, -response-size-to-read int  max response size to read in bytes (default 50000000)
 
 CLOUD:
    -auth                           configure projectdiscovery cloud (pdcp) api key (default true)
@@ -283,7 +283,7 @@ CLOUD:
 For details about running httpx, see https://docs.projectdiscovery.io/tools/httpx/running.
 
 ### Using `httpx` as a library
-`httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. A minimal example of how to do it is in the [examples](examples/) folder
+`httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. A minimal example of how to do it is in the [examples](examples/) folder.
 
 # Notes
 

@@ -30,14 +30,14 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/corona10/goimagehash"
 	"github.com/gocarina/gocsv"
+	"github.com/happyhackingspace/dit"
 	"github.com/mfonda/simhash"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
+	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/httpx/common/inputformats"
-	"github.com/happyhackingspace/dit"
-	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
@@ -80,6 +80,7 @@ import (
 
 // Runner is a client for running the enumeration process.
 type Runner struct {
+	seenMux sync.Mutex
 	options            *Options
 	hp                 *httpx.HTTPX
 	wappalyzer         *wappalyzer.Wappalyze
@@ -94,7 +95,7 @@ type Runner struct {
 	browser            *Browser
 	ditClassifier *dit.Classifier
 	pHashClusters      []pHashCluster
-	simHashes          gcache.Cache[uint64, struct{}] // Include simHashes for efficient duplicate detection
+	simHashes          gcache.Cache[uint64, []string]
 	httpApiEndpoint    *Server
 	authProvider       authprovider.AuthProvider
 	interruptCh        chan struct{}
@@ -124,7 +125,7 @@ func (r *Runner) IsInterrupted() bool {
 }
 
 // picked based on try-fail but it seems to close to one it's used https://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html#c1992
-var hammingDistanceThreshold int = 22
+const hammingDistanceThreshold = 22
 
 // regex for stripping ANSI codes
 var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*m`)
@@ -147,7 +148,7 @@ func New(options *Options) (*Runner, error) {
 	var err error
 	if options.Wappalyzer != nil {
 		runner.wappalyzer = options.Wappalyzer
-	} else if options.TechDetect || options.JSONOutput || options.CSVOutput || options.AssetUpload {
+	} else if techDetectRequired(options) {
 		runner.wappalyzer, err = func() (*wappalyzer.Wappalyze, error) {
 			if options.CustomFingerprintFile != "" {
 				return wappalyzer.NewFromFile(options.CustomFingerprintFile, true, true)
@@ -237,12 +238,12 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.Protocol = httpx.Proto(options.Protocol)
 
 	var key, value string
-	httpxOptions.CustomHeaders = make(map[string]string)
+	httpxOptions.CustomHeaders = make(map[string][]string)
 	for _, customHeader := range options.CustomHeaders {
 		tokens := strings.SplitN(customHeader, ":", two)
 		// rawhttp skips all checks
 		if options.Unsafe {
-			httpxOptions.CustomHeaders[customHeader] = ""
+			httpxOptions.CustomHeaders[customHeader] = []string{""}
 			continue
 		}
 
@@ -252,7 +253,7 @@ func New(options *Options) (*Runner, error) {
 		}
 		key = strings.TrimSpace(tokens[0])
 		value = strings.TrimSpace(tokens[1])
-		httpxOptions.CustomHeaders[key] = value
+		httpxOptions.CustomHeaders[key] = append(httpxOptions.CustomHeaders[key], value)
 	}
 	httpxOptions.SniName = options.SniName
 
@@ -277,7 +278,7 @@ func New(options *Options) (*Runner, error) {
 		scanopts.Methods = append(scanopts.Methods, rrMethod)
 		scanopts.RequestURI = rrPath
 		for name, value := range rrHeaders {
-			httpxOptions.CustomHeaders[name] = value
+			httpxOptions.CustomHeaders[name] = append(httpxOptions.CustomHeaders[name], value...)
 		}
 		scanopts.RequestBody = rrBody
 		options.rawRequest = string(rawRequest)
@@ -339,7 +340,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputResponseTime = options.OutputResponseTime
 	scanopts.NoFallback = options.NoFallback
 	scanopts.NoFallbackScheme = options.NoFallbackScheme
-	scanopts.TechDetect = options.TechDetect || options.JSONOutput || options.CSVOutput || options.AssetUpload
+	scanopts.TechDetect = techDetectRequired(options)
 	scanopts.CPEDetect = options.CPEDetect || options.JSONOutput || options.CSVOutput
 	scanopts.WordPress = options.WordPress || options.JSONOutput || options.CSVOutput
 	scanopts.StoreChain = options.StoreChain
@@ -429,7 +430,7 @@ func New(options *Options) (*Runner, error) {
 		runner.HostErrorsCache = gc
 	}
 
-	runner.simHashes = gcache.New[uint64, struct{}](1000).ARC().Build()
+	runner.simHashes = gcache.New[uint64, []string](1000).ARC().Build()
 	if options.JSONOutput || options.CSVOutput || len(options.OutputFilterPageType) > 0 {
 		ditClassifier, err := dit.New()
 		if err != nil {
@@ -638,19 +639,21 @@ func (r *Runner) seen(k string) bool {
 
 func (r *Runner) duplicate(result *Result) bool {
 	respSimHash := simhash.Simhash(simhash.NewWordFeatureSet(converstionutil.Bytes(result.Raw)))
-	if r.simHashes.Has(respSimHash) {
-		gologger.Debug().Msgf("Skipping duplicate response with simhash %d for URL %s\n", respSimHash, result.URL)
-		return true
-	}
+	ip := result.HostIP
 
-	for simHash := range r.simHashes.GetALL(false) {
-		// lower threshold for increased precision
-		if simhash.Compare(simHash, respSimHash) <= 3 {
-			gologger.Debug().Msgf("Skipping near-duplicate response with simhash %d for URL %s\n", respSimHash, result.URL)
+	for storedHash, storedIPs := range r.simHashes.GetALL(false) {
+		if simhash.Compare(storedHash, respSimHash) > 3 {
+			continue
+		}
+		if ip == "" || sliceutil.Contains(storedIPs, ip) {
+			gologger.Debug().Msgf("Skipping duplicate response (simhash %d, ip %s) for URL %s\n", respSimHash, ip, result.URL)
 			return true
 		}
+		_ = r.simHashes.Set(storedHash, append(storedIPs, ip))
+		return false
 	}
-	_ = r.simHashes.Set(respSimHash, struct{}{})
+
+	_ = r.simHashes.Set(respSimHash, []string{ip})
 	return false
 }
 
@@ -675,6 +678,9 @@ func (r *Runner) classifyPage(headlessBody, body string, pHash uint64) map[strin
 }
 
 func (r *Runner) testAndSet(k string) bool {
+	r.seenMux.Lock()
+	defer r.seenMux.Unlock()
+
 	// skip empty lines
 	k = strings.TrimSpace(k)
 	if k == "" {
@@ -737,11 +743,10 @@ func (r *Runner) streamInput() (chan string, error) {
 					return
 				}
 			} else {
-				fchan, err := fileutil.ReadFile(r.options.InputFile)
-				if err != nil {
-					return
-				}
-				for item := range fchan {
+				for item, err := range fileutil.Lines(r.options.InputFile) {
+					if err != nil {
+						return
+					}
 					if r.options.SkipDedupe || r.testAndSet(item) {
 						if !trySend(item) {
 							return
@@ -755,11 +760,10 @@ func (r *Runner) streamInput() (chan string, error) {
 				gologger.Fatal().Msgf("No input provided: %s", err)
 			}
 			for _, file := range files {
-				fchan, err := fileutil.ReadFile(file)
-				if err != nil {
-					return
-				}
-				for item := range fchan {
+				for item, err := range fileutil.Lines(file) {
+					if err != nil {
+						return
+					}
 					if r.options.SkipDedupe || r.testAndSet(item) {
 						if !trySend(item) {
 							return
@@ -769,11 +773,10 @@ func (r *Runner) streamInput() (chan string, error) {
 			}
 		}
 		if fileutil.HasStdin() {
-			fchan, err := fileutil.ReadFileWithReader(os.Stdin)
-			if err != nil {
-				return
-			}
-			for item := range fchan {
+			for item, err := range fileutil.LinesReader(os.Stdin) {
+				if err != nil {
+					return
+				}
 				if r.options.SkipDedupe || r.testAndSet(item) {
 					if !trySend(item) {
 						return
@@ -2201,7 +2204,12 @@ retry:
 
 	pipeline := false
 	if scanopts.Pipeline {
-		port, _ := strconv.Atoi(URL.Port())
+		port := 0
+		if portStr := URL.Port(); portStr != "" {
+			if p, err := strconv.Atoi(portStr); err == nil {
+				port = p
+			}
+		}
 		r.ratelimiter.Take()
 		pipeline = hp.SupportPipeline(protocol, method, URL.Host, port)
 		if pipeline {
@@ -2452,53 +2460,56 @@ retry:
 	responseBaseDir := filepath.Join(domainResponseBaseDir, hostFilename)
 
 	var responsePath, fileNameHash string
-	// store response
+	// store response — when matchers/filters are active, defer writing to the
+	// output loop so only matched responses are persisted to disk.
 	if scanopts.StoreResponse || scanopts.StoreChain {
-		if r.options.OmitBody {
-			resp.Raw = strings.ReplaceAll(resp.Raw, string(resp.Data), "")
-		}
-		responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
-		// URL.EscapedString returns that can be used as filename
-		respRaw := resp.Raw
-		reqRaw := requestDump
-		if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
-			respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
-		}
-		data := reqRaw
-		if scanopts.StoreChain && resp.HasChain() {
-			data = append(data, append([]byte("\n"), []byte(resp.GetChain())...)...)
-		}
-		data = append(data, respRaw...)
-		data = append(data, []byte("\n\n\n")...)
-		data = append(data, []byte(fullURL)...)
-		_ = fileutil.CreateFolder(responseBaseDir)
+		fileNameHash = hash
 
-		basePath := strings.TrimSuffix(responsePath, ".txt")
-		var idx int
-		for idx = 0; ; idx++ {
-			targetPath := responsePath
-			if idx > 0 {
-				targetPath = fmt.Sprintf("%s_%d.txt", basePath, idx)
+		if !r.options.HasMatcherOrFilter() {
+			if r.options.OmitBody {
+				resp.Raw = strings.ReplaceAll(resp.Raw, string(resp.Data), "")
 			}
-			f, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
-			if err == nil {
-				_, writeErr := f.Write(data)
-				_ = f.Close()
-				if writeErr != nil {
-					gologger.Error().Msgf("Could not write to '%s': %s", targetPath, writeErr)
+			responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
+			// URL.EscapedString returns that can be used as filename
+			respRaw := resp.Raw
+			reqRaw := requestDump
+			if len(respRaw) > scanopts.MaxResponseBodySizeToSave {
+				respRaw = respRaw[:scanopts.MaxResponseBodySizeToSave]
+			}
+			data := reqRaw
+			if scanopts.StoreChain && resp.HasChain() {
+				data = append(data, append([]byte("\n"), []byte(resp.GetChain())...)...)
+			}
+			data = append(data, respRaw...)
+			data = append(data, []byte("\n\n\n")...)
+			data = append(data, []byte(fullURL)...)
+			_ = fileutil.CreateFolder(responseBaseDir)
+
+			basePath := strings.TrimSuffix(responsePath, ".txt")
+			var idx int
+			for idx = 0; ; idx++ {
+				targetPath := responsePath
+				if idx > 0 {
+					targetPath = fmt.Sprintf("%s_%d.txt", basePath, idx)
 				}
-				break
+				f, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+				if err == nil {
+					_, writeErr := f.Write(data)
+					_ = f.Close()
+					if writeErr != nil {
+						gologger.Error().Msgf("Could not write to '%s': %s", targetPath, writeErr)
+					}
+					break
+				}
+				if !os.IsExist(err) {
+					gologger.Error().Msgf("Failed to create file '%s': %s", targetPath, err)
+					break
+				}
 			}
-			if !os.IsExist(err) {
-				gologger.Error().Msgf("Failed to create file '%s': %s", targetPath, err)
-				break
-			}
-		}
 
-		if idx == 0 {
-			fileNameHash = hash
-		} else {
-			fileNameHash = fmt.Sprintf("%s_%d", hash, idx)
+			if idx > 0 {
+				fileNameHash = fmt.Sprintf("%s_%d", hash, idx)
+			}
 		}
 	}
 
@@ -2555,7 +2566,7 @@ retry:
 			// As we now have headless body, we can also use it for detecting
 			// more technologies in the response. This is a quick trick to get
 			// more detected technologies.
-			if r.options.TechDetect || r.options.JSONOutput || r.options.CSVOutput {
+			if techDetectRequired(r.options) {
 				moreMatches := r.wappalyzer.FingerprintWithInfo(resp.Headers, []byte(headlessBody))
 				for match, data := range moreMatches {
 					technologies = append(technologies, match)
@@ -2588,6 +2599,7 @@ retry:
 	var cpeMatches []CPEInfo
 	if r.cpeDetector != nil {
 		cpeMatches = r.cpeDetector.Detect(title, string(resp.Data), faviconMMH3)
+		cpeMatches = EnrichCPEVersions(cpeMatches, technologies)
 		if len(cpeMatches) > 0 && r.options.CPEDetect {
 			for _, cpe := range cpeMatches {
 				builder.WriteString(" [")

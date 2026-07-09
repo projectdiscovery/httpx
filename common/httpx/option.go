@@ -10,13 +10,22 @@ import (
 	"github.com/projectdiscovery/networkpolicy"
 )
 
-// DefaultMaxResponseBodySize is the default maximum response body size
-var DefaultMaxResponseBodySize int64
-
-func init() {
-	maxResponseBodySize, _ := humanize.ParseBytes("512Mb")
-	DefaultMaxResponseBodySize = int64(maxResponseBodySize)
-}
+// DefaultMaxResponseBodySize is the default maximum response body size that httpx
+// reads into memory for processing (and, via the runner, the default cap for
+// responses stored to disk with -sr). It is intentionally bounded: the body is
+// held in memory and the footprint scales with the number of concurrent threads,
+// so a very large cap can lead to excessive memory usage / OOM on large
+// responses. Normal web pages are far smaller than this; use -rstr / -rsts to
+// read or store larger responses when needed.
+//
+// NOTE: this is a var initializer (not an init() function) on purpose. init()
+// functions run after all package-level variable initializers, so computing the
+// value in init() left DefaultOptions (which references it below) observing a
+// zero value during package initialization.
+var DefaultMaxResponseBodySize = func() int64 {
+	maxResponseBodySize, _ := humanize.ParseBytes("50mb")
+	return int64(maxResponseBodySize)
+}()
 
 // Options contains configuration options for the client
 type Options struct {
@@ -36,7 +45,7 @@ type Options struct {
 	Timeout time.Duration
 	// RetryMax is the maximum number of retries
 	RetryMax      int
-	CustomHeaders map[string]string
+	CustomHeaders map[string][]string
 	// VHostSimilarityRatio 1 - 100
 	VHostSimilarityRatio int
 	FollowRedirects      bool
@@ -90,7 +99,7 @@ func (options *Options) parseCustomCookies() {
 	// parse and fill the custom field
 	for k, v := range options.CustomHeaders {
 		if strings.EqualFold(k, "cookie") {
-			req := http.Request{Header: http.Header{"Cookie": []string{v}}}
+			req := http.Request{Header: http.Header{"Cookie": v}}
 			options.customCookies = req.Cookies()
 		}
 	}
