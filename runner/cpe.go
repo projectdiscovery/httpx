@@ -160,6 +160,88 @@ func normalizeProductName(name string) string {
 	return b.String()
 }
 
+// cpeProductSuffixes are common awesome-search-queries product suffixes stripped
+// to derive shorter lookup aliases (e.g. liferay_portal -> liferay).
+var cpeProductSuffixes = []string{
+	"_server",
+	"_portal",
+	"_software",
+	"_platform",
+	"_suite",
+	"_service",
+	"_manager",
+	"_panel",
+	"_cms",
+	"_firmware",
+	"_gateway",
+	"_proxy",
+	"_system",
+	"_application",
+	"_framework",
+	"_tower",
+	"_policy_manager",
+}
+
+// productLookupKeys returns normalized lookup keys for joining a CPE product
+// name to wappalyzer technology names. Keys are ordered most-specific first;
+// the first key with a version match wins.
+func productLookupKeys(product string) []string {
+	product = strings.TrimSpace(product)
+	if product == "" {
+		return nil
+	}
+
+	// Compound awesome-search-queries names list multiple products; the first is
+	// the primary identifier for version lookup purposes.
+	if idx := strings.Index(product, ","); idx >= 0 {
+		product = strings.TrimSpace(product[:idx])
+	}
+
+	seen := make(map[string]struct{})
+	keys := make([]string, 0, 4)
+	addKey := func(raw string) {
+		key := normalizeProductName(raw)
+		if key == "" {
+			return
+		}
+		if _, ok := seen[key]; ok {
+			return
+		}
+		seen[key] = struct{}{}
+		keys = append(keys, key)
+	}
+
+	addKey(product)
+
+	lower := strings.ToLower(product)
+	for _, suffix := range cpeProductSuffixes {
+		if strings.HasSuffix(lower, suffix) {
+			addKey(strings.TrimSuffix(lower, suffix))
+		}
+	}
+
+	if strings.Contains(lower, "_") {
+		parts := strings.Split(lower, "_")
+		addKey(parts[0])
+		for i := 2; i <= len(parts); i++ {
+			addKey(strings.Join(parts[:i], "_"))
+		}
+	}
+
+	return keys
+}
+
+// lookupTechVersion finds a wappalyzer version for a CPE product using exact
+// and alias keys derived from awesome-search-queries naming conventions.
+func lookupTechVersion(product string, versions map[string]string) (string, bool) {
+	for _, key := range productLookupKeys(product) {
+		if version, ok := versions[key]; ok {
+			return version, true
+		}
+	}
+	return "", false
+}
+
 // buildTechVersionMap maps normalized technology name -> version, parsing
 // wappalyzer's "Name:version" entries (FormatAppVersion convention). Entries
 // without a version are skipped. A product reported with conflicting versions
@@ -203,7 +285,7 @@ func EnrichCPEVersions(matches []CPEInfo, technologies []string) []CPEInfo {
 	enriched := make([]CPEInfo, len(matches))
 	for i, match := range matches {
 		enriched[i] = match
-		if version, ok := versions[normalizeProductName(match.Product)]; ok {
+		if version, ok := lookupTechVersion(match.Product, versions); ok {
 			enriched[i].CPE = setCPEVersion(match.CPE, version)
 		}
 	}
