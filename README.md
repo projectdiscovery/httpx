@@ -238,7 +238,7 @@ CONFIGURATIONS:
    -ldp, -leave-default-ports       leave default http/https ports in host header (eg. http://host:80 - https://host:443
    -ztls                            use ztls library with autofallback to standard one for tls13
    -no-decode                       avoid decoding body
-   -tlsi, -tls-impersonate          enable experimental client hello (ja3) tls randomization
+   -tlsi, -tls-impersonate string    enable experimental client hello (ja3) tls impersonation (chrome, or ja3 full string)
    -no-stdin                        Disable Stdin processing
    -hae, -http-api-endpoint string  experimental http api endpoint
    -sf, -secret-file string         path to secret file for authentication

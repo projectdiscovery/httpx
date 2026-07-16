@@ -331,7 +331,7 @@ type Options struct {
 	NoDecode             bool
 	Screenshot           bool
 	UseInstalledChrome   bool
-	TlsImpersonate       bool
+	TlsImpersonate       string
 	DisableStdin         bool
 	HttpApiEndpoint      string
 	NoScreenshotBytes    bool
@@ -547,7 +547,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVarP(&options.LeaveDefaultPorts, "leave-default-ports", "ldp", false, "leave default http/https ports in host header (eg. http://host:80 - https://host:443"),
 		flagSet.BoolVar(&options.ZTLS, "ztls", false, "use ztls library with autofallback to standard one for tls13"),
 		flagSet.BoolVar(&options.NoDecode, "no-decode", false, "avoid decoding body"),
-		flagSet.BoolVarP(&options.TlsImpersonate, "tls-impersonate", "tlsi", false, "enable experimental client hello (ja3) tls randomization"),
+		flagSet.StringVarP(&options.TlsImpersonate, "tls-impersonate", "tlsi", "", "enable experimental client hello (ja3) tls impersonation (chrome, or ja3 full string)"),
 		flagSet.BoolVar(&options.DisableStdin, "no-stdin", false, "Disable Stdin processing"),
 		flagSet.StringVarP(&options.HttpApiEndpoint, "http-api-endpoint", "hae", "", "experimental http api endpoint"),
 		flagSet.StringVarP(&options.SecretFile, "secret-file", "sf", "", "path to the secret file for authentication"),
