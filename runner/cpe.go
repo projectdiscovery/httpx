@@ -3,6 +3,7 @@ package runner
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	awesomesearchqueries "github.com/projectdiscovery/awesome-search-queries"
@@ -214,7 +215,11 @@ func productLookupKeys(product string) []string {
 	addKey(product)
 
 	lower := strings.ToLower(product)
-	for _, suffix := range cpeProductSuffixes {
+	suffixes := slices.Clone(cpeProductSuffixes)
+	slices.SortFunc(suffixes, func(a, b string) int {
+		return len(b) - len(a)
+	})
+	for _, suffix := range suffixes {
 		if strings.HasSuffix(lower, suffix) {
 			addKey(strings.TrimSuffix(lower, suffix))
 		}

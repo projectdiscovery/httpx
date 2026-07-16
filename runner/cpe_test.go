@@ -183,6 +183,11 @@ func TestProductLookupKeys(t *testing.T) {
 			want: []string{"tableauserver", "tableau"},
 		},
 		{
+			name: "longest suffix takes priority",
+			in:   "ansible_policy_manager",
+			want: []string{"ansiblepolicymanager", "ansible", "ansiblepolicy"},
+		},
+		{
 			name: "compound name uses primary product",
 			in:   "digital_experience_platform,liferay_portal",
 			want: []string{"digitalexperienceplatform", "digitalexperience", "digital"},
@@ -226,6 +231,7 @@ func TestLookupTechVersion(t *testing.T) {
 		"Confluence:8.5.1",
 		"Tableau:2023.1",
 		"Apache HTTP Server:2.4.7",
+		"Ansible:2.14.0",
 	})
 
 	tests := []struct {
@@ -237,6 +243,7 @@ func TestLookupTechVersion(t *testing.T) {
 		{"liferay", "7.3.5", true},
 		{"confluence_server", "8.5.1", true},
 		{"tableau_server", "2023.1", true},
+		{"ansible_policy_manager", "2.14.0", true},
 		{"Apache HTTP Server", "2.4.7", true},
 		{"phpcollab", "", false},
 		{"unknown_product", "", false},
@@ -304,6 +311,14 @@ func TestEnrichCPEVersionsIssue2536(t *testing.T) {
 			cpe:          "cpe:2.3:a:redhat:ansible_tower:*:*:*:*:*:*:*:*",
 			technologies: []string{"Ansible:2.14.0"},
 			wantCPE:      "cpe:2.3:a:redhat:ansible_tower:2.14.0:*:*:*:*:*:*:*",
+		},
+		{
+			name:         "ansible policy manager prefers ansible alias",
+			product:      "ansible_policy_manager",
+			vendor:       "redhat",
+			cpe:          "cpe:2.3:a:redhat:ansible_policy_manager:*:*:*:*:*:*:*:*",
+			technologies: []string{"Ansible:2.14.0"},
+			wantCPE:      "cpe:2.3:a:redhat:ansible_policy_manager:2.14.0:*:*:*:*:*:*:*",
 		},
 		{
 			name:         "conflicting tech versions leave cpe unchanged",
