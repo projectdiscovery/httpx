@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Page</title>
+    <meta property="og:url" content="https://meta.example.com/page" />
+    <meta property="og:image" content="https://cdn.images.example.org/photo.jpg" />
+    <link rel="stylesheet" href="https://static.example.net/styles.css" />
+    <link rel="canonical" href="https://www.canonical.example.com/page" />
+</head>
+<body>
+    <a href="https://link.example.com/path">Link</a>
+    <a href="https://sub.link.example.com/other">Another</a>
+    <a href="/relative/path">Relative</a>
+    <a href="#">Hash</a>
+    <a href="javascript:void(0)">JS</a>
+
+    <img src="https://img.example.org/photo.png" alt="photo" />
+    <iframe src="https://embed.example.net/widget"></iframe>
+    <form action="https://api.formhandler.io/submit">
+        <input type="text" />
+    </form>
+
+    <video poster="https://video.example.com/thumb.jpg">
+        <source srcset="https://cdn.video.example.com/small.mp4 480w, https://cdn.video.example.com/large.mp4 1080w" />
+    </video>
+
+    <div data-url="https://data-attr.example.com/endpoint"></div>
+
+    <script>
+        var config = {
+            apiUrl: "https://api.jsconfig.example.com/v1",
+            cdnHost: "https://cdn.jsconfig.example.net/assets",
+            trackingEndpoint: "https://tracking.analytics.example.org/collect"
+        };
+        fetch("https://api.fetchcall.example.com/data");
+    </script>
+
+    <script>
+        const endpoints = [
+            "https://first.arraylit.example.com/a",
+            "https://second.arraylit.example.net/b"
+        ];
+        function loadWidget() {
+            return "https://widget.funclit.example.org/load";
+        }
+    </script>
+
+    <script src="https://external.cdn.example.com/lib.js"></script>
+
+    Text with a bare domain like bare.textdomain.example.com mentioned here.
+</body>
+</html>

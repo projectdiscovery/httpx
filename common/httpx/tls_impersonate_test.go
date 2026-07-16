@@ -132,6 +132,12 @@ func TestResolveImpersonateStrategy(t *testing.T) {
 		require.NotNil(t, identity)
 	})
 
+	t.Run("random maps to chrome", func(t *testing.T) {
+		strategy, identity := resolveImpersonateStrategy("random")
+		require.Equal(t, impersonate.Chrome, strategy)
+		require.Nil(t, identity)
+	})
+
 	t.Run("invalid ja3 falls back to chrome", func(t *testing.T) {
 		strategy, identity := resolveImpersonateStrategy("not-a-ja3-string")
 		require.Equal(t, impersonate.Chrome, strategy)

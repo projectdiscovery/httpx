@@ -1,12 +1,14 @@
 package httpx
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"strconv"
@@ -37,7 +39,7 @@ type HTTPX struct {
 	Filters       []Filter
 	Options       *Options
 	htmlPolicy    *bluemonday.Policy
-	CustomHeaders map[string]string
+	CustomHeaders map[string][]string
 	cdn           *cdncheck.Client
 	Dialer        *fastdialer.Dialer
 	NetworkPolicy *networkpolicy.NetworkPolicy
@@ -232,7 +234,10 @@ func (h *HTTPX) buildTLSDialer(options *Options) func(ctx context.Context, netwo
 
 func resolveImpersonateStrategy(value string) (impersonate.Strategy, *impersonate.Identity) {
 	switch strings.ToLower(value) {
-	case "", "chrome":
+	case "chrome":
+		return impersonate.Chrome, nil
+	case "random":
+		// random JA3 mode was removed due to unsupported curve picks; keep chrome for compatibility.
 		return impersonate.Chrome, nil
 	default:
 		spec, err := ja3.ParseWithJa3(value)
@@ -266,13 +271,19 @@ get_response:
 	resp.Input = req.Host
 
 	resp.Headers = httpresp.Header.Clone()
+	// body shouldn't be read with the following status codes
+	// 101 - Switching Protocols => websockets don't have a readable body
+	// 304 - Not Modified => no body the response terminates with latest header newline
+	shouldSkipBodyRead := generic.EqualsAny(httpresp.StatusCode, http.StatusSwitchingProtocols, http.StatusNotModified)
 
 	if h.Options.MaxResponseBodySizeToRead > 0 {
 		httpresp.Body = io.NopCloser(io.LimitReader(httpresp.Body, h.Options.MaxResponseBodySizeToRead))
-		defer func() {
-			_, _ = io.Copy(io.Discard, httpresp.Body)
-			_ = httpresp.Body.Close()
-		}()
+		if !shouldSkipBodyRead {
+			defer func() {
+				_, _ = io.Copy(io.Discard, httpresp.Body)
+				_ = httpresp.Body.Close()
+			}()
+		}
 	}
 
 	// httputil.DumpResponse does not handle websockets
@@ -297,10 +308,7 @@ get_response:
 	resp.Raw = string(rawResp)
 	resp.RawHeaders = string(headers)
 	var respbody []byte
-	// body shouldn't be read with the following status codes
-	// 101 - Switching Protocols => websockets don't have a readable body
-	// 304 - Not Modified => no body the response terminates with latest header newline
-	if !generic.EqualsAny(httpresp.StatusCode, http.StatusSwitchingProtocols, http.StatusNotModified) {
+	if !shouldSkipBodyRead {
 		var err error
 		respbody, err = io.ReadAll(io.LimitReader(httpresp.Body, h.Options.MaxResponseBodySizeToRead))
 		if err != nil && !shouldIgnoreBodyErrors {
@@ -313,28 +321,27 @@ get_response:
 		return nil, closeErr
 	}
 
-	// Todo: replace with https://github.com/projectdiscovery/utils/issues/110
-	resp.RawData = make([]byte, len(respbody))
-	copy(resp.RawData, respbody)
+	// Keep a reference to the undecoded body. DecodeData returns the same slice
+	// when no transcoding is needed (the common case), so RawData and Data end up
+	// sharing the same backing array and we avoid an extra full-body copy. When
+	// DecodeData transcodes it returns a fresh slice, so RawData still holds the
+	// original undecoded bytes. Both fields are read-only afterwards, so sharing
+	// the backing array is safe.
+	rawbody := respbody
 
 	respbody, err = DecodeData(respbody, httpresp.Header)
 	if err != nil && !shouldIgnoreBodyErrors {
-		return nil, closeErr
+		return nil, err
 	}
-
-	respbodystr := string(respbody)
-
-	// check if we need to strip html
-	if h.Options.VHostStripHTML {
-		respbodystr = h.htmlPolicy.Sanitize(respbodystr)
-	}
+	resp.RawData = rawbody
 
 	// if content length is not defined
 	if resp.ContentLength <= 0 {
 		// check if it's in the header and convert to int
 		if contentLength, ok := resp.Headers["Content-Length"]; ok && len(contentLength) > 0 {
-			contentLengthInt, _ := strconv.Atoi(contentLength[0])
-			resp.ContentLength = contentLengthInt
+			if contentLengthInt, err := strconv.Atoi(contentLength[0]); err == nil {
+				resp.ContentLength = contentLengthInt
+			}
 		}
 
 		// if we have a body, then use the number of bytes in the body if the length is still zero
@@ -347,11 +354,23 @@ get_response:
 
 	// fill metrics
 	resp.StatusCode = httpresp.StatusCode
-	if respbodystr != "" {
-		// number of words
-		resp.Words = len(strings.Split(respbodystr, " "))
-		// number of lines
-		resp.Lines = len(strings.Split(strings.TrimSpace(respbodystr), "\n"))
+
+	// Word/line counts are computed directly over the body bytes to avoid
+	// materializing an extra full-body string copy (and the slice produced by
+	// strings.Split) on the hot path. When HTML stripping is enabled the
+	// sanitized string is required, so counts are derived from it to preserve the
+	// previous behavior.
+	if h.Options.VHostStripHTML {
+		respbodystr := h.htmlPolicy.Sanitize(string(respbody))
+		if respbodystr != "" {
+			resp.Words = len(strings.Split(respbodystr, " "))
+			resp.Lines = len(strings.Split(strings.TrimSpace(respbodystr), "\n"))
+		}
+	} else if len(respbody) > 0 {
+		// equivalent to len(strings.Split(string(respbody), " ")) and
+		// len(strings.Split(strings.TrimSpace(string(respbody)), "\n"))
+		resp.Words = bytes.Count(respbody, []byte{' '}) + 1
+		resp.Lines = bytes.Count(bytes.TrimSpace(respbody), []byte{'\n'}) + 1
 	}
 
 	if !h.Options.Unsafe && h.Options.TLSGrab {
@@ -459,19 +478,31 @@ func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL str
 }
 
 // SetCustomHeaders on the provided request
-func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string]string) {
-	for name, value := range headers {
-		switch strings.ToLower(name) {
-		case "host":
-			r.Host = value
-			if h.Options.Unsafe {
-				r.Header.Set("Host", value)
+func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string][]string) {
+	// Coalesce values by canonical header key first. net/http canonicalizes keys
+	// on Del/Add, so case-variant duplicates (e.g. "X-Test" and "x-test") would
+	// otherwise have the second key's Del wipe the values added for the first.
+	normalized := make(map[string][]string, len(headers))
+	for name, values := range headers {
+		canonical := textproto.CanonicalMIMEHeaderKey(name)
+		normalized[canonical] = append(normalized[canonical], values...)
+	}
+
+	for name, values := range normalized {
+		r.Header.Del(name)
+		for _, value := range values {
+			switch strings.ToLower(name) {
+			case "host":
+				r.Host = value
+				if h.Options.Unsafe {
+					r.Header.Add("Host", value)
+				}
+			case "cookie":
+				// cookies are set in the default branch, and reset during the follow redirect flow
+				fallthrough
+			default:
+				r.Header.Add(name, value)
 			}
-		case "cookie":
-			// cookies are set in the default branch, and reset during the follow redirect flow
-			fallthrough
-		default:
-			r.Header.Set(name, value)
 		}
 	}
 	if h.Options.RandomAgent {

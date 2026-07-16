@@ -30,14 +30,14 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/corona10/goimagehash"
 	"github.com/gocarina/gocsv"
+	"github.com/happyhackingspace/dit"
 	"github.com/mfonda/simhash"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
+	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
 	"github.com/projectdiscovery/httpx/common/inputformats"
-	"github.com/happyhackingspace/dit"
-	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/static"
 	"github.com/projectdiscovery/mapcidr/asn"
 	"github.com/projectdiscovery/networkpolicy"
@@ -125,7 +125,7 @@ func (r *Runner) IsInterrupted() bool {
 }
 
 // picked based on try-fail but it seems to close to one it's used https://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html#c1992
-var hammingDistanceThreshold int = 22
+const hammingDistanceThreshold = 22
 
 // regex for stripping ANSI codes
 var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*m`)
@@ -148,7 +148,7 @@ func New(options *Options) (*Runner, error) {
 	var err error
 	if options.Wappalyzer != nil {
 		runner.wappalyzer = options.Wappalyzer
-	} else if options.TechDetect || options.JSONOutput || options.CSVOutput || options.AssetUpload {
+	} else if techDetectRequired(options) {
 		runner.wappalyzer, err = func() (*wappalyzer.Wappalyze, error) {
 			if options.CustomFingerprintFile != "" {
 				return wappalyzer.NewFromFile(options.CustomFingerprintFile, true, true)
@@ -238,12 +238,12 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.Protocol = httpx.Proto(options.Protocol)
 
 	var key, value string
-	httpxOptions.CustomHeaders = make(map[string]string)
+	httpxOptions.CustomHeaders = make(map[string][]string)
 	for _, customHeader := range options.CustomHeaders {
 		tokens := strings.SplitN(customHeader, ":", two)
 		// rawhttp skips all checks
 		if options.Unsafe {
-			httpxOptions.CustomHeaders[customHeader] = ""
+			httpxOptions.CustomHeaders[customHeader] = []string{""}
 			continue
 		}
 
@@ -253,7 +253,7 @@ func New(options *Options) (*Runner, error) {
 		}
 		key = strings.TrimSpace(tokens[0])
 		value = strings.TrimSpace(tokens[1])
-		httpxOptions.CustomHeaders[key] = value
+		httpxOptions.CustomHeaders[key] = append(httpxOptions.CustomHeaders[key], value)
 	}
 	httpxOptions.SniName = options.SniName
 
@@ -278,7 +278,7 @@ func New(options *Options) (*Runner, error) {
 		scanopts.Methods = append(scanopts.Methods, rrMethod)
 		scanopts.RequestURI = rrPath
 		for name, value := range rrHeaders {
-			httpxOptions.CustomHeaders[name] = value
+			httpxOptions.CustomHeaders[name] = append(httpxOptions.CustomHeaders[name], value...)
 		}
 		scanopts.RequestBody = rrBody
 		options.rawRequest = string(rawRequest)
@@ -340,7 +340,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputResponseTime = options.OutputResponseTime
 	scanopts.NoFallback = options.NoFallback
 	scanopts.NoFallbackScheme = options.NoFallbackScheme
-	scanopts.TechDetect = options.TechDetect || options.JSONOutput || options.CSVOutput || options.AssetUpload
+	scanopts.TechDetect = techDetectRequired(options)
 	scanopts.CPEDetect = options.CPEDetect || options.JSONOutput || options.CSVOutput
 	scanopts.WordPress = options.WordPress || options.JSONOutput || options.CSVOutput
 	scanopts.StoreChain = options.StoreChain
@@ -2204,7 +2204,12 @@ retry:
 
 	pipeline := false
 	if scanopts.Pipeline {
-		port, _ := strconv.Atoi(URL.Port())
+		port := 0
+		if portStr := URL.Port(); portStr != "" {
+			if p, err := strconv.Atoi(portStr); err == nil {
+				port = p
+			}
+		}
 		r.ratelimiter.Take()
 		pipeline = hp.SupportPipeline(protocol, method, URL.Host, port)
 		if pipeline {
@@ -2561,7 +2566,7 @@ retry:
 			// As we now have headless body, we can also use it for detecting
 			// more technologies in the response. This is a quick trick to get
 			// more detected technologies.
-			if r.options.TechDetect || r.options.JSONOutput || r.options.CSVOutput {
+			if techDetectRequired(r.options) {
 				moreMatches := r.wappalyzer.FingerprintWithInfo(resp.Headers, []byte(headlessBody))
 				for match, data := range moreMatches {
 					technologies = append(technologies, match)
@@ -2594,6 +2599,7 @@ retry:
 	var cpeMatches []CPEInfo
 	if r.cpeDetector != nil {
 		cpeMatches = r.cpeDetector.Detect(title, string(resp.Data), faviconMMH3)
+		cpeMatches = EnrichCPEVersions(cpeMatches, technologies)
 		if len(cpeMatches) > 0 && r.options.CPEDetect {
 			for _, cpe := range cpeMatches {
 				builder.WriteString(" [")
