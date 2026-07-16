@@ -159,6 +159,187 @@ func TestBuildTechVersionMap(t *testing.T) {
 	}
 }
 
+func TestProductLookupKeys(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   string
+		want []string
+	}{
+		{
+			name: "liferay portal strips suffix",
+			in:   "liferay_portal",
+			want: []string{"liferayportal", "liferay"},
+		},
+		{
+			name: "confluence server strips suffix",
+			in:   "confluence_server",
+			want: []string{"confluenceserver", "confluence"},
+		},
+		{
+			name: "tableau server strips suffix",
+			in:   "tableau_server",
+			want: []string{"tableauserver", "tableau"},
+		},
+		{
+			name: "longest suffix takes priority",
+			in:   "ansible_policy_manager",
+			want: []string{"ansiblepolicymanager", "ansible", "ansiblepolicy"},
+		},
+		{
+			name: "compound name uses primary product",
+			in:   "digital_experience_platform,liferay_portal",
+			want: []string{"digitalexperienceplatform", "digitalexperience", "digital"},
+		},
+		{
+			name: "display name unchanged",
+			in:   "Apache HTTP Server",
+			want: []string{"apachehttpserver"},
+		},
+		{
+			name: "simple product",
+			in:   "next.js",
+			want: []string{"nextjs"},
+		},
+		{
+			name: "empty",
+			in:   "",
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := productLookupKeys(tt.in)
+			if len(got) != len(tt.want) {
+				t.Fatalf("productLookupKeys(%q) = %v, want %v", tt.in, got, tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Fatalf("productLookupKeys(%q)[%d] = %q, want %q (full: %v)", tt.in, i, got[i], tt.want[i], got)
+				}
+			}
+		})
+	}
+}
+
+func TestLookupTechVersion(t *testing.T) {
+	t.Parallel()
+
+	versions := buildTechVersionMap([]string{
+		"Liferay:7.3.5",
+		"Confluence:8.5.1",
+		"Tableau:2023.1",
+		"Apache HTTP Server:2.4.7",
+		"Ansible:2.14.0",
+	})
+
+	tests := []struct {
+		product   string
+		want      string
+		wantFound bool
+	}{
+		{"liferay_portal", "7.3.5", true},
+		{"liferay", "7.3.5", true},
+		{"confluence_server", "8.5.1", true},
+		{"tableau_server", "2023.1", true},
+		{"ansible_policy_manager", "2.14.0", true},
+		{"Apache HTTP Server", "2.4.7", true},
+		{"phpcollab", "", false},
+		{"unknown_product", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.product, func(t *testing.T) {
+			got, ok := lookupTechVersion(tt.product, versions)
+			if ok != tt.wantFound {
+				t.Fatalf("lookupTechVersion(%q) found = %v, want %v", tt.product, ok, tt.wantFound)
+			}
+			if got != tt.want {
+				t.Fatalf("lookupTechVersion(%q) = %q, want %q", tt.product, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEnrichCPEVersionsIssue2536(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		product      string
+		vendor       string
+		cpe          string
+		technologies []string
+		wantCPE      string
+	}{
+		{
+			name:         "liferay portal product name from awesome-search-queries",
+			product:      "liferay_portal",
+			vendor:       "liferay",
+			cpe:          "cpe:2.3:a:liferay:liferay_portal:*:*:*:*:*:*:*:*",
+			technologies: []string{"Liferay:7.3.5"},
+			wantCPE:      "cpe:2.3:a:liferay:liferay_portal:7.3.5:*:*:*:*:*:*:*",
+		},
+		{
+			name:         "confluence server product name",
+			product:      "confluence_server",
+			vendor:       "atlassian",
+			cpe:          "cpe:2.3:a:atlassian:confluence_server:*:*:*:*:*:*:*:*",
+			technologies: []string{"Confluence:8.5.1"},
+			wantCPE:      "cpe:2.3:a:atlassian:confluence_server:8.5.1:*:*:*:*:*:*:*",
+		},
+		{
+			name:         "tableau server product name",
+			product:      "tableau_server",
+			vendor:       "tableau",
+			cpe:          "cpe:2.3:a:tableau:tableau_server:*:*:*:*:*:*:*:*",
+			technologies: []string{"Tableau:2023.1"},
+			wantCPE:      "cpe:2.3:a:tableau:tableau_server:2023.1:*:*:*:*:*:*:*",
+		},
+		{
+			name:         "no false match on unrelated substring",
+			product:      "phpcollab",
+			vendor:       "phpcollab",
+			cpe:          "cpe:2.3:a:phpcollab:phpcollab:*:*:*:*:*:*:*:*",
+			technologies: []string{"PHP:8.1.0"},
+			wantCPE:      "cpe:2.3:a:phpcollab:phpcollab:*:*:*:*:*:*:*:*",
+		},
+		{
+			name:         "ansible tower strips suffix",
+			product:      "ansible_tower",
+			vendor:       "redhat",
+			cpe:          "cpe:2.3:a:redhat:ansible_tower:*:*:*:*:*:*:*:*",
+			technologies: []string{"Ansible:2.14.0"},
+			wantCPE:      "cpe:2.3:a:redhat:ansible_tower:2.14.0:*:*:*:*:*:*:*",
+		},
+		{
+			name:         "ansible policy manager prefers ansible alias",
+			product:      "ansible_policy_manager",
+			vendor:       "redhat",
+			cpe:          "cpe:2.3:a:redhat:ansible_policy_manager:*:*:*:*:*:*:*:*",
+			technologies: []string{"Ansible:2.14.0"},
+			wantCPE:      "cpe:2.3:a:redhat:ansible_policy_manager:2.14.0:*:*:*:*:*:*:*",
+		},
+		{
+			name:         "conflicting tech versions leave cpe unchanged",
+			product:      "liferay_portal",
+			vendor:       "liferay",
+			cpe:          "cpe:2.3:a:liferay:liferay_portal:*:*:*:*:*:*:*:*",
+			technologies: []string{"Liferay:7.3.5", "Liferay:7.4.0"},
+			wantCPE:      "cpe:2.3:a:liferay:liferay_portal:*:*:*:*:*:*:*:*",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			matches := []CPEInfo{{Product: tt.product, Vendor: tt.vendor, CPE: tt.cpe}}
+			got := EnrichCPEVersions(matches, tt.technologies)
+			if got[0].CPE != tt.wantCPE {
+				t.Fatalf("CPE = %q, want %q", got[0].CPE, tt.wantCPE)
+			}
+		})
+	}
+}
+
 func TestBuildTechVersionMapConflict(t *testing.T) {
 	// the same product reported with two versions must be dropped, not resolved
 	// by random map iteration order.
@@ -233,8 +414,9 @@ func TestEnrichCPEVersionsWithRealWappalyzer(t *testing.T) {
 		t.Fatalf("expected wappalyzer to emit \"Liferay:7.3.5\", got %v", technologies)
 	}
 
+	// awesome-search-queries uses snake_case product names; issue #2536.
 	matches := []CPEInfo{
-		{Product: "Liferay", Vendor: "liferay", CPE: "cpe:2.3:a:liferay:liferay_portal:*:*:*:*:*:*:*:*"},
+		{Product: "liferay_portal", Vendor: "liferay", CPE: "cpe:2.3:a:liferay:liferay_portal:*:*:*:*:*:*:*:*"},
 	}
 	got := EnrichCPEVersions(matches, technologies)
 	if got[0].CPE != "cpe:2.3:a:liferay:liferay_portal:7.3.5:*:*:*:*:*:*:*" {
