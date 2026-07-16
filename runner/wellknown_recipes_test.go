@@ -21,12 +21,12 @@ func TestMain(m *testing.M) {
 		fmt.Fprintf(os.Stderr, "failed to create temp dir: %v\n", err)
 		os.Exit(1)
 	}
-	defer func() { _ = os.RemoveAll(tmp) }()
 
 	httpxBinary = filepath.Join(tmp, "httpx")
 	moduleRoot, err := filepath.Abs("..")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to resolve module root: %v\n", err)
+		_ = os.RemoveAll(tmp)
 		os.Exit(1)
 	}
 
@@ -34,10 +34,13 @@ func TestMain(m *testing.M) {
 	build.Dir = moduleRoot
 	if out, err := build.CombinedOutput(); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to build httpx: %v\n%s\n", err, out)
+		_ = os.RemoveAll(tmp)
 		os.Exit(1)
 	}
 
-	os.Exit(m.Run())
+	code := m.Run()
+	_ = os.RemoveAll(tmp)
+	os.Exit(code)
 }
 
 func TestWellKnownRecipes(t *testing.T) {

@@ -285,11 +285,11 @@ For details about running httpx, see https://docs.projectdiscovery.io/tools/http
 ### Using `httpx` as a library
 `httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. A minimal example of how to do it is in the [examples](examples/) folder
 
-# Common Recipes
+## Common Recipes
 
 Below are practical one-liners for common use cases leveraging httpx's composable primitives. These recipes are validated in `runner/wellknown_recipes_test.go`.
 
-Use `-mdc` with DSL helpers such as `contains(content_type, ...)` and `contains(body, ...)` to match response metadata and body content. (`-mr`/`-ms` match response headers only.)
+Use `-mdc` with DSL helpers such as `contains(content_type, ...)` and `contains(body, ...)` to match response metadata and body content. (`-mr`/`-ms` match the full raw response; use `-mdc` for structured field matching.)
 
 ### Well-known files
 
