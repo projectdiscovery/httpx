@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"bytes"
+	"net"
 	"net/url"
 	"regexp"
 	"strings"
@@ -38,30 +39,80 @@ func (h *HTTPX) BodyDomainGrab(r *Response) *BodyDomain {
 	domains := make(map[string]struct{})
 	fqdns := make(map[string]struct{})
 
-	// Only run HTML/JS parsers if the body looks like HTML
-	if len(r.Data) > 0 && looksLikeHTML(r.Data) {
-		inlineScripts := extractDomainsFromHTML(r.Data, domains, fqdns, r.Input)
-
-		for _, script := range inlineScripts {
-			if len(script) <= maxInlineScriptSize {
-				extractDomainsFromJS(script, domains, fqdns, r.Input)
+	if len(r.Data) > 0 {
+		switch {
+		case looksLikeHTML(r.Data):
+			inlineScripts := extractDomainsFromHTML(r.Data, domains, fqdns, r.Input)
+			for _, script := range inlineScripts {
+				if len(script) <= maxInlineScriptSize {
+					extractDomainsFromJS(script, domains, fqdns, r.Input)
+				}
 			}
+		case looksLikeJavaScript(r.Data, r.GetHeader("Content-Type")):
+			if len(r.Data) <= maxInlineScriptSize {
+				extractDomainsFromJS(string(r.Data), domains, fqdns, r.Input)
+			} else {
+				extractDomainsFromRegex(string(r.Data), domains, fqdns, r.Input)
+			}
+		default:
+			extractDomainsFromRegex(r.Raw, domains, fqdns, r.Input)
 		}
+	} else {
+		extractDomainsFromRegex(r.Raw, domains, fqdns, r.Input)
 	}
-
-	// Regex fallback on the raw response (catches anything the parsers miss)
-	extractDomainsFromRegex(r.Raw, domains, fqdns, r.Input)
 
 	return &BodyDomain{Domains: mapsutil.GetKeys(domains), Fqdns: mapsutil.GetKeys(fqdns)}
 }
 
 func looksLikeHTML(data []byte) bool {
+	trimmed := trimmedBodyPrefix(data)
+	return len(trimmed) > 0 && trimmed[0] == '<'
+}
+
+func looksLikeJavaScript(data []byte, contentType string) bool {
+	ct := strings.ToLower(contentType)
+	if strings.Contains(ct, "javascript") || strings.Contains(ct, "ecmascript") {
+		return true
+	}
+
+	trimmed := trimmedBodyPrefix(data)
+	if len(trimmed) == 0 {
+		return false
+	}
+
+	s := string(trimmed)
+	return strings.HasPrefix(s, "var ") ||
+		strings.HasPrefix(s, "const ") ||
+		strings.HasPrefix(s, "let ") ||
+		strings.HasPrefix(s, "function") ||
+		strings.HasPrefix(s, "(function") ||
+		strings.HasPrefix(s, "/*") ||
+		strings.HasPrefix(s, "//") ||
+		strings.HasPrefix(s, "import ") ||
+		strings.HasPrefix(s, "export ") ||
+		strings.HasPrefix(s, "!") ||
+		strings.HasPrefix(s, "\"use strict\"") ||
+		strings.HasPrefix(s, "'use strict'")
+}
+
+func trimmedBodyPrefix(data []byte) []byte {
 	prefix := data
 	if len(prefix) > 1024 {
 		prefix = prefix[:1024]
 	}
 	trimmed := bytes.TrimSpace(prefix)
-	return len(trimmed) > 0 && trimmed[0] == '<'
+	return bytes.TrimPrefix(trimmed, []byte{0xEF, 0xBB, 0xBF})
+}
+
+func inputHostname(input string) string {
+	input = strings.ToLower(strings.TrimSpace(input))
+	if input == "" {
+		return ""
+	}
+	if host, _, err := net.SplitHostPort(input); err == nil {
+		return host
+	}
+	return input
 }
 
 // extractDomainsFromHTML parses HTML and extracts hostnames from URL-bearing
@@ -191,10 +242,11 @@ func addDomainCandidate(d string, domains, fqdns map[string]struct{}, input stri
 	if err != nil {
 		return
 	}
-	if input != val {
+	inputHost := inputHostname(input)
+	if inputHost != val {
 		domains[val] = struct{}{}
 	}
-	if d != val && d != input {
+	if d != val && d != inputHost {
 		fqdns[d] = struct{}{}
 	}
 }

@@ -133,6 +133,27 @@ func TestBodyDomainGrabNonHTML(t *testing.T) {
 	require.Contains(t, bd.Fqdns, "api.plain.example.com")
 }
 
+func TestBodyDomainGrabJavaScriptBody(t *testing.T) {
+	ht, err := New(&DefaultOptions)
+	require.Nil(t, err)
+
+	script := "const api = `https://js-only.example.com/v1`;"
+	response := &Response{
+		Raw:  script,
+		Data: []byte(script),
+		Headers: map[string][]string{
+			"Content-Type": {"application/javascript"},
+		},
+	}
+	bd := ht.BodyDomainGrab(response)
+
+	require.Contains(t, bd.Fqdns, "js-only.example.com")
+}
+
+func TestLooksLikeHTML_UTF8BOM(t *testing.T) {
+	require.True(t, looksLikeHTML([]byte("\xef\xbb\xbf<!DOCTYPE html><html></html>")))
+}
+
 func TestBodyDomainGrabBrokenJS(t *testing.T) {
 	ht, err := New(&DefaultOptions)
 	require.Nil(t, err)
@@ -462,6 +483,31 @@ func TestEdgeCase_InputDomainExclusion(t *testing.T) {
 	// self.example.com equals the input, should be excluded from fqdns
 	for _, f := range bd.Fqdns {
 		require.NotEqual(t, "example.com", f, "input should be excluded from fqdns")
+	}
+	require.Contains(t, bd.Domains, "different.net")
+	require.Contains(t, bd.Fqdns, "other.different.net")
+}
+
+func TestEdgeCase_InputDomainExclusionWithPort(t *testing.T) {
+	ht, err := New(&DefaultOptions)
+	require.Nil(t, err)
+
+	html := `<html><body>
+		<a href="https://self.example.com/page">self</a>
+		<a href="https://other.different.net/page">other</a>
+	</body></html>`
+	response := &Response{
+		Raw:   html,
+		Data:  []byte(html),
+		Input: "example.com:8080",
+	}
+	bd := ht.BodyDomainGrab(response)
+
+	for _, d := range bd.Domains {
+		require.NotEqual(t, "example.com", d, "input host should be excluded from domains")
+	}
+	for _, f := range bd.Fqdns {
+		require.NotEqual(t, "example.com", f, "input host should be excluded from fqdns")
 	}
 	require.Contains(t, bd.Domains, "different.net")
 	require.Contains(t, bd.Fqdns, "other.different.net")
@@ -967,6 +1013,14 @@ func TestAddDomainCandidate(t *testing.T) {
 		fqdns := make(map[string]struct{})
 		addDomainCandidate("sub.example.com", domains, fqdns, "sub.example.com")
 		require.Empty(t, fqdns)
+	})
+
+	t.Run("input host with port excluded from domains", func(t *testing.T) {
+		domains := make(map[string]struct{})
+		fqdns := make(map[string]struct{})
+		addDomainCandidate("sub.example.com", domains, fqdns, "example.com:443")
+		require.Empty(t, domains)
+		require.Contains(t, fqdns, "sub.example.com")
 	})
 
 	t.Run("empty string rejected", func(t *testing.T) {
