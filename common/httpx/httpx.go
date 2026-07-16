@@ -20,6 +20,7 @@ import (
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/fastdialer/fastdialer/ja3"
 	"github.com/projectdiscovery/fastdialer/fastdialer/ja3/impersonate"
+	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/networkpolicy"
 	"github.com/projectdiscovery/rawhttp"
@@ -234,7 +235,7 @@ func (h *HTTPX) buildTLSDialer(options *Options) func(ctx context.Context, netwo
 
 func resolveImpersonateStrategy(value string) (impersonate.Strategy, *impersonate.Identity) {
 	switch strings.ToLower(value) {
-	case "chrome":
+	case "", "chrome":
 		return impersonate.Chrome, nil
 	case "random":
 		// random JA3 mode was removed due to unsupported curve picks; keep chrome for compatibility.
@@ -242,6 +243,7 @@ func resolveImpersonateStrategy(value string) (impersonate.Strategy, *impersonat
 	default:
 		spec, err := ja3.ParseWithJa3(value)
 		if err != nil {
+			gologger.Warning().Msgf("invalid tls-impersonate value %q: %v; falling back to chrome", value, err)
 			return impersonate.Chrome, nil
 		}
 		identity := impersonate.Identity(*spec)
