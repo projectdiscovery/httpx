@@ -3,7 +3,6 @@ package httpx
 import (
 	"crypto/tls"
 	"io"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"time"
@@ -23,41 +22,31 @@ func proxyFromOptions(options *Options) string {
 	return options.Proxy
 }
 
-// impersonationProfiles is the set of reqx browser profiles used to satisfy
-// the -tls-impersonate option (a randomized JA3/JA4 + HTTP/2 fingerprint).
-var impersonationProfiles = []reqx.BrowserProfile{
-	reqx.ProfileChrome131,
-	reqx.ProfileChrome132,
-	reqx.ProfileFirefox133,
-	reqx.ProfileFirefoxESR,
-	reqx.ProfileSafari18,
-	reqx.ProfileEdge131,
-	reqx.ProfileBrave,
-}
-
-func randomBrowserProfile() reqx.BrowserProfile {
-	return impersonationProfiles[rand.Intn(len(impersonationProfiles))]
-}
-
 // newReqxTransport builds the reqx.Transport that backs the safe request path.
 // fastdialer is preserved as the dialer so DNS caching, dial history and
 // network policy keep working; TLS is performed by reqx so response.TLS (and
 // therefore TLSGrab) is populated. HTTP/1.1 is forced to match the historical
-// httpx client, except under impersonation where a full browser profile
-// (TLS + HTTP/2 + header fingerprint) is applied instead.
+// httpx client, except under impersonation where a browser profile is applied.
 func newReqxTransport(dialer *fastdialer.Dialer, options *Options) http.RoundTripper {
 	opts := []reqx.Option{
 		reqx.WithDialer(reqx.DialerFunc(dialer.Dial)),
 		reqx.WithInsecureSkipVerify(),
 		reqx.WithTLSMinVersion(tls.VersionTLS10),
-		reqx.WithKeepAlive(false),
 		reqx.WithTimeout(options.Timeout),
 	}
 
 	if options.TlsImpersonate {
-		opts = append(opts, reqx.WithBrowserProfile(randomBrowserProfile()))
+		// Keep-alive and a pinned browser profile keep TLS, HTTP/2, and
+		// default request headers aligned with the impersonated client.
+		opts = append(opts,
+			reqx.WithKeepAlive(true),
+			reqx.WithBrowserProfile(reqx.ProfileChrome131),
+		)
 	} else {
-		opts = append(opts, reqx.WithForceHTTP1())
+		opts = append(opts,
+			reqx.WithKeepAlive(false),
+			reqx.WithForceHTTP1(),
+		)
 	}
 
 	if options.SniName != "" {

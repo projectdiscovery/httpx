@@ -216,6 +216,9 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.ExtractFqdn = options.ExtractFqdn
 	if options.CustomHeaders.Has("User-Agent:") {
 		httpxOptions.RandomAgent = false
+	} else if options.TlsImpersonate {
+		// Let the transport browser profile own the default User-Agent.
+		httpxOptions.RandomAgent = false
 	} else {
 		httpxOptions.RandomAgent = options.RandomAgent
 	}

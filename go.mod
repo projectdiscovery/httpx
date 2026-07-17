@@ -56,7 +56,7 @@ require (
 	github.com/happyhackingspace/dit v0.0.27
 	github.com/lib/pq v1.12.3
 	github.com/projectdiscovery/awesome-search-queries v0.0.0-20260104120501-961ef30f7193
-	github.com/projectdiscovery/reqx v0.0.0-20260508172251-6205af3493df
+	github.com/projectdiscovery/reqx v0.0.0-20260717073230-60a4df85eb4c
 	github.com/seh-msft/burpxml v1.0.1
 	github.com/weppos/publicsuffix-go v0.50.3
 	go.mongodb.org/mongo-driver v1.17.9

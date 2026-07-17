@@ -459,10 +459,14 @@ func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL str
 
 	// Skip if unsafe is used
 	if !h.Options.Unsafe {
-		// set default user agent
-		req.Header.Set("User-Agent", h.Options.DefaultUserAgent)
-		// set default encoding to accept utf8
-		req.Header.Add("Accept-Charset", "utf-8")
+		if h.Options.TlsImpersonate {
+			// Leave User-Agent / Accept* unset so the transport browser profile
+			// can supply matching defaults. Custom -H values are applied later
+			// via SetCustomHeaders.
+		} else {
+			req.Header.Set("User-Agent", h.Options.DefaultUserAgent)
+			req.Header.Add("Accept-Charset", "utf-8")
+		}
 	}
 
 	// attach httptrace collection when tracing is enabled
@@ -500,7 +504,7 @@ func (h *HTTPX) SetCustomHeaders(r *http.Request, headers map[string][]string) {
 			}
 		}
 	}
-	if h.Options.RandomAgent {
+	if h.Options.RandomAgent && !h.Options.TlsImpersonate {
 		userAgent := useragent.PickRandom()
 		r.Header.Set("User-Agent", userAgent.Raw) //nolint
 	}
