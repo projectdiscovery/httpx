@@ -98,8 +98,8 @@ github.com/fsnotify/fsnotify v1.6.0 h1:n+5WquG0fcWoWp6xPWfHdbskMCQaFnG6PfBrh1Ky4
 github.com/fsnotify/fsnotify v1.6.0/go.mod h1:sl3t1tCWJFWoRz9R8WJCbQihKKwmorjAbSClcnxKAGw=
 github.com/gaissmai/bart v0.28.0 h1:89yZLo8NmyqD0RYgJ3QO9HhqqGGw+oWhf90cZm69Lko=
 github.com/gaissmai/bart v0.28.0/go.mod h1:GREWQfTLRWz/c5FTOsIw+KkscuFkIV5t8Rp7Nd1Td5c=
-github.com/go-faker/faker/v4 v4.9.0 h1:a4HXLwueuTCtgF93VpUsl8Zd2nG1VH2SgNWDPVEBg5U=
-github.com/go-faker/faker/v4 v4.9.0/go.mod h1:u1dIRP5neLB6kTzgyVjdBOV5R1uP7BdxkcWk7tiKQXk=
+github.com/go-faker/faker/v4 v4.10.0 h1:rHTZVwG1x8aN4zXDYJUFucOGDQojuxOby5MTdC/M2Fw=
+github.com/go-faker/faker/v4 v4.10.0/go.mod h1:X+KzPB4JZ82GY4MYr7NV7zmp+i/K0SG5EDKqIg5zd1k=
 github.com/go-ole/go-ole v1.2.6 h1:/Fpf6oFPoeFik9ty7siob0G6Ke8QvQEuVcuChpwXzpY=
 github.com/go-ole/go-ole v1.2.6/go.mod h1:pprOEPIfldk/42T2oK7lQ4v4JSDwmV0As9GaiUsvbm0=
 github.com/go-rod/rod v0.116.2 h1:A5t2Ky2A+5eD/ZJQr1EfsQSe5rms5Xof/qj296e+ZqA=
