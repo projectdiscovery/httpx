@@ -1,13 +1,13 @@
 module github.com/projectdiscovery/httpx
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
 	github.com/PuerkitoBio/goquery v1.12.0
 	github.com/akrylysov/pogreb v0.10.2 // indirect
 	github.com/corona10/goimagehash v1.1.0
-	github.com/go-faker/faker/v4 v4.9.0
+	github.com/go-faker/faker/v4 v4.10.0
 	github.com/go-rod/rod v0.116.2
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
