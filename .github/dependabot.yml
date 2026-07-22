@@ -18,10 +18,10 @@ updates:
     labels:
       - "Type: Maintenance"
     groups:
-      # Internal PD libraries — usually safe to review as a batch
+      # Internal PD libraries, usually safe to review as a batch
       projectdiscovery:
         patterns: ["github.com/projectdiscovery/*"]
-      # Everything else (faker, dit, etc.) — separate from PD bumps
+      # Other packages, separate from PD bumps
       external:
         patterns: ["*"]
         exclude-patterns: ["github.com/projectdiscovery/*"]
