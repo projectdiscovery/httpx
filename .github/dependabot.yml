@@ -18,8 +18,13 @@ updates:
     labels:
       - "Type: Maintenance"
     groups:
-      modules:
+      # Internal PD libraries, usually safe to review as a batch
+      projectdiscovery:
         patterns: ["github.com/projectdiscovery/*"]
+      # Other packages, separate from PD bumps
+      external:
+        patterns: ["*"]
+        exclude-patterns: ["github.com/projectdiscovery/*"]
 
 #  # Maintain dependencies for GitHub Actions
 #  - package-ecosystem: "github-actions"
