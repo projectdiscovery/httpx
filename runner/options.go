@@ -459,7 +459,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterStatusCode, "filter-code", "fc", "", "filter response with specified status code (-fc 403,401)"),
 		flagSet.StringSliceVarP(&options.OutputFilterPageType, "filter-page-type", "fpt", nil, "filter response with specified page type (e.g. -fpt login,captcha,parked)", goflags.CommaSeparatedStringSliceOptions),
 		flagSet.BoolVarP(&options.OutputFilterErrorPage, "filter-error-page", "fep", false, "[DEPRECATED: use -fpt] filter response with ML based error page detection"),
-		flagSet.BoolVarP(&options.NoClassify, "no-classify", "nc", false, "disable ML page-type classification (skips ~92MB model download with -json/-csv)"),
+		flagSet.BoolVar(&options.NoClassify, "no-classify", false, "disable ML page-type classification (skips ~92MB model download with -json/-csv)"),
 		flagSet.BoolVarP(&options.FilterOutDuplicates, "filter-duplicates", "fd", false, "filter out near-duplicate responses (only first response is retained)"),
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "filter response with specified content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "filter response body with specified line count (-flc 423,532)"),

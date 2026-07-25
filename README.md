@@ -153,7 +153,7 @@ FILTERS:
    -fc, -filter-code string               filter response with specified status code (-fc 403,401)
    -fpt, -filter-page-type string[]       filter response with specified page type (e.g. -fpt login,captcha,parked)
    -fep, -filter-error-page               [DEPRECATED: use -fpt] filter response with ML based error page detection
-   -nc, -no-classify                      disable ML page-type classification (skips ~92MB model download with -json/-csv)
+   -no-classify                            disable ML page-type classification (skips ~92MB model download with -json/-csv)
    -fd, -filter-duplicates                filter out near-duplicate responses (only first response is retained)
    -fl, -filter-length string             filter response with specified content length (-fl 23,33)
    -flc, -filter-line-count string        filter response body with specified line count (-flc 423,532)
