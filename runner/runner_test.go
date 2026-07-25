@@ -515,6 +515,40 @@ func TestOptions_hasMatcherOrFilter(t *testing.T) {
 	}
 }
 
+func TestShouldInitPageClassifier(t *testing.T) {
+	tests := []struct {
+		name     string
+		options  Options
+		expected bool
+	}{
+		{name: "default", options: Options{}, expected: false},
+		{name: "json", options: Options{JSONOutput: true}, expected: true},
+		{name: "csv", options: Options{CSVOutput: true}, expected: true},
+		{name: "filter page type", options: Options{OutputFilterPageType: []string{"login"}}, expected: true},
+		{name: "json with no-classify", options: Options{JSONOutput: true, NoClassify: true}, expected: false},
+		{name: "csv with no-classify", options: Options{CSVOutput: true, NoClassify: true}, expected: false},
+		{name: "no-classify alone", options: Options{NoClassify: true}, expected: false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.expected, tc.options.ShouldInitPageClassifier())
+		})
+	}
+}
+
+func TestNoClassifyConflictsWithPageTypeFilter(t *testing.T) {
+	opts := Options{
+		NoClassify:           true,
+		OutputFilterPageType: []string{"error"},
+		Protocol:             "http11",
+		Threads:              50,
+	}
+	err := opts.ValidateOptions()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "-no-classify")
+}
+
 func TestStoreResponse_withoutMatchersStoresAll(t *testing.T) {
 	dir := t.TempDir()
 	opts := &Options{
@@ -529,8 +563,8 @@ func TestStoreResponse_withoutMatchersStoresAll(t *testing.T) {
 func TestStoreResponse_withMatcherSetsFlag(t *testing.T) {
 	dir := t.TempDir()
 	opts := &Options{
-		StoreResponse:       true,
-		StoreResponseDir:    dir,
+		StoreResponse:         true,
+		StoreResponseDir:      dir,
 		OutputMatchStatusCode: "200",
 	}
 	err := opts.ValidateOptions()

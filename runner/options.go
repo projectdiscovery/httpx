@@ -204,6 +204,9 @@ type Options struct {
 	// Deprecated: use OutputFilterPageType with "error" instead.
 	OutputFilterErrorPage bool
 	OutputFilterPageType      goflags.StringSlice
+	// NoClassify disables ML page-type classification (and its model download).
+	// Useful with -json/-csv when KnowledgeBase/PageType is not needed.
+	NoClassify                bool
 	FilterOutDuplicates       bool
 	OutputFilterContentLength string
 	InputRawRequest           string
@@ -456,6 +459,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterStatusCode, "filter-code", "fc", "", "filter response with specified status code (-fc 403,401)"),
 		flagSet.StringSliceVarP(&options.OutputFilterPageType, "filter-page-type", "fpt", nil, "filter response with specified page type (e.g. -fpt login,captcha,parked)", goflags.CommaSeparatedStringSliceOptions),
 		flagSet.BoolVarP(&options.OutputFilterErrorPage, "filter-error-page", "fep", false, "[DEPRECATED: use -fpt] filter response with ML based error page detection"),
+		flagSet.BoolVarP(&options.NoClassify, "no-classify", "nc", false, "disable ML page-type classification (skips ~92MB model download with -json/-csv)"),
 		flagSet.BoolVarP(&options.FilterOutDuplicates, "filter-duplicates", "fd", false, "filter out near-duplicate responses (only first response is retained)"),
 		flagSet.StringVarP(&options.OutputFilterContentLength, "filter-length", "fl", "", "filter response with specified content length (-fl 23,33)"),
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "filter response body with specified line count (-flc 423,532)"),
@@ -720,6 +724,16 @@ func (options *Options) HasMatcherOrFilter() bool {
 		options.OutputFilterResponseTime != ""
 }
 
+// ShouldInitPageClassifier reports whether the ML page-type classifier should be loaded.
+// -json/-csv historically always initialized it for KnowledgeBase/PageType enrichment;
+// -no-classify opts out so those formats do not download the ~92MB model when unused.
+func (options *Options) ShouldInitPageClassifier() bool {
+	if options.NoClassify {
+		return false
+	}
+	return options.JSONOutput || options.CSVOutput || len(options.OutputFilterPageType) > 0
+}
+
 func (options *Options) ValidateOptions() error {
 	if options.InputFile != "" && !fileutilz.FileNameIsGlob(options.InputFile) && !fileutil.FileExists(options.InputFile) {
 		return fmt.Errorf("file '%s' does not exist", options.InputFile)
@@ -852,6 +866,10 @@ func (options *Options) ValidateOptions() error {
 	}
 	if len(options.OutputMatchCdn) > 0 || len(options.OutputFilterCdn) > 0 {
 		options.OutputCDN = "true"
+	}
+
+	if options.NoClassify && (len(options.OutputFilterPageType) > 0 || options.OutputFilterErrorPage) {
+		return fmt.Errorf("-no-classify cannot be combined with -filter-page-type/-fpt or -filter-error-page/-fep")
 	}
 
 	if !stringsutil.EqualFoldAny(options.Protocol, string(httpxcommon.UNKNOWN), string(httpxcommon.HTTP11)) {

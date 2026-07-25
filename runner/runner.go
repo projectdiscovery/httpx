@@ -431,7 +431,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.simHashes = gcache.New[uint64, []string](1000).ARC().Build()
-	if options.JSONOutput || options.CSVOutput || len(options.OutputFilterPageType) > 0 {
+	if options.ShouldInitPageClassifier() {
 		ditClassifier, err := dit.New()
 		if err != nil {
 			gologger.Warning().Msgf("Could not initialize page classifier: %s", err)
