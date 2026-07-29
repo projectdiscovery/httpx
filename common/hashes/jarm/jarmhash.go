@@ -49,21 +49,26 @@ func fingerprint(dialer *fastdialer.Dialer, t target, duration int) string {
 		if conn == nil {
 			return ""
 		}
-		_ = conn.SetWriteDeadline(time.Now().Add(timeout))
-		_, err = conn.Write(jarm.BuildProbe(probe))
-		if err != nil {
-			_ = conn.Close()
-			return ""
-		}
-		_ = conn.SetReadDeadline(time.Now().Add(timeout))
-		buff := make([]byte, 1484)
-		_, _ = conn.Read(buff)
-		_ = conn.Close()
-		ans, err := jarm.ParseServerHello(buff, probe)
-		if err != nil {
-			return ""
-		}
-		results = append(results, ans)
+
+		func() {
+			defer conn.Close()
+
+			_ = conn.SetWriteDeadline(time.Now().Add(timeout))
+			_, err = conn.Write(jarm.BuildProbe(probe))
+			if err != nil {
+				return
+			}
+			_ = conn.SetReadDeadline(time.Now().Add(timeout))
+			buff := make([]byte, 1484)
+			if _, err = conn.Read(buff); err != nil {
+				return
+			}
+			ans, err := jarm.ParseServerHello(buff, probe)
+			if err != nil {
+				return
+			}
+			results = append(results, ans)
+		}()
 	}
 	return jarm.RawHashToFuzzyHash(strings.Join(results, ","))
 }
