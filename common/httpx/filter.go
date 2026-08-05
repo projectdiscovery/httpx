@@ -53,8 +53,11 @@ type FilterCustom struct {
 func (f FilterCustom) Filter(response *Response) (bool, error) {
 	for _, callback := range f.CallBacks {
 		ok, err := callback(response)
-		if ok && err == nil {
-			return true, err
+		if err != nil {
+			return false, err
+		}
+		if ok {
+			return true, nil
 		}
 	}
 

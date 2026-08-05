@@ -174,6 +174,9 @@ func (u *UploadWriter) autoCommit(ctx context.Context) {
 				if err := u.uploadChunk(buff); err != nil {
 					gologger.Error().Msgf("Failed to upload asset results on cloud: %v", err)
 				}
+				// write the current line to the now-empty buffer so it is not lost
+				buff.WriteString(line)
+				buff.WriteString("\n")
 			} else {
 				buff.WriteString(line)
 				buff.WriteString("\n")
@@ -261,10 +264,10 @@ func (u *UploadWriter) getRequest(bin []byte) (*retryablehttp.Request, error) {
 
 // Close closes the upload writer
 func (u *UploadWriter) Close() {
-	if !u.closed.Load() {
-		// protect to avoid channel closed twice error
-		close(u.data)
-		u.closed.Store(true)
+	// atomically ensure we only close the channel once
+	if !u.closed.CompareAndSwap(false, true) {
+		return
 	}
+	close(u.data)
 	<-u.done
 }
