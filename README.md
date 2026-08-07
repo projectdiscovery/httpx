@@ -68,6 +68,9 @@
 go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
 ```
 
+On Windows, `go install` places the binary under `%USERPROFILE%\go\bin` (or `$env:GOBIN` if set).
+Ensure that directory is on your `PATH`, then open a **new** terminal before running `httpx`.
+
 To learn more about installing httpx, see https://docs.projectdiscovery.io/tools/httpx/install.
 
 | :exclamation:  **Disclaimer**  |
