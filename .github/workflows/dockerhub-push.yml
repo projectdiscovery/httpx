@@ -7,6 +7,9 @@ on:
       - completed
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   docker:
     runs-on: ubuntu-latest-16-cores

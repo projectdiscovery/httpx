@@ -6,6 +6,10 @@ on:
       - '*'
   workflow_dispatch:
 
+permissions:
+  # goreleaser creates the release and uploads the binaries.
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest-16-cores
