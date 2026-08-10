@@ -16,9 +16,9 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: projectdiscovery/actions/setup/go@v1
+      - uses: projectdiscovery/actions/setup/go@4ff2f2094e67bb1819a069aa130a49463ecaa3f3 # v1.29.4
 
       - name: Functional Tests
         run: |

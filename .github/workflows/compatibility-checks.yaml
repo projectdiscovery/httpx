@@ -13,7 +13,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: projectdiscovery/actions/setup/go/compat-checks@master
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: projectdiscovery/actions/setup/go/compat-checks@5ad9460589b729fcc7210fd809063a848ea407db # master
         with:
           go-version-file: 'go.mod'

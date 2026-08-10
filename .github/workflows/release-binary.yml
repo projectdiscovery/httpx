@@ -11,14 +11,14 @@ jobs:
     runs-on: ubuntu-latest-16-cores
     steps:
       - name: "Check out code"
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
-      - uses: projectdiscovery/actions/setup/go@v1
+      - uses: projectdiscovery/actions/setup/go@4ff2f2094e67bb1819a069aa130a49463ecaa3f3 # v1.29.4
 
       - name: "Create release on GitHub"
-        uses: goreleaser/goreleaser-action@v4
+        uses: goreleaser/goreleaser-action@5fdedb94abba051217030cc86d4523cf3f02243d # v4.6.0
         with:
           args: "release --clean"
           version: latest
