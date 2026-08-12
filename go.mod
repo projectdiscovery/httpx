@@ -7,7 +7,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.12.0
 	github.com/akrylysov/pogreb v0.10.2 // indirect
 	github.com/corona10/goimagehash v1.1.0
-	github.com/go-faker/faker/v4 v4.10.0
+	github.com/go-faker/faker/v4 v4.10.1
 	github.com/go-rod/rod v0.116.2
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf
@@ -55,7 +55,7 @@ require (
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1
-	github.com/happyhackingspace/dit v0.0.31
+	github.com/happyhackingspace/dit v0.0.32
 	github.com/lib/pq v1.12.3
 	github.com/projectdiscovery/awesome-search-queries v0.0.0-20260104120501-961ef30f7193
 	github.com/seh-msft/burpxml v1.0.1
