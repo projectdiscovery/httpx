@@ -431,10 +431,15 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.simHashes = gcache.New[uint64, []string](1000).ARC().Build()
-	if options.JSONOutput || options.CSVOutput || len(options.OutputFilterPageType) > 0 {
+	if options.classificationEnabled() {
 		ditClassifier, err := dit.New()
 		if err != nil {
-			gologger.Warning().Msgf("Could not initialize page classifier: %s", err)
+			// without a classifier the page type filters silently pass
+			// everything through, so a failure is fatal when one is in use
+			if options.hasPageTypeFilter() {
+				return nil, errors.Wrap(err, "could not initialize page classifier")
+			}
+			gologger.Error().Msgf("Could not initialize page classifier: %s", err)
 		}
 		runner.ditClassifier = ditClassifier
 	}

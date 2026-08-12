@@ -204,6 +204,9 @@ type Options struct {
 	// Deprecated: use OutputFilterPageType with "error" instead.
 	OutputFilterErrorPage bool
 	OutputFilterPageType      goflags.StringSlice
+	// KnowledgeBase enables knowledge base classification using dit. It is
+	// implied by OutputFilterPageType/OutputFilterErrorPage, which need it.
+	KnowledgeBase             bool
 	FilterOutDuplicates       bool
 	OutputFilterContentLength string
 	InputRawRequest           string
@@ -412,6 +415,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.CustomFingerprintFile, "custom-fingerprint-file", "cff", "", "path to a custom fingerprint file for technology detection"),
 		flagSet.BoolVar(&options.CPEDetect, "cpe", false, "display CPE (Common Platform Enumeration) with product version based on awesome-search-queries"),
 		flagSet.BoolVarP(&options.WordPress, "wordpress", "wp", false, "display WordPress plugins and themes"),
+		flagSet.BoolVarP(&options.KnowledgeBase, "knowledge-base", "kb", false, "enable knowledge base classification"),
 		flagSet.BoolVar(&options.OutputMethod, "method", false, "display http request method"),
 		flagSet.BoolVarP(&options.OutputWebSocket, "websocket", "ws", false, "display server using websocket"),
 		flagSet.BoolVar(&options.OutputIP, "ip", false, "display host ip"),
@@ -720,6 +724,19 @@ func (options *Options) HasMatcherOrFilter() bool {
 		options.OutputFilterResponseTime != ""
 }
 
+// hasPageTypeFilter reports whether a filter that depends on the page type
+// classification is in use.
+func (options *Options) hasPageTypeFilter() bool {
+	return len(options.OutputFilterPageType) > 0 || options.OutputFilterErrorPage
+}
+
+// classificationEnabled reports whether the knowledge base classifier should be
+// loaded. It is opt-in via -kb, and implied by the page type filters that
+// cannot work without it.
+func (options *Options) classificationEnabled() bool {
+	return options.KnowledgeBase || options.hasPageTypeFilter()
+}
+
 func (options *Options) ValidateOptions() error {
 	if options.InputFile != "" && !fileutilz.FileNameIsGlob(options.InputFile) && !fileutil.FileExists(options.InputFile) {
 		return fmt.Errorf("file '%s' does not exist", options.InputFile)
@@ -916,6 +933,10 @@ func (options *Options) configureOutput() {
 	if options.OutputFilterErrorPage && len(options.OutputFilterPageType) == 0 {
 		gologger.Info().Msg("-fep is deprecated, use -fpt error instead")
 		options.OutputFilterPageType = goflags.StringSlice{"error"}
+	}
+	// page type filters cannot work without the classifier
+	if options.hasPageTypeFilter() {
+		options.KnowledgeBase = true
 	}
 }
 
