@@ -139,13 +139,13 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 }
 
 func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle time.Duration, headers []string, fullPage bool, jsCodes []string) ([]byte, string, []NetworkRequest, error) {
-	page, networkRequests, err := b.setupPageAndNavigate(url, timeout, headers, jsCodes)
+	page, networkRequests, err := b.setupPageAndNavigate(url, timeout, idle, headers, jsCodes)
 	if err != nil {
 		return nil, "", []NetworkRequest{}, err
 	}
 	defer b.closePage(page)
 
-	screenshot, body, err := b.takeScreenshotAndGetBody(page, idle, fullPage)
+	screenshot, body, err := b.takeScreenshotAndGetBody(page, fullPage)
 	if err != nil {
 		return nil, "", networkRequests, err
 	}
@@ -154,7 +154,7 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 }
 
 // setupPageAndNavigate opens a page, performs all adaptive actions including JS injection
-func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, headers []string, jsCodes []string) (*rod.Page, []NetworkRequest, error) {
+func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle time.Duration, headers []string, jsCodes []string) (*rod.Page, []NetworkRequest, error) {
 	page, err := b.engine.Page(proto.TargetCreateTarget{})
 	if err != nil {
 		return nil, []NetworkRequest{}, err
@@ -228,6 +228,9 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, header
 	}
 
 	page = page.Timeout(timeout)
+	// Register before Navigate so SPA XHRs are tracked. WaitIdle(rIC) can fire
+	// between hydration gaps; request-idle waits for a quiet network window.
+	wait := page.WaitRequestIdle(idle, nil, nil, nil)
 
 	if err := page.Navigate(url); err != nil {
 		return page, networkRequests.Slice, err
@@ -240,16 +243,14 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, header
 		}
 	}
 
+	wait()
+
 	return page, networkRequests.Slice, nil
 }
 
 // takeScreenshotAndGetBody performs the screenshot actions
-func (b *Browser) takeScreenshotAndGetBody(page *rod.Page, idle time.Duration, fullPage bool) ([]byte, string, error) {
-	// WaitLoad returns immediately if onload already fired. Keep WaitIdle
-	// serial after it: concurrent rod evaluates on the same page can race and
-	// screenshot before SPA hydration finishes.
-	_ = page.WaitLoad()
-	_ = page.WaitIdle(idle)
+func (b *Browser) takeScreenshotAndGetBody(page *rod.Page, fullPage bool) ([]byte, string, error) {
+	_ = page.WaitRepaint()
 
 	screenshot, err := page.Screenshot(fullPage, &proto.PageCaptureScreenshot{
 		OptimizeForSpeed: true,
