@@ -10,7 +10,6 @@ import (
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/launcher/flags"
 	"github.com/go-rod/rod/lib/proto"
-	"github.com/go-rod/rod/lib/utils"
 	"github.com/pkg/errors"
 	fileutil "github.com/projectdiscovery/utils/file"
 	mapsutil "github.com/projectdiscovery/utils/maps"
@@ -246,15 +245,11 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, header
 
 // takeScreenshotAndGetBody performs the screenshot actions
 func (b *Browser) takeScreenshotAndGetBody(page *rod.Page, idle time.Duration, fullPage bool) ([]byte, string, error) {
-	// Wait for the page to be visually ready. WaitLoad returns immediately if
-	// window.onload already fired, and WaitIdle resolves on the next idle
-	// callback (or after idle). Running them concurrently, both bounded by the
-	// page timeout set by the caller, avoids the slow serial navigation waits.
-	utils.All(func() {
-		_ = page.WaitLoad()
-	}, func() {
-		_ = page.WaitIdle(idle)
-	})()
+	// WaitLoad returns immediately if onload already fired. Keep WaitIdle
+	// serial after it: concurrent rod evaluates on the same page can race and
+	// screenshot before SPA hydration finishes.
+	_ = page.WaitLoad()
+	_ = page.WaitIdle(idle)
 
 	screenshot, err := page.Screenshot(fullPage, &proto.PageCaptureScreenshot{
 		OptimizeForSpeed: true,
