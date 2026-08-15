@@ -11,6 +11,7 @@ import (
 	"github.com/go-rod/rod/lib/launcher/flags"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/pkg/errors"
+	"github.com/projectdiscovery/utils/chromeshell"
 	fileutil "github.com/projectdiscovery/utils/file"
 	mapsutil "github.com/projectdiscovery/utils/maps"
 	osutils "github.com/projectdiscovery/utils/os"
@@ -102,10 +103,10 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 		} else {
 			return nil, errors.New("the chrome browser is not installed")
 		}
-	} else if supportsChromeShellDownload() {
+	} else if chromeshell.Supported() {
 		// Prefer chrome-headless-shell on linux/amd64: smaller download and
 		// faster headless screenshots than full Chromium snapshots.
-		if shellPath, err := ensureLinuxChromeShell(); err == nil {
+		if shellPath, err := chromeshell.Ensure(); err == nil {
 			chromeLauncher.Bin(shellPath)
 		}
 	}
