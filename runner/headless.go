@@ -234,9 +234,9 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle t
 	}
 
 	page = page.Timeout(timeout)
-	// Register before Navigate so SPA XHRs are tracked. WaitIdle(rIC) can fire
-	// between hydration gaps; request-idle waits for a quiet network window.
-	wait := page.WaitRequestIdle(idle, nil, nil, nil)
+	// Register before Navigate so the first SPA XHRs are tracked by the
+	// request-idle waiter.
+	waitReqIdle := page.WaitRequestIdle(idle, nil, nil, nil)
 
 	if err := page.Navigate(url); err != nil {
 		return page, networkRequests.Slice, err
@@ -249,9 +249,26 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle t
 		}
 	}
 
-	wait()
+	b.waitPageReady(page, idle, waitReqIdle)
 
 	return page, networkRequests.Slice, nil
+}
+
+// waitPageReady blocks until the page is visually settled so we don't capture a
+// half-rendered SPA. It gates on three independent signals, each bounded by the
+// page timeout:
+//   - window.onload
+//   - network request-idle (a quiet network window)
+//   - DOM stability (the rendered tree stops mutating)
+//
+// SPAs paint late: the network can briefly go quiet before hydration starts, so
+// request-idle alone can fire on the boot screen. Requiring DOM stability on top
+// closes that gap. DOM stability is re-checked after the network settles so the
+// first snapshot is taken post-hydration rather than on the boot screen.
+func (b *Browser) waitPageReady(page *rod.Page, idle time.Duration, waitReqIdle func()) {
+	_ = page.WaitLoad()
+	waitReqIdle()
+	_ = page.WaitDOMStable(idle, 0)
 }
 
 // takeScreenshotAndGetBody performs the screenshot actions
