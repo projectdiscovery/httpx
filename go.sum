@@ -297,6 +297,8 @@ github.com/projectdiscovery/tlsx v1.2.2 h1:Y96QBqeD2anpzEtBl4kqNbwzXh2TrzJuXfgiB
 github.com/projectdiscovery/tlsx v1.2.2/go.mod h1:ZJl9F1sSl0sdwE+lR0yuNHVX4Zx6tCSTqnNxnHCFZB4=
 github.com/projectdiscovery/useragent v0.0.108 h1:fb+uLuFJvC+MHZjCtxQJxtvp1X6A8n98CUGPyFcg3NE=
 github.com/projectdiscovery/useragent v0.0.108/go.mod h1:XdNRrlvtDmYfVL1Oybat4uMe+W6cLwsK9S18ond17CI=
+github.com/projectdiscovery/utils v0.11.2-0.20260815171005-eb8925425716 h1:zoDnj6xAqCvIQuP/bV5COuje2kjZV7THKTuDRdvyXgI=
+github.com/projectdiscovery/utils v0.11.2-0.20260815171005-eb8925425716/go.mod h1:RtBO9urHlfN3aAEzhZz5m1/ZeJDq6U1Ka34lGWleuS8=
 github.com/projectdiscovery/wappalyzergo v0.2.89 h1:z4TMGcX2iq1+wF94srp5F/TzyUL18Od/l0B+b7PBfqM=
 github.com/projectdiscovery/wappalyzergo v0.2.89/go.mod h1:gMH0o5lBp65sKMwHx/tuUdOtW2RjodC6Ti+9QDsYMkY=
 github.com/refraction-networking/utls v1.8.2 h1:j4Q1gJj0xngdeH+Ox/qND11aEfhpgoEvV+S9iJ2IdQo=
