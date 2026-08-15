@@ -102,6 +102,12 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 		} else {
 			return nil, errors.New("the chrome browser is not installed")
 		}
+	} else if supportsChromeShellDownload() {
+		// Prefer chrome-headless-shell on linux/amd64: smaller download and
+		// faster headless screenshots than full Chromium snapshots.
+		if shellPath, err := ensureLinuxChromeShell(); err == nil {
+			chromeLauncher.Bin(shellPath)
+		}
 	}
 
 	if proxy == "" {
