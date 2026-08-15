@@ -10,6 +10,7 @@ import (
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/launcher/flags"
 	"github.com/go-rod/rod/lib/proto"
+	"github.com/go-rod/rod/lib/utils"
 	"github.com/pkg/errors"
 	fileutil "github.com/projectdiscovery/utils/file"
 	mapsutil "github.com/projectdiscovery/utils/maps"
@@ -61,6 +62,26 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 		Set("window-size", fmt.Sprintf("%d,%d", 1080, 1920)).
 		Set("mute-audio", "true").
 		Set("incognito", "true").
+		// Performance: keep background/occluded tabs running at full speed so
+		// many concurrent screenshot pages don't get render-throttled.
+		Set("disable-background-timer-throttling", "true").
+		Set("disable-backgrounding-occluded-windows", "true").
+		Set("disable-renderer-backgrounding", "true").
+		Set("disable-ipc-flooding-protection", "true").
+		Set("disable-hang-monitor", "true").
+		// Performance: strip background chrome services we never use.
+		Set("disable-background-networking", "true").
+		Set("disable-client-side-phishing-detection", "true").
+		Set("disable-component-update", "true").
+		Set("disable-default-apps", "true").
+		Set("disable-domain-reliability", "true").
+		Set("disable-extensions", "true").
+		Set("disable-sync", "true").
+		Set("no-first-run", "true").
+		Set("no-default-browser-check", "true").
+		Set("metrics-recording-only", "true").
+		Set("safebrowsing-disable-auto-update", "true").
+		Set("disable-features", "Translate,BackForwardCache,AcceptCHFrame,MediaRouter,OptimizationHints,site-per-process").
 		Delete("use-mock-keychain").
 		Headless(true).
 		UserDataDir(dataStore)
@@ -220,19 +241,24 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, header
 		}
 	}
 
-	page.Timeout(5 * time.Second).WaitNavigation(proto.PageLifecycleEventNameFirstMeaningfulPaint)()
-
 	return page, networkRequests.Slice, nil
 }
 
 // takeScreenshotAndGetBody performs the screenshot actions
 func (b *Browser) takeScreenshotAndGetBody(page *rod.Page, idle time.Duration, fullPage bool) ([]byte, string, error) {
-	if err := page.WaitLoad(); err != nil {
-		return nil, "", err
-	}
-	_ = page.WaitIdle(idle)
+	// Wait for the page to be visually ready. WaitLoad returns immediately if
+	// window.onload already fired, and WaitIdle resolves on the next idle
+	// callback (or after idle). Running them concurrently, both bounded by the
+	// page timeout set by the caller, avoids the slow serial navigation waits.
+	utils.All(func() {
+		_ = page.WaitLoad()
+	}, func() {
+		_ = page.WaitIdle(idle)
+	})()
 
-	screenshot, err := page.Screenshot(fullPage, &proto.PageCaptureScreenshot{})
+	screenshot, err := page.Screenshot(fullPage, &proto.PageCaptureScreenshot{
+		OptimizeForSpeed: true,
+	})
 	if err != nil {
 		return nil, "", err
 	}
