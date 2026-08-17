@@ -49,7 +49,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/projectdiscovery/clistats"
-	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/httpx/common/hashes"
 	"github.com/projectdiscovery/retryablehttp-go"
 	sliceutil "github.com/projectdiscovery/utils/slice"
@@ -1512,10 +1511,11 @@ func (r *Runner) RunEnumeration() {
 		default:
 		}
 
+		var itemIndex int
 		if r.options.resumeCfg != nil {
-			r.options.resumeCfg.current = k
-			r.options.resumeCfg.currentIndex++
-			if r.options.resumeCfg.currentIndex <= r.options.resumeCfg.Index {
+			var skip bool
+			itemIndex, skip = r.options.resumeCfg.NextIndex(k)
+			if skip {
 				return nil
 			}
 		}
@@ -1528,16 +1528,19 @@ func (r *Runner) RunEnumeration() {
 			}
 		}
 
+		itemWG := &sync.WaitGroup{}
+		itemWG.Add(1)
+
 		runProcess := func(times int) {
 			for i := 0; i < times; i++ {
 				if len(r.options.requestURIs) > 0 {
 					for _, p := range r.options.requestURIs {
 						scanopts := r.scanopts.Clone()
 						scanopts.RequestURI = p
-						r.process(k, wg, r.hp, protocol, scanopts, output)
+						r.process(k, wg, r.hp, protocol, scanopts, output, itemWG)
 					}
 				} else {
-					r.process(k, wg, r.hp, protocol, &r.scanopts, output)
+					r.process(k, wg, r.hp, protocol, &r.scanopts, output, itemWG)
 				}
 			}
 		}
@@ -1550,6 +1553,15 @@ func (r *Runner) RunEnumeration() {
 				cnt = 1
 			}
 			runProcess(cnt)
+		}
+
+		itemWG.Done()
+
+		if r.options.resumeCfg != nil {
+			go func(idx int, target string, iwg *sync.WaitGroup) {
+				iwg.Wait()
+				r.options.resumeCfg.MarkCompleted(idx, target)
+			}(itemIndex, k, itemWG)
 		}
 
 		return nil
@@ -1665,7 +1677,11 @@ func (r *Runner) Process(t string, wg *syncutil.AdaptiveWaitGroup, protocol stri
 	r.process(t, wg, r.hp, protocol, scanopts, output)
 }
 
-func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result) {
+func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result, itemWGs ...*sync.WaitGroup) {
+	var itemWG *sync.WaitGroup
+	if len(itemWGs) > 0 {
+		itemWG = itemWGs[0]
+	}
 	// attempts to set the workpool size to the number of threads
 	if r.options.Threads > 0 && wg.Size != r.options.Threads {
 		if err := wg.Resize(context.Background(), r.options.Threads); err != nil {
@@ -1685,9 +1701,17 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 				for _, prot := range protocols {
 					// sleep for delay time
 					time.Sleep(r.options.Delay)
+					if itemWG != nil {
+						itemWG.Add(1)
+					}
 					wg.Add()
 					go func(target httpx.Target, method, protocol string) {
-						defer wg.Done()
+						defer func() {
+							if itemWG != nil {
+								itemWG.Done()
+							}
+							wg.Done()
+						}()
 						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
@@ -1695,10 +1719,10 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 								if !r.testAndSet(tt) {
 									continue
 								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
+								r.process(tt, wg, hp, protocol, scanopts, output, itemWG)
 							}
 							if r.testAndSet(result.TLSData.SubjectCN) {
-								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
+								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output, itemWG)
 							}
 						}
 						if scanopts.CSPProbe && result.CSPData != nil {
@@ -1709,7 +1733,7 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 								if !r.testAndSet(tt) {
 									continue
 								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
+								r.process(tt, wg, hp, protocol, scanopts, output, itemWG)
 							}
 						}
 					}(target, method, prot)
@@ -1733,9 +1757,17 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 				for _, method := range scanopts.Methods {
 					// sleep for delay time
 					time.Sleep(r.options.Delay)
+					if itemWG != nil {
+						itemWG.Add(1)
+					}
 					wg.Add()
 					go func(port int, target httpx.Target, method, protocol string) {
-						defer wg.Done()
+						defer func() {
+							if itemWG != nil {
+								itemWG.Done()
+							}
+							wg.Done()
+						}()
 						if urlx, err := r.parseURL(target.Host); err != nil {
 							gologger.Warning().Msgf("failed to update port of %v got %v", target.Host, err)
 						} else {
@@ -1749,10 +1781,10 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 								if !r.testAndSet(tt) {
 									continue
 								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
+								r.process(tt, wg, hp, protocol, scanopts, output, itemWG)
 							}
 							if r.testAndSet(result.TLSData.SubjectCN) {
-								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
+								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output, itemWG)
 							}
 						}
 					}(port, target, method, wantedProtocol)
@@ -2911,10 +2943,10 @@ func extractPotentialFavIconsURLs(resp []byte) (candidates []string, baseHref st
 
 // SaveResumeConfig to file
 func (r *Runner) SaveResumeConfig() error {
-	var resumeCfg ResumeCfg
-	resumeCfg.Index = r.options.resumeCfg.currentIndex
-	resumeCfg.ResumeFrom = r.options.resumeCfg.current
-	return goconfig.Save(resumeCfg, DefaultResumeFile)
+	if r.options.resumeCfg == nil {
+		return nil
+	}
+	return r.options.resumeCfg.Save(DefaultResumeFile)
 }
 
 // JSON the result
