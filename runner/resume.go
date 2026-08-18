@@ -18,6 +18,7 @@ type ResumeCfg struct {
 	sync.RWMutex    `json:"-"`
 	ResumeFrom      string         `json:"resumeFrom,omitempty"`
 	Index           int            `json:"index,omitempty"`
+	resumeBaseline  int
 	current         string
 	currentIndex    int
 	completed       map[int]string
@@ -30,6 +31,7 @@ func (r *ResumeCfg) init() {
 		r.completed = make(map[int]string)
 		r.completedIdx = r.Index
 		r.completedTarget = r.ResumeFrom
+		r.resumeBaseline = r.Index
 	}
 }
 
@@ -42,7 +44,7 @@ func (r *ResumeCfg) NextIndex(target string) (int, bool) {
 	r.currentIndex++
 	r.current = target
 
-	if r.currentIndex <= r.Index {
+	if r.currentIndex <= r.resumeBaseline {
 		return r.currentIndex, true
 	}
 	return r.currentIndex, false
@@ -101,6 +103,11 @@ func (r *ResumeCfg) Save(filePath string) error {
 	if err := goconfig.Save(state, tempPath); err != nil {
 		_ = os.Remove(tempPath)
 		return err
+	}
+
+	if f, err := os.OpenFile(tempPath, os.O_RDWR, 0600); err == nil {
+		_ = f.Sync()
+		_ = f.Close()
 	}
 
 	if err := os.Rename(tempPath, filePath); err != nil {

@@ -78,6 +78,10 @@ func TestResumeCfg_ContiguousCompletionTracking(t *testing.T) {
 }
 
 func TestRunner_MultiThreadedInterruptAndResume(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
 	// Set up mock HTTP server
 	var serverRequests int32
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -130,13 +134,22 @@ func TestRunner_MultiThreadedInterruptAndResume(t *testing.T) {
 		r1.RunEnumeration()
 	}()
 
-	// Monitor progress and interrupt when threshold reached
-	for {
-		if atomic.LoadInt32(&firstRunCount) >= interruptThreshold {
-			r1.Interrupt()
-			break
+	// Monitor progress and interrupt when threshold reached (with 60s timeout guard)
+	deadline := time.After(60 * time.Second)
+	ticker := time.NewTicker(5 * time.Millisecond)
+	defer ticker.Stop()
+
+	interrupted := false
+	for !interrupted {
+		select {
+		case <-deadline:
+			t.Fatal("timed out waiting for interrupt threshold")
+		case <-ticker.C:
+			if atomic.LoadInt32(&firstRunCount) >= interruptThreshold {
+				r1.Interrupt()
+				interrupted = true
+			}
 		}
-		time.Sleep(5 * time.Millisecond)
 	}
 
 	wg.Wait()

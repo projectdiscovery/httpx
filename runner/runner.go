@@ -1503,6 +1503,7 @@ func (r *Runner) RunEnumeration() {
 	}(nextStep)
 
 	wg, _ := syncutil.New(syncutil.WithSize(r.options.Threads))
+	var completionWG sync.WaitGroup
 
 	processItem := func(k string) error {
 		select {
@@ -1558,7 +1559,9 @@ func (r *Runner) RunEnumeration() {
 		itemWG.Done()
 
 		if r.options.resumeCfg != nil {
+			completionWG.Add(1)
 			go func(idx int, target string, iwg *sync.WaitGroup) {
+				defer completionWG.Done()
 				iwg.Wait()
 				r.options.resumeCfg.MarkCompleted(idx, target)
 			}(itemIndex, k, itemWG)
@@ -1581,6 +1584,7 @@ func (r *Runner) RunEnumeration() {
 	}
 
 	wg.Wait()
+	completionWG.Wait()
 
 	close(output)
 
