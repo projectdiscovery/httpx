@@ -154,6 +154,9 @@ func TestRunner_MultiThreadedInterruptAndResume(t *testing.T) {
 
 	wg.Wait()
 
+	require.Less(t, atomic.LoadInt32(&firstRunCount), int32(totalTargets),
+		"the interrupted run must leave targets for the resumed run")
+
 	// Save resume config atomically to the temp resume file
 	err = r1.options.resumeCfg.Save(resumeFile)
 	require.NoError(t, err)
