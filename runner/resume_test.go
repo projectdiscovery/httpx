@@ -79,7 +79,7 @@ func TestResumeCfg_ContiguousCompletionTracking(t *testing.T) {
 
 func TestRunner_MultiThreadedInterruptAndResume(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
+		t.Skip("skipping interrupt-and-resume integration test in short mode")
 	}
 
 	// Set up mock HTTP server

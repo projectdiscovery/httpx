@@ -89,7 +89,7 @@ type Runner struct {
 	hm                 *hybrid.HybridMap
 	excludeCdn         bool
 	stats              clistats.StatisticsClient
-	ratelimiter        ratelimit.Limiter
+	ratelimiter        *ratelimit.Limiter
 	HostErrorsCache    gcache.Cache[string, int]
 	browser            *Browser
 	ditClassifier *dit.Classifier
@@ -415,11 +415,11 @@ func New(options *Options) (*Runner, error) {
 	runner.hm = hm
 
 	if options.RateLimitMinute > 0 {
-		runner.ratelimiter = *ratelimit.New(context.Background(), uint(options.RateLimitMinute), time.Minute)
+		runner.ratelimiter = ratelimit.New(context.Background(), uint(options.RateLimitMinute), time.Minute)
 	} else if options.RateLimit > 0 {
-		runner.ratelimiter = *ratelimit.New(context.Background(), uint(options.RateLimit), time.Second)
+		runner.ratelimiter = ratelimit.New(context.Background(), uint(options.RateLimit), time.Second)
 	} else {
-		runner.ratelimiter = *ratelimit.NewUnlimited(context.Background())
+		runner.ratelimiter = ratelimit.NewUnlimited(context.Background())
 	}
 
 	if options.HostMaxErrors >= 0 {
@@ -916,7 +916,9 @@ func (r *Runner) Close() {
 	// nolint:errcheck // ignore
 	r.hm.Close()
 	r.hp.Dialer.Close()
-	r.ratelimiter.Stop()
+	if r.ratelimiter != nil {
+		r.ratelimiter.Stop()
+	}
 
 	if r.options.HostMaxErrors >= 0 {
 		r.HostErrorsCache.Purge()
