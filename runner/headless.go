@@ -106,7 +106,7 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 	} else if chromeshell.Supported() {
 		// Prefer chrome-headless-shell on linux/amd64: smaller download and
 		// faster headless screenshots than full Chromium snapshots.
-		if shellPath, err := chromeshell.Ensure(); err == nil {
+		if shellPath, err := ensureChromeShell(); err == nil {
 			chromeLauncher.Bin(shellPath)
 		}
 	}
@@ -235,9 +235,13 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle t
 	}
 
 	page = page.Timeout(timeout)
-	// Register before Navigate so the first SPA XHRs are tracked by the
-	// request-idle waiter.
-	waitReqIdle := page.WaitRequestIdle(idle, nil, nil, nil)
+	var waitReqIdle func()
+	if idle > 0 {
+		// Register before Navigate so the first SPA XHRs are tracked by the
+		// request-idle waiter. Zero/negative idle skips this (WaitRequestIdle
+		// and WaitDOMStable reject non-positive durations).
+		waitReqIdle = page.WaitRequestIdle(idle, nil, nil, nil)
+	}
 
 	if err := page.Navigate(url); err != nil {
 		return page, networkRequests.Slice, err
@@ -268,8 +272,31 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle t
 // first snapshot is taken post-hydration rather than on the boot screen.
 func (b *Browser) waitPageReady(page *rod.Page, idle time.Duration, waitReqIdle func()) {
 	_ = page.WaitLoad()
+	if idle <= 0 || waitReqIdle == nil {
+		return
+	}
 	waitReqIdle()
 	_ = page.WaitDOMStable(idle, 0)
+}
+
+const chromeShellEnsureTimeout = 2 * time.Minute
+
+func ensureChromeShell() (string, error) {
+	type result struct {
+		path string
+		err  error
+	}
+	done := make(chan result, 1)
+	go func() {
+		path, err := chromeshell.Ensure()
+		done <- result{path: path, err: err}
+	}()
+	select {
+	case r := <-done:
+		return r.path, r.err
+	case <-time.After(chromeShellEnsureTimeout):
+		return "", errors.New("chrome-headless-shell download timed out")
+	}
 }
 
 // takeScreenshotAndGetBody performs the screenshot actions
