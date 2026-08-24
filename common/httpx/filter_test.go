@@ -42,6 +42,24 @@ func TestFilterCustomErrorPropagation(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("error stops remaining callbacks", func(t *testing.T) {
+		called := 0
+		filter := FilterCustom{CallBacks: []CustomCallback{
+			func(*Response) (bool, error) {
+				called++
+				return false, errors.New("fail")
+			},
+			func(*Response) (bool, error) {
+				called++
+				return true, nil
+			},
+		}}
+		ok, err := filter.Filter(&Response{})
+		require.False(t, ok)
+		require.Error(t, err)
+		require.Equal(t, 1, called)
+	})
+
 	t.Run("no callbacks match returns false with nil error", func(t *testing.T) {
 		callbacks := []CustomCallback{
 			func(response *Response) (bool, error) { return false, nil },
