@@ -258,11 +258,12 @@ func (u *UploadWriter) getRequest(bin []byte) (*retryablehttp.Request, error) {
 	return req, nil
 }
 
-// appendResultLine writes line to buff, flushing existing data first when the
-// next write would exceed max. An empty buffer is never flushed, so a single
-// oversized line is retained instead of dropped or uploaded as an empty chunk.
+// appendResultLine writes line and its trailing newline to buff, flushing
+// existing data first when the next write would exceed max. An empty buffer is
+// never flushed, so a single oversized line is retained instead of dropped or
+// uploaded as an empty chunk.
 func appendResultLine(buff *bytes.Buffer, line string, max int, flush func(*bytes.Buffer) error) {
-	if buff.Len() > 0 && buff.Len()+len(line) > max {
+	if buff.Len() > 0 && buff.Len()+len(line)+len("\n") > max {
 		_ = flush(buff)
 	}
 	buff.WriteString(line)

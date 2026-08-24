@@ -50,6 +50,21 @@ func TestAppendResultLine(t *testing.T) {
 		require.Equal(t, "toolong\n", buff.String())
 	})
 
+	t.Run("newline counts towards the limit", func(t *testing.T) {
+		buff := &bytes.Buffer{}
+		const max = 6
+		flush := func(b *bytes.Buffer) error {
+			b.Reset()
+			return nil
+		}
+		// "abc\n" is 4 bytes, appending "de\n" would reach 7 without counting
+		// the newline in the check.
+		appendResultLine(buff, "abc", max, flush)
+		appendResultLine(buff, "de", max, flush)
+		require.LessOrEqual(t, buff.Len(), max)
+		require.Equal(t, "de\n", buff.String())
+	})
+
 	t.Run("still appends the current line when flush fails", func(t *testing.T) {
 		buff := bytes.NewBufferString("old\n")
 		appendResultLine(buff, "new", 4, func(*bytes.Buffer) error {
