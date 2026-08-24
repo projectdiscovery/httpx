@@ -434,12 +434,7 @@ func New(options *Options) (*Runner, error) {
 	if options.classificationEnabled() {
 		ditClassifier, err := dit.New()
 		if err != nil {
-			// without a classifier the page type filters silently pass
-			// everything through, so a failure is fatal when one is in use
-			if options.hasPageTypeFilter() {
-				return nil, errors.Wrap(err, "could not initialize page classifier")
-			}
-			gologger.Error().Msgf("Could not initialize page classifier: %s", err)
+			return nil, errors.Wrap(err, "could not initialize page classifier")
 		}
 		runner.ditClassifier = ditClassifier
 	}
