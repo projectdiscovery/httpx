@@ -125,18 +125,15 @@ func BenchmarkScreenshotSPA(b *testing.B) {
 			srv := startSPAScreenshotServer(b)
 			browser := newScreenshotBrowser(b, useLocal)
 			b.ResetTimer()
-			b.RunParallel(func(pb *testing.PB) {
-				for pb.Next() {
-					screenshot, body, _, err := browser.ScreenshotWithBody(srv.URL, 15*time.Second, 200*time.Millisecond, nil, false, nil)
-					if err != nil {
-						b.Errorf("screenshot: %v", err)
-						continue
-					}
-					if len(screenshot) == 0 || !strings.Contains(body, spaHydratedMarker) {
-						b.Errorf("early or empty capture")
-					}
+			for i := 0; i < b.N; i++ {
+				screenshot, body, _, err := browser.ScreenshotWithBody(srv.URL, 15*time.Second, 200*time.Millisecond, nil, false, nil)
+				if err != nil {
+					b.Fatalf("screenshot: %v", err)
 				}
-			})
+				if len(screenshot) == 0 || !strings.Contains(body, spaHydratedMarker) {
+					b.Fatal("early or empty capture")
+				}
+			}
 		})
 	}
 }
