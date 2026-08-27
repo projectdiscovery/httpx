@@ -328,6 +328,31 @@ func TestEnrichCPEVersionsIssue2536(t *testing.T) {
 			technologies: []string{"Liferay:7.3.5", "Liferay:7.4.0"},
 			wantCPE:      "cpe:2.3:a:liferay:liferay_portal:*:*:*:*:*:*:*:*",
 		},
+		{
+			// #2550: wappalyzer's display name carries a vendor prefix
+			// ("Apache Tomcat") that awesome-search-queries' bare CPE
+			// product name ("tomcat") doesn't. Neither the exact key nor
+			// any suffix-stripped alias of "tomcat" ever equals
+			// "apachetomcat", so the exact-match lookup can never find it -
+			// this needs the substring fallback.
+			name:         "vendor-prefixed wappalyzer name matches bare CPE product (#2550)",
+			product:      "tomcat",
+			vendor:       "apache",
+			cpe:          "cpe:2.3:a:apache:tomcat:*:*:*:*:*:*:*:*",
+			technologies: []string{"Apache Tomcat:9.0.65"},
+			wantCPE:      "cpe:2.3:a:apache:tomcat:9.0.65:*:*:*:*:*:*:*",
+		},
+		{
+			// Reverse case: the CPE product name is more specific than
+			// wappalyzer's short display name.
+			name:         "bare wappalyzer name matches suffixed CPE product (#2550)",
+			product:      "d3.js",
+			vendor:       "d3.js_project",
+			cpe:          "cpe:2.3:a:d3.js_project:d3.js:*:*:*:*:*:*:*:*",
+			technologies: []string{"D3:7.8.5"},
+			wantCPE:      "cpe:2.3:a:d3.js_project:d3.js:*:*:*:*:*:*:*:*",
+		},
+	
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

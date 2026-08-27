@@ -236,14 +236,42 @@ func productLookupKeys(product string) []string {
 	return keys
 }
 
+// minSubstringMatchLen guards the substring fallback in lookupTechVersion so
+// short, generic keys (e.g. "web", "cms") can't cause false-positive matches
+// against an unrelated technology.
+const minSubstringMatchLen = 5
+
 // lookupTechVersion finds a wappalyzer version for a CPE product using exact
 // and alias keys derived from awesome-search-queries naming conventions.
+//
+// If no exact key matches, it falls back to substring containment between the
+// CPE product's lookup keys and each detected technology's normalized name.
+// This catches the common case where wappalyzer's display name carries a
+// vendor prefix the CPE dictionary's product name omits (e.g. "Apache Tomcat"
+// vs. CPE product "tomcat"), or the reverse, where the CPE dictionary's name
+// is more specific (e.g. wappalyzer's "D3" vs. CPE product "d3.js").
 func lookupTechVersion(product string, versions map[string]string) (string, bool) {
-	for _, key := range productLookupKeys(product) {
+	keys := productLookupKeys(product)
+	for _, key := range keys {
 		if version, ok := versions[key]; ok {
 			return version, true
 		}
 	}
+
+	for _, key := range keys {
+		if len(key) < minSubstringMatchLen {
+			continue
+		}
+		for techName, version := range versions {
+			if len(techName) < minSubstringMatchLen {
+				continue
+			}
+			if strings.Contains(techName, key) || strings.Contains(key, techName) {
+				return version, true
+			}
+		}
+	}
+
 	return "", false
 }
 
