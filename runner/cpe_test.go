@@ -226,13 +226,17 @@ func TestProductLookupKeys(t *testing.T) {
 func TestLookupTechVersion(t *testing.T) {
 	t.Parallel()
 
-	versions := buildTechVersionMap([]string{
+	technologies := []string{
 		"Liferay:7.3.5",
 		"Confluence:8.5.1",
 		"Tableau:2023.1",
 		"Apache HTTP Server:2.4.7",
 		"Ansible:2.14.0",
-	})
+		"Apache Tomcat:9.0.65",
+		"Preact:10.5.0",
+	}
+	versions := buildTechVersionMap(technologies)
+	tokenVersions := buildTechVersionTokenIndex(technologies)
 
 	tests := []struct {
 		product   string
@@ -247,10 +251,19 @@ func TestLookupTechVersion(t *testing.T) {
 		{"Apache HTTP Server", "2.4.7", true},
 		{"phpcollab", "", false},
 		{"unknown_product", "", false},
+		// #2550: vendor-prefixed wappalyzer name ("Apache Tomcat") vs. the
+		// bare CPE product name ("tomcat") - resolved by the whole-word
+		// token fallback.
+		{"tomcat", "9.0.65", true},
+		// CodeRabbit review on #2569: "react" is a character-for-character
+		// substring of "preact", but they must never be treated as a match.
+		// Whole-word tokenization keeps them distinct ("react" != "preact"
+		// as tokens), unlike a raw substring check.
+		{"react", "", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.product, func(t *testing.T) {
-			got, ok := lookupTechVersion(tt.product, versions)
+			got, ok := lookupTechVersion(tt.product, versions, tokenVersions)
 			if ok != tt.wantFound {
 				t.Fatalf("lookupTechVersion(%q) found = %v, want %v", tt.product, ok, tt.wantFound)
 			}
@@ -321,6 +334,7 @@ func TestEnrichCPEVersionsIssue2536(t *testing.T) {
 			wantCPE:      "cpe:2.3:a:redhat:ansible_policy_manager:2.14.0:*:*:*:*:*:*:*",
 		},
 		{
+		
 			name:         "conflicting tech versions leave cpe unchanged",
 			product:      "liferay_portal",
 			vendor:       "liferay",
@@ -331,10 +345,8 @@ func TestEnrichCPEVersionsIssue2536(t *testing.T) {
 		{
 			// #2550: wappalyzer's display name carries a vendor prefix
 			// ("Apache Tomcat") that awesome-search-queries' bare CPE
-			// product name ("tomcat") doesn't. Neither the exact key nor
-			// any suffix-stripped alias of "tomcat" ever equals
-			// "apachetomcat", so the exact-match lookup can never find it -
-			// this needs the substring fallback.
+			// product name ("tomcat") doesn't. Resolved by the whole-word
+			// token fallback in lookupTechVersion.
 			name:         "vendor-prefixed wappalyzer name matches bare CPE product (#2550)",
 			product:      "tomcat",
 			vendor:       "apache",
@@ -344,7 +356,9 @@ func TestEnrichCPEVersionsIssue2536(t *testing.T) {
 		},
 		{
 			// Reverse case: the CPE product name is more specific than
-			// wappalyzer's short display name.
+			// wappalyzer's short display name. Both tokens ("d3", "js") fall
+			// below minTokenMatchLen, so this documents a known limitation
+			// rather than a fixed case.
 			name:         "bare wappalyzer name matches suffixed CPE product (#2550)",
 			product:      "d3.js",
 			vendor:       "d3.js_project",

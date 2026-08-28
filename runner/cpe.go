@@ -236,21 +236,118 @@ func productLookupKeys(product string) []string {
 	return keys
 }
 
-// minSubstringMatchLen guards the substring fallback in lookupTechVersion so
-// short, generic keys (e.g. "web", "cms") can't cause false-positive matches
-// against an unrelated technology.
-const minSubstringMatchLen = 5
+// minTokenMatchLen guards the token fallback in lookupTechVersion so short
+// words ("web", "cms") can't cause spurious matches between unrelated
+// technologies.
+const minTokenMatchLen = 5
+
+// genericProductTokens are words too common across unrelated products to be
+// used as the sole basis for a fallback match (e.g. matching on "framework"
+// alone could pair a detected "Fluid Framework" version with a completely
+// different CPE product that also happens to be a framework). This overlaps
+// deliberately with cpeProductSuffixes, since those are already known to be
+// non-discriminative.
+var genericProductTokens = map[string]struct{}{
+	"server": {}, "portal": {}, "software": {}, "platform": {}, "suite": {},
+	"service": {}, "services": {}, "manager": {}, "panel": {}, "cms": {},
+	"firmware": {}, "gateway": {}, "proxy": {}, "system": {}, "application": {},
+	"framework": {}, "tower": {}, "commerce": {}, "ecommerce": {}, "network": {},
+	"internet": {}, "captcha": {}, "cloud": {}, "web": {}, "app": {},
+	"plugin": {}, "widget": {}, "tool": {}, "tools": {}, "analytics": {},
+	"tag": {}, "api": {},
+}
+
+// technologyTokens splits a name into lowercase alphanumeric words, breaking
+// on every non-alphanumeric rune. Unlike normalizeProductName, words are kept
+// separate rather than concatenated: "React" -> ["react"], "Apache Tomcat" ->
+// ["apache", "tomcat"], "d3.js" -> ["d3", "js"]. This preserves word
+// boundaries that a plain substring match would ignore - "react" is a
+// character-for-character substring of "preact", but the two never share a
+// token.
+func technologyTokens(name string) []string {
+	var tokens []string
+	var b strings.Builder
+	flush := func() {
+		if b.Len() > 0 {
+			tokens = append(tokens, b.String())
+			b.Reset()
+		}
+	}
+	for _, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case r >= 'A' && r <= 'Z':
+			b.WriteRune(r + ('a' - 'A'))
+		default:
+			flush()
+		}
+	}
+	flush()
+	return tokens
+}
+
+// strongTokens returns technologyTokens filtered to words long and specific
+// enough to be trusted for fallback matching.
+func strongTokens(name string) []string {
+	tokens := technologyTokens(name)
+	filtered := tokens[:0]
+	for _, t := range tokens {
+		if len(t) < minTokenMatchLen {
+			continue
+		}
+		if _, generic := genericProductTokens[t]; generic {
+			continue
+		}
+		filtered = append(filtered, t)
+	}
+	return filtered
+}
+
+// buildTechVersionTokenIndex maps each strong word of every detected
+// technology's name to its version, for the fallback in lookupTechVersion. A
+// token shared by technologies reported with different versions is dropped as
+// ambiguous rather than resolved by map iteration order, which is random -
+// the same conflict-drop rule buildTechVersionMap already applies to exact
+// names.
+func buildTechVersionTokenIndex(technologies []string) map[string]string {
+	tokenVersions := make(map[string]string)
+	conflicting := make(map[string]struct{})
+	for _, tech := range technologies {
+		parts := strings.SplitN(tech, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		version := strings.TrimSpace(parts[1])
+		if version == "" {
+			continue
+		}
+		for _, token := range strongTokens(parts[0]) {
+			if _, ok := conflicting[token]; ok {
+				continue
+			}
+			if existing, ok := tokenVersions[token]; ok && existing != version {
+				delete(tokenVersions, token)
+				conflicting[token] = struct{}{}
+				continue
+			}
+			tokenVersions[token] = version
+		}
+	}
+	return tokenVersions
+}
 
 // lookupTechVersion finds a wappalyzer version for a CPE product using exact
 // and alias keys derived from awesome-search-queries naming conventions.
 //
-// If no exact key matches, it falls back to substring containment between the
-// CPE product's lookup keys and each detected technology's normalized name.
-// This catches the common case where wappalyzer's display name carries a
-// vendor prefix the CPE dictionary's product name omits (e.g. "Apache Tomcat"
-// vs. CPE product "tomcat"), or the reverse, where the CPE dictionary's name
-// is more specific (e.g. wappalyzer's "D3" vs. CPE product "d3.js").
-func lookupTechVersion(product string, versions map[string]string) (string, bool) {
+// If no exact key matches, it falls back to tokenVersions: a whole-word index
+// of every detected technology's name (see buildTechVersionTokenIndex). This
+// catches the common case where wappalyzer's display name carries a vendor
+// prefix the CPE dictionary's product name omits (e.g. "Apache Tomcat" vs.
+// CPE product "tomcat"), while whole-word matching - rather than raw
+// substring containment - keeps lexically similar but unrelated products
+// (e.g. "React" vs. "Preact") from being confused for one another.
+func lookupTechVersion(product string, versions, tokenVersions map[string]string) (string, bool) {
 	keys := productLookupKeys(product)
 	for _, key := range keys {
 		if version, ok := versions[key]; ok {
@@ -258,17 +355,9 @@ func lookupTechVersion(product string, versions map[string]string) (string, bool
 		}
 	}
 
-	for _, key := range keys {
-		if len(key) < minSubstringMatchLen {
-			continue
-		}
-		for techName, version := range versions {
-			if len(techName) < minSubstringMatchLen {
-				continue
-			}
-			if strings.Contains(techName, key) || strings.Contains(key, techName) {
-				return version, true
-			}
+	for _, token := range strongTokens(product) {
+		if version, ok := tokenVersions[token]; ok {
+			return version, true
 		}
 	}
 
@@ -314,15 +403,17 @@ func EnrichCPEVersions(matches []CPEInfo, technologies []string) []CPEInfo {
 		return append([]CPEInfo(nil), matches...)
 	}
 	versions := buildTechVersionMap(technologies)
+	tokenVersions := buildTechVersionTokenIndex(technologies)
 
 	enriched := make([]CPEInfo, len(matches))
 	for i, match := range matches {
 		enriched[i] = match
-		if version, ok := lookupTechVersion(match.Product, versions); ok {
+		if version, ok := lookupTechVersion(match.Product, versions, tokenVersions); ok {
 			enriched[i].CPE = setCPEVersion(match.CPE, version)
 		}
 	}
 	return enriched
+
 }
 
 func (d *CPEDetector) extractPattern(query string, info CPEInfo) {
