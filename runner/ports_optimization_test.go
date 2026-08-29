@@ -91,7 +91,20 @@ func TestSwitchPortForFallback(t *testing.T) {
 			inputProtocol:   httpx.HTTP,
 			expectedNewPort: "8080", // non-default port stays the same
 		},
+		{
+			name:            "HTTP:3000 fallback should keep port 3000",
+			inputPort:       "3000",
+			inputProtocol:   httpx.HTTP,
+			expectedNewPort: "3000",
+		},
+		{
+			name:            "HTTPS:5000 fallback should keep port 5000",
+			inputPort:       "5000",
+			inputProtocol:   httpx.HTTPS,
+			expectedNewPort: "5000",
+		},
 	}
+
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
