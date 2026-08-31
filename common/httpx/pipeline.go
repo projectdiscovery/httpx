@@ -29,6 +29,7 @@ func (h *HTTPX) SupportPipeline(protocol, method, host string, port int) bool {
 	if err != nil {
 		return false
 	}
+	defer func() { _ = conn.Close() }()
 	// send some probes
 	nprobes := 10
 	for i := 0; i < nprobes; i++ {

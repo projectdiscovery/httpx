@@ -113,6 +113,7 @@ PROBES:
    -server, -web-server                   display server name
    -td, -tech-detect                      display technology in use based on wappalyzer dataset
    -cff, -custom-fingerprint-file string  path to a custom fingerprint file for technology detection
+   -kb, -knowledge-base                   enable knowledge base classification
    -method                                display http request method
    -ws, -websocket                        display server using websocket
    -ip                                    display host ip
@@ -238,7 +239,7 @@ CONFIGURATIONS:
    -ldp, -leave-default-ports       leave default http/https ports in host header (eg. http://host:80 - https://host:443
    -ztls                            use ztls library with autofallback to standard one for tls13
    -no-decode                       avoid decoding body
-   -tlsi, -tls-impersonate          enable experimental client hello (ja3) tls randomization
+   -tlsi, -tls-impersonate string    enable experimental client hello (ja3) tls impersonation (chrome, or ja3 full string)
    -no-stdin                        Disable Stdin processing
    -hae, -http-api-endpoint string  experimental http api endpoint
    -sf, -secret-file string         path to secret file for authentication
@@ -284,6 +285,81 @@ For details about running httpx, see https://docs.projectdiscovery.io/tools/http
 
 ### Using `httpx` as a library
 `httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. A minimal example of how to do it is in the [examples](examples/) folder.
+
+## Common Recipes
+
+Below are practical one-liners for common use cases leveraging httpx's composable primitives. These recipes are validated in `runner/wellknown_recipes_test.go`.
+
+Use `-mdc` with DSL helpers such as `contains(content_type, ...)` and `contains(body, ...)` to match response metadata and body content. (`-mr`/`-ms` match the full raw response; use `-mdc` for structured field matching.)
+
+### Well-known files
+
+**security.txt**  
+Probe for a valid [RFC 9116](https://www.rfc-editor.org/rfc/rfc9116.html) security.txt file at the standard paths (`/.well-known/security.txt`, `/security.txt`):
+
+```bash
+echo target.com | httpx -path '/.well-known/security.txt,/security.txt' -mc 200 -mdc 'contains(content_type, "text/plain") && contains(body, "Contact:") && contains_any(body, "mailto:", "https://")'
+```
+
+- `-path` tests custom path(s)
+- `-mc 200` matches HTTP 200
+- `-mdc` matches using DSL expressions on response fields such as `content_type` and `body`
+
+**robots.txt**
+
+```bash
+echo target.com | httpx -path '/robots.txt' -mc 200 -mdc 'contains(content_type, "text/plain")'
+```
+
+**sitemap.xml**
+
+```bash
+echo target.com | httpx -path '/sitemap.xml' -mc 200 -mdc 'contains_any(content_type, "application/xml", "text/xml") && contains(body, "<urlset")'
+```
+
+**humans.txt**
+
+```bash
+echo target.com | httpx -path '/humans.txt' -mc 200 -mdc 'contains(content_type, "text/plain")'
+```
+
+**ads.txt**
+
+```bash
+echo target.com | httpx -path '/ads.txt' -mc 200 -mdc 'contains(content_type, "text/plain") && contains(body, "google.com")'
+```
+
+### Well-known URIs
+
+**OpenID Connect discovery** ([spec](https://openid.net/specs/openid-connect-discovery-1_0.html))
+
+```bash
+echo target.com | httpx -path '/.well-known/openid-configuration' -mc 200 -mdc 'contains(content_type, "application/json") && contains(body, "\"issuer\"")'
+```
+
+**Apple Universal Links**
+
+```bash
+echo target.com | httpx -path '/.well-known/apple-app-site-association,/.well-known/apple-app-site-association.json' -mc 200 -mdc 'contains(content_type, "application/json") && contains(body, "\"applinks\"")'
+```
+
+**Android App Links**
+
+```bash
+echo target.com | httpx -path '/.well-known/assetlinks.json' -mc 200 -mdc 'contains(content_type, "application/json") && contains(body, "\"android_app\"")'
+```
+
+**crossdomain.xml** (legacy Flash policy file)
+
+```bash
+echo target.com | httpx -path '/crossdomain.xml' -mc 200 -mdc 'contains_any(content_type, "application/xml", "text/xml") && contains(body, "cross-domain-policy")'
+```
+
+**Other well-known URIs** ([IANA registry](https://www.iana.org/assignments/well-known-uris/well-known-uris.xhtml)):
+
+```bash
+echo target.com | httpx -path '/.well-known/security.txt,/.well-known/change-password,/.well-known/openid-configuration' -mc 200
+```
 
 # Notes
 

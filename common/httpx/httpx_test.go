@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -22,11 +23,19 @@ func TestDo(t *testing.T) {
 	})
 
 	t.Run("content-length with binary body", func(t *testing.T) {
-		req, err := retryablehttp.NewRequest(http.MethodGet, "https://www.w3schools.com/images/favicon.ico", nil)
+		body := []byte{0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x00, 0x01, 0x00, 0x01, 0x80, 0x00, 0x00, 0xff}
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "image/gif")
+			_, _ = w.Write(body)
+		}))
+		defer srv.Close()
+
+		req, err := retryablehttp.NewRequest(http.MethodGet, srv.URL, nil)
 		require.Nil(t, err)
 		resp, err := ht.Do(req, UnsafeOptions{})
 		require.Nil(t, err)
-		require.Greater(t, len(resp.Raw), 800)
+		require.Equal(t, len(body), resp.ContentLength)
+		require.Equal(t, body, resp.RawData)
 	})
 }
 

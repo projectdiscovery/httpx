@@ -67,7 +67,7 @@ type Options struct {
 	Resolvers                 []string
 	customCookies             []*http.Cookie
 	SniName                   string
-	TlsImpersonate            bool
+	TlsImpersonate            string
 	NetworkPolicy             *networkpolicy.NetworkPolicy
 	CDNCheckClient            *cdncheck.Client
 	Protocol                  Proto

@@ -18,7 +18,9 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/projectdiscovery/cdncheck"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
+	"github.com/projectdiscovery/fastdialer/fastdialer/ja3"
 	"github.com/projectdiscovery/fastdialer/fastdialer/ja3/impersonate"
+	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/httpx/common/httputilz"
 	"github.com/projectdiscovery/networkpolicy"
 	"github.com/projectdiscovery/rawhttp"
@@ -141,12 +143,7 @@ func New(options *Options) (*HTTPX, error) {
 	}
 	transport := &http.Transport{
 		DialContext: httpx.Dialer.Dial,
-		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			if options.TlsImpersonate {
-				return httpx.Dialer.DialTLSWithConfigImpersonate(ctx, network, addr, &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10}, impersonate.Random, nil)
-			}
-			return httpx.Dialer.DialTLS(ctx, network, addr)
-		},
+		DialTLSContext: httpx.buildTLSDialer(options),
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -218,6 +215,40 @@ func New(options *Options) (*HTTPX, error) {
 	}
 
 	return httpx, nil
+}
+
+func (h *HTTPX) buildTLSDialer(options *Options) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	if options.TlsImpersonate == "" {
+		return func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return h.Dialer.DialTLS(ctx, network, addr)
+		}
+	}
+
+	tlsCfg := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10}
+
+	strategy, identity := resolveImpersonateStrategy(options.TlsImpersonate)
+
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return h.Dialer.DialTLSWithConfigImpersonate(ctx, network, addr, tlsCfg, strategy, identity)
+	}
+}
+
+func resolveImpersonateStrategy(value string) (impersonate.Strategy, *impersonate.Identity) {
+	switch strings.ToLower(value) {
+	case "", "chrome":
+		return impersonate.Chrome, nil
+	case "random":
+		// random JA3 mode was removed due to unsupported curve picks; keep chrome for compatibility.
+		return impersonate.Chrome, nil
+	default:
+		spec, err := ja3.ParseWithJa3(value)
+		if err != nil {
+			gologger.Warning().Msgf("invalid tls-impersonate value %q: %v; falling back to chrome", value, err)
+			return impersonate.Chrome, nil
+		}
+		identity := impersonate.Identity(*spec)
+		return impersonate.Custom, &identity
+	}
 }
 
 // Do http request
