@@ -1930,7 +1930,9 @@ retry:
 	}
 	// A 400 to a plaintext probe is a successful transaction, so the retry below
 	// never fires. Try TLS; the fallback recovers this result if it fails.
-	if err == nil && !tlsUpgraded && origProtocol == httpx.HTTPorHTTPS &&
+	// Unsafe mode is excluded: it bypasses the fallback, so the retry loses the
+	// result instead of recovering it.
+	if err == nil && !tlsUpgraded && !scanopts.Unsafe && origProtocol == httpx.HTTPorHTTPS &&
 		protocol == httpx.HTTP && resp != nil && resp.StatusCode == http.StatusBadRequest {
 		protocol = httpx.HTTPS
 		tlsUpgraded = true
