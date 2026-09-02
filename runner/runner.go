@@ -1829,6 +1829,7 @@ func (r *Runner) analyze(hp *httpx.HTTPX, protocol string, target httpx.Target, 
 		protocol = determineMostLikelySchemeOrder(target.Host)
 	}
 	retried := false
+	tlsUpgraded := false
 retry:
 	if scanopts.VHostInput && target.CustomHost == "" {
 		return Result{Input: origInput}
@@ -1927,11 +1928,14 @@ retry:
 	if r.options.ShowStatistics {
 		r.stats.IncrementCounter("requests", 1)
 	}
-	// A TLS-required 400 is a successful transaction, so the retry below never fires.
-	if err == nil && !retried && origProtocol == httpx.HTTPorHTTPS &&
-		protocol == httpx.HTTP && respondsOnlyOverTLS(resp) {
+	// A plaintext probe answered 400 may be a TLS listener refusing to speak
+	// cleartext, which is a successful transaction so the retry below never
+	// fires. Let the handshake decide rather than parsing the server's wording:
+	// if TLS does not work the scheme fallback still recovers this result.
+	if err == nil && !tlsUpgraded && origProtocol == httpx.HTTPorHTTPS &&
+		protocol == httpx.HTTP && resp != nil && resp.StatusCode == http.StatusBadRequest {
 		protocol = httpx.HTTPS
-		retried = true
+		tlsUpgraded = true
 		goto retry
 	}
 	var requestDump []byte

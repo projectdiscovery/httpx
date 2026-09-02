@@ -917,3 +917,62 @@ func TestTLSOnlyPortIsProbedOverHTTPS(t *testing.T) {
 	require.Equal(t, "https://"+target, results[0].URL)
 	require.Equal(t, http.StatusOK, results[0].StatusCode)
 }
+
+// TestPlainHTTPPortStaysHTTP is the no-regression half of the TLS upgrade: a
+// genuine cleartext service that answers 400 must not be relabelled https just
+// because the upgrade was attempted.
+func TestPlainHTTPPortStaysHTTP(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = listener.Close() })
+
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func(conn net.Conn) {
+				_, _ = io.WriteString(conn, "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n"+
+					"Content-Type: text/plain\r\nContent-Length: 11\r\n\r\nBad Request")
+				_ = conn.Close()
+			}(conn)
+		}
+	}()
+
+	target := listener.Addr().String()
+
+	var (
+		mu      sync.Mutex
+		results []Result
+	)
+	options := &Options{
+		Threads:   1,
+		RateLimit: 10,
+		Retries:   0,
+		Timeout:   5,
+		Methods:   http.MethodGet,
+		Delay:     -1,
+		OnResult: func(r Result) {
+			if r.Err != nil || r.URL == "" {
+				return
+			}
+			mu.Lock()
+			results = append(results, r)
+			mu.Unlock()
+		},
+		InputTargetHost: []string{target},
+	}
+
+	r, err := New(options)
+	require.NoError(t, err)
+	defer r.Close()
+	r.RunEnumeration()
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Len(t, results, 1)
+	require.Equal(t, "http", results[0].Scheme, "a cleartext 400 must stay http")
+	require.Equal(t, http.StatusBadRequest, results[0].StatusCode)
+}
