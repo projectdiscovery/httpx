@@ -19,24 +19,24 @@ require (
 	github.com/miekg/dns v1.1.72 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/asnmap v1.1.1
-	github.com/projectdiscovery/cdncheck v1.2.50
-	github.com/projectdiscovery/clistats v0.1.5
-	github.com/projectdiscovery/dsl v0.8.21
-	github.com/projectdiscovery/fastdialer v0.5.17
+	github.com/projectdiscovery/cdncheck v1.2.51
+	github.com/projectdiscovery/clistats v0.1.6
+	github.com/projectdiscovery/dsl v0.8.22
+	github.com/projectdiscovery/fastdialer v0.5.18
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.1.76
 	github.com/projectdiscovery/gologger v1.1.72
-	github.com/projectdiscovery/hmap v0.0.101
+	github.com/projectdiscovery/hmap v0.0.102
 	github.com/projectdiscovery/mapcidr v1.1.97
-	github.com/projectdiscovery/networkpolicy v0.1.46
+	github.com/projectdiscovery/networkpolicy v0.1.47
 	github.com/projectdiscovery/ratelimit v0.0.88
-	github.com/projectdiscovery/rawhttp v0.1.91
-	github.com/projectdiscovery/retryablehttp-go v1.3.23
+	github.com/projectdiscovery/rawhttp v0.1.92
+	github.com/projectdiscovery/retryablehttp-go v1.3.24
 	github.com/projectdiscovery/tlsx v1.3.2
-	github.com/projectdiscovery/useragent v0.0.108
-	github.com/projectdiscovery/utils v0.11.1
-	github.com/projectdiscovery/wappalyzergo v0.2.95
+	github.com/projectdiscovery/useragent v0.0.109
+	github.com/projectdiscovery/utils v0.11.2
+	github.com/projectdiscovery/wappalyzergo v0.2.96
 	github.com/rs/xid v1.6.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.12.1
