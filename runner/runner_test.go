@@ -835,6 +835,7 @@ func startTLSOnlyListener(t *testing.T) string {
 				}
 				// 0x16 is a TLS handshake record; anything else is plaintext.
 				if first[0] != 0x16 {
+					drainRequest(buffered)
 					_, _ = io.WriteString(conn, rejection)
 					_ = conn.Close()
 					return
@@ -846,6 +847,21 @@ func startTLSOnlyListener(t *testing.T) string {
 	}()
 
 	return listener.Addr().String()
+}
+
+// drainRequest reads the request head before a reply is written. Answering an
+// HTTP client that has not finished asking is an unsolicited response, and it
+// discards the reply instead of parsing it.
+func drainRequest(r io.Reader) {
+	if conn, ok := r.(net.Conn); ok {
+		_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	}
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		if scanner.Text() == "" {
+			return
+		}
+	}
 }
 
 type peeked struct {
@@ -933,6 +949,7 @@ func TestPlainHTTPPortStaysHTTP(t *testing.T) {
 				return
 			}
 			go func(conn net.Conn) {
+				drainRequest(conn)
 				_, _ = io.WriteString(conn, "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n"+
 					"Content-Type: text/plain\r\nContent-Length: 11\r\n\r\nBad Request")
 				_ = conn.Close()
