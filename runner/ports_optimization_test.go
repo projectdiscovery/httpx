@@ -112,3 +112,4 @@ func getPortForFallback(currentPort, currentProtocol string) string {
 	}
 	return currentPort
 }
+
