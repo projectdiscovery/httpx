@@ -1927,10 +1927,7 @@ retry:
 	if r.options.ShowStatistics {
 		r.stats.IncrementCounter("requests", 1)
 	}
-	// A TLS listener answers a plaintext request with a valid HTTP response
-	// saying TLS is required. That is not a transport error, so the scheme
-	// retry further down never fires and the service ends up recorded as
-	// plain http. Treat it as a reason to retry over https.
+	// A TLS-required 400 is a successful transaction, so the retry below never fires.
 	if err == nil && !retried && origProtocol == httpx.HTTPorHTTPS &&
 		protocol == httpx.HTTP && respondsOnlyOverTLS(resp) {
 		protocol = httpx.HTTPS
