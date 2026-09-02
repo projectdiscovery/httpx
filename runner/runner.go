@@ -1928,10 +1928,8 @@ retry:
 	if r.options.ShowStatistics {
 		r.stats.IncrementCounter("requests", 1)
 	}
-	// A plaintext probe answered 400 may be a TLS listener refusing to speak
-	// cleartext, which is a successful transaction so the retry below never
-	// fires. Let the handshake decide rather than parsing the server's wording:
-	// if TLS does not work the scheme fallback still recovers this result.
+	// A 400 to a plaintext probe is a successful transaction, so the retry below
+	// never fires. Try TLS; the fallback recovers this result if it fails.
 	if err == nil && !tlsUpgraded && origProtocol == httpx.HTTPorHTTPS &&
 		protocol == httpx.HTTP && resp != nil && resp.StatusCode == http.StatusBadRequest {
 		protocol = httpx.HTTPS
