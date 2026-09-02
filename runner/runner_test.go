@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bufio"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -13,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -21,9 +23,11 @@ import (
 
 	"github.com/pkg/errors"
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
+	"github.com/projectdiscovery/httpx/common/hashes"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/mapcidr/asn"
 	stringsutil "github.com/projectdiscovery/utils/strings"
+	urlutil "github.com/projectdiscovery/utils/url"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1053,4 +1057,115 @@ func TestOneShotPlainHTTPKeepsItsResult(t *testing.T) {
 	require.Len(t, results, 1, "a service that answered once must still be reported")
 	require.Equal(t, "http", results[0].Scheme)
 	require.Equal(t, http.StatusBadRequest, results[0].StatusCode)
+}
+
+// TestHandshakeThenCloseKeepsPlainResult covers a port whose TLS handshake
+// succeeds and which then closes without answering: the upgrade must fall back
+// to the plaintext response rather than request it again, so a cleartext
+// service that answers only once still appears in the output.
+func TestHandshakeThenCloseKeepsPlainResult(t *testing.T) {
+	var plainServed int64
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "handshake.test"},
+		DNSNames:     []string{"localhost"},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+	der, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
+	require.NoError(t, err)
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{{Certificate: [][]byte{der}, PrivateKey: key}}}
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = listener.Close() })
+
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func(conn net.Conn) {
+				defer func() { _ = conn.Close() }()
+				buffered := bufio.NewReader(conn)
+				first, err := buffered.Peek(1)
+				if err != nil {
+					return
+				}
+				// 0x16 is a TLS ClientHello: complete the handshake, then close
+				// without ever sending an HTTP response.
+				if first[0] == 0x16 {
+					tlsConn := tls.Server(&peeked{Conn: conn, reader: buffered}, tlsConfig)
+					_ = tlsConn.HandshakeContext(context.Background())
+					_ = tlsConn.Close()
+					return
+				}
+				if atomic.AddInt64(&plainServed, 1) != 1 {
+					return // cleartext answers exactly once
+				}
+				_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+				drainRequest(buffered)
+				_, _ = io.WriteString(conn, "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n"+
+					"Content-Length: 11\r\n\r\nBad Request")
+			}(conn)
+		}
+	}()
+
+	var (
+		mu      sync.Mutex
+		results []Result
+	)
+	storeDir := t.TempDir()
+	options := &Options{
+		Threads: 1, RateLimit: 10, Retries: 0, Timeout: 5,
+		Methods: http.MethodGet, Delay: -1,
+		StoreResponse:    true,
+		StoreResponseDir: storeDir,
+		InputTargetHost:  []string{listener.Addr().String()},
+		OnResult: func(r Result) {
+			if r.Err != nil || r.URL == "" {
+				return
+			}
+			mu.Lock()
+			results = append(results, r)
+			mu.Unlock()
+		},
+	}
+
+	runner, err := New(options)
+	require.NoError(t, err)
+	defer runner.Close()
+	runner.RunEnumeration()
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Len(t, results, 1, "the plaintext result must survive a failed HTTPS attempt")
+	require.Equal(t, "http", results[0].Scheme)
+	require.Equal(t, http.StatusBadRequest, results[0].StatusCode)
+	require.EqualValues(t, 1, atomic.LoadInt64(&plainServed),
+		"the plaintext service must not be asked a second time")
+
+	// The stored-response filename is derived from the URL object rather than
+	// from the response, so it is where a URL left on the failed HTTPS attempt
+	// shows up: the file would be named for https while the result says http.
+	expected, err := urlutil.Parse("http://" + listener.Addr().String())
+	require.NoError(t, err)
+	wantName := hashes.Sha1([]byte(http.MethodGet+":"+expected.EscapedString())) + ".txt"
+
+	var found []string
+	require.NoError(t, filepath.Walk(storeDir, func(path string, info os.FileInfo, err error) error {
+		if err == nil && info != nil && !info.IsDir() && strings.HasSuffix(path, ".txt") {
+			found = append(found, filepath.Base(path))
+		}
+		return nil
+	}))
+	require.Contains(t, found, wantName,
+		"the stored response must be keyed by the http URL that was actually reported")
 }

@@ -1831,11 +1831,12 @@ func (r *Runner) analyze(hp *httpx.HTTPX, protocol string, target httpx.Target, 
 	retried := false
 	tlsUpgraded := false
 	// The plaintext attempt is kept until an HTTPS one has actually succeeded.
-	// Everything the output needs downstream comes from resp and req, so those
-	// two plus the protocol are the whole of it.
+	// URL is cloned because the retry rewrites its scheme in place, and it is
+	// read downstream for SupportHTTP2 and the stored-response filename.
 	var (
 		keptResp     *httpx.Response
 		keptReq      *retryablehttp.Request
+		keptURL      *urlutil.URL
 		keptProtocol string
 	)
 retry:
@@ -1936,13 +1937,11 @@ retry:
 	if r.options.ShowStatistics {
 		r.stats.IncrementCounter("requests", 1)
 	}
-	// The HTTPS attempt failed, so fall back to the plaintext response that was
-	// already in hand rather than asking for it again: the service may have
-	// been transient, one-shot or rate limited, and a second request can lose
-	// a result that was successfully retrieved.
+	// Fall back to the response already in hand rather than asking again: a
+	// transient or one-shot service may not answer a second time.
 	if err != nil && keptResp != nil {
-		resp, err, req, protocol = keptResp, nil, keptReq, keptProtocol
-		keptResp, keptReq = nil, nil
+		resp, err, req, URL, protocol = keptResp, nil, keptReq, keptURL, keptProtocol
+		keptResp, keptReq, keptURL = nil, nil, nil
 	}
 	// A 400 to a plaintext probe is a successful transaction, so the scheme
 	// retry below never fires and a TLS-only port is reported as plain http.
@@ -1951,7 +1950,7 @@ retry:
 	// kept above is restored. Unsafe mode bypasses the scheme retry entirely.
 	if err == nil && !tlsUpgraded && !scanopts.Unsafe && origProtocol == httpx.HTTPorHTTPS &&
 		protocol == httpx.HTTP && resp != nil && resp.StatusCode == http.StatusBadRequest {
-		keptResp, keptReq, keptProtocol = resp, req, protocol
+		keptResp, keptReq, keptURL, keptProtocol = resp, req, URL.Clone(), protocol
 		protocol = httpx.HTTPS
 		tlsUpgraded = true
 		goto retry
