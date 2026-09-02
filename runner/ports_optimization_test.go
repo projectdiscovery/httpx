@@ -113,3 +113,78 @@ func getPortForFallback(currentPort, currentProtocol string) string {
 	return currentPort
 }
 
+func TestRespondsOnlyOverTLS(t *testing.T) {
+	tests := []struct {
+		name     string
+		response *httpx.Response
+		expected bool
+	}{
+		{
+			name:     "nil response",
+			response: nil,
+			expected: false,
+		},
+		{
+			name: "netty/teamcity rejection",
+			response: &httpx.Response{
+				StatusCode: 400,
+				Raw:        "HTTP/1.1 400 Bad Request\r\n\r\nBad Request\r\nThis combination of host and port requires TLS.\r\n",
+			},
+			expected: true,
+		},
+		{
+			name: "nginx rejection",
+			response: &httpx.Response{
+				StatusCode: 400,
+				Raw:        "HTTP/1.1 400 Bad Request\r\n\r\n<h1>400 The plain HTTP request was sent to HTTPS port</h1>",
+			},
+			expected: true,
+		},
+		{
+			name: "apache rejection",
+			response: &httpx.Response{
+				StatusCode: 400,
+				Raw:        "HTTP/1.1 400 Bad Request\r\n\r\nYou're speaking plain HTTP to an SSL-enabled server port.",
+			},
+			expected: true,
+		},
+		{
+			name: "haproxy rejection",
+			response: &httpx.Response{
+				StatusCode: 400,
+				Raw:        "HTTP/1.1 400 Bad Request\r\n\r\nClient sent an HTTP request to an HTTPS server.",
+			},
+			expected: true,
+		},
+		{
+			name: "falls back to decoded data when raw is empty",
+			response: &httpx.Response{
+				StatusCode: 400,
+				Data:       []byte("This combination of host and port requires TLS."),
+			},
+			expected: true,
+		},
+		{
+			name: "genuine bad request is not a TLS rejection",
+			response: &httpx.Response{
+				StatusCode: 400,
+				Raw:        "HTTP/1.1 400 Bad Request\r\n\r\nBad Request",
+			},
+			expected: false,
+		},
+		{
+			name: "phrase present on a successful response",
+			response: &httpx.Response{
+				StatusCode: 200,
+				Raw:        "HTTP/1.1 200 OK\r\n\r\nDocs: the plain HTTP request was sent to HTTPS port",
+			},
+			expected: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.expected, respondsOnlyOverTLS(tc.response))
+		})
+	}
+}
