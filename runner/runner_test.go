@@ -839,7 +839,8 @@ func startTLSOnlyListener(t *testing.T) string {
 					_ = conn.Close()
 					return
 				}
-				server.Serve(oneShot(tls.Server(&peeked{Conn: conn, reader: buffered}, tlsConfig)))
+				// Always returns io.EOF: the listener yields this one connection.
+				_ = server.Serve(oneShot(tls.Server(&peeked{Conn: conn, reader: buffered}, tlsConfig)))
 			}(conn)
 		}
 	}()
