@@ -15,6 +15,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -539,8 +540,8 @@ func TestStoreResponse_withoutMatchersStoresAll(t *testing.T) {
 func TestStoreResponse_withMatcherSetsFlag(t *testing.T) {
 	dir := t.TempDir()
 	opts := &Options{
-		StoreResponse:       true,
-		StoreResponseDir:    dir,
+		StoreResponse:         true,
+		StoreResponseDir:      dir,
 		OutputMatchStatusCode: "200",
 	}
 	err := opts.ValidateOptions()
@@ -991,5 +992,65 @@ func TestPlainHTTPPortStaysHTTP(t *testing.T) {
 
 	require.Len(t, results, 1)
 	require.Equal(t, "http", results[0].Scheme, "a cleartext 400 must stay http")
+	require.Equal(t, http.StatusBadRequest, results[0].StatusCode)
+}
+
+// TestOneShotPlainHTTPKeepsItsResult covers a cleartext service that answers
+// once and then refuses: the scheme decision must not cost it a second
+// request, or a reachable service disappears from the output.
+func TestOneShotPlainHTTPKeepsItsResult(t *testing.T) {
+	var served int64
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = listener.Close() })
+
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func(conn net.Conn) {
+				defer func() { _ = conn.Close() }()
+				if atomic.AddInt64(&served, 1) != 1 {
+					return // refuse every later connection
+				}
+				_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+				drainRequest(conn)
+				_, _ = io.WriteString(conn, "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n"+
+					"Content-Length: 11\r\n\r\nBad Request")
+			}(conn)
+		}
+	}()
+
+	var (
+		mu      sync.Mutex
+		results []Result
+	)
+	options := &Options{
+		Threads: 1, RateLimit: 10, Retries: 0, Timeout: 5,
+		Methods: http.MethodGet, Delay: -1,
+		InputTargetHost: []string{listener.Addr().String()},
+		OnResult: func(r Result) {
+			if r.Err != nil || r.URL == "" {
+				return
+			}
+			mu.Lock()
+			results = append(results, r)
+			mu.Unlock()
+		},
+	}
+
+	runner, err := New(options)
+	require.NoError(t, err)
+	defer runner.Close()
+	runner.RunEnumeration()
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Len(t, results, 1, "a service that answered once must still be reported")
+	require.Equal(t, "http", results[0].Scheme)
 	require.Equal(t, http.StatusBadRequest, results[0].StatusCode)
 }

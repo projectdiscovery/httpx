@@ -1830,6 +1830,14 @@ func (r *Runner) analyze(hp *httpx.HTTPX, protocol string, target httpx.Target, 
 	}
 	retried := false
 	tlsUpgraded := false
+	// The plaintext attempt is kept until an HTTPS one has actually succeeded.
+	// Everything the output needs downstream comes from resp and req, so those
+	// two plus the protocol are the whole of it.
+	var (
+		keptResp     *httpx.Response
+		keptReq      *retryablehttp.Request
+		keptProtocol string
+	)
 retry:
 	if scanopts.VHostInput && target.CustomHost == "" {
 		return Result{Input: origInput}
@@ -1928,12 +1936,22 @@ retry:
 	if r.options.ShowStatistics {
 		r.stats.IncrementCounter("requests", 1)
 	}
-	// A 400 to a plaintext probe is a successful transaction, so the retry below
-	// never fires. Try TLS; the fallback recovers this result if it fails.
-	// Unsafe mode is excluded: it bypasses the fallback, so the retry loses the
-	// result instead of recovering it.
+	// The HTTPS attempt failed, so fall back to the plaintext response that was
+	// already in hand rather than asking for it again: the service may have
+	// been transient, one-shot or rate limited, and a second request can lose
+	// a result that was successfully retrieved.
+	if err != nil && keptResp != nil {
+		resp, err, req, protocol = keptResp, nil, keptReq, keptProtocol
+		keptResp, keptReq = nil, nil
+	}
+	// A 400 to a plaintext probe is a successful transaction, so the scheme
+	// retry below never fires and a TLS-only port is reported as plain http.
+	// Attempt HTTPS through the normal client path, which starts with the same
+	// handshake: a port that does not speak TLS fails there and the response
+	// kept above is restored. Unsafe mode bypasses the scheme retry entirely.
 	if err == nil && !tlsUpgraded && !scanopts.Unsafe && origProtocol == httpx.HTTPorHTTPS &&
 		protocol == httpx.HTTP && resp != nil && resp.StatusCode == http.StatusBadRequest {
+		keptResp, keptReq, keptProtocol = resp, req, protocol
 		protocol = httpx.HTTPS
 		tlsUpgraded = true
 		goto retry
