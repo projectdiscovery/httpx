@@ -1831,8 +1831,8 @@ func (r *Runner) analyze(hp *httpx.HTTPX, protocol string, target httpx.Target, 
 	retried := false
 	tlsUpgraded := false
 	// The plaintext attempt is kept until an HTTPS one has actually succeeded.
-	// URL is cloned because the retry rewrites its scheme in place, and it is
-	// read downstream for SupportHTTP2 and the stored-response filename.
+	// URL is cloned because the retry rewrites its scheme in place, while the
+	// restored value is used by downstream probes such as SupportHTTP2.
 	var (
 		keptResp     *httpx.Response
 		keptReq      *retryablehttp.Request

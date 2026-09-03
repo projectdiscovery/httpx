@@ -14,7 +14,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -23,11 +22,9 @@ import (
 
 	"github.com/pkg/errors"
 	_ "github.com/projectdiscovery/fdmax/autofdmax"
-	"github.com/projectdiscovery/httpx/common/hashes"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/mapcidr/asn"
 	stringsutil "github.com/projectdiscovery/utils/strings"
-	urlutil "github.com/projectdiscovery/utils/url"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1064,7 +1061,7 @@ func TestOneShotPlainHTTPKeepsItsResult(t *testing.T) {
 // to the plaintext response rather than request it again, so a cleartext
 // service that answers only once still appears in the output.
 func TestHandshakeThenCloseKeepsPlainResult(t *testing.T) {
-	var plainServed int64
+	var plainServed, h2cServed, tlsHandshakes int64
 
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.NoError(t, err)
@@ -1102,15 +1099,28 @@ func TestHandshakeThenCloseKeepsPlainResult(t *testing.T) {
 				// without ever sending an HTTP response.
 				if first[0] == 0x16 {
 					tlsConn := tls.Server(&peeked{Conn: conn, reader: buffered}, tlsConfig)
-					_ = tlsConn.HandshakeContext(context.Background())
+					if err := tlsConn.HandshakeContext(context.Background()); err != nil {
+						return
+					}
+					atomic.AddInt64(&tlsHandshakes, 1)
 					_ = tlsConn.Close()
 					return
 				}
-				if atomic.AddInt64(&plainServed, 1) != 1 {
-					return // cleartext answers exactly once
-				}
 				_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-				drainRequest(buffered)
+				request, err := http.ReadRequest(buffered)
+				if err != nil {
+					return
+				}
+				_ = request.Body.Close()
+				if strings.EqualFold(request.Header.Get("Upgrade"), "h2c") {
+					atomic.AddInt64(&h2cServed, 1)
+					_, _ = io.WriteString(conn, "HTTP/1.1 101 Switching Protocols\r\n"+
+						"Connection: Upgrade\r\nUpgrade: h2c\r\n\r\n")
+					return
+				}
+				if atomic.AddInt64(&plainServed, 1) != 1 {
+					return // the cleartext application answers exactly once
+				}
 				_, _ = io.WriteString(conn, "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n"+
 					"Content-Length: 11\r\n\r\nBad Request")
 			}(conn)
@@ -1121,13 +1131,11 @@ func TestHandshakeThenCloseKeepsPlainResult(t *testing.T) {
 		mu      sync.Mutex
 		results []Result
 	)
-	storeDir := t.TempDir()
 	options := &Options{
 		Threads: 1, RateLimit: 10, Retries: 0, Timeout: 5,
 		Methods: http.MethodGet, Delay: -1,
-		StoreResponse:    true,
-		StoreResponseDir: storeDir,
-		InputTargetHost:  []string{listener.Addr().String()},
+		HTTP2Probe:      true,
+		InputTargetHost: []string{listener.Addr().String()},
 		OnResult: func(r Result) {
 			if r.Err != nil || r.URL == "" {
 				return
@@ -1149,23 +1157,12 @@ func TestHandshakeThenCloseKeepsPlainResult(t *testing.T) {
 	require.Len(t, results, 1, "the plaintext result must survive a failed HTTPS attempt")
 	require.Equal(t, "http", results[0].Scheme)
 	require.Equal(t, http.StatusBadRequest, results[0].StatusCode)
+	require.True(t, results[0].HTTP2,
+		"the h2c probe must use the restored plaintext URL")
 	require.EqualValues(t, 1, atomic.LoadInt64(&plainServed),
 		"the plaintext service must not be asked a second time")
-
-	// The stored-response filename is derived from the URL object rather than
-	// from the response, so it is where a URL left on the failed HTTPS attempt
-	// shows up: the file would be named for https while the result says http.
-	expected, err := urlutil.Parse("http://" + listener.Addr().String())
-	require.NoError(t, err)
-	wantName := hashes.Sha1([]byte(http.MethodGet+":"+expected.EscapedString())) + ".txt"
-
-	var found []string
-	require.NoError(t, filepath.Walk(storeDir, func(path string, info os.FileInfo, err error) error {
-		if err == nil && info != nil && !info.IsDir() && strings.HasSuffix(path, ".txt") {
-			found = append(found, filepath.Base(path))
-		}
-		return nil
-	}))
-	require.Contains(t, found, wantName,
-		"the stored response must be keyed by the http URL that was actually reported")
+	require.EqualValues(t, 1, atomic.LoadInt64(&h2cServed),
+		"exactly one plaintext HTTP/2 probe must be observed")
+	require.EqualValues(t, 1, atomic.LoadInt64(&tlsHandshakes),
+		"the failed HTTPS request must complete its TLS handshake first")
 }
