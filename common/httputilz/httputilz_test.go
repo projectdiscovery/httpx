@@ -91,3 +91,21 @@ func TestParseRequestMalformed(t *testing.T) {
 	_, _, _, _, err := ParseRequest("GET\r\n\r\n", false)
 	require.Error(t, err)
 }
+
+func TestParseRequestPreservesQueryParameters(t *testing.T) {
+	raw := strings.Join([]string{
+		"GET /api/v1/users?page=2&limit=50 HTTP/1.1",
+		"Host: example.com",
+		"Authorization: Bearer token123",
+		"",
+		"",
+	}, "\r\n")
+
+	method, path, headers, _, err := ParseRequest(raw, false)
+	require.NoError(t, err)
+	require.Equal(t, "GET", method)
+	require.Equal(t, "/api/v1/users?page=2&limit=50", path)
+	require.Equal(t, []string{"example.com"}, headers["Host"])
+	require.Equal(t, []string{"Bearer token123"}, headers["Authorization"])
+}
+
