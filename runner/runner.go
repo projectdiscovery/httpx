@@ -1829,6 +1829,16 @@ func (r *Runner) analyze(hp *httpx.HTTPX, protocol string, target httpx.Target, 
 		protocol = determineMostLikelySchemeOrder(target.Host)
 	}
 	retried := false
+	tlsUpgraded := false
+	// The plaintext attempt is kept until an HTTPS one has actually succeeded.
+	// URL is cloned because the retry rewrites its scheme in place, while the
+	// restored value is used by downstream probes such as SupportHTTP2.
+	var (
+		keptResp     *httpx.Response
+		keptReq      *retryablehttp.Request
+		keptURL      *urlutil.URL
+		keptProtocol string
+	)
 retry:
 	if scanopts.VHostInput && target.CustomHost == "" {
 		return Result{Input: origInput}
@@ -1926,6 +1936,24 @@ retry:
 	resp, err := hp.Do(req, httpx.UnsafeOptions{URIPath: reqURI})
 	if r.options.ShowStatistics {
 		r.stats.IncrementCounter("requests", 1)
+	}
+	// Fall back to the response already in hand rather than asking again: a
+	// transient or one-shot service may not answer a second time.
+	if err != nil && keptResp != nil {
+		resp, err, req, URL, protocol = keptResp, nil, keptReq, keptURL, keptProtocol
+		keptResp, keptReq, keptURL = nil, nil, nil
+	}
+	// A 400 to a plaintext probe is a successful transaction, so the scheme
+	// retry below never fires and a TLS-only port is reported as plain http.
+	// Attempt HTTPS through the normal client path, which starts with the same
+	// handshake: a port that does not speak TLS fails there and the response
+	// kept above is restored. Unsafe mode bypasses the scheme retry entirely.
+	if err == nil && !tlsUpgraded && !scanopts.Unsafe && origProtocol == httpx.HTTPorHTTPS &&
+		protocol == httpx.HTTP && resp != nil && resp.StatusCode == http.StatusBadRequest {
+		keptResp, keptReq, keptURL, keptProtocol = resp, req, URL.Clone(), protocol
+		protocol = httpx.HTTPS
+		tlsUpgraded = true
+		goto retry
 	}
 	var requestDump []byte
 	if scanopts.Unsafe {
