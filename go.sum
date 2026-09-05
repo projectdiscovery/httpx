@@ -292,8 +292,8 @@ github.com/projectdiscovery/retryablehttp-go v1.3.23 h1:s5gsGP7sWJvss1Xeb06Y5TRu
 github.com/projectdiscovery/retryablehttp-go v1.3.23/go.mod h1:dnzMyBzMmaTHYp5caYCd8mge23qhTGcBjIJ9SagdQ4Q=
 github.com/projectdiscovery/stringsutil v0.0.2 h1:uzmw3IVLJSMW1kEg8eCStG/cGbYYZAja8BH3LqqJXMA=
 github.com/projectdiscovery/stringsutil v0.0.2/go.mod h1:EJ3w6bC5fBYjVou6ryzodQq37D5c6qbAYQpGmAy+DC0=
-github.com/projectdiscovery/tlsx v1.3.2 h1:1Lh2ith79o8R+rOOSBZiMq8EiZ8j4D3T/8ENO+gAqXA=
-github.com/projectdiscovery/tlsx v1.3.2/go.mod h1:2wgTGC/sourHvoR+RX8cAok0Sa8YK6QbEP3xo5SDzPI=
+github.com/projectdiscovery/tlsx v1.3.0 h1:8jpBaLRLP7UQv7lNb4rp0snPqoQdyYBTZjYxDT0i8z4=
+github.com/projectdiscovery/tlsx v1.3.0/go.mod h1:2wgTGC/sourHvoR+RX8cAok0Sa8YK6QbEP3xo5SDzPI=
 github.com/projectdiscovery/useragent v0.0.108 h1:fb+uLuFJvC+MHZjCtxQJxtvp1X6A8n98CUGPyFcg3NE=
 github.com/projectdiscovery/useragent v0.0.108/go.mod h1:XdNRrlvtDmYfVL1Oybat4uMe+W6cLwsK9S18ond17CI=
 github.com/projectdiscovery/utils v0.11.1 h1:PWj1KjIASxt8icxommH72C0TQqNOvGkcSODRkiq0SQw=
