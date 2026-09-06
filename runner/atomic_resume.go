@@ -3,17 +3,29 @@ package runner
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 )
 
-// SaveAtomic performs atomic file replacement on POSIX and Windows
-func SaveAtomic(filePath string, data interface{}) error {
-	tmpFile := filePath + ".tmp"
-	raw, err := json.Marshal(data)
+// SaveAtomic safely writes data to a unique temporary file before renaming to targetPath.
+func SaveAtomic(targetPath string, data interface{}) error {
+	dir := filepath.Dir(targetPath)
+	tmpFile, err := os.CreateTemp(dir, "resume-*.tmp")
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(tmpFile, raw, 0644); err != nil {
+	defer os.Remove(tmpFile.Name())
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		tmpFile.Close()
 		return err
 	}
-	return os.Rename(tmpFile, filePath)
+	if _, err := tmpFile.Write(raw); err != nil {
+		tmpFile.Close()
+		return err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpFile.Name(), targetPath)
 }
