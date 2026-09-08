@@ -58,6 +58,8 @@ func DecodeData(data []byte, headers http.Header) ([]byte, error) {
 	// Non UTF-8
 	if contentTypes, ok := headers["Content-Type"]; ok {
 		contentType := strings.ToLower(strings.Join(contentTypes, ";"))
+		// the charset parameter value can be a quoted string (charset="gbk")
+		contentType = strings.ReplaceAll(contentType, `"`, "")
 
 		switch {
 		case stringsutil.ContainsAny(contentType, "charset=gb2312", "charset=gbk"):
