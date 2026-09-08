@@ -1,10 +1,22 @@
 package runner
 
 import (
+	"bufio"
+	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
+	"io"
+	"math/big"
+	"net"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -529,8 +541,8 @@ func TestStoreResponse_withoutMatchersStoresAll(t *testing.T) {
 func TestStoreResponse_withMatcherSetsFlag(t *testing.T) {
 	dir := t.TempDir()
 	opts := &Options{
-		StoreResponse:       true,
-		StoreResponseDir:    dir,
+		StoreResponse:         true,
+		StoreResponseDir:      dir,
 		OutputMatchStatusCode: "200",
 	}
 	err := opts.ValidateOptions()
@@ -767,4 +779,390 @@ func TestCreateNetworkpolicyInstance_AllowDenyFlags(t *testing.T) {
 			}
 		})
 	}
+}
+
+// startTLSOnlyListener serves content over TLS and answers any plaintext
+// request the way a real TLS listener does: a valid HTTP 400 saying TLS is
+// required. The response is a successful HTTP transaction, which is what stops
+// the transport-error scheme retry from firing.
+func startTLSOnlyListener(t *testing.T) string {
+	t.Helper()
+
+	const rejection = "HTTP/1.1 400 Bad Request\r\n" +
+		"Connection: close\r\n" +
+		"Content-Type: text/plain;charset=utf-8\r\n" +
+		"Content-Length: 62\r\n\r\n" +
+		"Bad Request\r\nThis combination of host and port requires TLS.\r\n"
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "tls-only.test"},
+		DNSNames:     []string{"localhost", "tls-only.test"},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+	der, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
+	require.NoError(t, err)
+
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{{Certificate: [][]byte{der}, PrivateKey: key}}}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = io.WriteString(w, "<html><head><title>Only Over TLS</title></head><body>ok</body></html>")
+	})
+	server := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = listener.Close() })
+
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func(conn net.Conn) {
+				buffered := bufio.NewReader(conn)
+				first, err := buffered.Peek(1)
+				if err != nil {
+					_ = conn.Close()
+					return
+				}
+				// 0x16 is a TLS handshake record; anything else is plaintext.
+				if first[0] != 0x16 {
+					drainRequest(buffered)
+					_, _ = io.WriteString(conn, rejection)
+					_ = conn.Close()
+					return
+				}
+				// Always returns io.EOF: the listener yields this one connection.
+				_ = server.Serve(oneShot(tls.Server(&peeked{Conn: conn, reader: buffered}, tlsConfig)))
+			}(conn)
+		}
+	}()
+
+	return listener.Addr().String()
+}
+
+// drainRequest reads the request head before a reply is written. Answering an
+// HTTP client that has not finished asking is an unsolicited response, and it
+// discards the reply instead of parsing it.
+func drainRequest(r io.Reader) {
+	if conn, ok := r.(net.Conn); ok {
+		_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	}
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		if scanner.Text() == "" {
+			return
+		}
+	}
+}
+
+type peeked struct {
+	net.Conn
+	reader *bufio.Reader
+}
+
+func (c *peeked) Read(b []byte) (int, error) { return c.reader.Read(b) }
+
+type oneShotListener struct {
+	conn net.Conn
+	used bool
+}
+
+func oneShot(conn net.Conn) net.Listener { return &oneShotListener{conn: conn} }
+
+func (l *oneShotListener) Accept() (net.Conn, error) {
+	if l.used {
+		return nil, io.EOF
+	}
+	l.used = true
+	return l.conn, nil
+}
+func (l *oneShotListener) Close() error   { return nil }
+func (l *oneShotListener) Addr() net.Addr { return l.conn.LocalAddr() }
+
+// TestTLSOnlyPortIsProbedOverHTTPS covers a TLS-only service on a port above
+// 1024, which the scheme heuristic probes as plain HTTP first. Without the
+// retry on a TLS-required response the service is reported as plain http.
+func TestTLSOnlyPortIsProbedOverHTTPS(t *testing.T) {
+	target := startTLSOnlyListener(t)
+
+	var (
+		mu      sync.Mutex
+		results []Result
+	)
+
+	options := &Options{
+		Threads:   1,
+		RateLimit: 10,
+		Retries:   0,
+		Timeout:   5,
+		Methods:   http.MethodGet,
+		Delay:     -1,
+		OnResult: func(r Result) {
+			if r.Err != nil || r.URL == "" {
+				return
+			}
+			mu.Lock()
+			results = append(results, r)
+			mu.Unlock()
+		},
+		InputTargetHost: []string{target},
+	}
+
+	// The heuristic must pick http first, otherwise this test proves nothing.
+	require.Equal(t, "http", determineMostLikelySchemeOrder(target))
+
+	r, err := New(options)
+	require.NoError(t, err)
+	defer r.Close()
+	r.RunEnumeration()
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Len(t, results, 1)
+	require.Equal(t, "https", results[0].Scheme)
+	require.Equal(t, "https://"+target, results[0].URL)
+	require.Equal(t, http.StatusOK, results[0].StatusCode)
+}
+
+// TestPlainHTTPPortStaysHTTP is the no-regression half of the TLS upgrade: a
+// genuine cleartext service that answers 400 must not be relabelled https just
+// because the upgrade was attempted.
+func TestPlainHTTPPortStaysHTTP(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = listener.Close() })
+
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func(conn net.Conn) {
+				drainRequest(conn)
+				_, _ = io.WriteString(conn, "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n"+
+					"Content-Type: text/plain\r\nContent-Length: 11\r\n\r\nBad Request")
+				_ = conn.Close()
+			}(conn)
+		}
+	}()
+
+	target := listener.Addr().String()
+
+	var (
+		mu      sync.Mutex
+		results []Result
+	)
+	options := &Options{
+		Threads:   1,
+		RateLimit: 10,
+		Retries:   0,
+		Timeout:   5,
+		Methods:   http.MethodGet,
+		Delay:     -1,
+		OnResult: func(r Result) {
+			if r.Err != nil || r.URL == "" {
+				return
+			}
+			mu.Lock()
+			results = append(results, r)
+			mu.Unlock()
+		},
+		InputTargetHost: []string{target},
+	}
+
+	r, err := New(options)
+	require.NoError(t, err)
+	defer r.Close()
+	r.RunEnumeration()
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Len(t, results, 1)
+	require.Equal(t, "http", results[0].Scheme, "a cleartext 400 must stay http")
+	require.Equal(t, http.StatusBadRequest, results[0].StatusCode)
+}
+
+// TestOneShotPlainHTTPKeepsItsResult covers a cleartext service that answers
+// once and then refuses: the scheme decision must not cost it a second
+// request, or a reachable service disappears from the output.
+func TestOneShotPlainHTTPKeepsItsResult(t *testing.T) {
+	var served int64
+
+	listener, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = listener.Close() })
+
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func(conn net.Conn) {
+				defer func() { _ = conn.Close() }()
+				if atomic.AddInt64(&served, 1) != 1 {
+					return // refuse every later connection
+				}
+				_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+				drainRequest(conn)
+				_, _ = io.WriteString(conn, "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n"+
+					"Content-Length: 11\r\n\r\nBad Request")
+			}(conn)
+		}
+	}()
+
+	var (
+		mu      sync.Mutex
+		results []Result
+	)
+	options := &Options{
+		Threads: 1, RateLimit: 10, Retries: 0, Timeout: 5,
+		Methods: http.MethodGet, Delay: -1,
+		InputTargetHost: []string{listener.Addr().String()},
+		OnResult: func(r Result) {
+			if r.Err != nil || r.URL == "" {
+				return
+			}
+			mu.Lock()
+			results = append(results, r)
+			mu.Unlock()
+		},
+	}
+
+	runner, err := New(options)
+	require.NoError(t, err)
+	defer runner.Close()
+	runner.RunEnumeration()
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Len(t, results, 1, "a service that answered once must still be reported")
+	require.Equal(t, "http", results[0].Scheme)
+	require.Equal(t, http.StatusBadRequest, results[0].StatusCode)
+}
+
+// TestHandshakeThenCloseKeepsPlainResult covers a port whose TLS handshake
+// succeeds and which then closes without answering: the upgrade must fall back
+// to the plaintext response rather than request it again, so a cleartext
+// service that answers only once still appears in the output.
+func TestHandshakeThenCloseKeepsPlainResult(t *testing.T) {
+	var plainServed, h2cServed, tlsHandshakes int64
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "handshake.test"},
+		DNSNames:     []string{"localhost"},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+	der, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
+	require.NoError(t, err)
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{{Certificate: [][]byte{der}, PrivateKey: key}}}
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = listener.Close() })
+
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func(conn net.Conn) {
+				defer func() { _ = conn.Close() }()
+				buffered := bufio.NewReader(conn)
+				first, err := buffered.Peek(1)
+				if err != nil {
+					return
+				}
+				// 0x16 is a TLS ClientHello: complete the handshake, then close
+				// without ever sending an HTTP response.
+				if first[0] == 0x16 {
+					tlsConn := tls.Server(&peeked{Conn: conn, reader: buffered}, tlsConfig)
+					if err := tlsConn.HandshakeContext(context.Background()); err != nil {
+						return
+					}
+					atomic.AddInt64(&tlsHandshakes, 1)
+					_ = tlsConn.Close()
+					return
+				}
+				_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+				request, err := http.ReadRequest(buffered)
+				if err != nil {
+					return
+				}
+				_ = request.Body.Close()
+				if strings.EqualFold(request.Header.Get("Upgrade"), "h2c") {
+					atomic.AddInt64(&h2cServed, 1)
+					_, _ = io.WriteString(conn, "HTTP/1.1 101 Switching Protocols\r\n"+
+						"Connection: Upgrade\r\nUpgrade: h2c\r\n\r\n")
+					return
+				}
+				if atomic.AddInt64(&plainServed, 1) != 1 {
+					return // the cleartext application answers exactly once
+				}
+				_, _ = io.WriteString(conn, "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n"+
+					"Content-Length: 11\r\n\r\nBad Request")
+			}(conn)
+		}
+	}()
+
+	var (
+		mu      sync.Mutex
+		results []Result
+	)
+	options := &Options{
+		Threads: 1, RateLimit: 10, Retries: 0, Timeout: 5,
+		Methods: http.MethodGet, Delay: -1,
+		HTTP2Probe:      true,
+		InputTargetHost: []string{listener.Addr().String()},
+		OnResult: func(r Result) {
+			if r.Err != nil || r.URL == "" {
+				return
+			}
+			mu.Lock()
+			results = append(results, r)
+			mu.Unlock()
+		},
+	}
+
+	runner, err := New(options)
+	require.NoError(t, err)
+	defer runner.Close()
+	runner.RunEnumeration()
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Len(t, results, 1, "the plaintext result must survive a failed HTTPS attempt")
+	require.Equal(t, "http", results[0].Scheme)
+	require.Equal(t, http.StatusBadRequest, results[0].StatusCode)
+	require.True(t, results[0].HTTP2,
+		"the h2c probe must use the restored plaintext URL")
+	require.EqualValues(t, 1, atomic.LoadInt64(&plainServed),
+		"the plaintext service must not be asked a second time")
+	require.EqualValues(t, 1, atomic.LoadInt64(&h2cServed),
+		"exactly one plaintext HTTP/2 probe must be observed")
+	require.EqualValues(t, 1, atomic.LoadInt64(&tlsHandshakes),
+		"the failed HTTPS request must complete its TLS handshake first")
 }

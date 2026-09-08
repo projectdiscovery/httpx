@@ -203,6 +203,16 @@ func TestProductLookupKeys(t *testing.T) {
 			want: []string{"nextjs"},
 		},
 		{
+			name: "known short alias",
+			in:   "d3.js",
+			want: []string{"d3js", "d3"},
+		},
+		{
+			name: "known display alias",
+			in:   "matomo",
+			want: []string{"matomo", "matomoanalytics"},
+		},
+		{
 			name: "empty",
 			in:   "",
 			want: nil,
@@ -223,16 +233,55 @@ func TestProductLookupKeys(t *testing.T) {
 	}
 }
 
+func TestFallbackProductLookupKeys(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   string
+		want []string
+	}{
+		{name: "bare product", in: "tomcat", want: []string{"tomcat"}},
+		{name: "known suffix", in: "confluence_server", want: []string{"confluenceserver", "confluence"}},
+		{name: "known short alias", in: "d3.js", want: []string{"d3js", "d3"}},
+		{name: "known display alias", in: "matomo", want: []string{"matomo", "matomoanalytics"}},
+		{name: "does not use arbitrary prefix", in: "tomcat_jk_connector", want: []string{"tomcatjkconnector"}},
+		{name: "compound uses primary", in: "digital_experience_platform,liferay_portal", want: []string{"digitalexperienceplatform", "digitalexperience"}},
+		{name: "empty", in: "", want: nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := fallbackProductLookupKeys(tt.in)
+			if len(got) != len(tt.want) {
+				t.Fatalf("fallbackProductLookupKeys(%q) = %v, want %v", tt.in, got, tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Fatalf("fallbackProductLookupKeys(%q)[%d] = %q, want %q", tt.in, i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
 func TestLookupTechVersion(t *testing.T) {
 	t.Parallel()
 
-	versions := buildTechVersionMap([]string{
+	technologies := []string{
 		"Liferay:7.3.5",
 		"Confluence:8.5.1",
 		"Tableau:2023.1",
 		"Apache HTTP Server:2.4.7",
 		"Ansible:2.14.0",
-	})
+		"Apache Tomcat:9.0.65",
+		"Preact:10.5.0",
+		"D3:7.8.5",
+		"Atlassian Jira:9.12.0",
+		"Matomo Analytics:5.0.0",
+	}
+	versions := buildTechVersionMap(technologies)
+	candidates := buildTechnologyVersions(technologies)
 
 	tests := []struct {
 		product   string
@@ -247,15 +296,233 @@ func TestLookupTechVersion(t *testing.T) {
 		{"Apache HTTP Server", "2.4.7", true},
 		{"phpcollab", "", false},
 		{"unknown_product", "", false},
+		// #2550: vendor-prefixed wappalyzer name ("Apache Tomcat") vs. the
+		// bare CPE product name ("tomcat") - resolved by the whole-word
+		// token fallback.
+		{"tomcat", "9.0.65", true},
+		{"d3.js", "7.8.5", true},
+		{"jira", "9.12.0", true},
+		{"matomo", "5.0.0", true},
+		// CodeRabbit review on #2569: "react" is a character-for-character
+		// substring of "preact", but they must never be treated as a match.
+		// Whole-word tokenization keeps them distinct ("react" != "preact"
+		// as tokens), unlike a raw substring check.
+		{"react", "", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.product, func(t *testing.T) {
-			got, ok := lookupTechVersion(tt.product, versions)
+			vendor := map[string]string{
+				"tomcat": "apache",
+				"jira":   "atlassian",
+			}[tt.product]
+			got, ok := lookupTechVersion(tt.product, vendor, versions, candidates)
 			if ok != tt.wantFound {
 				t.Fatalf("lookupTechVersion(%q) found = %v, want %v", tt.product, ok, tt.wantFound)
 			}
 			if got != tt.want {
 				t.Fatalf("lookupTechVersion(%q) = %q, want %q", tt.product, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTechnologyTokens(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   string
+		want []string
+	}{
+		{name: "vendor prefix", in: "Apache Tomcat", want: []string{"apache", "tomcat"}},
+		{name: "punctuation", in: "D3.js / Plugin", want: []string{"d3", "js", "plugin"}},
+		{name: "underscore", in: "dashboard_console", want: []string{"dashboard", "console"}},
+		{name: "case folding", in: "PreACT", want: []string{"preact"}},
+		{name: "empty", in: "", want: nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := technologyTokens(tt.in)
+			if len(got) != len(tt.want) {
+				t.Fatalf("technologyTokens(%q) = %v, want %v", tt.in, got, tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Fatalf("technologyTokens(%q)[%d] = %q, want %q", tt.in, i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestStrongTokens(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   string
+		want []string
+	}{
+		{name: "keeps specific words", in: "Apache Tomcat Server", want: []string{"apache", "tomcat"}},
+		{name: "drops generic words", in: "Cloud Web Application Framework", want: nil},
+		{name: "drops short words", in: "D3.js API", want: nil},
+		{name: "keeps token boundaries", in: "React Preact", want: []string{"react", "preact"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := strongTokens(tt.in)
+			if len(got) != len(tt.want) {
+				t.Fatalf("strongTokens(%q) = %v, want %v", tt.in, got, tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Fatalf("strongTokens(%q)[%d] = %q, want %q", tt.in, i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestBuildTechnologyVersions(t *testing.T) {
+	t.Parallel()
+
+	candidates := buildTechnologyVersions([]string{
+		"Apache Tomcat:9.0.65",
+		"Oracle Tomcat:10.1.0",
+		"Vendor Dashboard:1.0",
+		"D3:7.8.5",
+		"Missing Version",
+		"Blank:",
+		"---:1.0",
+	})
+	if len(candidates) != 4 {
+		t.Fatalf("candidates = %#v, want 4 versioned candidates", candidates)
+	}
+	if candidates[0].version != "9.0.65" {
+		t.Fatalf("first candidate version = %q, want 9.0.65", candidates[0].version)
+	}
+	for _, token := range []string{"apache", "tomcat"} {
+		if !sliceContains(candidates[0].tokens, token) {
+			t.Fatalf("first candidate tokens = %v, want %q", candidates[0].tokens, token)
+		}
+	}
+}
+
+func TestLookupTechVersionRejectsAmbiguousFallback(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		product      string
+		vendor       string
+		technologies []string
+		want         string
+		wantFound    bool
+	}{
+		{
+			name:         "same fallback name has different versions",
+			product:      "dashboard",
+			vendor:       "acmecorp",
+			technologies: []string{"AcmeCorp Dashboard:1.0", "AcmeCorp Dashboard:2.0"},
+		},
+		{
+			name:         "conflict is independent of input order",
+			product:      "dashboard",
+			vendor:       "acmecorp",
+			technologies: []string{"AcmeCorp Dashboard:2.0", "AcmeCorp Dashboard:1.0"},
+		},
+		{
+			name:         "vendor disambiguates shared product token",
+			product:      "tomcat",
+			vendor:       "apache",
+			technologies: []string{"Apache Tomcat:9.0.65", "Oracle Tomcat:10.1.0"},
+			want:         "9.0.65",
+			wantFound:    true,
+		},
+		{
+			name:         "matching fallback candidates agree",
+			product:      "dashboard",
+			vendor:       "acmecorp",
+			technologies: []string{"AcmeCorp Dashboard:1.0", "AcmeCorp Dashboard:1.0"},
+			want:         "1.0",
+			wantFound:    true,
+		},
+		{
+			name:         "secondary compound product is ignored",
+			product:      "digital_experience_platform,liferay_portal",
+			vendor:       "acmecorp",
+			technologies: []string{"AcmeCorp Liferay:7.3.5"},
+		},
+		{
+			name:         "exact match wins before ambiguous fallback",
+			product:      "dashboard_console",
+			vendor:       "acmecorp",
+			technologies: []string{"Dashboard Console:9.0", "AcmeCorp Dashboard:1.0", "AcmeCorp Dashboard:2.0"},
+			want:         "9.0",
+			wantFound:    true,
+		},
+		{
+			name:         "shared brand is not product evidence",
+			product:      "google_maps",
+			vendor:       "google",
+			technologies: []string{"Google Analytics:4.0"},
+		},
+		{
+			name:         "unrelated vendor rejects broad product token",
+			product:      "wp-google-maps",
+			vendor:       "wpgmaps",
+			technologies: []string{"Google Analytics:4.0"},
+		},
+		{
+			name:         "extended vendor product is not shortened",
+			product:      "experience_manager",
+			vendor:       "adobe",
+			technologies: []string{"Adobe Experience Manager Edge Delivery Services:1.0"},
+		},
+		{
+			name:         "connector is not parent product",
+			product:      "tomcat_jk_connector",
+			vendor:       "apache",
+			technologies: []string{"Apache Tomcat:9.0.65"},
+		},
+		{
+			name:         "code editor is not visual studio",
+			product:      "visual_studio_code",
+			vendor:       "microsoft",
+			technologies: []string{"Microsoft Visual Studio:17.0"},
+		},
+		{
+			name:         "service management is not jira",
+			product:      "jira_service_management",
+			vendor:       "atlassian",
+			technologies: []string{"Atlassian Jira:10.0"},
+		},
+		{
+			name:         "jquery family name is not jquery",
+			product:      "jquery-bbq",
+			vendor:       "jquery-bbq_project",
+			technologies: []string{"jQuery:3.7.0"},
+		},
+		{
+			name:         "wordpress is not microsoft word",
+			product:      "wordpress",
+			vendor:       "wordpress",
+			technologies: []string{"Microsoft Word:16.0"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := lookupTechVersion(
+				tt.product,
+				tt.vendor,
+				buildTechVersionMap(tt.technologies),
+				buildTechnologyVersions(tt.technologies),
+			)
+			if ok != tt.wantFound || got != tt.want {
+				t.Fatalf("lookupTechVersion(%q) = %q, %v; want %q, %v", tt.product, got, ok, tt.want, tt.wantFound)
 			}
 		})
 	}
@@ -321,12 +588,35 @@ func TestEnrichCPEVersionsIssue2536(t *testing.T) {
 			wantCPE:      "cpe:2.3:a:redhat:ansible_policy_manager:2.14.0:*:*:*:*:*:*:*",
 		},
 		{
+
 			name:         "conflicting tech versions leave cpe unchanged",
 			product:      "liferay_portal",
 			vendor:       "liferay",
 			cpe:          "cpe:2.3:a:liferay:liferay_portal:*:*:*:*:*:*:*:*",
 			technologies: []string{"Liferay:7.3.5", "Liferay:7.4.0"},
 			wantCPE:      "cpe:2.3:a:liferay:liferay_portal:*:*:*:*:*:*:*:*",
+		},
+		{
+			// #2550: wappalyzer's display name carries a vendor prefix
+			// ("Apache Tomcat") that awesome-search-queries' bare CPE
+			// product name ("tomcat") doesn't. Resolved by the whole-word
+			// token fallback in lookupTechVersion.
+			name:         "vendor-prefixed wappalyzer name matches bare CPE product (#2550)",
+			product:      "tomcat",
+			vendor:       "apache",
+			cpe:          "cpe:2.3:a:apache:tomcat:*:*:*:*:*:*:*:*",
+			technologies: []string{"Apache Tomcat:9.0.65"},
+			wantCPE:      "cpe:2.3:a:apache:tomcat:9.0.65:*:*:*:*:*:*:*",
+		},
+		{
+			// Reverse case: a narrow alias bridges the CPE product "d3.js" to
+			// wappalyzer's short display name without weakening token guards.
+			name:         "bare wappalyzer name matches suffixed CPE product (#2550)",
+			product:      "d3.js",
+			vendor:       "d3.js_project",
+			cpe:          "cpe:2.3:a:d3.js_project:d3.js:*:*:*:*:*:*:*:*",
+			technologies: []string{"D3:7.8.5"},
+			wantCPE:      "cpe:2.3:a:d3.js_project:d3.js:7.8.5:*:*:*:*:*:*:*",
 		},
 	}
 	for _, tt := range tests {
@@ -421,6 +711,74 @@ func TestEnrichCPEVersionsWithRealWappalyzer(t *testing.T) {
 	got := EnrichCPEVersions(matches, technologies)
 	if got[0].CPE != "cpe:2.3:a:liferay:liferay_portal:7.3.5:*:*:*:*:*:*:*" {
 		t.Fatalf("liferay CPE = %q, want version 7.3.5 injected end-to-end", got[0].CPE)
+	}
+}
+
+func TestEnrichTomcatCPEWithRealDatasets(t *testing.T) {
+	wappalyze, err := wappalyzer.New()
+	if err != nil {
+		t.Fatalf("could not create wappalyzer: %s", err)
+	}
+
+	info := wappalyze.FingerprintWithInfo(map[string][]string{
+		"x-powered-by": {"Tomcat-9.0.65"},
+	}, nil)
+	var technologies []string
+	for name := range info {
+		technologies = append(technologies, name)
+	}
+	if !sliceContains(technologies, "Apache Tomcat:9.0.65") {
+		t.Fatalf("expected real wappalyzer data to emit Apache Tomcat:9.0.65, got %v", technologies)
+	}
+
+	detector, err := NewCPEDetector()
+	if err != nil {
+		t.Fatalf("could not create CPE detector: %s", err)
+	}
+	matches := detector.Detect("", "Apache Tomcat", "")
+	var found bool
+	for _, match := range EnrichCPEVersions(matches, technologies) {
+		if match.Product != "tomcat" {
+			continue
+		}
+		found = true
+		want := "cpe:2.3:a:apache:tomcat:9.0.65:*:*:*:*:*:*:*"
+		if match.CPE != want {
+			t.Fatalf("Tomcat CPE = %q, want %q", match.CPE, want)
+		}
+	}
+	if !found {
+		t.Fatalf("real awesome-search-queries data did not detect the Tomcat product; matches: %v", matches)
+	}
+}
+
+func TestEnrichVendorPrefixedTechnologiesIndependently(t *testing.T) {
+	matches := []CPEInfo{
+		{
+			Product: "tomcat",
+			Vendor:  "apache",
+			CPE:     "cpe:2.3:a:apache:tomcat:*:*:*:*:*:*:*:*",
+		},
+		{
+			Product: "http_server",
+			Vendor:  "apache",
+			CPE:     "cpe:2.3:a:apache:http_server:*:*:*:*:*:*:*:*",
+		},
+	}
+	technologies := []string{
+		"Apache Tomcat:9.0.65",
+		"Apache HTTP Server:2.4.62",
+	}
+
+	got := EnrichCPEVersions(matches, technologies)
+	want := []string{
+		"cpe:2.3:a:apache:tomcat:9.0.65:*:*:*:*:*:*:*",
+		"cpe:2.3:a:apache:http_server:2.4.62:*:*:*:*:*:*:*",
+	}
+	for i := range want {
+		if got[i].CPE != want[i] {
+			t.Fatalf("CPE[%d] = %q, want %q", i, got[i].CPE, want[i])
+		}
 	}
 }
 
