@@ -1166,3 +1166,90 @@ func TestHandshakeThenCloseKeepsPlainResult(t *testing.T) {
 	require.EqualValues(t, 1, atomic.LoadInt64(&tlsHandshakes),
 		"the failed HTTPS request must complete its TLS handshake first")
 }
+
+// TestHTTPSNotRetriedAfterSchemeFallback covers a target the heuristic probes
+// as HTTPS first: the HTTPS attempt fails, the scheme fallback switches to
+// plaintext, and the plaintext answer is 400. The 400 upgrade must not send the
+// request back to the HTTPS endpoint that has already failed.
+//
+// A proxy carries the requests so the target can use a privileged port without
+// binding one, and so both attempt kinds can be counted: CONNECT is the HTTPS
+// attempt, an absolute-URI GET is the plaintext one.
+func TestHTTPSNotRetriedAfterSchemeFallback(t *testing.T) {
+	var connects, plainRequests int64
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = listener.Close() })
+
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func(conn net.Conn) {
+				defer func() { _ = conn.Close() }()
+				_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+				reader := bufio.NewReader(conn)
+				requestLine, err := reader.ReadString('\n')
+				if err != nil {
+					return
+				}
+				for {
+					line, err := reader.ReadString('\n')
+					if err != nil || strings.TrimSpace(line) == "" {
+						break
+					}
+				}
+				if strings.HasPrefix(requestLine, http.MethodConnect+" ") {
+					atomic.AddInt64(&connects, 1)
+					// Refuse the tunnel: the HTTPS attempt cannot succeed.
+					_, _ = io.WriteString(conn, "HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\n\r\n")
+					return
+				}
+				atomic.AddInt64(&plainRequests, 1)
+				_, _ = io.WriteString(conn, "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n"+
+					"Content-Length: 11\r\n\r\nBad Request")
+			}(conn)
+		}
+	}()
+
+	var (
+		mu      sync.Mutex
+		results []Result
+	)
+	options := &Options{
+		Threads: 1, RateLimit: 10, Retries: 0, Timeout: 5,
+		Methods: http.MethodGet, Delay: -1,
+		HTTPProxy: "http://" + listener.Addr().String(),
+		// Port 1023 keeps the scheme heuristic on HTTPS first without needing
+		// to bind a privileged port locally.
+		InputTargetHost: []string{"probe-target.invalid:1023"},
+		OnResult: func(r Result) {
+			if r.Err != nil || r.URL == "" {
+				return
+			}
+			mu.Lock()
+			results = append(results, r)
+			mu.Unlock()
+		},
+	}
+
+	require.Equal(t, "https", determineMostLikelySchemeOrder("probe-target.invalid:1023"),
+		"the target must be probed as https first or this test proves nothing")
+
+	runner, err := New(options)
+	require.NoError(t, err)
+	defer runner.Close()
+	runner.RunEnumeration()
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.EqualValues(t, 1, atomic.LoadInt64(&connects),
+		"the same https endpoint must not be attempted twice")
+	require.Len(t, results, 1, "the plaintext 400 must still be reported")
+	require.Equal(t, "http", results[0].Scheme)
+	require.Equal(t, http.StatusBadRequest, results[0].StatusCode)
+}

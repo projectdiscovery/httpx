@@ -1948,7 +1948,7 @@ retry:
 	// Attempt HTTPS through the normal client path, which starts with the same
 	// handshake: a port that does not speak TLS fails there and the response
 	// kept above is restored. Unsafe mode bypasses the scheme retry entirely.
-	if err == nil && !tlsUpgraded && !scanopts.Unsafe && origProtocol == httpx.HTTPorHTTPS &&
+	if err == nil && !tlsUpgraded && !retried && !scanopts.Unsafe && origProtocol == httpx.HTTPorHTTPS &&
 		protocol == httpx.HTTP && resp != nil && resp.StatusCode == http.StatusBadRequest {
 		keptResp, keptReq, keptURL, keptProtocol = resp, req, URL.Clone(), protocol
 		protocol = httpx.HTTPS
