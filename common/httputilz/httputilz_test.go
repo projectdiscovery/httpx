@@ -87,6 +87,24 @@ func TestParseRequestUnsafePreservesRawHeaders(t *testing.T) {
 	require.Equal(t, []string{" one", " two"}, headers["X-Test"])
 }
 
+func TestParseRequestMultipleCustomHeaders(t *testing.T) {
+	raw := strings.Join([]string{
+		"GET /health HTTP/1.1",
+		"Host: api.example.com",
+		"X-Custom-Auth: token123",
+		"X-Request-ID: req-abc-001",
+		"",
+		"",
+	}, "\r\n")
+
+	method, path, headers, _, err := ParseRequest(raw, false)
+	require.NoError(t, err)
+	require.Equal(t, "GET", method)
+	require.Equal(t, "/health", path)
+	require.Equal(t, []string{"token123"}, headers["X-Custom-Auth"])
+	require.Equal(t, []string{"req-abc-001"}, headers["X-Request-ID"])
+}
+
 func TestParseRequestMalformed(t *testing.T) {
 	_, _, _, _, err := ParseRequest("GET\r\n\r\n", false)
 	require.Error(t, err)
