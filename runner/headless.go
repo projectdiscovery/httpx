@@ -11,6 +11,7 @@ import (
 	"github.com/go-rod/rod/lib/launcher/flags"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/pkg/errors"
+	"github.com/projectdiscovery/utils/chromeshell"
 	fileutil "github.com/projectdiscovery/utils/file"
 	mapsutil "github.com/projectdiscovery/utils/maps"
 	osutils "github.com/projectdiscovery/utils/os"
@@ -61,6 +62,26 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 		Set("window-size", fmt.Sprintf("%d,%d", 1080, 1920)).
 		Set("mute-audio", "true").
 		Set("incognito", "true").
+		// Performance: keep background/occluded tabs running at full speed so
+		// many concurrent screenshot pages don't get render-throttled.
+		Set("disable-background-timer-throttling", "true").
+		Set("disable-backgrounding-occluded-windows", "true").
+		Set("disable-renderer-backgrounding", "true").
+		Set("disable-ipc-flooding-protection", "true").
+		Set("disable-hang-monitor", "true").
+		// Performance: strip background chrome services we never use.
+		Set("disable-background-networking", "true").
+		Set("disable-client-side-phishing-detection", "true").
+		Set("disable-component-update", "true").
+		Set("disable-default-apps", "true").
+		Set("disable-domain-reliability", "true").
+		Set("disable-extensions", "true").
+		Set("disable-sync", "true").
+		Set("no-first-run", "true").
+		Set("no-default-browser-check", "true").
+		Set("metrics-recording-only", "true").
+		Set("safebrowsing-disable-auto-update", "true").
+		Set("disable-features", "Translate,BackForwardCache,AcceptCHFrame,MediaRouter,OptimizationHints,site-per-process").
 		Delete("use-mock-keychain").
 		Headless(true).
 		UserDataDir(dataStore)
@@ -81,6 +102,12 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 			chromeLauncher.Bin(chromePath)
 		} else {
 			return nil, errors.New("the chrome browser is not installed")
+		}
+	} else if chromeshell.Supported() {
+		// Prefer chrome-headless-shell on linux/amd64: smaller download and
+		// faster headless screenshots than full Chromium snapshots.
+		if shellPath, err := ensureChromeShell(); err == nil {
+			chromeLauncher.Bin(shellPath)
 		}
 	}
 
@@ -119,13 +146,13 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 }
 
 func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle time.Duration, headers []string, fullPage bool, jsCodes []string) ([]byte, string, []NetworkRequest, error) {
-	page, networkRequests, err := b.setupPageAndNavigate(url, timeout, headers, jsCodes)
+	page, networkRequests, err := b.setupPageAndNavigate(url, timeout, idle, headers, jsCodes)
 	if err != nil {
 		return nil, "", []NetworkRequest{}, err
 	}
 	defer b.closePage(page)
 
-	screenshot, body, err := b.takeScreenshotAndGetBody(page, idle, fullPage)
+	screenshot, body, err := b.takeScreenshotAndGetBody(page, fullPage)
 	if err != nil {
 		return nil, "", networkRequests, err
 	}
@@ -134,7 +161,7 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 }
 
 // setupPageAndNavigate opens a page, performs all adaptive actions including JS injection
-func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, headers []string, jsCodes []string) (*rod.Page, []NetworkRequest, error) {
+func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle time.Duration, headers []string, jsCodes []string) (*rod.Page, []NetworkRequest, error) {
 	page, err := b.engine.Page(proto.TargetCreateTarget{})
 	if err != nil {
 		return nil, []NetworkRequest{}, err
@@ -208,6 +235,13 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, header
 	}
 
 	page = page.Timeout(timeout)
+	var waitReqIdle func()
+	if idle > 0 {
+		// Register before Navigate so the first SPA XHRs are tracked by the
+		// request-idle waiter. Zero/negative idle skips this (WaitRequestIdle
+		// and WaitDOMStable reject non-positive durations).
+		waitReqIdle = page.WaitRequestIdle(idle, nil, nil, nil)
+	}
 
 	if err := page.Navigate(url); err != nil {
 		return page, networkRequests.Slice, err
@@ -220,19 +254,58 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, header
 		}
 	}
 
-	page.Timeout(5 * time.Second).WaitNavigation(proto.PageLifecycleEventNameFirstMeaningfulPaint)()
+	b.waitPageReady(page, idle, waitReqIdle)
 
 	return page, networkRequests.Slice, nil
 }
 
-// takeScreenshotAndGetBody performs the screenshot actions
-func (b *Browser) takeScreenshotAndGetBody(page *rod.Page, idle time.Duration, fullPage bool) ([]byte, string, error) {
-	if err := page.WaitLoad(); err != nil {
-		return nil, "", err
+// waitPageReady blocks until the page is visually settled so we don't capture a
+// half-rendered SPA. It gates on three independent signals, each bounded by the
+// page timeout:
+//   - window.onload
+//   - network request-idle (a quiet network window)
+//   - DOM stability (the rendered tree stops mutating)
+//
+// SPAs paint late: the network can briefly go quiet before hydration starts, so
+// request-idle alone can fire on the boot screen. Requiring DOM stability on top
+// closes that gap. DOM stability is re-checked after the network settles so the
+// first snapshot is taken post-hydration rather than on the boot screen.
+func (b *Browser) waitPageReady(page *rod.Page, idle time.Duration, waitReqIdle func()) {
+	_ = page.WaitLoad()
+	if idle <= 0 || waitReqIdle == nil {
+		return
 	}
-	_ = page.WaitIdle(idle)
+	waitReqIdle()
+	_ = page.WaitDOMStable(idle, 0)
+}
 
-	screenshot, err := page.Screenshot(fullPage, &proto.PageCaptureScreenshot{})
+const chromeShellEnsureTimeout = 2 * time.Minute
+
+func ensureChromeShell() (string, error) {
+	type result struct {
+		path string
+		err  error
+	}
+	done := make(chan result, 1)
+	go func() {
+		path, err := chromeshell.Ensure()
+		done <- result{path: path, err: err}
+	}()
+	select {
+	case r := <-done:
+		return r.path, r.err
+	case <-time.After(chromeShellEnsureTimeout):
+		return "", errors.New("chrome-headless-shell download timed out")
+	}
+}
+
+// takeScreenshotAndGetBody performs the screenshot actions
+func (b *Browser) takeScreenshotAndGetBody(page *rod.Page, fullPage bool) ([]byte, string, error) {
+	_ = page.WaitRepaint()
+
+	screenshot, err := page.Screenshot(fullPage, &proto.PageCaptureScreenshot{
+		OptimizeForSpeed: true,
+	})
 	if err != nil {
 		return nil, "", err
 	}
