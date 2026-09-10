@@ -87,6 +87,23 @@ func TestParseRequestUnsafePreservesRawHeaders(t *testing.T) {
 	require.Equal(t, []string{" one", " two"}, headers["X-Test"])
 }
 
+func TestParseRequestTransferEncodingChunkedHeader(t *testing.T) {
+	raw := strings.Join([]string{
+		"POST /stream HTTP/1.1",
+		"Host: stream.example.com",
+		"Transfer-Encoding: chunked",
+		"",
+		"4\r\nWiki\r\n5\r\npedia\r\n0\r\n\r\n",
+	}, "\r\n")
+
+	method, path, headers, body, err := ParseRequest(raw, false)
+	require.NoError(t, err)
+	require.Equal(t, "POST", method)
+	require.Equal(t, "/stream", path)
+	require.Equal(t, []string{"chunked"}, headers["Transfer-Encoding"])
+	require.Contains(t, body, "Wiki")
+}
+
 func TestParseRequestMalformed(t *testing.T) {
 	_, _, _, _, err := ParseRequest("GET\r\n\r\n", false)
 	require.Error(t, err)
