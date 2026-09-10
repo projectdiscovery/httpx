@@ -87,6 +87,23 @@ func TestParseRequestUnsafePreservesRawHeaders(t *testing.T) {
 	require.Equal(t, []string{" one", " two"}, headers["X-Test"])
 }
 
+func TestParseRequestCustomSchemeHostParser(t *testing.T) {
+	raw := strings.Join([]string{
+		"GET wss://gateway.example.com/v2 HTTP/1.1",
+		"Host: ignored.example.com",
+		"Upgrade: websocket",
+		"",
+		"",
+	}, "\r\n")
+
+	method, path, headers, _, err := ParseRequest(raw, false)
+	require.NoError(t, err)
+	require.Equal(t, "GET", method)
+	require.Equal(t, "wss://gateway.example.com/v2", path)
+	require.Equal(t, []string{"gateway.example.com"}, headers["Host"])
+	require.Equal(t, []string{"websocket"}, headers["Upgrade"])
+}
+
 func TestParseRequestMalformed(t *testing.T) {
 	_, _, _, _, err := ParseRequest("GET\r\n\r\n", false)
 	require.Error(t, err)
