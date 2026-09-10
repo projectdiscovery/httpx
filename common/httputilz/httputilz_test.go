@@ -87,6 +87,23 @@ func TestParseRequestUnsafePreservesRawHeaders(t *testing.T) {
 	require.Equal(t, []string{" one", " two"}, headers["X-Test"])
 }
 
+func TestParseRequestMultipleCookieHeaders(t *testing.T) {
+	raw := strings.Join([]string{
+		"GET /account HTTP/1.1",
+		"Host: account.example.com",
+		"Cookie: theme=dark",
+		"Cookie: lang=en-US",
+		"",
+		"",
+	}, "\r\n")
+
+	method, path, headers, _, err := ParseRequest(raw, false)
+	require.NoError(t, err)
+	require.Equal(t, "GET", method)
+	require.Equal(t, "/account", path)
+	require.Equal(t, []string{"theme=dark", "lang=en-US"}, headers["Cookie"])
+}
+
 func TestParseRequestMalformed(t *testing.T) {
 	_, _, _, _, err := ParseRequest("GET\r\n\r\n", false)
 	require.Error(t, err)
