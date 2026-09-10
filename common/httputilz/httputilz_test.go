@@ -87,6 +87,22 @@ func TestParseRequestUnsafePreservesRawHeaders(t *testing.T) {
 	require.Equal(t, []string{" one", " two"}, headers["X-Test"])
 }
 
+func TestParseRequestObsFoldHeaderValues(t *testing.T) {
+	raw := strings.Join([]string{
+		"GET /folded HTTP/1.1",
+		"Host: api.example.com",
+		"X-Folded: line1\r\n line2",
+		"",
+		"",
+	}, "\r\n")
+
+	method, path, headers, _, err := ParseRequest(raw, false)
+	require.NoError(t, err)
+	require.Equal(t, "GET", method)
+	require.Equal(t, "/folded", path)
+	require.Contains(t, headers["X-Folded"][0], "line1")
+}
+
 func TestParseRequestMalformed(t *testing.T) {
 	_, _, _, _, err := ParseRequest("GET\r\n\r\n", false)
 	require.Error(t, err)
