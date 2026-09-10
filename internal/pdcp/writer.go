@@ -131,6 +131,7 @@ func (u *UploadWriter) autoCommit(ctx context.Context) {
 	// temporary buffer to store the results
 	buff := &bytes.Buffer{}
 	ticker := time.NewTicker(flushTimer)
+	defer ticker.Stop()
 
 	for {
 		select {
@@ -169,15 +170,13 @@ func (u *UploadWriter) autoCommit(ctx context.Context) {
 			}
 			u.counter.Add(1)
 			line := conversion.String(lineBytes)
-			if buff.Len()+len(line) > MaxChunkSize {
-				// flush existing buffer
-				if err := u.uploadChunk(buff); err != nil {
+			appendResultLine(buff, line, MaxChunkSize, func(b *bytes.Buffer) error {
+				if err := u.uploadChunk(b); err != nil {
 					gologger.Error().Msgf("Failed to upload asset results on cloud: %v", err)
+					return err
 				}
-			} else {
-				buff.WriteString(line)
-				buff.WriteString("\n")
-			}
+				return nil
+			})
 		}
 	}
 }
@@ -259,12 +258,22 @@ func (u *UploadWriter) getRequest(bin []byte) (*retryablehttp.Request, error) {
 	return req, nil
 }
 
+// appendResultLine writes line and its trailing newline to buff, flushing
+// existing data first when the next write would exceed max. An empty buffer is
+// never flushed, so a single oversized line is retained instead of dropped or
+// uploaded as an empty chunk.
+func appendResultLine(buff *bytes.Buffer, line string, max int, flush func(*bytes.Buffer) error) {
+	if buff.Len() > 0 && buff.Len()+len(line)+len("\n") > max {
+		_ = flush(buff)
+	}
+	buff.WriteString(line)
+	buff.WriteString("\n")
+}
+
 // Close closes the upload writer
 func (u *UploadWriter) Close() {
-	if !u.closed.Load() {
-		// protect to avoid channel closed twice error
+	if u.closed.CompareAndSwap(false, true) {
 		close(u.data)
-		u.closed.Store(true)
 	}
 	<-u.done
 }
