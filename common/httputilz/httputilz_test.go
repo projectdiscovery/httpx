@@ -87,6 +87,22 @@ func TestParseRequestUnsafePreservesRawHeaders(t *testing.T) {
 	require.Equal(t, []string{" one", " two"}, headers["X-Test"])
 }
 
+func TestParseRequestQuotedContentTypeCharset(t *testing.T) {
+	raw := strings.Join([]string{
+		"POST /api/upload HTTP/1.1",
+		"Host: api.example.com",
+		"Content-Type: application/json; charset=\"utf-8\"",
+		"",
+		"{\"status\":\"ok\"}",
+	}, "\r\n")
+
+	method, path, headers, body, err := ParseRequest(raw, false)
+	require.NoError(t, err)
+	require.Equal(t, "POST", method)
+	require.Equal(t, []string{"application/json; charset=\"utf-8\""}, headers["Content-Type"])
+	require.Equal(t, "{\"status\":\"ok\"}", body)
+}
+
 func TestParseRequestMalformed(t *testing.T) {
 	_, _, _, _, err := ParseRequest("GET\r\n\r\n", false)
 	require.Error(t, err)
