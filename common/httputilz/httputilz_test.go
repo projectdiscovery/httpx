@@ -87,6 +87,23 @@ func TestParseRequestUnsafePreservesRawHeaders(t *testing.T) {
 	require.Equal(t, []string{" one", " two"}, headers["X-Test"])
 }
 
+func TestParseRequestMixedLineEndingsInPayload(t *testing.T) {
+	raw := strings.Join([]string{
+		"POST /webhook HTTP/1.1",
+		"Host: events.example.com",
+		"Content-Type: text/plain",
+		"",
+		"line1\nline2\r\nline3",
+	}, "\r\n")
+
+	method, path, headers, body, err := ParseRequest(raw, false)
+	require.NoError(t, err)
+	require.Equal(t, "POST", method)
+	require.Equal(t, "/webhook", path)
+	require.Equal(t, []string{"text/plain"}, headers["Content-Type"])
+	require.Equal(t, "line1\nline2\r\nline3", body)
+}
+
 func TestParseRequestMalformed(t *testing.T) {
 	_, _, _, _, err := ParseRequest("GET\r\n\r\n", false)
 	require.Error(t, err)
