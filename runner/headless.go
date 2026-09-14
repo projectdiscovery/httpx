@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -81,7 +82,9 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 		Set("no-default-browser-check", "true").
 		Set("metrics-recording-only", "true").
 		Set("safebrowsing-disable-auto-update", "true").
-		Set("disable-features", "Translate,BackForwardCache,AcceptCHFrame,MediaRouter,OptimizationHints,site-per-process").
+		// site-per-process stays enabled: screenshots render untrusted pages, so
+		// Chromium's cross-origin renderer isolation is worth the extra processes.
+		Set("disable-features", "Translate,BackForwardCache,AcceptCHFrame,MediaRouter,OptimizationHints").
 		Delete("use-mock-keychain").
 		Headless(true).
 		UserDataDir(dataStore)
@@ -281,22 +284,14 @@ func (b *Browser) waitPageReady(page *rod.Page, idle time.Duration, waitReqIdle 
 
 const chromeShellEnsureTimeout = 2 * time.Minute
 
+// ensureChromeShell fetches the browser under a deadline. The context has to
+// reach the download itself: racing a plain Ensure against a timer would only
+// abandon the wait, leaving the transfer running and the shared download lock
+// held, so the next caller would block behind it.
 func ensureChromeShell() (string, error) {
-	type result struct {
-		path string
-		err  error
-	}
-	done := make(chan result, 1)
-	go func() {
-		path, err := chromeshell.Ensure()
-		done <- result{path: path, err: err}
-	}()
-	select {
-	case r := <-done:
-		return r.path, r.err
-	case <-time.After(chromeShellEnsureTimeout):
-		return "", errors.New("chrome-headless-shell download timed out")
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), chromeShellEnsureTimeout)
+	defer cancel()
+	return chromeshell.EnsureContext(ctx)
 }
 
 // takeScreenshotAndGetBody performs the screenshot actions
