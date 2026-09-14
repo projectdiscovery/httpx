@@ -51,7 +51,7 @@ func ExtractTitle(r *Response) (title string) {
 }
 
 func CanHaveTitleTag(mimeType string) bool {  
-    return slices.Contains(supportedTitleMimeTypes, mimeType)  
+    return slices.Contains(supportedTitleMimeTypes, strings.ToLower(strings.TrimSpace(mimeType)))  
 }  
 
 func getTitleWithDom(r *Response) (*html.Node, error) {
