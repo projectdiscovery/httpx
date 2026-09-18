@@ -86,6 +86,7 @@ type ScanOptions struct {
 	NoFallback                bool
 	NoFallbackScheme          bool
 	TechDetect                bool
+	TechDetectRuntime         bool
 	CPEDetect                 bool
 	WordPress                 bool
 	StoreChain                bool
@@ -151,6 +152,7 @@ func (s *ScanOptions) Clone() *ScanOptions {
 		NoFallback:                s.NoFallback,
 		NoFallbackScheme:          s.NoFallbackScheme,
 		TechDetect:                s.TechDetect,
+		TechDetectRuntime:         s.TechDetectRuntime,
 		CPEDetect:                 s.CPEDetect,
 		WordPress:                 s.WordPress,
 		StoreChain:                s.StoreChain,
@@ -268,6 +270,7 @@ type Options struct {
 	NoFallback                bool
 	NoFallbackScheme          bool
 	TechDetect                bool
+	TechDetectRuntime         bool
 	CPEDetect                 bool
 	WordPress                 bool
 	CustomFingerprintFile     string
@@ -436,6 +439,7 @@ func ParseOptions() *Options {
 		flagSet.DurationVarP(&options.ScreenshotTimeout, "screenshot-timeout", "st", 10*time.Second, "set timeout for screenshot in seconds"),
 		flagSet.DurationVarP(&options.ScreenshotIdle, "screenshot-idle", "sid", 1*time.Second, "set idle time before taking screenshot in seconds"),
 		flagSet.StringSliceVarP(&options.JavascriptCodes, "javascript-code", "jsc", nil, "execute JavaScript code after navigation", goflags.StringSliceOptions),
+		flagSet.BoolVarP(&options.TechDetectRuntime, "tech-detect-runtime", "tdr", false, "enable browser-based runtime technology detection using a headless browser (requires -tech-detect)"),
 	)
 
 	flagSet.CreateGroup("matchers", "Matchers",

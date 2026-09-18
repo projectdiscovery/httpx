@@ -76,6 +76,7 @@ import (
 	iputil "github.com/projectdiscovery/utils/ip"
 	syncutil "github.com/projectdiscovery/utils/sync"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
+	wappalyzerheadless "github.com/projectdiscovery/wappalyzergo/headless"
 )
 
 // Runner is a client for running the enumeration process.
@@ -348,7 +349,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
 	scanopts.extractRegexps = make(map[string]*regexp.Regexp)
-	if options.Screenshot {
+	if options.Screenshot || options.TechDetectRuntime {
 		browser, err := NewBrowser(options.HTTPProxy, options.UseInstalledChrome, options.ParseHeadlessOptionalArguments())
 		if err != nil {
 			return nil, err
@@ -356,6 +357,7 @@ func New(options *Options) (*Runner, error) {
 		runner.browser = browser
 	}
 	scanopts.Screenshot = options.Screenshot
+	scanopts.TechDetectRuntime = options.TechDetectRuntime
 	scanopts.NoScreenshotBytes = options.NoScreenshotBytes
 	scanopts.NoHeadlessBody = options.NoHeadlessBody
 	scanopts.NoScreenshotFullPage = options.NoScreenshotFullPage
@@ -675,6 +677,26 @@ func (r *Runner) classifyPage(headlessBody, body string, pHash uint64) map[strin
 		kb["Forms"] = result.Forms
 	}
 	return kb
+}
+
+// fingerprintTechnologiesWithRuntime renders fullURL in the headless browser and runs
+// wappalyzer's runtime fingerprinting against it, combining the passive header/body
+// evidence with JavaScript/DOM/script evidence collected from the rendered page.
+func (r *Runner) fingerprintTechnologiesWithRuntime(fullURL string, headers map[string][]string, body []byte, timeout time.Duration) (map[string]struct{}, error) {
+	page, err := r.browser.NavigatePage(fullURL, timeout, r.options.CustomHeaders)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = page.Close() }()
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	collector := wappalyzerheadless.New(page)
+	return r.wappalyzer.FingerprintWithRuntime(ctx, headers, body, wappalyzer.RuntimeOptions{
+		Collector: collector,
+		Timeout:   timeout,
+	})
 }
 
 func (r *Runner) testAndSet(k string) bool {
@@ -2342,10 +2364,24 @@ retry:
 	technologyDetails := make(map[string]wappalyzer.AppInfo)
 	var technologies []string
 	if scanopts.TechDetect {
-		matches := r.wappalyzer.FingerprintWithInfo(resp.Headers, resp.Data)
-		for match, data := range matches {
-			technologies = append(technologies, match)
-			technologyDetails[match] = data
+		usedRuntimeDetection := false
+		if scanopts.TechDetectRuntime && r.browser != nil {
+			runtimeMatches, err := r.fingerprintTechnologiesWithRuntime(fullURL, resp.Headers, resp.Data, scanopts.ScreenshotTimeout)
+			if err != nil {
+				gologger.Warning().Msgf("Could not run runtime technology detection '%s': %s", fullURL, err)
+			} else {
+				for match := range runtimeMatches {
+					technologies = append(technologies, match)
+				}
+				usedRuntimeDetection = true
+			}
+		}
+		if !usedRuntimeDetection {
+			matches := r.wappalyzer.FingerprintWithInfo(resp.Headers, resp.Data)
+			for match, data := range matches {
+				technologies = append(technologies, match)
+				technologyDetails[match] = data
+			}
 		}
 	}
 
