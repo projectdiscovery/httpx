@@ -2939,10 +2939,7 @@ func extractPotentialFavIconsURLs(resp []byte) (candidates []string, baseHref st
 
 // SaveResumeConfig to file
 func (r *Runner) SaveResumeConfig() error {
-	var resumeCfg ResumeCfg
-	resumeCfg.Index = r.options.resumeCfg.currentIndex
-	resumeCfg.ResumeFrom = r.options.resumeCfg.current
-	return goconfig.Save(resumeCfg, DefaultResumeFile)
+	return r.SaveResumeConfigAtomic()
 }
 
 // JSON the result
