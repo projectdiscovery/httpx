@@ -432,7 +432,12 @@ func New(options *Options) (*Runner, error) {
 
 	runner.simHashes = gcache.New[uint64, []string](1000).ARC().Build()
 	if options.classificationEnabled() {
-		ditClassifier, err := dit.New()
+		ditClassifier, err := func() (*dit.Classifier, error) {
+			if options.PageTypeModel != "" {
+				return dit.Load(options.PageTypeModel)
+			}
+			return dit.New()
+		}()
 		if err != nil {
 			return nil, errors.Wrap(err, "could not initialize page classifier")
 		}

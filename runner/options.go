@@ -207,6 +207,9 @@ type Options struct {
 	// KnowledgeBase enables knowledge base classification using dit. It is
 	// implied by OutputFilterPageType/OutputFilterErrorPage, which need it.
 	KnowledgeBase             bool
+	// PageTypeModel overrides the model used by knowledge base classification.
+	// It does not enable classification on its own.
+	PageTypeModel             string
 	FilterOutDuplicates       bool
 	OutputFilterContentLength string
 	InputRawRequest           string
@@ -529,6 +532,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("configs", "Configurations",
 		flagSet.StringVar(&cfgFile, "config", "", "path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)"),
+		flagSet.StringVarP(&options.PageTypeModel, "page-type-model", "ptm", "", "path to a local dit model for page classification (requires -kb or -fpt; skips model download)"),
 		flagSet.StringSliceVarP(&options.Resolvers, "resolvers", "r", nil, "list of custom resolver (file or comma separated)", goflags.NormalizedStringSliceOptions),
 		flagSet.Var(&options.Allow, "allow", "allowed list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
