@@ -146,6 +146,13 @@ func New(options *Options) (*Runner, error) {
 		interruptCh: make(chan struct{}),
 	}
 	var err error
+	// Load an explicit model before creating resources or clearing output indexes.
+	if options.classificationEnabled() && options.PageTypeModel != "" {
+		runner.ditClassifier, err = dit.Load(options.PageTypeModel)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not initialize page classifier")
+		}
+	}
 	if options.Wappalyzer != nil {
 		runner.wappalyzer = options.Wappalyzer
 	} else if techDetectRequired(options) {
@@ -431,13 +438,8 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.simHashes = gcache.New[uint64, []string](1000).ARC().Build()
-	if options.classificationEnabled() {
-		ditClassifier, err := func() (*dit.Classifier, error) {
-			if options.PageTypeModel != "" {
-				return dit.Load(options.PageTypeModel)
-			}
-			return dit.New()
-		}()
+	if options.classificationEnabled() && runner.ditClassifier == nil {
+		ditClassifier, err := dit.New()
 		if err != nil {
 			return nil, errors.Wrap(err, "could not initialize page classifier")
 		}

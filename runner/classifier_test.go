@@ -83,6 +83,35 @@ func TestPageTypeModelDoesNotEnableClassification(t *testing.T) {
 	require.NotContains(t, r.classifyPage("", "<html></html>", 0), "PageType")
 }
 
+func TestLocalPageTypeModelErrorsPreserveResponseIndexes(t *testing.T) {
+	for _, name := range []string{"missing", "invalid JSON"} {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			modelPath := filepath.Join(dir, "model.json")
+			if name == "invalid JSON" {
+				require.NoError(t, os.WriteFile(modelPath, []byte("invalid JSON"), 0600))
+			}
+			indexes := []string{
+				filepath.Join(dir, "response", "index.txt"),
+				filepath.Join(dir, "screenshot", "index_screenshot.txt"),
+			}
+			for _, path := range indexes {
+				require.NoError(t, os.MkdirAll(filepath.Dir(path), 0700))
+				require.NoError(t, os.WriteFile(path, []byte("previous scan results"), 0600))
+			}
+
+			r, err := New(&Options{KnowledgeBase: true, PageTypeModel: modelPath, StoreResponseDir: dir})
+			require.ErrorContains(t, err, "could not initialize page classifier")
+			require.Nil(t, r)
+			for _, path := range indexes {
+				data, err := os.ReadFile(path)
+				require.NoError(t, err)
+				require.Equal(t, "previous scan results", string(data))
+			}
+		})
+	}
+}
+
 func TestPageTypeModelDefaultDiscovery(t *testing.T) {
 	t.Chdir(t.TempDir())
 	localPageModel(t, "model.json")
