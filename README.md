@@ -298,6 +298,8 @@ httpx -l hosts.txt -fpt error,parked -ptm /opt/httpx/model.json
 
 The path selects a local model and bypasses automatic model discovery and downloading. A missing or unreadable model, or invalid model JSON, stops initialization instead of falling back to a download. Classification remains opt-in: use `-kb` or `-fpt` (the deprecated `-fep` is also supported). Setting `-ptm` alone does not load the model or enable classification. Library users can set `Options.PageTypeModel` alongside `KnowledgeBase` or `OutputFilterPageType`. Without a custom path, the existing model discovery and download behavior is unchanged.
 
+Explicit models must also pass a page and form classification check before scanning starts or existing output indexes are changed. This checks that the model can run, rather than certifying every part of its contents. A later classification error leaves that response without page-type information; diagnostics are available with `-debug`.
+
 ## Common Recipes
 
 Below are practical one-liners for common use cases leveraging httpx's composable primitives. These recipes are validated in `runner/wellknown_recipes_test.go`.

@@ -148,7 +148,7 @@ func New(options *Options) (*Runner, error) {
 	var err error
 	// Load an explicit model before creating resources or clearing output indexes.
 	if options.classificationEnabled() && options.PageTypeModel != "" {
-		runner.ditClassifier, err = dit.Load(options.PageTypeModel)
+		runner.ditClassifier, err = loadPageTypeModel(options.PageTypeModel)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not initialize page classifier")
 		}
@@ -673,8 +673,9 @@ func (r *Runner) classifyPage(headlessBody, body string, pHash uint64) map[strin
 	if headlessBody != "" {
 		html = headlessBody
 	}
-	result, err := r.ditClassifier.ExtractPageType(html)
+	result, err := extractPageType(r.ditClassifier, html)
 	if err != nil {
+		gologger.Debug().Msgf("Could not classify page: %s", err)
 		return kb
 	}
 	kb["PageType"] = fmt.Sprint(result.Type)
