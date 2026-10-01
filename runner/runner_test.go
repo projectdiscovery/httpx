@@ -1166,3 +1166,32 @@ func TestHandshakeThenCloseKeepsPlainResult(t *testing.T) {
 	require.EqualValues(t, 1, atomic.LoadInt64(&tlsHandshakes),
 		"the failed HTTPS request must complete its TLS handshake first")
 }
+
+func TestRunner_RateLimiterInitialization(t *testing.T) {
+	t.Run("default unlimited rate limiter is non-nil pointer", func(t *testing.T) {
+		r, err := New(&Options{})
+		require.NoError(t, err)
+		defer r.Close()
+
+		require.NotNil(t, r.ratelimiter)
+		r.ratelimiter.Take()
+	})
+
+	t.Run("per-second rate limiter is non-nil pointer", func(t *testing.T) {
+		r, err := New(&Options{RateLimit: 50})
+		require.NoError(t, err)
+		defer r.Close()
+
+		require.NotNil(t, r.ratelimiter)
+		r.ratelimiter.Take()
+	})
+
+	t.Run("per-minute rate limiter is non-nil pointer", func(t *testing.T) {
+		r, err := New(&Options{RateLimitMinute: 60})
+		require.NoError(t, err)
+		defer r.Close()
+
+		require.NotNil(t, r.ratelimiter)
+		r.ratelimiter.Take()
+	})
+}
