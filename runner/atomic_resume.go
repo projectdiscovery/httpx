@@ -24,6 +24,7 @@ func syncDir(dirPath string) error {
 	return d.Sync()
 }
 
+// SaveAtomic writes data to a temporary file in targetPath's directory, syncs to disk, and atomically renames it over targetPath.
 func SaveAtomic(targetPath string, data []byte) error {
 	atomicResumeMutex.Lock()
 	defer atomicResumeMutex.Unlock()
