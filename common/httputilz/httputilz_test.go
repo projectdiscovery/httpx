@@ -91,3 +91,28 @@ func TestParseRequestMalformed(t *testing.T) {
 	_, _, _, _, err := ParseRequest("GET\r\n\r\n", false)
 	require.Error(t, err)
 }
+
+func TestParseRequestKeepsLastHeaderWithoutTrailingNewline(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  string
+	}{
+		{name: "crlf", raw: "GET /anything HTTP/1.1\r\nHost: example.com\r\nX-Api-Key: secret"},
+		{name: "lf", raw: "GET /anything HTTP/1.1\nHost: example.com\nX-Api-Key: secret"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, unsafe := range []bool{false, true} {
+				_, _, headers, body, err := ParseRequest(tc.raw, unsafe)
+				require.NoError(t, err)
+				require.Contains(t, headers, "Host")
+				require.Contains(t, headers, "X-Api-Key")
+				if !unsafe {
+					require.Equal(t, []string{"secret"}, headers["X-Api-Key"])
+				}
+				require.Empty(t, body)
+			}
+		})
+	}
+}

@@ -43,7 +43,8 @@ func ParseRequest(req string, unsafe bool) (method, path string, headers map[str
 		line, readErr := reader.ReadString('\n')
 		line = strings.TrimSpace(line)
 
-		if readErr != nil || line == "" {
+		// the last header line may not end with a newline, keep it
+		if line == "" {
 			break
 		}
 
@@ -69,6 +70,9 @@ func ParseRequest(req string, unsafe bool) (method, path string, headers map[str
 		}
 
 		headers[key] = append(headers[key], value)
+		if readErr != nil {
+			break
+		}
 	}
 
 	// Handle case with the full http url in path. In that case,
