@@ -1,15 +1,15 @@
-# Base
-FROM golang:1.26.5-alpine AS builder
-
-RUN apk add --no-cache git build-base gcc musl-dev
-WORKDIR /app
-COPY . /app
-RUN go mod download
-RUN go build ./cmd/httpx
-
 FROM alpine:3.18.2
+
+LABEL org.opencontainers.image.authors="ProjectDiscovery"
+LABEL org.opencontainers.image.description="httpx is a fast and multi-purpose HTTP toolkit that allows running multiple probes using the retryablehttp library."
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.title="httpx"
+LABEL org.opencontainers.image.url="https://github.com/projectdiscovery/httpx"
+
 RUN apk upgrade --no-cache \
     && apk add --no-cache bind-tools ca-certificates chromium
-COPY --from=builder /app/httpx /usr/local/bin/
+
+ARG TARGETPLATFORM
+COPY $TARGETPLATFORM/httpx /usr/local/bin/
 
 ENTRYPOINT ["httpx"]
