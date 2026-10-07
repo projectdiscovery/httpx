@@ -1,4 +1,4 @@
-FROM alpine:3.18.2
+FROM alpine:latest
 
 LABEL org.opencontainers.image.authors="ProjectDiscovery"
 LABEL org.opencontainers.image.description="httpx is a fast and multi-purpose HTTP toolkit that allows running multiple probes using the retryablehttp library."
