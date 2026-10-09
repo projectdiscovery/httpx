@@ -1166,3 +1166,27 @@ func TestHandshakeThenCloseKeepsPlainResult(t *testing.T) {
 	require.EqualValues(t, 1, atomic.LoadInt64(&tlsHandshakes),
 		"the failed HTTPS request must complete its TLS handshake first")
 }
+
+func TestRunner_InputRawRequestWithoutTrailingNewline(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "raw_req_*")
+	require.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	content := "GET /admin HTTP/1.1\r\nHost: 127.0.0.1\r\nX-Api-Key: secret"
+	_, err = tmpFile.WriteString(content)
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+
+	options := &Options{
+		InputRawRequest: tmpFile.Name(),
+	}
+	r, err := New(options)
+	require.NoError(t, err)
+	defer r.Close()
+
+	require.Contains(t, r.hp.CustomHeaders, "X-Api-Key")
+	require.Equal(t, []string{"secret"}, r.hp.CustomHeaders["X-Api-Key"])
+	require.Contains(t, r.hp.CustomHeaders, "Host")
+	require.Equal(t, []string{"127.0.0.1"}, r.hp.CustomHeaders["Host"])
+}
+
