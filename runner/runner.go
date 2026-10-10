@@ -273,7 +273,7 @@ func New(options *Options) (*Runner, error) {
 
 		rrMethod, rrPath, rrHeaders, rrBody, errParse := httputilz.ParseRequest(string(rawRequest), options.Unsafe)
 		if errParse != nil {
-			gologger.Fatal().Msgf("Could not parse raw request: %s\n", err)
+			gologger.Fatal().Msgf("Could not parse raw request: %s\n", errParse)
 		}
 		scanopts.Methods = append(scanopts.Methods, rrMethod)
 		scanopts.RequestURI = rrPath
