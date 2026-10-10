@@ -169,3 +169,5 @@ require (
 	golang.org/x/time v0.15.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
+
+replace github.com/projectdiscovery/fastdialer => github.com/mazzz3r/fastdialer v0.0.0-20261010115852-eced62301c6f

@@ -546,6 +546,10 @@ func (r *Runner) prepareInput() {
 	// check if input target host(s) have been provided
 	if len(r.options.InputTargetHost) > 0 {
 		for _, target := range r.options.InputTargetHost {
+			target, err := r.normalizeInput(target)
+			if err != nil {
+				gologger.Fatal().Msgf("Could not read input target: %s\n", err)
+			}
 			expandedTarget, err := r.countTargetFromRawTarget(target)
 			if err == nil && expandedTarget > 0 {
 				numHosts += expandedTarget
@@ -722,6 +726,20 @@ func (r *Runner) streamInput() (chan string, error) {
 				return true
 			}
 		}
+		// sendLine normalizes, deduplicates and sends an input line, returning
+		// false if interrupted. The scan has already started, so an invalid
+		// line is skipped with a warning.
+		sendLine := func(item string) bool {
+			item, err := r.normalizeInput(item)
+			if err != nil {
+				gologger.Error().Msgf("Skipping input: %s\n", err)
+				return true
+			}
+			if r.options.SkipDedupe || r.testAndSet(item) {
+				return trySend(item)
+			}
+			return true
+		}
 
 		if fileutil.FileExists(r.options.InputFile) {
 			// check if input mode is specified for special format handling
@@ -744,13 +762,8 @@ func (r *Runner) streamInput() (chan string, error) {
 				}
 			} else {
 				for item, err := range fileutil.Lines(r.options.InputFile) {
-					if err != nil {
+					if err != nil || !sendLine(item) {
 						return
-					}
-					if r.options.SkipDedupe || r.testAndSet(item) {
-						if !trySend(item) {
-							return
-						}
 					}
 				}
 			}
@@ -761,26 +774,16 @@ func (r *Runner) streamInput() (chan string, error) {
 			}
 			for _, file := range files {
 				for item, err := range fileutil.Lines(file) {
-					if err != nil {
+					if err != nil || !sendLine(item) {
 						return
-					}
-					if r.options.SkipDedupe || r.testAndSet(item) {
-						if !trySend(item) {
-							return
-						}
 					}
 				}
 			}
 		}
 		if fileutil.HasStdin() {
 			for item, err := range fileutil.LinesReader(os.Stdin) {
-				if err != nil {
+				if err != nil || !sendLine(item) {
 					return
-				}
-				if r.options.SkipDedupe || r.testAndSet(item) {
-					if !trySend(item) {
-						return
-					}
 				}
 			}
 		}
@@ -791,7 +794,11 @@ func (r *Runner) streamInput() (chan string, error) {
 func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	scanner := bufio.NewScanner(finput)
 	for scanner.Scan() {
-		target := strings.TrimSpace(scanner.Text())
+		target, err := r.normalizeInput(scanner.Text())
+		if err != nil {
+			_ = finput.Close()
+			return 0, err
+		}
 		// Used just to get the exact number of targets
 		expandedTarget, err := r.countTargetFromRawTarget(target)
 		if err == nil && expandedTarget > 0 {
@@ -1524,7 +1531,7 @@ func (r *Runner) RunEnumeration() {
 
 		protocol := r.options.protocol
 		// attempt to parse url as is
-		if u, err := r.parseURL(k); err == nil {
+		if u, err := r.parseURL(targetOf(k)); err == nil {
 			if r.options.NoFallbackScheme && u.Scheme == httpx.HTTP || u.Scheme == httpx.HTTPS {
 				protocol = u.Scheme
 			}
@@ -1776,6 +1783,13 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 		target = strings.TrimSpace(target)
 
 		switch {
+		case isTargetLine(target):
+			line, err := parseTargetLine(target)
+			if err != nil {
+				gologger.Warning().Msgf("%s\n", err)
+				return
+			}
+			results <- httpx.Target{Host: line.Target, CustomIP: line.IP}
 		case stringsutil.HasPrefixAny(target, "*", "."):
 			// A valid target does not contain:
 			// trim * and/or . (prefix) from the target to return the domain instead of wildcard
@@ -1852,6 +1866,10 @@ retry:
 
 	// check if we have to skip the host:port as a result of a previous failure
 	hostPort := net.JoinHostPort(URL.Host, URL.Port())
+	if target.CustomIP != "" {
+		// the ips of a host fail independently
+		hostPort += "@" + target.CustomIP
+	}
 	if r.options.HostMaxErrors >= 0 && r.HostErrorsCache.Has(hostPort) {
 		numberOfErrors, err := r.HostErrorsCache.GetIFPresent(hostPort)
 		if err == nil && numberOfErrors >= r.options.HostMaxErrors {
@@ -1880,16 +1898,11 @@ retry:
 		req *retryablehttp.Request
 		ctx context.Context
 	)
+	ctx = context.Background()
 	if target.CustomIP != "" {
-		var requestIP string
-		if iputil.IsIPv6(target.CustomIP) {
-			requestIP = fmt.Sprintf("[%s]", target.CustomIP)
-		} else {
-			requestIP = target.CustomIP
-		}
-		ctx = context.WithValue(context.Background(), fastdialer.IP, requestIP)
-	} else {
-		ctx = context.Background()
+		// only dials to the target's host go to the ip, not those to a
+		// redirect target on another host
+		ctx = fastdialer.WithResolveOverride(ctx, URL.Hostname(), target.CustomIP)
 	}
 	req, err = hp.NewRequestWithContext(ctx, method, URL.String())
 	if err != nil {
@@ -2761,6 +2774,11 @@ func (r *Runner) skip(URL *urlutil.URL, target httpx.Target, origInput string) (
 		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("target host is not allowed by network policy")}
 	}
 
+	if target.CustomIP != "" && !r.hp.NetworkPolicy.Validate(target.CustomIP) {
+		gologger.Debug().Msgf("Skipping target due to network policy: %s (%s)\n", URL.Hostname(), target.CustomIP)
+		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("target ip is not allowed by network policy")}
+	}
+
 	return false, Result{}
 }
 
@@ -2811,8 +2829,8 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		}
 	}
 
-	// Clone original request (reuse headers/cookies)
-	clone := req.Clone(context.Background())
+	// Clone original request (reuse headers/cookies, and the pinned ip)
+	clone := req.Clone(req.Context())
 
 	var (
 		faviconMMH3 string
