@@ -122,6 +122,18 @@ func TestHTTP11DisablesRetryableHTTP2FallbackClient(t *testing.T) {
 	require.Same(t, ht.client.HTTPClient, ht.client.HTTPClient2)
 }
 
+func TestClient2SpeaksHTTP2Only(t *testing.T) {
+	options := DefaultOptions
+	ht, err := New(&options)
+	require.NoError(t, err)
+	transport, ok := ht.client2.Transport.(*http.Transport)
+	require.True(t, ok)
+	require.NotNil(t, transport.Protocols)
+	require.True(t, transport.Protocols.HTTP2())
+	require.True(t, transport.Protocols.UnencryptedHTTP2())
+	require.False(t, transport.Protocols.HTTP1())
+}
+
 func TestDefaultProtocolKeepsRetryableHTTP2FallbackClient(t *testing.T) {
 	options := DefaultOptions
 
