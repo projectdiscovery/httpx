@@ -34,7 +34,14 @@ func (f FilterOperator) Parse(flagValue string) (string, time.Duration, error) {
 			timeVal := strings.Trim(splittedFlagValue[1], " ")
 			value, err = time.ParseDuration(timeVal)
 			if err != nil && strings.Contains(err.Error(), "missing unit") {
-				value, _ = time.ParseDuration(fmt.Sprintf("%ss", timeVal))
+				// A bare number is read as seconds. This retry used to drop its
+				// error, so a number too large to hold as a duration left value
+				// at zero and reported nothing, and the filter then matched
+				// every host instead of rejecting the flag.
+				value, err = time.ParseDuration(fmt.Sprintf("%ss", timeVal))
+				if err != nil {
+					return operator, value, fmt.Errorf("invalid value provided for %s", f.flag)
+				}
 			} else if err != nil {
 				return operator, value, fmt.Errorf("invalid value provided for %s", f.flag)
 			}
