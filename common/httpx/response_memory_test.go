@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -187,4 +188,35 @@ func TestBodyMetricsCountingDoesNotAllocate(t *testing.T) {
 	require.NotZero(t, words)
 	require.NotZero(t, lines)
 	require.Zerof(t, allocs, "word/line counting must not allocate, got %v allocs/op", allocs)
+}
+
+// TestDoTruncatedBodyIsNotAFailure guards against the regression where capping
+// the body before dumping the response made the dump fail with
+// "ContentLength=x with Body length y", turning a valid response into a failed
+// one (issue #2641).
+func TestDoTruncatedBodyIsNotAFailure(t *testing.T) {
+	body := bytes.Repeat([]byte("A"), 4096)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/pdf")
+		w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+		_, _ = w.Write(body)
+	}))
+	defer ts.Close()
+
+	const readSize = 10
+	options := DefaultOptions
+	options.CdnCheck = "false"
+	options.Timeout = 5 * time.Second
+	options.RetryMax = 0
+	options.MaxResponseBodySizeToRead = readSize
+
+	ht, err := New(&options)
+	require.NoError(t, err)
+
+	resp := doLocal(t, ht, ts.URL)
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, len(body), resp.ContentLength, "advertised content length must be reported")
+	require.Len(t, resp.Data, readSize, "body must be capped to the configured read size")
+	require.Contains(t, resp.RawHeaders, "Content-Length: "+strconv.Itoa(len(body)))
 }

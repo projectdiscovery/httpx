@@ -90,7 +90,7 @@ type Runner struct {
 	hm                 *hybrid.HybridMap
 	excludeCdn         bool
 	stats              clistats.StatisticsClient
-	ratelimiter        ratelimit.Limiter
+	ratelimiter        *ratelimit.Limiter
 	HostErrorsCache    gcache.Cache[string, int]
 	browser            *Browser
 	ditClassifier *dit.Classifier
@@ -416,11 +416,11 @@ func New(options *Options) (*Runner, error) {
 	runner.hm = hm
 
 	if options.RateLimitMinute > 0 {
-		runner.ratelimiter = *ratelimit.New(context.Background(), uint(options.RateLimitMinute), time.Minute)
+		runner.ratelimiter = ratelimit.New(context.Background(), uint(options.RateLimitMinute), time.Minute)
 	} else if options.RateLimit > 0 {
-		runner.ratelimiter = *ratelimit.New(context.Background(), uint(options.RateLimit), time.Second)
+		runner.ratelimiter = ratelimit.New(context.Background(), uint(options.RateLimit), time.Second)
 	} else {
-		runner.ratelimiter = *ratelimit.NewUnlimited(context.Background())
+		runner.ratelimiter = ratelimit.NewUnlimited(context.Background())
 	}
 
 	if options.HostMaxErrors >= 0 {
@@ -917,7 +917,9 @@ func (r *Runner) Close() {
 	// nolint:errcheck // ignore
 	r.hm.Close()
 	r.hp.Dialer.Close()
-	r.ratelimiter.Stop()
+	if r.ratelimiter != nil {
+		r.ratelimiter.Stop()
+	}
 
 	if r.options.HostMaxErrors >= 0 {
 		r.HostErrorsCache.Purge()
@@ -1927,7 +1929,9 @@ retry:
 		req.Body = nil
 	}
 
-	r.ratelimiter.Take()
+	if r.ratelimiter != nil {
+		r.ratelimiter.Take()
+	}
 
 	// with rawhttp we should say to the server to close the connection, otherwise it will remain open
 	if scanopts.Unsafe {
@@ -2217,7 +2221,9 @@ retry:
 	// check for virtual host
 	isvhost := false
 	if scanopts.VHost {
-		r.ratelimiter.Take()
+		if r.ratelimiter != nil {
+			r.ratelimiter.Take()
+		}
 		isvhost, _ = hp.IsVirtualHost(req, httpx.UnsafeOptions{})
 		if isvhost {
 			builder.WriteString(" [vhost]")
@@ -2238,7 +2244,9 @@ retry:
 				port = p
 			}
 		}
-		r.ratelimiter.Take()
+		if r.ratelimiter != nil {
+			r.ratelimiter.Take()
+		}
 		pipeline = hp.SupportPipeline(protocol, method, URL.Host, port)
 		if pipeline {
 			builder.WriteString(" [pipeline]")
@@ -2251,7 +2259,9 @@ retry:
 	var http2 bool
 	// if requested probes for http2
 	if scanopts.HTTP2Probe {
-		r.ratelimiter.Take()
+		if r.ratelimiter != nil {
+			r.ratelimiter.Take()
+		}
 		http2 = hp.SupportHTTP2(protocol, method, URL.String())
 		if http2 {
 			builder.WriteString(" [http2]")
