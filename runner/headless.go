@@ -133,6 +133,24 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 	return screenshot, body, networkRequests, nil
 }
 
+// NavigatePage opens a page, navigates to url and waits for it to load, returning
+// the live page for the caller to interact with (e.g. runtime evidence collection).
+// The caller is responsible for closing the returned page.
+func (b *Browser) NavigatePage(url string, timeout time.Duration, headers []string) (*rod.Page, error) {
+	page, _, err := b.setupPageAndNavigate(url, timeout, headers, nil)
+	if err != nil {
+		if page != nil {
+			b.closePage(page)
+		}
+		return nil, err
+	}
+	if err := page.WaitLoad(); err != nil {
+		b.closePage(page)
+		return nil, err
+	}
+	return page, nil
+}
+
 // setupPageAndNavigate opens a page, performs all adaptive actions including JS injection
 func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, headers []string, jsCodes []string) (*rod.Page, []NetworkRequest, error) {
 	page, err := b.engine.Page(proto.TargetCreateTarget{})
