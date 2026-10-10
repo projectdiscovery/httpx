@@ -30,7 +30,6 @@ import (
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	urlutil "github.com/projectdiscovery/utils/url"
-	"golang.org/x/net/http2"
 )
 
 // HTTPX represent an instance of the library client
@@ -142,8 +141,8 @@ func New(options *Options) (*HTTPX, error) {
 		}
 	}
 	transport := &http.Transport{
-		DialContext: httpx.Dialer.Dial,
-		DialTLSContext: httpx.buildTLSDialer(options),
+		DialContext:         httpx.Dialer.Dial,
+		DialTLSContext:      httpx.buildTLSDialer(options),
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -188,12 +187,15 @@ func New(options *Options) (*HTTPX, error) {
 		httpx.client.HTTPClient2 = httpx.client.HTTPClient
 	}
 
-	transport2 := &http2.Transport{
+	var protocols http.Protocols
+	protocols.SetHTTP2(true)
+	protocols.SetUnencryptedHTTP2(true)
+	transport2 := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
 		},
-		AllowHTTP: true,
+		Protocols: &protocols,
 	}
 	if httpx.Options.SniName != "" {
 		transport2.TLSClientConfig.ServerName = httpx.Options.SniName
