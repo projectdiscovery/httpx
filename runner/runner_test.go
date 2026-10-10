@@ -1166,3 +1166,66 @@ func TestHandshakeThenCloseKeepsPlainResult(t *testing.T) {
 	require.EqualValues(t, 1, atomic.LoadInt64(&tlsHandshakes),
 		"the failed HTTPS request must complete its TLS handshake first")
 }
+
+func TestRunner_RateLimiter_Initialization(t *testing.T) {
+	t.Run("unlimited rate limiter initialization and concurrency", func(t *testing.T) {
+		const numGoroutines = 10
+		var wg sync.WaitGroup
+		wg.Add(numGoroutines)
+		for i := 0; i < numGoroutines; i++ {
+			go func() {
+				defer wg.Done()
+				r, err := New(&Options{})
+				require.NoError(t, err)
+				require.NotNil(t, r.ratelimiter)
+				r.ratelimiter.Take()
+				r.Close()
+			}()
+		}
+		wg.Wait()
+	})
+
+	t.Run("per second rate limiter initialization and concurrency", func(t *testing.T) {
+		const numGoroutines = 10
+		var wg sync.WaitGroup
+		wg.Add(numGoroutines)
+		for i := 0; i < numGoroutines; i++ {
+			go func() {
+				defer wg.Done()
+				r, err := New(&Options{RateLimit: 100})
+				require.NoError(t, err)
+				require.NotNil(t, r.ratelimiter)
+				r.ratelimiter.Take()
+				r.Close()
+			}()
+		}
+		wg.Wait()
+	})
+
+	t.Run("per minute rate limiter initialization and concurrency", func(t *testing.T) {
+		const numGoroutines = 10
+		var wg sync.WaitGroup
+		wg.Add(numGoroutines)
+		for i := 0; i < numGoroutines; i++ {
+			go func() {
+				defer wg.Done()
+				r, err := New(&Options{RateLimitMinute: 600})
+				require.NoError(t, err)
+				require.NotNil(t, r.ratelimiter)
+				r.ratelimiter.Take()
+				r.Close()
+			}()
+		}
+		wg.Wait()
+	})
+
+	t.Run("close on nil ratelimiter does not panic", func(t *testing.T) {
+		r, err := New(&Options{})
+		require.NoError(t, err)
+		r.ratelimiter = nil
+		require.NotPanics(t, func() {
+			r.Close()
+		})
+	})
+}
+
