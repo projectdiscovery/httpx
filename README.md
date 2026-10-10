@@ -217,6 +217,7 @@ OUTPUT:
 
 CONFIGURATIONS:
    -config string                   path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
+   -ptm, -page-type-model string    path to a local dit model for page classification (requires -kb or -fpt; skips model download)
    -r, -resolvers string[]          list of custom resolver (file or comma separated)
    -allow string[]                  allowed list of IP/CIDR's to process (file or comma separated)
    -deny string[]                   denied list of IP/CIDR's to process (file or comma separated)
@@ -285,6 +286,19 @@ For details about running httpx, see https://docs.projectdiscovery.io/tools/http
 
 ### Using `httpx` as a library
 `httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. A minimal example of how to do it is in the [examples](examples/) folder.
+
+### Using a local page classification model
+
+For environments that cannot reach Hugging Face, provision the [dit model.json](https://huggingface.co/datasets/happyhackingspace/dit/resolve/main/model.json) on an accessible machine and copy it to the scanning environment. Select it with `-page-type-model` (`-ptm`):
+
+```bash
+httpx -l hosts.txt -kb -json -ptm /opt/httpx/model.json
+httpx -l hosts.txt -fpt error,parked -ptm /opt/httpx/model.json
+```
+
+The path selects a local model and bypasses automatic model discovery and downloading. A missing or unreadable model, or invalid model JSON, stops initialization instead of falling back to a download. Classification remains opt-in: use `-kb` or `-fpt` (the deprecated `-fep` is also supported). Setting `-ptm` alone does not load the model or enable classification. Library users can set `Options.PageTypeModel` alongside `KnowledgeBase` or `OutputFilterPageType`. Without a custom path, the existing model discovery and download behavior is unchanged.
+
+Explicit models must also pass a page and form classification check before scanning starts or existing output indexes are changed. This checks that the model can run, rather than certifying every part of its contents. A later classification error leaves that response without page-type information; diagnostics are available with `-debug`.
 
 ## Common Recipes
 

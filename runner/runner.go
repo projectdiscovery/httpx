@@ -146,6 +146,13 @@ func New(options *Options) (*Runner, error) {
 		interruptCh: make(chan struct{}),
 	}
 	var err error
+	// Load an explicit model before creating resources or clearing output indexes.
+	if options.classificationEnabled() && options.PageTypeModel != "" {
+		runner.ditClassifier, err = loadPageTypeModel(options.PageTypeModel)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not initialize page classifier")
+		}
+	}
 	if options.Wappalyzer != nil {
 		runner.wappalyzer = options.Wappalyzer
 	} else if techDetectRequired(options) {
@@ -431,7 +438,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.simHashes = gcache.New[uint64, []string](1000).ARC().Build()
-	if options.classificationEnabled() {
+	if options.classificationEnabled() && runner.ditClassifier == nil {
 		ditClassifier, err := dit.New()
 		if err != nil {
 			return nil, errors.Wrap(err, "could not initialize page classifier")
@@ -666,8 +673,9 @@ func (r *Runner) classifyPage(headlessBody, body string, pHash uint64) map[strin
 	if headlessBody != "" {
 		html = headlessBody
 	}
-	result, err := r.ditClassifier.ExtractPageType(html)
+	result, err := extractPageType(r.ditClassifier, html)
 	if err != nil {
+		gologger.Debug().Msgf("Could not classify page: %s", err)
 		return kb
 	}
 	kb["PageType"] = fmt.Sprint(result.Type)
