@@ -30,7 +30,6 @@ import (
 	pdhttputil "github.com/projectdiscovery/utils/http"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	urlutil "github.com/projectdiscovery/utils/url"
-	"golang.org/x/net/http2"
 )
 
 // HTTPX represent an instance of the library client
@@ -142,8 +141,8 @@ func New(options *Options) (*HTTPX, error) {
 		}
 	}
 	transport := &http.Transport{
-		DialContext: httpx.Dialer.Dial,
-		DialTLSContext: httpx.buildTLSDialer(options),
+		DialContext:         httpx.Dialer.Dial,
+		DialTLSContext:      httpx.buildTLSDialer(options),
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -188,12 +187,15 @@ func New(options *Options) (*HTTPX, error) {
 		httpx.client.HTTPClient2 = httpx.client.HTTPClient
 	}
 
-	transport2 := &http2.Transport{
+	var protocols http.Protocols
+	protocols.SetHTTP2(true)
+	protocols.SetUnencryptedHTTP2(true)
+	transport2 := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
 		},
-		AllowHTTP: true,
+		Protocols: &protocols,
 	}
 	if httpx.Options.SniName != "" {
 		transport2.TLSClientConfig.ServerName = httpx.Options.SniName
@@ -278,6 +280,9 @@ get_response:
 	// 304 - Not Modified => no body the response terminates with latest header newline
 	shouldSkipBodyRead := generic.EqualsAny(httpresp.StatusCode, http.StatusSwitchingProtocols, http.StatusNotModified)
 
+	// the body is capped before dumping the response to avoid loading unbounded
+	// bodies (or infinite streams) in memory
+	bodyTruncated := h.Options.MaxResponseBodySizeToRead > 0 && httpresp.ContentLength > h.Options.MaxResponseBodySizeToRead
 	if h.Options.MaxResponseBodySizeToRead > 0 {
 		httpresp.Body = io.NopCloser(io.LimitReader(httpresp.Body, h.Options.MaxResponseBodySizeToRead))
 		if !shouldSkipBodyRead {
@@ -294,6 +299,13 @@ get_response:
 		if stringsutil.ContainsAny(err.Error(), "tls: user canceled") {
 			shouldIgnoreErrors = true
 			shouldIgnoreBodyErrors = true
+		}
+
+		// Serializing a response whose body was capped fails with "ContentLength=x with
+		// Body length y", although headers and the truncated body are dumped correctly.
+		// An intentional truncation must not turn a valid response into a failed one.
+		if bodyTruncated && stringsutil.ContainsAny(err.Error(), "with Body length") {
+			shouldIgnoreErrors = true
 		}
 
 		// Edge case - some servers respond with gzip encoding header but uncompressed body, in this case the standard library configures the reader as gzip, triggering an error when read.
