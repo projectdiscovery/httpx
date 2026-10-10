@@ -91,3 +91,76 @@ func TestParseRequestMalformed(t *testing.T) {
 	_, _, _, _, err := ParseRequest("GET\r\n\r\n", false)
 	require.Error(t, err)
 }
+
+func TestParseRequestWithoutTrailingNewline(t *testing.T) {
+	raw := "GET /admin HTTP/1.1\r\nHost: 127.0.0.1\r\nX-Api-Key: secret"
+
+	method, path, headers, body, err := ParseRequest(raw, false)
+	require.NoError(t, err)
+	require.Equal(t, "GET", method)
+	require.Equal(t, "/admin", path)
+	require.Equal(t, []string{"127.0.0.1"}, headers["Host"])
+	require.Equal(t, []string{"secret"}, headers["X-Api-Key"])
+	require.Empty(t, body)
+}
+
+func TestParseRequestWithoutTrailingNewlineLF(t *testing.T) {
+	raw := "GET /admin HTTP/1.1\nHost: 127.0.0.1\nX-Api-Key: secret"
+
+	method, path, headers, body, err := ParseRequest(raw, false)
+	require.NoError(t, err)
+	require.Equal(t, "GET", method)
+	require.Equal(t, "/admin", path)
+	require.Equal(t, []string{"127.0.0.1"}, headers["Host"])
+	require.Equal(t, []string{"secret"}, headers["X-Api-Key"])
+	require.Empty(t, body)
+}
+
+func TestParseRequestWithoutTrailingNewlineUnsafe(t *testing.T) {
+	raw := "GET /admin HTTP/1.1\r\nHost: 127.0.0.1\r\nX-Api-Key: secret"
+
+	method, path, headers, body, err := ParseRequest(raw, true)
+	require.NoError(t, err)
+	require.Equal(t, "GET", method)
+	require.Equal(t, "/admin", path)
+	require.Equal(t, []string{" 127.0.0.1"}, headers["Host"])
+	require.Equal(t, []string{" secret"}, headers["X-Api-Key"])
+	require.Empty(t, body)
+}
+
+func TestParseRequestSingleRequestLineWithoutTrailingNewline(t *testing.T) {
+	raw := "GET /admin HTTP/1.1"
+
+	method, path, headers, body, err := ParseRequest(raw, false)
+	require.NoError(t, err)
+	require.Equal(t, "GET", method)
+	require.Equal(t, "/admin", path)
+	require.Empty(t, headers)
+	require.Empty(t, body)
+}
+
+func TestParseRequestSafeStripsContentLengthWithoutTrailingNewline(t *testing.T) {
+	raw := "GET /admin HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 0"
+
+	method, path, headers, body, err := ParseRequest(raw, false)
+	require.NoError(t, err)
+	require.Equal(t, "GET", method)
+	require.Equal(t, "/admin", path)
+	require.Equal(t, []string{"127.0.0.1"}, headers["Host"])
+	require.NotContains(t, headers, "Content-Length")
+	require.Empty(t, body)
+}
+
+func TestParseRequestMultipleHeadersWithoutTrailingNewline(t *testing.T) {
+	raw := "GET /api HTTP/1.1\r\nHost: example.com\r\nX-Header-One: 1\r\nX-Header-Two: 2\r\nX-Last-Header: final"
+
+	method, path, headers, body, err := ParseRequest(raw, false)
+	require.NoError(t, err)
+	require.Equal(t, "GET", method)
+	require.Equal(t, "/api", path)
+	require.Equal(t, []string{"example.com"}, headers["Host"])
+	require.Equal(t, []string{"1"}, headers["X-Header-One"])
+	require.Equal(t, []string{"2"}, headers["X-Header-Two"])
+	require.Equal(t, []string{"final"}, headers["X-Last-Header"])
+	require.Empty(t, body)
+}
