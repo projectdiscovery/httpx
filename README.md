@@ -255,6 +255,7 @@ DEBUG:
    -silent                   silent mode
    -v, -verbose              verbose mode
    -si, -stats-interval int  number of seconds to wait between showing a statistics update (default: 5)
+   -mp, -metrics-port int    port to expose httpx metrics on (default 63636)
    -nc, -no-color            disable colors in cli output
    -tr, -trace               trace
 
