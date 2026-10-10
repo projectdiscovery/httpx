@@ -1168,9 +1168,8 @@ func TestHandshakeThenCloseKeepsPlainResult(t *testing.T) {
 }
 
 func TestRunner_InputRawRequestWithoutTrailingNewline(t *testing.T) {
-	tmpFile, err := os.CreateTemp("", "raw_req_*")
+	tmpFile, err := os.CreateTemp(t.TempDir(), "raw_req_*")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
 
 	content := "GET /admin HTTP/1.1\r\nHost: 127.0.0.1\r\nX-Api-Key: secret"
 	_, err = tmpFile.WriteString(content)
