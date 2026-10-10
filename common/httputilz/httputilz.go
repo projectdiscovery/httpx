@@ -28,7 +28,10 @@ func ParseRequest(req string, unsafe bool) (method, path string, headers map[str
 	headers = make(map[string][]string)
 	reader := bufio.NewReader(strings.NewReader(req))
 	s, err := reader.ReadString('\n')
-	if err != nil {
+	if (err != nil && err != io.EOF) || len(strings.TrimSpace(s)) == 0 {
+		if err == nil {
+			err = io.EOF
+		}
 		err = fmt.Errorf("could not read request: %s", err)
 		return
 	}
@@ -43,7 +46,7 @@ func ParseRequest(req string, unsafe bool) (method, path string, headers map[str
 		line, readErr := reader.ReadString('\n')
 		line = strings.TrimSpace(line)
 
-		if readErr != nil || line == "" {
+		if line == "" {
 			break
 		}
 
@@ -55,20 +58,24 @@ func ParseRequest(req string, unsafe bool) (method, path string, headers map[str
 			value = p[1]
 		}
 
+		var addHeader bool
 		if !unsafe {
-			if len(p) != headerParts {
-				continue
+			if len(p) == headerParts && !strings.EqualFold(key, "content-length") {
+				key = strings.TrimSpace(key)
+				value = strings.TrimSpace(value)
+				addHeader = true
 			}
-
-			if strings.EqualFold(key, "content-length") {
-				continue
-			}
-
-			key = strings.TrimSpace(key)
-			value = strings.TrimSpace(value)
+		} else {
+			addHeader = true
 		}
 
-		headers[key] = append(headers[key], value)
+		if addHeader {
+			headers[key] = append(headers[key], value)
+		}
+
+		if readErr != nil {
+			break
+		}
 	}
 
 	// Handle case with the full http url in path. In that case,
