@@ -29,13 +29,13 @@ require (
 	github.com/projectdiscovery/gologger v1.1.73
 	github.com/projectdiscovery/hmap v0.0.102
 	github.com/projectdiscovery/mapcidr v1.1.97
-	github.com/projectdiscovery/networkpolicy v0.1.53
+	github.com/projectdiscovery/networkpolicy v0.1.54
 	github.com/projectdiscovery/ratelimit v0.0.92
 	github.com/projectdiscovery/rawhttp v0.1.92
 	github.com/projectdiscovery/retryablehttp-go v1.3.29
 	github.com/projectdiscovery/tlsx v1.4.0
 	github.com/projectdiscovery/useragent v0.0.109
-	github.com/projectdiscovery/utils v0.11.8
+	github.com/projectdiscovery/utils v0.11.9
 	github.com/projectdiscovery/wappalyzergo v0.3.4
 	github.com/rs/xid v1.6.0
 	github.com/spaolacci/murmur3 v1.1.0
@@ -170,4 +170,4 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
 
-replace github.com/projectdiscovery/fastdialer => github.com/mazzz3r/fastdialer v0.0.0-20261010115852-eced62301c6f
+replace github.com/projectdiscovery/fastdialer => github.com/mazzz3r/fastdialer v0.0.0-20261013195407-11ed52b6df6c
