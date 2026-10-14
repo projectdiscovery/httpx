@@ -140,25 +140,42 @@ func New(options *Options) (*HTTPX, error) {
 			return nil
 		}
 	}
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+		MinVersion:         tls.VersionTLS10,
+	}
+	if httpx.Options.SniName != "" {
+		tlsConfig.ServerName = httpx.Options.SniName
+	}
+	switch httpx.Options.Protocol {
+	case HTTP11:
+		tlsConfig.NextProtos = []string{"http/1.1"}
+	case HTTP2:
+		tlsConfig.NextProtos = []string{"h2"}
+	default:
+		tlsConfig.NextProtos = []string{"h2", "http/1.1"}
+	}
+
 	transport := &http.Transport{
 		DialContext:         httpx.Dialer.Dial,
 		DialTLSContext:      httpx.buildTLSDialer(options),
 		MaxIdleConnsPerHost: -1,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-			MinVersion:         tls.VersionTLS10,
-		},
-		DisableKeepAlives: true,
+		TLSClientConfig:     tlsConfig,
+		DisableKeepAlives:   true,
 	}
 
 	if httpx.Options.Protocol == HTTP11 {
 		// disable http2
 		_ = os.Setenv("GODEBUG", "http2client=0")
+		var p http.Protocols
+		p.SetHTTP1(true)
+		p.SetHTTP2(false)
+		transport.Protocols = &p
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
-	}
-
-	if httpx.Options.SniName != "" {
-		transport.TLSClientConfig.ServerName = httpx.Options.SniName
+	} else if httpx.Options.Protocol == HTTP2 {
+		var p http.Protocols
+		p.SetHTTP2(true)
+		transport.Protocols = &p
 	}
 
 	if httpx.Options.HTTPProxy != "" {
@@ -190,15 +207,19 @@ func New(options *Options) (*HTTPX, error) {
 	var protocols http.Protocols
 	protocols.SetHTTP2(true)
 	protocols.SetUnencryptedHTTP2(true)
-	transport2 := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-			MinVersion:         tls.VersionTLS10,
-		},
-		Protocols: &protocols,
+	tlsConfig2 := &tls.Config{
+		InsecureSkipVerify: true,
+		MinVersion:         tls.VersionTLS10,
+		NextProtos:         []string{"h2"},
 	}
 	if httpx.Options.SniName != "" {
-		transport2.TLSClientConfig.ServerName = httpx.Options.SniName
+		tlsConfig2.ServerName = httpx.Options.SniName
+	}
+	transport2 := &http.Transport{
+		DialContext:     httpx.Dialer.Dial,
+		DialTLSContext:  httpx.buildTLSDialer(options),
+		TLSClientConfig: tlsConfig2,
+		Protocols:       &protocols,
 	}
 	httpx.client2 = &http.Client{
 		Transport: transport2,
@@ -220,13 +241,27 @@ func New(options *Options) (*HTTPX, error) {
 }
 
 func (h *HTTPX) buildTLSDialer(options *Options) func(ctx context.Context, network, addr string) (net.Conn, error) {
-	if options.TlsImpersonate == "" {
-		return func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return h.Dialer.DialTLS(ctx, network, addr)
-		}
+	tlsCfg := &tls.Config{
+		InsecureSkipVerify: true,
+		MinVersion:         tls.VersionTLS10,
+	}
+	if options.SniName != "" {
+		tlsCfg.ServerName = options.SniName
+	}
+	switch options.Protocol {
+	case HTTP11:
+		tlsCfg.NextProtos = []string{"http/1.1"}
+	case HTTP2:
+		tlsCfg.NextProtos = []string{"h2"}
+	default:
+		tlsCfg.NextProtos = []string{"h2", "http/1.1"}
 	}
 
-	tlsCfg := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10}
+	if options.TlsImpersonate == "" {
+		return func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return h.Dialer.DialTLSWithConfig(ctx, network, addr, tlsCfg)
+		}
+	}
 
 	strategy, identity := resolveImpersonateStrategy(options.TlsImpersonate)
 

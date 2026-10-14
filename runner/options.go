@@ -871,7 +871,7 @@ func (options *Options) ValidateOptions() error {
 		options.OutputCDN = "true"
 	}
 
-	if !stringsutil.EqualFoldAny(options.Protocol, string(httpxcommon.UNKNOWN), string(httpxcommon.HTTP11)) {
+	if !stringsutil.EqualFoldAny(options.Protocol, string(httpxcommon.UNKNOWN), string(httpxcommon.HTTP11), string(httpxcommon.HTTP2), string(httpxcommon.HTTP3)) {
 		return fmt.Errorf("invalid protocol: %s", options.Protocol)
 	}
 

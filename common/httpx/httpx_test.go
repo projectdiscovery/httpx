@@ -199,3 +199,25 @@ func TestDoSwitchingProtocolsDoesNotHang(t *testing.T) {
 		t.Fatal("Do hung on 101 Switching Protocols response")
 	}
 }
+
+func TestProtocolALPNConfiguration(t *testing.T) {
+	for _, tc := range []struct {
+		proto          Proto
+		expectedProtos []string
+	}{
+		{HTTP11, []string{"http/1.1"}},
+		{HTTP2, []string{"h2"}},
+		{UNKNOWN, []string{"h2", "http/1.1"}},
+	} {
+		opts := DefaultOptions
+		opts.Protocol = tc.proto
+		ht, err := New(&opts)
+		require.NoError(t, err)
+		require.NotNil(t, ht)
+		tr, ok := ht.client.HTTPClient.Transport.(*http.Transport)
+		require.True(t, ok)
+		require.NotNil(t, tr.TLSClientConfig)
+		require.Equal(t, tc.expectedProtos, tr.TLSClientConfig.NextProtos)
+	}
+}
+
