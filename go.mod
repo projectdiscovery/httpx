@@ -19,24 +19,24 @@ require (
 	github.com/miekg/dns v1.1.73 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/projectdiscovery/asnmap v1.1.1
-	github.com/projectdiscovery/cdncheck v1.3.1
+	github.com/projectdiscovery/cdncheck v1.3.2
 	github.com/projectdiscovery/clistats v0.1.7
 	github.com/projectdiscovery/dsl v0.8.24
-	github.com/projectdiscovery/fastdialer v0.5.23
+	github.com/projectdiscovery/fastdialer v0.5.24
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.2.1
 	github.com/projectdiscovery/gologger v1.1.73
 	github.com/projectdiscovery/hmap v0.0.102
 	github.com/projectdiscovery/mapcidr v1.1.97
-	github.com/projectdiscovery/networkpolicy v0.1.53
+	github.com/projectdiscovery/networkpolicy v0.1.54
 	github.com/projectdiscovery/ratelimit v0.0.92
 	github.com/projectdiscovery/rawhttp v0.1.92
-	github.com/projectdiscovery/retryablehttp-go v1.3.29
-	github.com/projectdiscovery/tlsx v1.4.0
+	github.com/projectdiscovery/retryablehttp-go v1.3.30
+	github.com/projectdiscovery/tlsx v1.4.1
 	github.com/projectdiscovery/useragent v0.0.109
-	github.com/projectdiscovery/utils v0.11.8
-	github.com/projectdiscovery/wappalyzergo v0.3.4
+	github.com/projectdiscovery/utils v0.11.9
+	github.com/projectdiscovery/wappalyzergo v0.3.5
 	github.com/rs/xid v1.6.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.12.1
