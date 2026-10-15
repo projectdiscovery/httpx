@@ -147,6 +147,10 @@ func New(options *Options) (*HTTPX, error) {
 	if httpx.Options.SniName != "" {
 		tlsConfig.ServerName = httpx.Options.SniName
 	}
+	httpx.Options.Protocol = Proto(strings.ToLower(string(httpx.Options.Protocol)))
+	if httpx.Options.Protocol == HTTP3 {
+		gologger.Warning().Msg("HTTP/3 is experimental and currently falls back to default TLS negotiation")
+	}
 	switch httpx.Options.Protocol {
 	case HTTP11:
 		tlsConfig.NextProtos = []string{"http/1.1"}
@@ -215,9 +219,11 @@ func New(options *Options) (*HTTPX, error) {
 	if httpx.Options.SniName != "" {
 		tlsConfig2.ServerName = httpx.Options.SniName
 	}
+	client2Opts := *options
+	client2Opts.Protocol = HTTP2
 	transport2 := &http.Transport{
 		DialContext:     httpx.Dialer.Dial,
-		DialTLSContext:  httpx.buildTLSDialer(options),
+		DialTLSContext:  httpx.buildTLSDialer(&client2Opts),
 		TLSClientConfig: tlsConfig2,
 		Protocols:       &protocols,
 	}
