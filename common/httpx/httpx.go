@@ -48,25 +48,10 @@ type HTTPX struct {
 // New httpx instance
 func New(options *Options) (*HTTPX, error) {
 	httpx := &HTTPX{}
-	fastdialerOpts := fastdialer.DefaultOptions
-
-	// if the user specified any custom resolver disables system resolvers and syscall lookup fallback
-	if len(options.Resolvers) > 0 {
-		fastdialerOpts.ResolversFile = false
-		fastdialerOpts.EnableFallback = false
-	}
-
 	if options.NetworkPolicy != nil {
 		httpx.NetworkPolicy = options.NetworkPolicy
-		fastdialerOpts.NetworkPolicy = options.NetworkPolicy
 	}
-	fastdialerOpts.WithDialerHistory = true
-	fastdialerOpts.WithZTLS = options.ZTLS
-	if len(options.Resolvers) > 0 {
-		fastdialerOpts.BaseResolvers = options.Resolvers
-	}
-	fastdialerOpts.SNIName = options.SniName
-	dialer, err := fastdialer.NewDialer(fastdialerOpts)
+	dialer, err := fastdialer.NewDialer(newFastdialerOptions(options))
 	if err != nil {
 		return nil, fmt.Errorf("could not create resolver cache: %s", err)
 	}
@@ -251,6 +236,28 @@ func resolveImpersonateStrategy(value string) (impersonate.Strategy, *impersonat
 		identity := impersonate.Identity(*spec)
 		return impersonate.Custom, &identity
 	}
+}
+
+// newFastdialerOptions returns the fastdialer options for the given httpx options
+func newFastdialerOptions(options *Options) fastdialer.Options {
+	fastdialerOpts := fastdialer.DefaultOptions
+	// fall back to the system resolver when the built-in ones fail (e.g. a VPN only allowing DNS to its own nameserver)
+	fastdialerOpts.EnableFallback = true
+
+	// if the user specified any custom resolver disables system resolvers and syscall lookup fallback
+	if len(options.Resolvers) > 0 {
+		fastdialerOpts.ResolversFile = false
+		fastdialerOpts.EnableFallback = false
+		fastdialerOpts.BaseResolvers = options.Resolvers
+	}
+
+	if options.NetworkPolicy != nil {
+		fastdialerOpts.NetworkPolicy = options.NetworkPolicy
+	}
+	fastdialerOpts.WithDialerHistory = true
+	fastdialerOpts.WithZTLS = options.ZTLS
+	fastdialerOpts.SNIName = options.SniName
+	return fastdialerOpts
 }
 
 // Do http request
