@@ -1,3 +1,10 @@
+package runner
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestValidateOptions_Protocol(t *testing.T) {
 	tests := []struct {
@@ -5,8 +12,8 @@ func TestValidateOptions_Protocol(t *testing.T) {
 		wantErr  bool
 	}{
 		{"", false},
-		{"unknown", false},
-		{"UNKNOWN", false},
+		{"unknown", true},
+		{"UNKNOWN", true},
 		{"http11", false},
 		{"HTTP11", false},
 		{"http2", false},
