@@ -140,35 +140,23 @@ func New(options *Options) (*HTTPX, error) {
 			return nil
 		}
 	}
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: true,
-		MinVersion:         tls.VersionTLS10,
-	}
-	if httpx.Options.SniName != "" {
-		tlsConfig.ServerName = httpx.Options.SniName
-	}
 	httpx.Options.Protocol = Proto(strings.ToLower(string(httpx.Options.Protocol)))
 	if httpx.Options.Protocol == HTTP3 {
 		gologger.Warning().Msg("HTTP/3 is experimental and currently falls back to default TLS negotiation")
 	}
-	switch httpx.Options.Protocol {
-	case HTTP11:
-		tlsConfig.NextProtos = []string{"http/1.1"}
-	case HTTP2:
-		tlsConfig.NextProtos = []string{"h2"}
-	default:
-		tlsConfig.NextProtos = []string{"h2", "http/1.1"}
-	}
-
 	transport := &http.Transport{
 		DialContext:         httpx.Dialer.Dial,
 		DialTLSContext:      httpx.buildTLSDialer(options),
 		MaxIdleConnsPerHost: -1,
-		TLSClientConfig:     tlsConfig,
-		DisableKeepAlives:   true,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
+		},
+		DisableKeepAlives: true,
 	}
 
-	if httpx.Options.Protocol == HTTP11 {
+	switch httpx.Options.Protocol {
+	case HTTP11:
 		// disable http2
 		_ = os.Setenv("GODEBUG", "http2client=0")
 		var p http.Protocols
@@ -176,10 +164,18 @@ func New(options *Options) (*HTTPX, error) {
 		p.SetHTTP2(false)
 		transport.Protocols = &p
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
-	} else if httpx.Options.Protocol == HTTP2 {
+		transport.TLSClientConfig.NextProtos = []string{"http/1.1"}
+	case HTTP2:
 		var p http.Protocols
 		p.SetHTTP2(true)
 		transport.Protocols = &p
+		transport.TLSClientConfig.NextProtos = []string{"h2"}
+	default:
+		transport.TLSClientConfig.NextProtos = []string{"h2", "http/1.1"}
+	}
+
+	if httpx.Options.SniName != "" {
+		transport.TLSClientConfig.ServerName = httpx.Options.SniName
 	}
 
 	if httpx.Options.HTTPProxy != "" {
@@ -211,21 +207,20 @@ func New(options *Options) (*HTTPX, error) {
 	var protocols http.Protocols
 	protocols.SetHTTP2(true)
 	protocols.SetUnencryptedHTTP2(true)
-	tlsConfig2 := &tls.Config{
-		InsecureSkipVerify: true,
-		MinVersion:         tls.VersionTLS10,
-		NextProtos:         []string{"h2"},
-	}
-	if httpx.Options.SniName != "" {
-		tlsConfig2.ServerName = httpx.Options.SniName
-	}
 	client2Opts := *options
 	client2Opts.Protocol = HTTP2
 	transport2 := &http.Transport{
-		DialContext:     httpx.Dialer.Dial,
-		DialTLSContext:  httpx.buildTLSDialer(&client2Opts),
-		TLSClientConfig: tlsConfig2,
-		Protocols:       &protocols,
+		DialContext:    httpx.Dialer.Dial,
+		DialTLSContext: httpx.buildTLSDialer(&client2Opts),
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
+		},
+		Protocols: &protocols,
+	}
+	transport2.TLSClientConfig.NextProtos = []string{"h2"}
+	if httpx.Options.SniName != "" {
+		transport2.TLSClientConfig.ServerName = httpx.Options.SniName
 	}
 	httpx.client2 = &http.Client{
 		Transport: transport2,
@@ -247,10 +242,7 @@ func New(options *Options) (*HTTPX, error) {
 }
 
 func (h *HTTPX) buildTLSDialer(options *Options) func(ctx context.Context, network, addr string) (net.Conn, error) {
-	tlsCfg := &tls.Config{
-		InsecureSkipVerify: true,
-		MinVersion:         tls.VersionTLS10,
-	}
+	tlsCfg := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10}
 	if options.SniName != "" {
 		tlsCfg.ServerName = options.SniName
 	}
@@ -263,15 +255,18 @@ func (h *HTTPX) buildTLSDialer(options *Options) func(ctx context.Context, netwo
 		tlsCfg.NextProtos = []string{"h2", "http/1.1"}
 	}
 
-	if options.TlsImpersonate == "" {
-		return func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return h.Dialer.DialTLSWithConfig(ctx, network, addr, tlsCfg)
-		}
+	var (
+		strategy impersonate.Strategy
+		identity *impersonate.Identity
+	)
+	if options.TlsImpersonate != "" {
+		strategy, identity = resolveImpersonateStrategy(options.TlsImpersonate)
 	}
 
-	strategy, identity := resolveImpersonateStrategy(options.TlsImpersonate)
-
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		if options.TlsImpersonate == "" {
+			return h.Dialer.DialTLSWithConfig(ctx, network, addr, tlsCfg)
+		}
 		return h.Dialer.DialTLSWithConfigImpersonate(ctx, network, addr, tlsCfg, strategy, identity)
 	}
 }
