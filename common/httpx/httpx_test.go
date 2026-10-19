@@ -208,6 +208,7 @@ func TestProtocolALPNConfiguration(t *testing.T) {
 		{HTTP11, []string{"http/1.1"}},
 		{HTTP2, []string{"h2"}},
 		{UNKNOWN, []string{"h2", "http/1.1"}},
+		{HTTP3, []string{"h2", "http/1.1"}},
 	} {
 		opts := DefaultOptions
 		opts.Protocol = tc.proto
@@ -221,3 +222,18 @@ func TestProtocolALPNConfiguration(t *testing.T) {
 	}
 }
 
+func TestNewFastdialerOptions(t *testing.T) {
+	t.Run("system resolver fallback enabled by default", func(t *testing.T) {
+		opts := newFastdialerOptions(&Options{})
+		require.True(t, opts.ResolversFile)
+		require.True(t, opts.EnableFallback)
+	})
+
+	t.Run("custom resolvers disable system resolvers and fallback", func(t *testing.T) {
+		resolvers := []string{"1.1.1.1:53"}
+		opts := newFastdialerOptions(&Options{Resolvers: resolvers})
+		require.False(t, opts.ResolversFile)
+		require.False(t, opts.EnableFallback)
+		require.Equal(t, resolvers, opts.BaseResolvers)
+	})
+}
