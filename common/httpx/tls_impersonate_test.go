@@ -10,6 +10,7 @@ import (
 	"crypto/x509/pkix"
 	"math/big"
 	"net"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
@@ -59,6 +60,7 @@ func startTLSServer(t *testing.T) (string, func() *capturedHello) {
 
 	tlsCfg := &tls.Config{
 		Certificates: []tls.Certificate{cert},
+		NextProtos:   []string{"h2", "http/1.1"},
 		GetConfigForClient: func(info *tls.ClientHelloInfo) (*tls.Config, error) {
 			hello := &capturedHello{
 				CipherSuites:    info.CipherSuites,
@@ -332,8 +334,9 @@ func TestTLSImpersonate_EndToEnd_HTTPX(t *testing.T) {
 			ht, err := New(&options)
 			require.NoError(t, err)
 
-			dialer := ht.buildTLSDialer(&options)
-			conn, err := dialer(context.Background(), "tcp", addr)
+			tr, ok := ht.client.HTTPClient.Transport.(*http.Transport)
+			require.True(t, ok)
+			conn, err := tr.DialTLSContext(context.Background(), "tcp", addr)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
@@ -361,8 +364,9 @@ func TestTLSImpersonate_EndToEnd_JA3(t *testing.T) {
 	ht, err := New(&options)
 	require.NoError(t, err)
 
-	dialer := ht.buildTLSDialer(&options)
-	conn, err := dialer(context.Background(), "tcp", addr)
+	tr, ok := ht.client.HTTPClient.Transport.(*http.Transport)
+	require.True(t, ok)
+	conn, err := tr.DialTLSContext(context.Background(), "tcp", addr)
 	require.NoError(t, err)
 	require.NotNil(t, conn)
 	_ = conn.Close()

@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/textproto"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -125,9 +124,12 @@ func New(options *Options) (*HTTPX, error) {
 			return nil
 		}
 	}
+	httpx.Options.Protocol = Proto(strings.ToLower(string(httpx.Options.Protocol)))
+	if httpx.Options.Protocol == HTTP3 {
+		gologger.Warning().Msg("HTTP/3 is experimental and currently falls back to default TLS negotiation")
+	}
 	transport := &http.Transport{
 		DialContext:         httpx.Dialer.Dial,
-		DialTLSContext:      httpx.buildTLSDialer(options),
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -135,11 +137,24 @@ func New(options *Options) (*HTTPX, error) {
 		},
 		DisableKeepAlives: true,
 	}
+	// Clone before protocol-specific ALPN is applied. Impersonation keeps the
+	// previous base config; utls does not take NextProtos from it.
+	impersonateTLS := transport.TLSClientConfig.Clone()
+	transport.DialTLSContext = httpx.buildTLSDialer(options, impersonateTLS)
 
-	if httpx.Options.Protocol == HTTP11 {
-		// disable http2
-		_ = os.Setenv("GODEBUG", "http2client=0")
+	switch httpx.Options.Protocol {
+	case HTTP11:
+		var p http.Protocols
+		p.SetHTTP1(true)
+		p.SetHTTP2(false)
+		transport.Protocols = &p
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
+		transport.TLSClientConfig.NextProtos = []string{"http/1.1"}
+	case HTTP2:
+		var p http.Protocols
+		p.SetHTTP2(true)
+		transport.Protocols = &p
+		transport.TLSClientConfig.NextProtos = []string{"h2"}
 	}
 
 	if httpx.Options.SniName != "" {
@@ -175,13 +190,18 @@ func New(options *Options) (*HTTPX, error) {
 	var protocols http.Protocols
 	protocols.SetHTTP2(true)
 	protocols.SetUnencryptedHTTP2(true)
+	client2Opts := *options
+	client2Opts.Protocol = HTTP2
 	transport2 := &http.Transport{
+		DialContext: httpx.Dialer.Dial,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
 		},
 		Protocols: &protocols,
 	}
+	transport2.DialTLSContext = httpx.buildTLSDialer(&client2Opts, transport2.TLSClientConfig.Clone())
+	transport2.TLSClientConfig.NextProtos = []string{"h2"}
 	if httpx.Options.SniName != "" {
 		transport2.TLSClientConfig.ServerName = httpx.Options.SniName
 	}
@@ -204,19 +224,43 @@ func New(options *Options) (*HTTPX, error) {
 	return httpx, nil
 }
 
-func (h *HTTPX) buildTLSDialer(options *Options) func(ctx context.Context, network, addr string) (net.Conn, error) {
-	if options.TlsImpersonate == "" {
+// explicitALPN is set only for -pr http11 and -pr http2. The default dial
+// leaves NextProtos empty so existing HTTP/1.1 negotiation stays unchanged.
+func explicitALPN(proto Proto) []string {
+	switch proto {
+	case HTTP11:
+		return []string{"http/1.1"}
+	case HTTP2:
+		return []string{"h2"}
+	default:
+		return nil
+	}
+}
+
+func (h *HTTPX) buildTLSDialer(options *Options, impersonateTLS *tls.Config) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	if options.TlsImpersonate != "" {
+		strategy, identity := resolveImpersonateStrategy(options.TlsImpersonate)
+		return func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return h.Dialer.DialTLSWithConfigImpersonate(ctx, network, addr, impersonateTLS, strategy, identity)
+		}
+	}
+
+	nextProtos := explicitALPN(options.Protocol)
+	if nextProtos == nil {
 		return func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return h.Dialer.DialTLS(ctx, network, addr)
 		}
 	}
 
-	tlsCfg := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10}
-
-	strategy, identity := resolveImpersonateStrategy(options.TlsImpersonate)
-
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
-		return h.Dialer.DialTLSWithConfigImpersonate(ctx, network, addr, tlsCfg, strategy, identity)
+		if options.ZTLS {
+			ztlsCfg := fastdialer.DefaultZTLSConfig.Clone()
+			ztlsCfg.NextProtos = nextProtos
+			return h.Dialer.DialZTLSWithConfig(ctx, network, addr, ztlsCfg)
+		}
+		tlsCfg := fastdialer.DefaultTLSConfig.Clone()
+		tlsCfg.NextProtos = nextProtos
+		return h.Dialer.DialTLSWithConfig(ctx, network, addr, tlsCfg)
 	}
 }
 

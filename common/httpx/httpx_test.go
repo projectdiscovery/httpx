@@ -1,13 +1,18 @@
 package httpx
 
 import (
+	"context"
+	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/retryablehttp-go"
 	"github.com/stretchr/testify/require"
+	ztls "github.com/zmap/zcrypto/tls"
 )
 
 func TestDo(t *testing.T) {
@@ -198,6 +203,132 @@ func TestDoSwitchingProtocolsDoesNotHang(t *testing.T) {
 	case <-time.After(4 * time.Second):
 		t.Fatal("Do hung on 101 Switching Protocols response")
 	}
+}
+
+func TestProtocolALPNConfiguration(t *testing.T) {
+	for _, tc := range []struct {
+		proto          Proto
+		expectedProtos []string
+	}{
+		{HTTP11, []string{"http/1.1"}},
+		{HTTP2, []string{"h2"}},
+		{UNKNOWN, nil},
+		{HTTP3, nil},
+	} {
+		opts := DefaultOptions
+		opts.Protocol = tc.proto
+		ht, err := New(&opts)
+		require.NoError(t, err)
+		require.NotNil(t, ht)
+		tr, ok := ht.client.HTTPClient.Transport.(*http.Transport)
+		require.True(t, ok)
+		require.NotNil(t, tr.TLSClientConfig)
+		require.Equal(t, tc.expectedProtos, tr.TLSClientConfig.NextProtos)
+		switch tc.proto {
+		case HTTP11:
+			require.NotNil(t, tr.Protocols)
+			require.True(t, tr.Protocols.HTTP1())
+			require.False(t, tr.Protocols.HTTP2())
+		case HTTP2:
+			require.NotNil(t, tr.Protocols)
+			require.True(t, tr.Protocols.HTTP2())
+			require.False(t, tr.Protocols.HTTP1())
+		default:
+			require.Nil(t, tr.Protocols)
+		}
+	}
+}
+
+func TestHTTP11DoesNotClobberGODEBUG(t *testing.T) {
+	prev := os.Getenv("GODEBUG")
+	t.Cleanup(func() { _ = os.Setenv("GODEBUG", prev) })
+
+	options := DefaultOptions
+	options.Protocol = HTTP11
+	_, err := New(&options)
+	require.NoError(t, err)
+	require.Equal(t, prev, os.Getenv("GODEBUG"))
+
+	options2 := DefaultOptions
+	options2.Protocol = HTTP2
+	ht2, err := New(&options2)
+	require.NoError(t, err)
+	tr, ok := ht2.client.HTTPClient.Transport.(*http.Transport)
+	require.True(t, ok)
+	require.NotNil(t, tr.Protocols)
+	require.True(t, tr.Protocols.HTTP2())
+	require.False(t, tr.Protocols.HTTP1())
+}
+
+func TestDialerALPNReachesClientHello(t *testing.T) {
+	addr, getHello := startTLSServer(t)
+
+	for _, tc := range []struct {
+		name    string
+		proto   Proto
+		ztls    bool
+		sni     string
+		want    []string
+		ciphers bool
+	}{
+		{name: "default", proto: UNKNOWN, ciphers: true},
+		{name: "http11", proto: HTTP11, want: []string{"http/1.1"}, ciphers: true},
+		{name: "http2", proto: HTTP2, want: []string{"h2"}, ciphers: true},
+		{name: "http3 falls back", proto: HTTP3, ciphers: true},
+		{name: "ztls", proto: UNKNOWN, ztls: true},
+		{name: "ztls http2", proto: HTTP2, ztls: true, want: []string{"h2"}},
+		{name: "sni", proto: UNKNOWN, sni: "scanme.example", ciphers: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts := DefaultOptions
+			opts.Protocol = tc.proto
+			opts.ZTLS = tc.ztls
+			opts.SniName = tc.sni
+			ht, err := New(&opts)
+			require.NoError(t, err)
+
+			tr, ok := ht.client.HTTPClient.Transport.(*http.Transport)
+			require.True(t, ok)
+			conn, err := tr.DialTLSContext(context.Background(), "tcp", addr)
+			require.NoError(t, err)
+			require.NotNil(t, conn)
+			if tc.ztls {
+				_, ok := conn.(*ztls.Conn)
+				require.True(t, ok, "ztls dial must stay on the ztls connection")
+			} else {
+				_, ok := conn.(*tls.Conn)
+				require.True(t, ok, "standard dial must stay on crypto/tls")
+			}
+			_ = conn.Close()
+
+			hello := getHello()
+			require.NotNil(t, hello)
+			require.Equal(t, tc.want, hello.SupportedProtos)
+			if tc.sni != "" {
+				require.Equal(t, tc.sni, hello.ServerName)
+			}
+			if tc.ciphers {
+				require.ElementsMatch(t, fastdialer.DefaultTLSConfig.CipherSuites, hello.CipherSuites)
+			}
+		})
+	}
+}
+
+func TestClient2DialerAdvertisesHTTP2(t *testing.T) {
+	addr, getHello := startTLSServer(t)
+	opts := DefaultOptions
+	ht, err := New(&opts)
+	require.NoError(t, err)
+
+	tr, ok := ht.client2.Transport.(*http.Transport)
+	require.True(t, ok)
+	conn, err := tr.DialTLSContext(context.Background(), "tcp", addr)
+	require.NoError(t, err)
+	_ = conn.Close()
+
+	hello := getHello()
+	require.NotNil(t, hello)
+	require.Equal(t, []string{"h2"}, hello.SupportedProtos)
 }
 
 func TestNewFastdialerOptions(t *testing.T) {
