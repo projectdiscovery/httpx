@@ -287,8 +287,9 @@ func TestDialerALPNReachesClientHello(t *testing.T) {
 			ht, err := New(&opts)
 			require.NoError(t, err)
 
-			dialer := ht.buildTLSDialer(&opts)
-			conn, err := dialer(context.Background(), "tcp", addr)
+			tr, ok := ht.client.HTTPClient.Transport.(*http.Transport)
+			require.True(t, ok)
+			conn, err := tr.DialTLSContext(context.Background(), "tcp", addr)
 			require.NoError(t, err)
 			require.NotNil(t, conn)
 			if tc.ztls {

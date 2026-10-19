@@ -130,7 +130,6 @@ func New(options *Options) (*HTTPX, error) {
 	}
 	transport := &http.Transport{
 		DialContext:         httpx.Dialer.Dial,
-		DialTLSContext:      httpx.buildTLSDialer(options),
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -138,6 +137,10 @@ func New(options *Options) (*HTTPX, error) {
 		},
 		DisableKeepAlives: true,
 	}
+	// Clone before protocol-specific ALPN is applied. Impersonation keeps the
+	// previous base config; utls does not take NextProtos from it.
+	impersonateTLS := transport.TLSClientConfig.Clone()
+	transport.DialTLSContext = httpx.buildTLSDialer(options, impersonateTLS)
 
 	switch httpx.Options.Protocol {
 	case HTTP11:
@@ -190,14 +193,14 @@ func New(options *Options) (*HTTPX, error) {
 	client2Opts := *options
 	client2Opts.Protocol = HTTP2
 	transport2 := &http.Transport{
-		DialContext:    httpx.Dialer.Dial,
-		DialTLSContext: httpx.buildTLSDialer(&client2Opts),
+		DialContext: httpx.Dialer.Dial,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS10,
 		},
 		Protocols: &protocols,
 	}
+	transport2.DialTLSContext = httpx.buildTLSDialer(&client2Opts, transport2.TLSClientConfig.Clone())
 	transport2.TLSClientConfig.NextProtos = []string{"h2"}
 	if httpx.Options.SniName != "" {
 		transport2.TLSClientConfig.ServerName = httpx.Options.SniName
@@ -234,12 +237,11 @@ func explicitALPN(proto Proto) []string {
 	}
 }
 
-func (h *HTTPX) buildTLSDialer(options *Options) func(ctx context.Context, network, addr string) (net.Conn, error) {
+func (h *HTTPX) buildTLSDialer(options *Options, impersonateTLS *tls.Config) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	if options.TlsImpersonate != "" {
-		tlsCfg := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10}
 		strategy, identity := resolveImpersonateStrategy(options.TlsImpersonate)
 		return func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return h.Dialer.DialTLSWithConfigImpersonate(ctx, network, addr, tlsCfg, strategy, identity)
+			return h.Dialer.DialTLSWithConfigImpersonate(ctx, network, addr, impersonateTLS, strategy, identity)
 		}
 	}
 
