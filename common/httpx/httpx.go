@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/textproto"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -142,21 +141,19 @@ func New(options *Options) (*HTTPX, error) {
 
 	switch httpx.Options.Protocol {
 	case HTTP11:
-		// disable http2
-		_ = os.Setenv("GODEBUG", "http2client=0")
 		var p http.Protocols
 		p.SetHTTP1(true)
 		p.SetHTTP2(false)
 		transport.Protocols = &p
 		transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
-		transport.TLSClientConfig.NextProtos = []string{"http/1.1"}
+		transport.TLSClientConfig.NextProtos = alpnProtos(HTTP11)
 	case HTTP2:
 		var p http.Protocols
 		p.SetHTTP2(true)
 		transport.Protocols = &p
-		transport.TLSClientConfig.NextProtos = []string{"h2"}
+		transport.TLSClientConfig.NextProtos = alpnProtos(HTTP2)
 	default:
-		transport.TLSClientConfig.NextProtos = []string{"h2", "http/1.1"}
+		transport.TLSClientConfig.NextProtos = alpnProtos(httpx.Options.Protocol)
 	}
 
 	if httpx.Options.SniName != "" {
@@ -226,19 +223,19 @@ func New(options *Options) (*HTTPX, error) {
 	return httpx, nil
 }
 
-func (h *HTTPX) buildTLSDialer(options *Options) func(ctx context.Context, network, addr string) (net.Conn, error) {
-	tlsCfg := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS10}
-	if options.SniName != "" {
-		tlsCfg.ServerName = options.SniName
-	}
-	switch options.Protocol {
+func alpnProtos(proto Proto) []string {
+	switch proto {
 	case HTTP11:
-		tlsCfg.NextProtos = []string{"http/1.1"}
+		return []string{"http/1.1"}
 	case HTTP2:
-		tlsCfg.NextProtos = []string{"h2"}
+		return []string{"h2"}
 	default:
-		tlsCfg.NextProtos = []string{"h2", "http/1.1"}
+		return []string{"h2", "http/1.1"}
 	}
+}
+
+func (h *HTTPX) buildTLSDialer(options *Options) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	nextProtos := alpnProtos(options.Protocol)
 
 	var (
 		strategy impersonate.Strategy
@@ -249,10 +246,31 @@ func (h *HTTPX) buildTLSDialer(options *Options) func(ctx context.Context, netwo
 	}
 
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
-		if options.TlsImpersonate == "" {
-			return h.Dialer.DialTLSWithConfig(ctx, network, addr, tlsCfg)
+		if options.TlsImpersonate != "" {
+			tlsCfg := &tls.Config{
+				InsecureSkipVerify: true,
+				MinVersion:         tls.VersionTLS10,
+				NextProtos:         nextProtos,
+			}
+			if options.SniName != "" {
+				tlsCfg.ServerName = options.SniName
+			}
+			return h.Dialer.DialTLSWithConfigImpersonate(ctx, network, addr, tlsCfg, strategy, identity)
 		}
-		return h.Dialer.DialTLSWithConfigImpersonate(ctx, network, addr, tlsCfg, strategy, identity)
+		if options.ZTLS {
+			ztlsCfg := fastdialer.DefaultZTLSConfig.Clone()
+			ztlsCfg.NextProtos = nextProtos
+			if options.SniName != "" {
+				ztlsCfg.ServerName = options.SniName
+			}
+			return h.Dialer.DialZTLSWithConfig(ctx, network, addr, ztlsCfg)
+		}
+		tlsCfg := fastdialer.DefaultTLSConfig.Clone()
+		tlsCfg.NextProtos = nextProtos
+		if options.SniName != "" {
+			tlsCfg.ServerName = options.SniName
+		}
+		return h.Dialer.DialTLSWithConfig(ctx, network, addr, tlsCfg)
 	}
 }
 

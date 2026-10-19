@@ -59,6 +59,7 @@ func startTLSServer(t *testing.T) (string, func() *capturedHello) {
 
 	tlsCfg := &tls.Config{
 		Certificates: []tls.Certificate{cert},
+		NextProtos:   []string{"h2", "http/1.1"},
 		GetConfigForClient: func(info *tls.ClientHelloInfo) (*tls.Config, error) {
 			hello := &capturedHello{
 				CipherSuites:    info.CipherSuites,
