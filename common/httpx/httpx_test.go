@@ -212,8 +212,8 @@ func TestProtocolALPNConfiguration(t *testing.T) {
 	}{
 		{HTTP11, []string{"http/1.1"}},
 		{HTTP2, []string{"h2"}},
-		{UNKNOWN, []string{"h2", "http/1.1"}},
-		{HTTP3, []string{"h2", "http/1.1"}},
+		{UNKNOWN, nil},
+		{HTTP3, nil},
 	} {
 		opts := DefaultOptions
 		opts.Protocol = tc.proto
@@ -271,12 +271,13 @@ func TestDialerALPNReachesClientHello(t *testing.T) {
 		want    []string
 		ciphers bool
 	}{
-		{name: "default", proto: UNKNOWN, want: []string{"h2", "http/1.1"}, ciphers: true},
+		{name: "default", proto: UNKNOWN, ciphers: true},
 		{name: "http11", proto: HTTP11, want: []string{"http/1.1"}, ciphers: true},
 		{name: "http2", proto: HTTP2, want: []string{"h2"}, ciphers: true},
-		{name: "http3 falls back", proto: HTTP3, want: []string{"h2", "http/1.1"}, ciphers: true},
-		{name: "ztls", proto: UNKNOWN, ztls: true, want: []string{"h2", "http/1.1"}},
-		{name: "sni", proto: UNKNOWN, sni: "scanme.example", want: []string{"h2", "http/1.1"}, ciphers: true},
+		{name: "http3 falls back", proto: HTTP3, ciphers: true},
+		{name: "ztls", proto: UNKNOWN, ztls: true},
+		{name: "ztls http2", proto: HTTP2, ztls: true, want: []string{"h2"}},
+		{name: "sni", proto: UNKNOWN, sni: "scanme.example", ciphers: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := DefaultOptions
