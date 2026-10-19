@@ -199,3 +199,19 @@ func TestDoSwitchingProtocolsDoesNotHang(t *testing.T) {
 		t.Fatal("Do hung on 101 Switching Protocols response")
 	}
 }
+
+func TestNewFastdialerOptions(t *testing.T) {
+	t.Run("system resolver fallback enabled by default", func(t *testing.T) {
+		opts := newFastdialerOptions(&Options{})
+		require.True(t, opts.ResolversFile)
+		require.True(t, opts.EnableFallback)
+	})
+
+	t.Run("custom resolvers disable system resolvers and fallback", func(t *testing.T) {
+		resolvers := []string{"1.1.1.1:53"}
+		opts := newFastdialerOptions(&Options{Resolvers: resolvers})
+		require.False(t, opts.ResolversFile)
+		require.False(t, opts.EnableFallback)
+		require.Equal(t, resolvers, opts.BaseResolvers)
+	})
+}
