@@ -1,8 +1,6 @@
 module github.com/projectdiscovery/httpx
 
-go 1.26.0
-
-toolchain go1.26.10
+go 1.26.10
 
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
