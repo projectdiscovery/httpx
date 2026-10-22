@@ -170,4 +170,4 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
 
-replace github.com/projectdiscovery/fastdialer => github.com/mazzz3r/fastdialer v0.0.0-20261013195407-11ed52b6df6c
+replace github.com/projectdiscovery/fastdialer => github.com/projectdiscovery/fastdialer v0.5.26-0.20261013195407-11ed52b6df6c
