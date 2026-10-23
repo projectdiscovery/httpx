@@ -2926,9 +2926,11 @@ func extractPotentialFavIconsURLs(resp []byte) (candidates []string, baseHref st
 		if href == "" {
 			return
 		}
+		// "alternate" alone marks feeds and translations, not icons;
+		// "alternate icon" is still matched through its "icon" token.
 		for _, tok := range strings.Fields(rel) {
 			switch tok {
-			case "icon", "shortcut", "shortcut-icon", "apple-touch-icon", "mask-icon", "alternate":
+			case "icon", "shortcut", "shortcut-icon", "apple-touch-icon", "mask-icon":
 				candidates = append(candidates, href)
 				return
 			}
