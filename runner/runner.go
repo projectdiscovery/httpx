@@ -2865,8 +2865,9 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		respFav, err := hp.Do(clone, httpx.UnsafeOptions{})
 		if err != nil || len(respFav.Data) == 0 {
 			tries++
-			// Root fallback: directory-relative failed and raw had no leading slash
-			if !strings.HasPrefix(raw, "/") {
+			// Root fallback: directory-relative failed and raw had no leading slash.
+			// Absolute hrefs (with a scheme) have no relative form to retry.
+			if !parsedHref.IsAbs() && !strings.HasPrefix(raw, "/") {
 				rootResolvedNet := baseNet.ResolveReference(&url.URL{Path: "/" + raw})
 				rootResolvedURL, err2 := urlutil.ParseURL(rootResolvedNet.String(), r.options.Unsafe)
 				if err2 != nil {
