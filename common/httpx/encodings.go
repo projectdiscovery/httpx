@@ -53,6 +53,18 @@ func DecodeKorean(s []byte) ([]byte, error) {
 	return koreanDecoder.Bytes(s)
 }
 
+// charsetParamIs reports whether contentType declares exactly this charset.
+// contentType is already lowercased and unquoted.
+func charsetParamIs(contentType, charset string) bool {
+	for _, param := range strings.Split(contentType, ";") {
+		name, value, found := strings.Cut(strings.TrimSpace(param), "=")
+		if found && strings.TrimSpace(name) == "charset" && strings.TrimSpace(value) == charset {
+			return true
+		}
+	}
+	return false
+}
+
 // ExtractTitle from a response
 func DecodeData(data []byte, headers http.Header) ([]byte, error) {
 	// Non UTF-8
@@ -66,7 +78,7 @@ func DecodeData(data []byte, headers http.Header) ([]byte, error) {
 			return Decodegbk([]byte(data))
 		case stringsutil.ContainsAny(contentType, "euc-kr"):
 			return DecodeKorean(data)
-		case stringsutil.ContainsAny(contentType, "charset=big5"):
+		case charsetParamIs(contentType, "big5"):
 			return Decodebig5(data)
 		}
 
