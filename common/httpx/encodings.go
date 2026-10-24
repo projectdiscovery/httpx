@@ -66,6 +66,8 @@ func DecodeData(data []byte, headers http.Header) ([]byte, error) {
 			return Decodegbk([]byte(data))
 		case stringsutil.ContainsAny(contentType, "euc-kr"):
 			return DecodeKorean(data)
+		case stringsutil.ContainsAny(contentType, "charset=big5"):
+			return Decodebig5(data)
 		}
 
 		// Content-Type from head tag

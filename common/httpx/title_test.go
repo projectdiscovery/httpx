@@ -70,3 +70,30 @@ func TestExtractTitleDecodesCharset(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractTitleDecodesBig5HeaderCharset(t *testing.T) {
+	options := DefaultOptions
+	options.CdnCheck = "false"
+	options.Timeout = 2 * time.Second
+	options.RetryMax = 0
+
+	ht, err := New(&options)
+	require.Nil(t, err)
+
+	// <title>中文</title> with the title text encoded in Big5 and no <meta> charset
+	big5 := []byte{0xa4, 0xa4, 0xa4, 0xe5}
+	body := append([]byte("<html><head><title>"), big5...)
+	body = append(body, []byte("</title></head></html>")...)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=Big5")
+		_, _ = w.Write(body)
+	}))
+	defer srv.Close()
+
+	req, err := retryablehttp.NewRequest(http.MethodGet, srv.URL, nil)
+	require.Nil(t, err)
+	resp, err := ht.Do(req, UnsafeOptions{})
+	require.Nil(t, err)
+	require.Equal(t, "中文", ExtractTitle(resp))
+}
