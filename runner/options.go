@@ -12,6 +12,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/projectdiscovery/cdncheck"
+	"github.com/projectdiscovery/clistats"
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/goflags"
 	"github.com/projectdiscovery/gologger"
@@ -275,6 +276,7 @@ type Options struct {
 	protocol                  string
 	ShowStatistics            bool
 	StatsInterval             int
+	MetricsPort               int
 	RandomAgent               bool
 	AutoReferer               bool
 	StoreChain                bool
@@ -568,6 +570,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Silent, "silent", false, "silent mode"),
 		flagSet.BoolVarP(&options.Verbose, "verbose", "v", false, "verbose mode"),
 		flagSet.IntVarP(&options.StatsInterval, "stats-interval", "si", 0, "number of seconds to wait between showing a statistics update (default: 5)"),
+		flagSet.IntVarP(&options.MetricsPort, "metrics-port", "mp", clistats.DefaultOptions.ListenPort, "port to expose httpx metrics on"),
 		flagSet.BoolVarP(&options.NoColor, "no-color", "nc", false, "disable colors in cli output"),
 		flagSet.BoolVarP(&options.Trace, "trace", "tr", false, "trace"),
 	)
@@ -755,6 +758,10 @@ func (options *Options) ValidateOptions() error {
 
 	if options.InputMode != "" && options.InputFile == "" {
 		return errors.New("-im/-input-mode requires -l/-list to specify an input file")
+	}
+
+	if options.MetricsPort < 0 || options.MetricsPort > 65535 {
+		return fmt.Errorf("invalid metrics port %d, must be between 0 and 65535", options.MetricsPort)
 	}
 
 	if options.Silent {
@@ -972,4 +979,13 @@ func flagsIncompatibleWithSilent(options *Options) []string {
 		}
 	}
 	return incompatibleFlagsList
+}
+
+// metricsPort returns the port the -stats metrics server is asked to listen
+// on: the -metrics-port value, or the clistats default when it is not set.
+func (options *Options) metricsPort() int {
+	if options.MetricsPort > 0 {
+		return options.MetricsPort
+	}
+	return clistats.DefaultOptions.ListenPort
 }
