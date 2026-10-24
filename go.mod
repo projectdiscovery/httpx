@@ -22,25 +22,25 @@ require (
 	github.com/projectdiscovery/cdncheck v1.3.2
 	github.com/projectdiscovery/clistats v0.1.7
 	github.com/projectdiscovery/dsl v0.8.24
-	github.com/projectdiscovery/fastdialer v0.5.24
+	github.com/projectdiscovery/fastdialer v0.5.26
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.2.1
 	github.com/projectdiscovery/gologger v1.1.73
 	github.com/projectdiscovery/hmap v0.0.102
 	github.com/projectdiscovery/mapcidr v1.1.97
-	github.com/projectdiscovery/networkpolicy v0.1.54
-	github.com/projectdiscovery/ratelimit v0.0.92
-	github.com/projectdiscovery/rawhttp v0.1.92
-	github.com/projectdiscovery/retryablehttp-go v1.3.30
-	github.com/projectdiscovery/tlsx v1.4.1
+	github.com/projectdiscovery/networkpolicy v0.1.55
+	github.com/projectdiscovery/ratelimit v0.0.94
+	github.com/projectdiscovery/rawhttp v0.2.0
+	github.com/projectdiscovery/retryablehttp-go v1.3.31
+	github.com/projectdiscovery/tlsx v1.4.2
 	github.com/projectdiscovery/useragent v0.0.109
-	github.com/projectdiscovery/utils v0.11.9
-	github.com/projectdiscovery/wappalyzergo v0.3.5
+	github.com/projectdiscovery/utils v0.11.10-0.20261013234757-73f5497aaf2e
+	github.com/projectdiscovery/wappalyzergo v0.3.6
 	github.com/rs/xid v1.6.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.12.1
-	github.com/zmap/zcrypto v0.0.0-20240803002437-3a861682ac77
+	github.com/zmap/zcrypto v0.0.0-20260906180147-3ed30b1e9340
 	go.etcd.io/bbolt v1.4.3 // indirect
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96
@@ -59,7 +59,7 @@ require (
 	github.com/lib/pq v1.12.3
 	github.com/projectdiscovery/awesome-search-queries v0.0.0-20260104120501-961ef30f7193
 	github.com/seh-msft/burpxml v1.0.1
-	github.com/weppos/publicsuffix-go v0.50.3
+	github.com/weppos/publicsuffix-go v0.50.4-0.20260821095816-b0fdb5c2d345
 	go.mongodb.org/mongo-driver v1.17.10
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -160,7 +160,6 @@ require (
 	github.com/yuin/goldmark-emoji v1.0.3 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zcalusic/sysinfo v1.0.2 // indirect
-	github.com/zmap/rc2 v0.0.0-20190804163417-abaa70531248 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
