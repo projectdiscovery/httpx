@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-rod/rod"
@@ -68,7 +69,6 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 		Set("disable-background-timer-throttling", "true").
 		Set("disable-backgrounding-occluded-windows", "true").
 		Set("disable-renderer-backgrounding", "true").
-		Set("disable-ipc-flooding-protection", "true").
 		Set("disable-hang-monitor", "true").
 		// Performance: strip background chrome services we never use.
 		Set("disable-background-networking", "true").
@@ -86,6 +86,9 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 		// Chromium's cross-origin renderer isolation is worth the extra processes.
 		Set("disable-features", "Translate,BackForwardCache,AcceptCHFrame,MediaRouter,OptimizationHints").
 		Delete("use-mock-keychain").
+		// rod disables IPC flooding protection by default; keep it on because
+		// untrusted pages share one browser process and must not starve each other.
+		Delete("disable-ipc-flooding-protection").
 		Headless(true).
 		UserDataDir(dataStore)
 
@@ -175,6 +178,9 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle t
 
 	networkRequests := sliceutil.NewSyncSlice[NetworkRequest]()
 	requestsMap := mapsutil.NewSyncLockMap[string, *NetworkRequest]()
+	// each event type runs in its own goroutine, so field updates on a shared
+	// *NetworkRequest must be serialized
+	var requestMu sync.Mutex
 
 	// Intercept outbound requests
 	go page.EachEvent(func(e *proto.NetworkRequestWillBeSent) {
@@ -194,27 +200,35 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle t
 	go page.EachEvent(func(e *proto.NetworkResponseReceived) {
 		if requestsMap.Has(string(e.RequestID)) {
 			req, _ := requestsMap.Get(string(e.RequestID))
+			requestMu.Lock()
 			req.StatusCode = e.Response.Status
+			requestMu.Unlock()
 		}
 	})()
 	// Intercept network end requests
 	go page.EachEvent(func(e *proto.NetworkLoadingFinished) {
 		if requestsMap.Has(string(e.RequestID)) {
 			req, _ := requestsMap.Get(string(e.RequestID))
+			requestMu.Lock()
 			if req.StatusCode > 0 {
 				req.ErrorType = ""
 			}
-			networkRequests.Append(*req)
+			finished := *req
+			requestMu.Unlock()
+			networkRequests.Append(finished)
 		}
 	})()
 	// Intercept failed request
 	go page.EachEvent(func(e *proto.NetworkLoadingFailed) {
 		if requestsMap.Has(string(e.RequestID)) {
 			req, _ := requestsMap.Get(string(e.RequestID))
+			requestMu.Lock()
 			req.StatusCode = 0 // mark to zero
 			req.ErrorType = getSimpleErrorType(e.ErrorText, string(e.Type), string(e.BlockedReason))
-			if stringsutil.HasPrefixAnyI(req.URL, "http://", "https://") {
-				networkRequests.Append(*req)
+			failed := *req
+			requestMu.Unlock()
+			if stringsutil.HasPrefixAnyI(failed.URL, "http://", "https://") {
+				networkRequests.Append(failed)
 			}
 		}
 	})()
@@ -247,19 +261,19 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle t
 	}
 
 	if err := page.Navigate(url); err != nil {
-		return page, networkRequests.Slice, err
+		return page, snapshotRequests(networkRequests), err
 	}
 
 	if len(jsCodes) > 0 {
 		_, err := b.ExecuteJavascriptCodesWithPage(page, jsCodes)
 		if err != nil {
-			return page, networkRequests.Slice, err
+			return page, snapshotRequests(networkRequests), err
 		}
 	}
 
 	b.waitPageReady(page, idle, waitReqIdle)
 
-	return page, networkRequests.Slice, nil
+	return page, snapshotRequests(networkRequests), nil
 }
 
 // waitPageReady blocks until the page is visually settled so we don't capture a
@@ -388,4 +402,15 @@ func (b *Browser) ExecuteJavascriptCodesWithPage(page *rod.Page, jsc []string) (
 		outputs = append(outputs, output)
 	}
 	return outputs, nil
+}
+
+// snapshotRequests copies the collected requests under the slice lock: event
+// goroutines can still append after the page returns.
+func snapshotRequests(requests *sliceutil.SyncSlice[NetworkRequest]) []NetworkRequest {
+	snapshot := make([]NetworkRequest, 0, requests.Len())
+	requests.Each(func(_ int, request NetworkRequest) error {
+		snapshot = append(snapshot, request)
+		return nil
+	})
+	return snapshot
 }

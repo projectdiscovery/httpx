@@ -109,7 +109,9 @@ func TestScreenshotSPAConcurrentNoEarlyCapture(t *testing.T) {
 	}
 }
 
-// BenchmarkScreenshotSPA times concurrent captures of the local SPA.
+// BenchmarkScreenshotSPA times captures of the local SPA. The base sub-benchmarks
+// capture sequentially; the "-parallel" ones capture concurrently on the shared
+// browser, which is the workload screenshots run under.
 //
 // On linux/amd64, /default uses chrome-headless-shell when available and
 // /local forces a system Chrome via NewBrowser(..., useLocal=true). Compare:
@@ -126,14 +128,34 @@ func BenchmarkScreenshotSPA(b *testing.B) {
 			browser := newScreenshotBrowser(b, useLocal)
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				screenshot, body, _, err := browser.ScreenshotWithBody(srv.URL, 15*time.Second, 200*time.Millisecond, nil, false, nil)
-				if err != nil {
-					b.Fatalf("screenshot: %v", err)
-				}
-				if len(screenshot) == 0 || !strings.Contains(body, spaHydratedMarker) {
-					b.Fatal("early or empty capture")
+				if err := benchCaptureSPA(browser, srv.URL); err != nil {
+					b.Fatal(err)
 				}
 			}
 		})
+		b.Run(name+"-parallel", func(b *testing.B) {
+			srv := startSPAScreenshotServer(b)
+			browser := newScreenshotBrowser(b, useLocal)
+			b.ResetTimer()
+			b.RunParallel(func(pb *testing.PB) {
+				for pb.Next() {
+					if err := benchCaptureSPA(browser, srv.URL); err != nil {
+						b.Error(err)
+						return
+					}
+				}
+			})
+		})
 	}
+}
+
+func benchCaptureSPA(browser *Browser, url string) error {
+	screenshot, body, _, err := browser.ScreenshotWithBody(url, 15*time.Second, 200*time.Millisecond, nil, false, nil)
+	if err != nil {
+		return fmt.Errorf("screenshot: %w", err)
+	}
+	if len(screenshot) == 0 || !strings.Contains(body, spaHydratedMarker) {
+		return fmt.Errorf("early or empty capture")
+	}
+	return nil
 }
