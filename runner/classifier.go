@@ -26,13 +26,8 @@ func loadPageTypeModel(path string) (model *dit.Classifier, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid page classification model: %w", err)
 	}
-	if result == nil || result.Type == "" || len(result.Forms) != 1 || result.Forms[0].Type == "" {
-		return nil, fmt.Errorf("invalid page classification model: missing page or form prediction")
-	}
-	for _, label := range result.Forms[0].Fields {
-		if label == "" {
-			return nil, fmt.Errorf("invalid page classification model: missing field prediction")
-		}
+	if result == nil || result.Type == "" {
+		return nil, fmt.Errorf("invalid page classification model: missing page prediction")
 	}
 	return model, nil
 }
