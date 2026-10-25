@@ -550,6 +550,18 @@ func TestStoreResponse_withMatcherSetsFlag(t *testing.T) {
 	require.True(t, opts.HasMatcherOrFilter())
 }
 
+func TestProtocolValidation(t *testing.T) {
+	for _, proto := range []string{"", "http11", "http2", "http3", "HTTP11", "HTTP2", "HTTP3"} {
+		opts := &Options{Protocol: proto}
+		err := opts.ValidateOptions()
+		require.NoError(t, err, "protocol %s should be valid", proto)
+	}
+	invalidOpts := &Options{Protocol: "ftp"}
+	err := invalidOpts.ValidateOptions()
+	require.Error(t, err)
+}
+
+
 func TestRunner_duplicate(t *testing.T) {
 	const (
 		pageA = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><head><title>Welcome</title></head><body>Hello world default page content here</body></html>"
@@ -1251,3 +1263,17 @@ func TestRunner_RateLimiter_Initialization(t *testing.T) {
 	})
 }
 
+
+func TestExtractPotentialFavIconsURLs_IgnoresAlternateLinks(t *testing.T) {
+	page := []byte(`<html><head>
+<link rel="alternate" type="application/rss+xml" href="/feed.xml">
+<link rel="alternate" hreflang="de" href="https://example.com/de/">
+<link rel="alternate icon" href="/favicon.png">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style.css">
+</head></html>`)
+
+	candidates, _, err := extractPotentialFavIconsURLs(page)
+	require.NoError(t, err)
+	require.Equal(t, []string{"/favicon.ico", "/favicon.png"}, candidates)
+}

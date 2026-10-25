@@ -146,6 +146,13 @@ func New(options *Options) (*Runner, error) {
 		interruptCh: make(chan struct{}),
 	}
 	var err error
+	// Load an explicit model before creating resources or clearing output indexes.
+	if options.classificationEnabled() && options.PageTypeModel != "" {
+		runner.ditClassifier, err = loadPageTypeModel(options.PageTypeModel)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not initialize page classifier")
+		}
+	}
 	if options.Wappalyzer != nil {
 		runner.wappalyzer = options.Wappalyzer
 	} else if techDetectRequired(options) {
@@ -235,7 +242,7 @@ func New(options *Options) (*Runner, error) {
 	}
 	httpxOptions.Resolvers = options.Resolvers
 	httpxOptions.TlsImpersonate = options.TlsImpersonate
-	httpxOptions.Protocol = httpx.Proto(options.Protocol)
+	httpxOptions.Protocol = httpx.Proto(strings.ToLower(options.Protocol))
 
 	var key, value string
 	httpxOptions.CustomHeaders = make(map[string][]string)
@@ -400,7 +407,10 @@ func New(options *Options) (*Runner, error) {
 	runner.scanopts = scanopts
 
 	if options.ShowStatistics {
-		runner.stats, err = clistats.New()
+		// a copy, as Start writes the port it falls back to into the options
+		statsOptions := clistats.DefaultOptions
+		statsOptions.ListenPort = options.metricsPort()
+		runner.stats, err = clistats.NewWithOptions(context.Background(), &statsOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -431,7 +441,7 @@ func New(options *Options) (*Runner, error) {
 	}
 
 	runner.simHashes = gcache.New[uint64, []string](1000).ARC().Build()
-	if options.classificationEnabled() {
+	if options.classificationEnabled() && runner.ditClassifier == nil {
 		ditClassifier, err := dit.New()
 		if err != nil {
 			return nil, errors.Wrap(err, "could not initialize page classifier")
@@ -617,6 +627,11 @@ func (r *Runner) prepareInput() {
 		err := r.stats.Start()
 		if err != nil {
 			gologger.Warning().Msgf("Could not create statistics: %s\n", err)
+		} else if stats, ok := r.stats.(*clistats.Statistics); ok {
+			if requested := r.options.metricsPort(); stats.Options.ListenPort != requested {
+				gologger.Info().Msgf("Metrics port %d is not available, using %d\n", requested, stats.Options.ListenPort)
+			}
+			gologger.Verbose().Msgf("Started metrics server at %s\n", net.JoinHostPort(stats.Options.ListenHost, strconv.Itoa(stats.Options.ListenPort)))
 		}
 
 		r.stats.GetStatResponse(time.Duration(r.options.StatsInterval)*time.Second, func(s string, err error) error {
@@ -666,8 +681,9 @@ func (r *Runner) classifyPage(headlessBody, body string, pHash uint64) map[strin
 	if headlessBody != "" {
 		html = headlessBody
 	}
-	result, err := r.ditClassifier.ExtractPageType(html)
+	result, err := extractPageType(r.ditClassifier, html)
 	if err != nil {
+		gologger.Debug().Msgf("Could not classify page: %s", err)
 		return kb
 	}
 	kb["PageType"] = fmt.Sprint(result.Type)
@@ -2865,8 +2881,9 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		respFav, err := hp.Do(clone, httpx.UnsafeOptions{})
 		if err != nil || len(respFav.Data) == 0 {
 			tries++
-			// Root fallback: directory-relative failed and raw had no leading slash
-			if !strings.HasPrefix(raw, "/") {
+			// Root fallback: directory-relative failed and raw had no leading slash.
+			// Absolute hrefs (with a scheme) have no relative form to retry.
+			if !parsedHref.IsAbs() && !strings.HasPrefix(raw, "/") {
 				rootResolvedNet := baseNet.ResolveReference(&url.URL{Path: "/" + raw})
 				rootResolvedURL, err2 := urlutil.ParseURL(rootResolvedNet.String(), r.options.Unsafe)
 				if err2 != nil {
@@ -2926,9 +2943,11 @@ func extractPotentialFavIconsURLs(resp []byte) (candidates []string, baseHref st
 		if href == "" {
 			return
 		}
+		// "alternate" alone marks feeds and translations, not icons;
+		// "alternate icon" is still matched through its "icon" token.
 		for _, tok := range strings.Fields(rel) {
 			switch tok {
-			case "icon", "shortcut", "shortcut-icon", "apple-touch-icon", "mask-icon", "alternate":
+			case "icon", "shortcut", "shortcut-icon", "apple-touch-icon", "mask-icon":
 				candidates = append(candidates, href)
 				return
 			}
