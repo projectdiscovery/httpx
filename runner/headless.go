@@ -1,9 +1,12 @@
 package runner
 
 import (
+	"context"
 	"fmt"
+	"maps"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-rod/rod"
@@ -11,6 +14,8 @@ import (
 	"github.com/go-rod/rod/lib/launcher/flags"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/pkg/errors"
+	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/utils/chromeshell"
 	fileutil "github.com/projectdiscovery/utils/file"
 	mapsutil "github.com/projectdiscovery/utils/maps"
 	osutils "github.com/projectdiscovery/utils/os"
@@ -43,6 +48,12 @@ type Browser struct {
 }
 
 func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*Browser, error) {
+	return newBrowser(proxy, proxy, useLocal, optionalArgs)
+}
+
+// newBrowser is NewBrowser with a separate proxy for the chrome-headless-shell
+// download. An empty downloadProxy uses the environment proxy.
+func newBrowser(proxy, downloadProxy string, useLocal bool, optionalArgs map[string]string) (*Browser, error) {
 	dataStore, err := os.MkdirTemp("", "nuclei-*")
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create temporary directory")
@@ -61,7 +72,31 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 		Set("window-size", fmt.Sprintf("%d,%d", 1080, 1920)).
 		Set("mute-audio", "true").
 		Set("incognito", "true").
+		// Performance: keep background/occluded tabs running at full speed so
+		// many concurrent screenshot pages don't get render-throttled.
+		Set("disable-background-timer-throttling", "true").
+		Set("disable-backgrounding-occluded-windows", "true").
+		Set("disable-renderer-backgrounding", "true").
+		Set("disable-hang-monitor", "true").
+		// Performance: strip background chrome services we never use.
+		Set("disable-background-networking", "true").
+		Set("disable-client-side-phishing-detection", "true").
+		Set("disable-component-update", "true").
+		Set("disable-default-apps", "true").
+		Set("disable-domain-reliability", "true").
+		Set("disable-extensions", "true").
+		Set("disable-sync", "true").
+		Set("no-first-run", "true").
+		Set("no-default-browser-check", "true").
+		Set("metrics-recording-only", "true").
+		Set("safebrowsing-disable-auto-update", "true").
+		// site-per-process stays enabled: screenshots render untrusted pages, so
+		// Chromium's cross-origin renderer isolation is worth the extra processes.
+		Set("disable-features", "Translate,BackForwardCache,AcceptCHFrame,MediaRouter,OptimizationHints").
 		Delete("use-mock-keychain").
+		// rod disables IPC flooding protection by default; keep it on because
+		// untrusted pages share one browser process and must not starve each other.
+		Delete("disable-ipc-flooding-protection").
 		Headless(true).
 		UserDataDir(dataStore)
 
@@ -76,11 +111,21 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 
 	// if musl is used, most likely we are on alpine linux which is not supported by go-rod, so we fallback to default chrome
 	useMusl, _ := fileutil.UseMusl(executablePath)
+	usingChromeShell := false
 	if useLocal || useMusl {
 		if chromePath, hasChrome := launcher.LookPath(); hasChrome {
 			chromeLauncher.Bin(chromePath)
 		} else {
 			return nil, errors.New("the chrome browser is not installed")
+		}
+	} else if chromeshell.Supported() {
+		// Prefer chrome-headless-shell on linux/amd64: smaller download and
+		// faster headless screenshots than full Chromium snapshots.
+		if shellPath, err := ensureChromeShell(downloadProxy); err == nil {
+			chromeLauncher.Bin(shellPath)
+			usingChromeShell = true
+		} else {
+			gologger.Warning().Msgf("Could not prepare chrome-headless-shell, using the default browser: %s\n", err)
 		}
 	}
 
@@ -101,6 +146,13 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 	}
 
 	launcherURL, err := chromeLauncher.Launch()
+	if err != nil && usingChromeShell {
+		// A damaged cached shell must not disable screenshots: retry once with
+		// the rod default browser and the same flags.
+		gologger.Warning().Msgf("Could not launch chrome-headless-shell, using the default browser: %s\n", err)
+		chromeLauncher = defaultBrowserLauncher(chromeLauncher)
+		launcherURL, err = chromeLauncher.Launch()
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -119,13 +171,13 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 }
 
 func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle time.Duration, headers []string, fullPage bool, jsCodes []string) ([]byte, string, []NetworkRequest, error) {
-	page, networkRequests, err := b.setupPageAndNavigate(url, timeout, headers, jsCodes)
+	page, networkRequests, err := b.setupPageAndNavigate(url, timeout, idle, headers, jsCodes)
 	if err != nil {
 		return nil, "", []NetworkRequest{}, err
 	}
 	defer b.closePage(page)
 
-	screenshot, body, err := b.takeScreenshotAndGetBody(page, idle, fullPage)
+	screenshot, body, err := b.takeScreenshotAndGetBody(page, fullPage)
 	if err != nil {
 		return nil, "", networkRequests, err
 	}
@@ -134,7 +186,7 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 }
 
 // setupPageAndNavigate opens a page, performs all adaptive actions including JS injection
-func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, headers []string, jsCodes []string) (*rod.Page, []NetworkRequest, error) {
+func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle time.Duration, headers []string, jsCodes []string) (*rod.Page, []NetworkRequest, error) {
 	page, err := b.engine.Page(proto.TargetCreateTarget{})
 	if err != nil {
 		return nil, []NetworkRequest{}, err
@@ -145,6 +197,9 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, header
 
 	networkRequests := sliceutil.NewSyncSlice[NetworkRequest]()
 	requestsMap := mapsutil.NewSyncLockMap[string, *NetworkRequest]()
+	// each event type runs in its own goroutine, so field updates on a shared
+	// *NetworkRequest must be serialized
+	var requestMu sync.Mutex
 
 	// Intercept outbound requests
 	go page.EachEvent(func(e *proto.NetworkRequestWillBeSent) {
@@ -164,27 +219,35 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, header
 	go page.EachEvent(func(e *proto.NetworkResponseReceived) {
 		if requestsMap.Has(string(e.RequestID)) {
 			req, _ := requestsMap.Get(string(e.RequestID))
+			requestMu.Lock()
 			req.StatusCode = e.Response.Status
+			requestMu.Unlock()
 		}
 	})()
 	// Intercept network end requests
 	go page.EachEvent(func(e *proto.NetworkLoadingFinished) {
 		if requestsMap.Has(string(e.RequestID)) {
 			req, _ := requestsMap.Get(string(e.RequestID))
+			requestMu.Lock()
 			if req.StatusCode > 0 {
 				req.ErrorType = ""
 			}
-			networkRequests.Append(*req)
+			finished := *req
+			requestMu.Unlock()
+			networkRequests.Append(finished)
 		}
 	})()
 	// Intercept failed request
 	go page.EachEvent(func(e *proto.NetworkLoadingFailed) {
 		if requestsMap.Has(string(e.RequestID)) {
 			req, _ := requestsMap.Get(string(e.RequestID))
+			requestMu.Lock()
 			req.StatusCode = 0 // mark to zero
 			req.ErrorType = getSimpleErrorType(e.ErrorText, string(e.Type), string(e.BlockedReason))
-			if stringsutil.HasPrefixAnyI(req.URL, "http://", "https://") {
-				networkRequests.Append(*req)
+			failed := *req
+			requestMu.Unlock()
+			if stringsutil.HasPrefixAnyI(failed.URL, "http://", "https://") {
+				networkRequests.Append(failed)
 			}
 		}
 	})()
@@ -208,31 +271,77 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, header
 	}
 
 	page = page.Timeout(timeout)
+	var waitReqIdle func()
+	if idle > 0 {
+		// Register before Navigate so the first SPA XHRs are tracked by the
+		// request-idle waiter. Zero/negative idle skips this (WaitRequestIdle
+		// and WaitDOMStable reject non-positive durations).
+		waitReqIdle = page.WaitRequestIdle(idle, nil, nil, nil)
+	}
 
 	if err := page.Navigate(url); err != nil {
-		return page, networkRequests.Slice, err
+		return page, snapshotRequests(networkRequests), err
 	}
 
 	if len(jsCodes) > 0 {
 		_, err := b.ExecuteJavascriptCodesWithPage(page, jsCodes)
 		if err != nil {
-			return page, networkRequests.Slice, err
+			return page, snapshotRequests(networkRequests), err
 		}
 	}
 
-	page.Timeout(5 * time.Second).WaitNavigation(proto.PageLifecycleEventNameFirstMeaningfulPaint)()
+	b.waitPageReady(page, idle, waitReqIdle)
 
-	return page, networkRequests.Slice, nil
+	return page, snapshotRequests(networkRequests), nil
+}
+
+// waitPageReady blocks until the page is visually settled so we don't capture a
+// half-rendered SPA. It gates on three independent signals, each bounded by the
+// page timeout:
+//   - window.onload
+//   - network request-idle (a quiet network window)
+//   - DOM stability (the rendered tree stops mutating)
+//
+// SPAs paint late: the network can briefly go quiet before hydration starts, so
+// request-idle alone can fire on the boot screen. Requiring DOM stability on top
+// closes that gap. DOM stability is re-checked after the network settles so the
+// first snapshot is taken post-hydration rather than on the boot screen.
+func (b *Browser) waitPageReady(page *rod.Page, idle time.Duration, waitReqIdle func()) {
+	_ = page.WaitLoad()
+	if idle <= 0 || waitReqIdle == nil {
+		return
+	}
+	waitReqIdle()
+	_ = page.WaitDOMStable(idle, 0)
+}
+
+// defaultBrowserLauncher returns a new launcher with the flags of configured,
+// minus the browser binary, so rod launches its default browser. A launcher can
+// only be launched once.
+func defaultBrowserLauncher(configured *launcher.Launcher) *launcher.Launcher {
+	fallback := launcher.New()
+	fallback.Flags = maps.Clone(configured.Flags)
+	fallback.Delete(flags.Bin)
+	return fallback
+}
+
+// ensureChromeShell fetches the browser under a deadline. The context has to
+// reach the download itself: racing a plain Ensure against a timer would only
+// abandon the wait, leaving the transfer running and the shared download lock
+// held, so the next caller would block behind it.
+func ensureChromeShell(proxy string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), chromeshell.DefaultDownloadTimeout)
+	defer cancel()
+	return chromeshell.EnsureWithOptions(ctx, chromeshell.Options{Proxy: proxy})
 }
 
 // takeScreenshotAndGetBody performs the screenshot actions
-func (b *Browser) takeScreenshotAndGetBody(page *rod.Page, idle time.Duration, fullPage bool) ([]byte, string, error) {
-	if err := page.WaitLoad(); err != nil {
-		return nil, "", err
-	}
-	_ = page.WaitIdle(idle)
+func (b *Browser) takeScreenshotAndGetBody(page *rod.Page, fullPage bool) ([]byte, string, error) {
+	_ = page.WaitRepaint()
 
-	screenshot, err := page.Screenshot(fullPage, &proto.PageCaptureScreenshot{})
+	screenshot, err := page.Screenshot(fullPage, &proto.PageCaptureScreenshot{
+		OptimizeForSpeed: true,
+	})
 	if err != nil {
 		return nil, "", err
 	}
@@ -320,4 +429,15 @@ func (b *Browser) ExecuteJavascriptCodesWithPage(page *rod.Page, jsc []string) (
 		outputs = append(outputs, output)
 	}
 	return outputs, nil
+}
+
+// snapshotRequests copies the collected requests under the slice lock: event
+// goroutines can still append after the page returns.
+func snapshotRequests(requests *sliceutil.SyncSlice[NetworkRequest]) []NetworkRequest {
+	snapshot := make([]NetworkRequest, 0, requests.Len())
+	requests.Each(func(_ int, request NetworkRequest) error {
+		snapshot = append(snapshot, request)
+		return nil
+	})
+	return snapshot
 }
