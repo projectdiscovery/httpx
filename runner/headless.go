@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"strings"
 	"sync"
@@ -13,6 +14,7 @@ import (
 	"github.com/go-rod/rod/lib/launcher/flags"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/pkg/errors"
+	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/utils/chromeshell"
 	fileutil "github.com/projectdiscovery/utils/file"
 	mapsutil "github.com/projectdiscovery/utils/maps"
@@ -103,6 +105,7 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 
 	// if musl is used, most likely we are on alpine linux which is not supported by go-rod, so we fallback to default chrome
 	useMusl, _ := fileutil.UseMusl(executablePath)
+	usingChromeShell := false
 	if useLocal || useMusl {
 		if chromePath, hasChrome := launcher.LookPath(); hasChrome {
 			chromeLauncher.Bin(chromePath)
@@ -114,6 +117,9 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 		// faster headless screenshots than full Chromium snapshots.
 		if shellPath, err := ensureChromeShell(); err == nil {
 			chromeLauncher.Bin(shellPath)
+			usingChromeShell = true
+		} else {
+			gologger.Warning().Msgf("Could not prepare chrome-headless-shell, using the default browser: %s\n", err)
 		}
 	}
 
@@ -134,6 +140,13 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 	}
 
 	launcherURL, err := chromeLauncher.Launch()
+	if err != nil && usingChromeShell {
+		// A damaged cached shell must not disable screenshots: retry once with
+		// the rod default browser and the same flags.
+		gologger.Warning().Msgf("Could not launch chrome-headless-shell, using the default browser: %s\n", err)
+		chromeLauncher = defaultBrowserLauncher(chromeLauncher)
+		launcherURL, err = chromeLauncher.Launch()
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -297,6 +310,16 @@ func (b *Browser) waitPageReady(page *rod.Page, idle time.Duration, waitReqIdle 
 }
 
 const chromeShellEnsureTimeout = 2 * time.Minute
+
+// defaultBrowserLauncher returns a new launcher with the flags of configured,
+// minus the browser binary, so rod launches its default browser. A launcher can
+// only be launched once.
+func defaultBrowserLauncher(configured *launcher.Launcher) *launcher.Launcher {
+	fallback := launcher.New()
+	fallback.Flags = maps.Clone(configured.Flags)
+	fallback.Delete(flags.Bin)
+	return fallback
+}
 
 // ensureChromeShell fetches the browser under a deadline. The context has to
 // reach the download itself: racing a plain Ensure against a timer would only
