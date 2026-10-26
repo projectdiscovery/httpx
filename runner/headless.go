@@ -48,6 +48,12 @@ type Browser struct {
 }
 
 func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*Browser, error) {
+	return newBrowser(proxy, proxy, useLocal, optionalArgs)
+}
+
+// newBrowser is NewBrowser with a separate proxy for the chrome-headless-shell
+// download. An empty downloadProxy uses the environment proxy.
+func newBrowser(proxy, downloadProxy string, useLocal bool, optionalArgs map[string]string) (*Browser, error) {
 	dataStore, err := os.MkdirTemp("", "nuclei-*")
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create temporary directory")
@@ -115,7 +121,7 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 	} else if chromeshell.Supported() {
 		// Prefer chrome-headless-shell on linux/amd64: smaller download and
 		// faster headless screenshots than full Chromium snapshots.
-		if shellPath, err := ensureChromeShell(); err == nil {
+		if shellPath, err := ensureChromeShell(downloadProxy); err == nil {
 			chromeLauncher.Bin(shellPath)
 			usingChromeShell = true
 		} else {
@@ -309,8 +315,6 @@ func (b *Browser) waitPageReady(page *rod.Page, idle time.Duration, waitReqIdle 
 	_ = page.WaitDOMStable(idle, 0)
 }
 
-const chromeShellEnsureTimeout = 2 * time.Minute
-
 // defaultBrowserLauncher returns a new launcher with the flags of configured,
 // minus the browser binary, so rod launches its default browser. A launcher can
 // only be launched once.
@@ -325,10 +329,10 @@ func defaultBrowserLauncher(configured *launcher.Launcher) *launcher.Launcher {
 // reach the download itself: racing a plain Ensure against a timer would only
 // abandon the wait, leaving the transfer running and the shared download lock
 // held, so the next caller would block behind it.
-func ensureChromeShell() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), chromeShellEnsureTimeout)
+func ensureChromeShell(proxy string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), chromeshell.DefaultDownloadTimeout)
 	defer cancel()
-	return chromeshell.EnsureContext(ctx)
+	return chromeshell.EnsureWithOptions(ctx, chromeshell.Options{Proxy: proxy})
 }
 
 // takeScreenshotAndGetBody performs the screenshot actions

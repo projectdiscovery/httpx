@@ -356,7 +356,8 @@ func New(options *Options) (*Runner, error) {
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
 	scanopts.extractRegexps = make(map[string]*regexp.Regexp)
 	if options.Screenshot {
-		browser, err := NewBrowser(options.HTTPProxy, options.UseInstalledChrome, options.ParseHeadlessOptionalArguments())
+		// The browser download goes through -proxy / -http-proxy too.
+		browser, err := newBrowser(options.HTTPProxy, options.Proxy, options.UseInstalledChrome, options.ParseHeadlessOptionalArguments())
 		if err != nil {
 			return nil, err
 		}
