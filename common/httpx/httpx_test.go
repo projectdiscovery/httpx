@@ -263,6 +263,12 @@ func TestHTTP11DoesNotClobberGODEBUG(t *testing.T) {
 func TestDialerALPNReachesClientHello(t *testing.T) {
 	addr, getHello := startTLSServer(t)
 
+	// DefaultTLSConfig leaves CipherSuites nil, so the expected suites are the ones crypto/tls sends for it
+	ref, err := tls.Dial("tcp", addr, fastdialer.DefaultTLSConfig.Clone())
+	require.NoError(t, err)
+	_ = ref.Close()
+	defaultCiphers := getHello().CipherSuites
+
 	for _, tc := range []struct {
 		name    string
 		proto   Proto
@@ -271,13 +277,13 @@ func TestDialerALPNReachesClientHello(t *testing.T) {
 		want    []string
 		ciphers bool
 	}{
-		{name: "default", proto: UNKNOWN, ciphers: true},
+		{name: "default", proto: UNKNOWN, want: []string{"http/1.1"}, ciphers: true},
 		{name: "http11", proto: HTTP11, want: []string{"http/1.1"}, ciphers: true},
 		{name: "http2", proto: HTTP2, want: []string{"h2"}, ciphers: true},
-		{name: "http3 falls back", proto: HTTP3, ciphers: true},
+		{name: "http3 falls back", proto: HTTP3, want: []string{"http/1.1"}, ciphers: true},
 		{name: "ztls", proto: UNKNOWN, ztls: true},
 		{name: "ztls http2", proto: HTTP2, ztls: true, want: []string{"h2"}},
-		{name: "sni", proto: UNKNOWN, sni: "scanme.example", ciphers: true},
+		{name: "sni", proto: UNKNOWN, sni: "scanme.example", want: []string{"http/1.1"}, ciphers: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			opts := DefaultOptions
@@ -308,7 +314,7 @@ func TestDialerALPNReachesClientHello(t *testing.T) {
 				require.Equal(t, tc.sni, hello.ServerName)
 			}
 			if tc.ciphers {
-				require.ElementsMatch(t, fastdialer.DefaultTLSConfig.CipherSuites, hello.CipherSuites)
+				require.ElementsMatch(t, defaultCiphers, hello.CipherSuites)
 			}
 		})
 	}
