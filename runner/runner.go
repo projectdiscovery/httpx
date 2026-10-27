@@ -2776,7 +2776,7 @@ retry:
 }
 
 func (r *Runner) skip(URL *urlutil.URL, target httpx.Target, origInput string) (bool, Result) {
-	if r.skipCDNPort(URL.Hostname(), URL.Port()) {
+	if r.skipCDNPort(URL.Hostname(), target.CustomIP, URL.Port()) {
 		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port())
 		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("cdn target only allows ports 80 and 443")}
 	}
@@ -3050,24 +3050,29 @@ func (r Result) CSVRow(scanopts *ScanOptions) string { //nolint
 	return res
 }
 
-func (r *Runner) skipCDNPort(host string, port string) bool {
+// skipCDNPort checks the ip a target is pinned to, or the first ip of host
+// when it is not pinned.
+func (r *Runner) skipCDNPort(host, ip, port string) bool {
 	// if the option is not enabled we don't skip
 	if !r.scanopts.ExcludeCDN {
 		return false
 	}
-	// uses the dealer to pre-resolve the target
-	dnsData, err := r.hp.Dialer.GetDNSData(host)
-	// if we get an error the target cannot be resolved, so we return false so that the program logic continues as usual and handles the errors accordingly
-	if err != nil {
-		return false
-	}
+	hostIP := ip
+	if hostIP == "" {
+		// uses the dealer to pre-resolve the target
+		dnsData, err := r.hp.Dialer.GetDNSData(host)
+		// if we get an error the target cannot be resolved, so we return false so that the program logic continues as usual and handles the errors accordingly
+		if err != nil {
+			return false
+		}
 
-	if len(dnsData.A) == 0 {
-		return false
-	}
+		if len(dnsData.A) == 0 {
+			return false
+		}
 
-	// pick the first ip as target
-	hostIP := dnsData.A[0]
+		// pick the first ip as target
+		hostIP = dnsData.A[0]
+	}
 
 	isCdnIP, _, _, err := r.hp.CdnCheck(hostIP)
 	if err != nil {
