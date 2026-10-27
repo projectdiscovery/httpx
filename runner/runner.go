@@ -1881,11 +1881,7 @@ retry:
 	}
 
 	// check if we have to skip the host:port as a result of a previous failure
-	hostPort := net.JoinHostPort(URL.Host, URL.Port())
-	if target.CustomIP != "" {
-		// the ips of a host fail independently
-		hostPort += "@" + target.CustomIP
-	}
+	hostPort := pinnedKey(net.JoinHostPort(URL.Host, URL.Port()), target.CustomIP)
 	if r.options.HostMaxErrors >= 0 && r.HostErrorsCache.Has(hostPort) {
 		numberOfErrors, err := r.HostErrorsCache.GetIFPresent(hostPort)
 		if err == nil && numberOfErrors >= r.options.HostMaxErrors {
@@ -2518,7 +2514,7 @@ retry:
 	}
 
 	// store responses or chain in directory
-	domainFile := method + ":" + URL.EscapedString()
+	domainFile := pinnedKey(method+":"+URL.EscapedString(), target.CustomIP)
 	hash := hashes.Sha1([]byte(domainFile))
 	domainResponseFile := fmt.Sprintf("%s.txt", hash)
 	hostFilename := strings.ReplaceAll(URL.Host, ":", "_")

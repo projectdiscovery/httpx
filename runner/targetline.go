@@ -93,6 +93,15 @@ func (t targetLine) key() string {
 	return strings.TrimSpace(buf.String())
 }
 
+// pinnedKey returns key for a target that is not pinned, and key@ip for one
+// pinned to ip, as the ips of a host fail and respond independently.
+func pinnedKey(key, ip string) string {
+	if ip == "" {
+		return key
+	}
+	return key + "@" + ip
+}
+
 // targetOf returns the target of an input line: the line itself, or the
 // target of a target line.
 func targetOf(item string) string {

@@ -3,6 +3,7 @@ package runner
 import (
 	"crypto/tls"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -128,27 +129,32 @@ func skipIfProxied(t *testing.T, target string) {
 // runPinned probes the target lines with a runner and returns the results.
 func runPinned(t *testing.T, lines ...string) []Result {
 	t.Helper()
+	return runPinnedWith(t, &Options{}, lines...)
+}
+
+// runPinnedWith is runPinned with options holding the flags under test.
+func runPinnedWith(t *testing.T, options *Options, lines ...string) []Result {
+	t.Helper()
 
 	var (
 		mu      sync.Mutex
 		results []Result
 	)
-	r, err := New(&Options{
-		Threads:   1,
-		RateLimit: 10,
-		Timeout:   5,
-		Methods:   http.MethodGet,
-		Delay:     -1,
-		OnResult: func(r Result) {
-			if r.Err != nil || r.URL == "" {
-				return
-			}
-			mu.Lock()
-			results = append(results, r)
-			mu.Unlock()
-		},
-		InputTargetHost: lines,
-	})
+	options.Threads = 1
+	options.RateLimit = 10
+	options.Timeout = 5
+	options.Methods = http.MethodGet
+	options.Delay = -1
+	options.OnResult = func(r Result) {
+		if r.Err != nil || r.URL == "" {
+			return
+		}
+		mu.Lock()
+		results = append(results, r)
+		mu.Unlock()
+	}
+	options.InputTargetHost = lines
+	r, err := New(options)
 	require.NoError(t, err)
 	defer r.Close()
 	r.RunEnumeration()
@@ -176,7 +182,10 @@ func serveTitle(t *testing.T, addr, name string) *httptest.Server {
 	return ts
 }
 
-func TestTargetLinePinsTheConnection(t *testing.T) {
+// servePair serves "one" on 127.0.0.1 and "two" on 127.0.0.2 with the same
+// port, and returns the port and the lines pinning pinned.test to each ip.
+func servePair(t *testing.T) (string, []string) {
+	t.Helper()
 	one := serveTitle(t, "127.0.0.1:0", "one")
 	_, port, err := net.SplitHostPort(one.Listener.Addr().String())
 	require.NoError(t, err)
@@ -184,10 +193,15 @@ func TestTargetLinePinsTheConnection(t *testing.T) {
 
 	target := "http://pinned.test:" + port
 	skipIfProxied(t, target)
-	results := runPinned(t,
+	return port, []string{
 		fmt.Sprintf(`{"target": %q, "ip": "127.0.0.1"}`, target),
 		fmt.Sprintf(`{"target": %q, "ip": "127.0.0.2"}`, target),
-	)
+	}
+}
+
+func TestTargetLinePinsTheConnection(t *testing.T) {
+	port, lines := servePair(t)
+	results := runPinned(t, lines...)
 
 	var got []string
 	for _, result := range results {
@@ -198,6 +212,27 @@ func TestTargetLinePinsTheConnection(t *testing.T) {
 		"127.0.0.1 one pinned.test:" + port,
 		"127.0.0.2 two pinned.test:" + port,
 	}, got)
+}
+
+// With a matcher, responses are stored after matching, under a name that
+// must differ for each ip of a url.
+func TestTargetLineStoresTheResponseOfEachIP(t *testing.T) {
+	_, lines := servePair(t)
+	options := &Options{
+		StoreResponse:             true,
+		StoreResponseDir:          t.TempDir(),
+		MaxResponseBodySizeToSave: math.MaxInt32,
+		OutputMatchStatusCode:     "200",
+	}
+	require.NoError(t, options.ValidateOptions())
+	results := runPinnedWith(t, options, lines...)
+
+	require.Len(t, results, 2)
+	for _, result := range results {
+		data, err := os.ReadFile(result.StoredResponsePath)
+		require.NoError(t, err)
+		require.Contains(t, string(data), "<title>"+result.Title+"</title>", "the response of %s", result.HostIP)
+	}
 }
 
 // An IPv6 ip is dialed as well, which -pa relies on for the IPv6 ips of a host.
