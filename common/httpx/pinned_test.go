@@ -25,6 +25,11 @@ func TestRefusePinned(t *testing.T) {
 	_, err = proxy(idn)
 	require.ErrorIs(t, err, errPinnedThroughProxy, "an IDN host in ASCII form")
 
+	second, err := http.NewRequestWithContext(WithPinnedIP(ctx, "second.test", "192.0.2.11"), http.MethodGet, "https://second.test/", nil)
+	require.NoError(t, err)
+	_, err = proxy(second)
+	require.ErrorIs(t, err, errPinnedThroughProxy, "each host pinned in a context")
+
 	redirect, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://other.test/", nil)
 	require.NoError(t, err)
 	got, err := proxy(redirect)

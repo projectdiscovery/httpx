@@ -80,29 +80,6 @@ func TestRunner_normalizeInput(t *testing.T) {
 	require.NoError(t, err, "only pinned targets conflict")
 }
 
-// A proxy, set with -proxy for -pa or in the environment, resolves the host
-// itself, so a probe of a pinned target through it fails.
-func TestRunner_analyze_pinnedThroughProxy(t *testing.T) {
-	r, err := New(&Options{HTTPProxy: "http://127.0.0.1:1"})
-	require.NoError(t, err)
-	defer r.Close()
-
-	target := httpx.Target{Host: "http://pinned.test", CustomIP: "127.0.0.1"}
-	result := r.analyze(r.hp, httpx.HTTP, target, http.MethodGet, target.Host, &r.scanopts)
-	require.ErrorContains(t, result.Err, "through a proxy")
-}
-
-func TestRunner_skipCDNPort_pinned(t *testing.T) {
-	r, err := New(&Options{Exclude: []string{"cdn"}})
-	require.NoError(t, err)
-	defer r.Close()
-
-	// pinned.test does not resolve: only the pinned ip can be classified
-	require.True(t, r.skipCDNPort("pinned.test", "151.101.1.1", "8443"), "a CDN ip on another port")
-	require.False(t, r.skipCDNPort("pinned.test", "151.101.1.1", "443"), "a CDN ip on 443")
-	require.False(t, r.skipCDNPort("pinned.test", "192.0.2.10", "8443"), "an origin ip")
-}
-
 func TestRunner_targetLine_targets(t *testing.T) {
 	// -pa must not resolve a pinned target
 	r, err := New(&Options{ProbeAllIPS: true})
@@ -136,6 +113,29 @@ func TestRunner_streamInput_skipsInvalidLines(t *testing.T) {
 		got = append(got, item)
 	}
 	require.Equal(t, []string{"a.example", `{"target":"c.example","ip":"192.0.2.10"}`}, got, "the malformed line is skipped")
+}
+
+// A proxy, set with -proxy for -pa or in the environment, resolves the host
+// itself, so a probe of a pinned target through it fails.
+func TestRunner_analyze_pinnedThroughProxy(t *testing.T) {
+	r, err := New(&Options{HTTPProxy: "http://127.0.0.1:1"})
+	require.NoError(t, err)
+	defer r.Close()
+
+	target := httpx.Target{Host: "http://pinned.test", CustomIP: "127.0.0.1"}
+	result := r.analyze(r.hp, httpx.HTTP, target, http.MethodGet, target.Host, &r.scanopts)
+	require.ErrorContains(t, result.Err, "through a proxy")
+}
+
+func TestRunner_skipCDNPort_pinned(t *testing.T) {
+	r, err := New(&Options{Exclude: []string{"cdn"}})
+	require.NoError(t, err)
+	defer r.Close()
+
+	// pinned.test does not resolve: only the pinned ip can be classified
+	require.True(t, r.skipCDNPort("pinned.test", "151.101.1.1", "8443"), "a CDN ip on another port")
+	require.False(t, r.skipCDNPort("pinned.test", "151.101.1.1", "443"), "a CDN ip on 443")
+	require.False(t, r.skipCDNPort("pinned.test", "192.0.2.10", "8443"), "an origin ip")
 }
 
 // skipIfProxied skips a test whose requests to target go through a proxy set
