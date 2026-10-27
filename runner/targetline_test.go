@@ -56,7 +56,6 @@ func TestParseTargetLine(t *testing.T) {
 }
 
 func TestRunner_normalizeInput(t *testing.T) {
-	stubEnvProxy(t, http.ProxyURL(nil))
 	r := &Runner{options: &Options{}}
 	for _, line := range []string{
 		`{"target": "https://a.example", "ip": "192.0.2.10"}`,
@@ -81,31 +80,16 @@ func TestRunner_normalizeInput(t *testing.T) {
 	require.NoError(t, err, "only pinned targets conflict")
 }
 
-// stubEnvProxy replaces the proxy set in the environment for the test.
-func stubEnvProxy(t *testing.T, proxy func(*http.Request) (*url.URL, error)) {
-	t.Helper()
-	proxied := proxyFromEnvironment
-	t.Cleanup(func() { proxyFromEnvironment = proxied })
-	proxyFromEnvironment = proxy
-}
+// A proxy, set with -proxy for -pa or in the environment, resolves the host
+// itself, so a probe of a pinned target through it fails.
+func TestRunner_analyze_pinnedThroughProxy(t *testing.T) {
+	r, err := New(&Options{HTTPProxy: "http://127.0.0.1:1"})
+	require.NoError(t, err)
+	defer r.Close()
 
-func TestRunner_normalizeInput_envProxy(t *testing.T) {
-	stubEnvProxy(t, func(req *http.Request) (*url.URL, error) {
-		if req.URL.Scheme == "https" {
-			return url.Parse("http://127.0.0.1:3128")
-		}
-		return nil, nil
-	})
-
-	r := &Runner{options: &Options{}}
-	_, err := r.normalizeInput(`{"target": "https://a.example", "ip": "192.0.2.10"}`)
-	require.ErrorContains(t, err, "HTTPS_PROXY")
-	_, err = r.normalizeInput(`{"target": "a.example", "ip": "192.0.2.10"}`)
-	require.Error(t, err, "a target without a scheme may be probed over https")
-	_, err = r.normalizeInput(`{"target": "http://a.example", "ip": "192.0.2.10"}`)
-	require.NoError(t, err, "http is not proxied")
-	_, err = r.normalizeInput(`{"target": "https://a.example"}`)
-	require.NoError(t, err, "only pinned targets conflict")
+	target := httpx.Target{Host: "http://pinned.test", CustomIP: "127.0.0.1"}
+	result := r.analyze(r.hp, httpx.HTTP, target, http.MethodGet, target.Host, &r.scanopts)
+	require.ErrorContains(t, result.Err, "through a proxy")
 }
 
 func TestRunner_skipCDNPort_pinned(t *testing.T) {
@@ -120,7 +104,6 @@ func TestRunner_skipCDNPort_pinned(t *testing.T) {
 }
 
 func TestRunner_targetLine_targets(t *testing.T) {
-	stubEnvProxy(t, http.ProxyURL(nil))
 	// -pa must not resolve a pinned target
 	r, err := New(&Options{ProbeAllIPS: true})
 	require.NoError(t, err)
@@ -136,7 +119,6 @@ func TestRunner_targetLine_targets(t *testing.T) {
 }
 
 func TestRunner_streamInput_skipsInvalidLines(t *testing.T) {
-	stubEnvProxy(t, http.ProxyURL(nil))
 	file := filepath.Join(t.TempDir(), "targets.txt")
 	lines := "a.example\n" +
 		`{"target": "b.example"` + "\n" +
@@ -160,8 +142,10 @@ func TestRunner_streamInput_skipsInvalidLines(t *testing.T) {
 // in the environment, as the proxy resolves the host itself.
 func skipIfProxied(t *testing.T, target string) {
 	t.Helper()
-	if envProxied(target) {
-		t.Skipf("%s goes through a proxy set in the environment", target)
+	u, err := url.Parse(target)
+	require.NoError(t, err)
+	if proxy, _ := http.ProxyFromEnvironment(&http.Request{URL: u}); proxy != nil {
+		t.Skipf("%s goes through the proxy %s", target, proxy.Redacted())
 	}
 }
 

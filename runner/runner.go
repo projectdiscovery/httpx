@@ -33,7 +33,6 @@ import (
 	"github.com/happyhackingspace/dit"
 	"github.com/mfonda/simhash"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
-	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
@@ -744,7 +743,7 @@ func (r *Runner) streamInput() (chan string, error) {
 		}
 		// sendLine normalizes, deduplicates and sends an input line, returning
 		// false if interrupted. The scan has already started, so an invalid
-		// line is skipped with a warning.
+		// line is skipped with an error.
 		sendLine := func(item string) bool {
 			item, err := r.normalizeInput(item)
 			if err != nil {
@@ -1912,9 +1911,7 @@ retry:
 	)
 	ctx = context.Background()
 	if target.CustomIP != "" {
-		// only dials to the target's host go to the ip, not those to a
-		// redirect target on another host
-		ctx = fastdialer.WithResolveOverride(ctx, URL.Hostname(), target.CustomIP)
+		ctx = httpx.WithPinnedIP(ctx, URL.Hostname(), target.CustomIP)
 	}
 	req, err = hp.NewRequestWithContext(ctx, method, URL.String())
 	if err != nil {

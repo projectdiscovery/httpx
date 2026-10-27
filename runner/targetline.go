@@ -6,9 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"net/netip"
-	"net/url"
 	"strings"
 
 	"github.com/projectdiscovery/mapcidr/asn"
@@ -131,34 +129,8 @@ func (r *Runner) normalizeInput(item string) (string, error) {
 		if flags := r.options.pinnedTargetConflicts(); len(flags) > 0 {
 			return "", fmt.Errorf("target %q: a target with an ip cannot be probed with %s", line.Target, strings.Join(flags, ", "))
 		}
-		if envProxied(line.Target) {
-			return "", fmt.Errorf("target %q: a target with an ip cannot be probed through the proxy set in HTTP_PROXY or HTTPS_PROXY", line.Target)
-		}
 	}
 	return line.key(), nil
-}
-
-// proxyFromEnvironment is the proxy of the HTTP client when -proxy is not set.
-var proxyFromEnvironment = http.ProxyFromEnvironment
-
-// envProxied reports whether a request to target goes through a proxy set in
-// the environment, which resolves the host itself. A target without a scheme
-// may be probed over both.
-func envProxied(target string) bool {
-	urls := []string{target}
-	if !strings.Contains(target, "://") {
-		urls = []string{"https://" + target, "http://" + target}
-	}
-	for _, rawURL := range urls {
-		u, err := url.Parse(rawURL)
-		if err != nil {
-			continue
-		}
-		if proxy, _ := proxyFromEnvironment(&http.Request{URL: u}); proxy != nil {
-			return true
-		}
-	}
-	return false
 }
 
 // pinnedTargetConflicts returns the flags whose probes do not connect through
