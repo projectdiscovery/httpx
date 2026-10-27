@@ -158,26 +158,29 @@ func runPinned(t *testing.T, lines ...string) []Result {
 	return results
 }
 
-func TestTargetLinePinsTheConnection(t *testing.T) {
-	serve := func(addr, name string) *httptest.Server {
-		listener, err := net.Listen("tcp", addr)
-		if err != nil {
-			t.Skipf("cannot listen on %s: %v", addr, err)
-		}
-		ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_, _ = fmt.Fprintf(w, "<title>%s %s</title>", name, r.Host)
-		}))
-		_ = ts.Listener.Close()
-		ts.Listener = listener
-		ts.Start()
-		t.Cleanup(ts.Close)
-		return ts
+// serveTitle serves a page whose title is name and the Host header, and skips
+// the test when addr cannot be bound.
+func serveTitle(t *testing.T, addr, name string) *httptest.Server {
+	t.Helper()
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		t.Skipf("cannot listen on %s: %v", addr, err)
 	}
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = fmt.Fprintf(w, "<title>%s %s</title>", name, r.Host)
+	}))
+	_ = ts.Listener.Close()
+	ts.Listener = listener
+	ts.Start()
+	t.Cleanup(ts.Close)
+	return ts
+}
 
-	one := serve("127.0.0.1:0", "one")
+func TestTargetLinePinsTheConnection(t *testing.T) {
+	one := serveTitle(t, "127.0.0.1:0", "one")
 	_, port, err := net.SplitHostPort(one.Listener.Addr().String())
 	require.NoError(t, err)
-	serve(net.JoinHostPort("127.0.0.2", port), "two")
+	serveTitle(t, net.JoinHostPort("127.0.0.2", port), "two")
 
 	target := "http://pinned.test:" + port
 	skipIfProxied(t, target)
@@ -195,6 +198,20 @@ func TestTargetLinePinsTheConnection(t *testing.T) {
 		"127.0.0.1 one pinned.test:" + port,
 		"127.0.0.2 two pinned.test:" + port,
 	}, got)
+}
+
+// An IPv6 ip is dialed as well, which -pa relies on for the IPv6 ips of a host.
+func TestTargetLinePinsIPv6(t *testing.T) {
+	six := serveTitle(t, "[::1]:0", "six")
+	_, port, err := net.SplitHostPort(six.Listener.Addr().String())
+	require.NoError(t, err)
+
+	target := "http://pinned.test:" + port
+	skipIfProxied(t, target)
+	results := runPinned(t, fmt.Sprintf(`{"target": %q, "ip": "::1"}`, target))
+	require.Len(t, results, 1)
+	require.Equal(t, "::1", results[0].HostIP)
+	require.Equal(t, "six pinned.test:"+port, results[0].Title)
 }
 
 func TestTargetLineKeepsSNI(t *testing.T) {
