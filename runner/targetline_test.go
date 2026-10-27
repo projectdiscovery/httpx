@@ -76,9 +76,9 @@ func TestRunner_normalizeInput(t *testing.T) {
 	_, err = r.normalizeInput(`{"target": "https://a.example", "ip": "192.0.2"}`)
 	require.Error(t, err)
 
-	r = &Runner{options: &Options{Unsafe: true, Jarm: true}}
+	r = &Runner{options: &Options{Unsafe: true, Jarm: true, Protocol: "HTTP2"}}
 	_, err = r.normalizeInput(`{"target": "https://a.example", "ip": "192.0.2.10"}`)
-	require.ErrorContains(t, err, "-unsafe, -jarm")
+	require.ErrorContains(t, err, "-unsafe, -pr http2, -jarm")
 	_, err = r.normalizeInput(`{"target": "https://a.example"}`)
 	require.NoError(t, err, "only pinned targets conflict")
 }

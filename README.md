@@ -385,7 +385,7 @@ echo target.com | httpx -path '/.well-known/security.txt,/.well-known/change-pas
   {"target": "https://app.example.com", "ip": "192.0.2.10"}
   {"target": "https://app.example.com", "ip": "192.0.2.11"}
   ```
-  Only the `target` and `ip` keys are accepted. An invalid line stops the run, or is skipped with an error with `-stream`. Read such lines from `-l` or stdin, as `-u` splits its value on commas. They cannot be combined with `-proxy`, `-unsafe`, `-pipeline`, `-http2`, `-jarm`, `-screenshot` or `-vhost-input`, which do not connect through the IP. A probe that would go through a proxy set with `HTTP_PROXY`/`HTTPS_PROXY` fails as well, as the proxy resolves the host itself.
+  Only the `target` and `ip` keys are accepted. An invalid line stops the run, or is skipped with an error with `-stream`. Read such lines from `-l` or stdin, as `-u` splits its value on commas. They cannot be combined with `-proxy`, `-unsafe`, `-pipeline`, `-http2`, `-jarm`, `-screenshot` or `-vhost-input`, which do not connect through the IP, nor with `-pr http2`, which shares a connection between the IPs of a host. A probe that would go through a proxy set with `HTTP_PROXY`/`HTTPS_PROXY` fails as well, as the proxy resolves the host itself.
 - The `-no-fallback` flag can be used to probe and display both **HTTP** and **HTTPS** result.
 - Custom scheme for ports can be defined, for example `-ports http:443,http:80,https:8443`
 - Custom resolver supports multiple protocol (**doh|tcp|udp**) in form of `protocol:resolver:port` (e.g. `udp:127.0.0.1:53`)

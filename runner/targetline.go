@@ -9,6 +9,7 @@ import (
 	"net/netip"
 	"strings"
 
+	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/mapcidr/asn"
 	iputil "github.com/projectdiscovery/utils/ip"
 	stringsutil "github.com/projectdiscovery/utils/strings"
@@ -134,7 +135,8 @@ func (r *Runner) normalizeInput(item string) (string, error) {
 }
 
 // pinnedTargetConflicts returns the flags whose probes do not connect through
-// the ip a target is pinned to.
+// the ip a target is pinned to, or share a connection between the ips of a
+// host, as HTTP/2 does.
 func (options *Options) pinnedTargetConflicts() []string {
 	var flags []string
 	if options.Unsafe {
@@ -145,6 +147,9 @@ func (options *Options) pinnedTargetConflicts() []string {
 	}
 	if options.HTTP2Probe {
 		flags = append(flags, "-http2")
+	}
+	if strings.EqualFold(options.Protocol, string(httpx.HTTP2)) {
+		flags = append(flags, "-pr http2")
 	}
 	if options.Jarm {
 		flags = append(flags, "-jarm")
