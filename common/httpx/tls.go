@@ -63,8 +63,7 @@ func (h *HTTPX) ZTLSGrab(r *http.Response) *clients.Response {
 	}
 	// canonical net concatenation
 	host = net.JoinHostPort(hostname, fmt.Sprint(port))
-	// keeps the ip the request was pinned to, without its cancellation
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Request.Context()), h.Options.Timeout)
+	ctx, cancel := context.WithTimeout(PinnedContext(r.Request), h.Options.Timeout)
 	defer cancel()
 	tlsConn, err := h.Dialer.DialTLS(ctx, "tcp", host)
 	if err != nil {

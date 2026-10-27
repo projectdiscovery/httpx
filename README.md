@@ -380,12 +380,12 @@ echo target.com | httpx -path '/.well-known/security.txt,/.well-known/change-pas
 
 - As default, `httpx` probe with **HTTPS** scheme and fall-back to **HTTP** only if **HTTPS** is not reachable.
 - Burp Suite XML exports can be used as input with `-l burp-export.xml -im burp`
-- A target can be probed through a given IP with a JSON input line, like `curl --resolve`. The hostname is still used for the Host header and SNI, but it is not resolved: the connection goes to the IP, which `host_ip` reports. The same host can be listed with several IPs:
+- A target can be pinned to an IP with a JSON input line, like `curl --resolve`: the connection goes to the IP, which `host_ip` reports, and the hostname is kept for the Host header and SNI without being resolved. A host can be listed with several IPs, and a line without `ip` is the plain target:
   ```
   {"target": "https://app.example.com", "ip": "192.0.2.10"}
   {"target": "https://app.example.com", "ip": "192.0.2.11"}
   ```
-  Only the `target` and `ip` keys are accepted. An invalid line stops the run, or is skipped with an error with `-stream`. Read such lines from `-l` or stdin, as `-u` splits its value on commas. They cannot be combined with `-proxy`, `-unsafe`, `-pipeline`, `-http2`, `-jarm`, `-screenshot` or `-vhost-input`, which do not connect through the IP, nor with `-pr http2`, which shares a connection between the IPs of a host. A probe that would go through a proxy set with `HTTP_PROXY`/`HTTPS_PROXY` fails as well, as the proxy resolves the host itself.
+  Such lines must come from `-l` or stdin, as `-u` splits its value on commas. An invalid line stops the run, or is skipped with an error with `-stream`. Pinned lines are refused with `-proxy`, `-pr http2`, `-unsafe`, `-pipeline`, `-http2`, `-jarm`, `-screenshot` and `-vhost-input`, which do not keep to the IP. A proxy resolves the host itself, so a probe of a pinned target, `-pa` ones included, fails if it would go through one, such as one set with `HTTP_PROXY`/`HTTPS_PROXY`.
 - The `-no-fallback` flag can be used to probe and display both **HTTP** and **HTTPS** result.
 - Custom scheme for ports can be defined, for example `-ports http:443,http:80,https:8443`
 - Custom resolver supports multiple protocol (**doh|tcp|udp**) in form of `protocol:resolver:port` (e.g. `udp:127.0.0.1:53`)

@@ -1799,9 +1799,9 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 
 		switch {
 		case isTargetLine(target):
-			line, err := parseTargetLine(target)
+			line, err := r.parseInputLine(target)
 			if err != nil {
-				gologger.Warning().Msgf("%s\n", err)
+				gologger.Warning().Msgf("Skipping input: %s\n", err)
 				return
 			}
 			results <- httpx.Target{Host: line.Target, CustomIP: line.IP}
@@ -1836,7 +1836,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 				results <- httpx.Target{Host: target}
 				return
 			}
-			ips, _, _, err := getDNSData(hp, URL.Hostname(), false)
+			ips, _, _, err := getDNSData(hp, URL.Hostname())
 			if err != nil || len(ips) == 0 {
 				results <- httpx.Target{Host: target}
 				return
@@ -1844,7 +1844,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 			for _, ip := range ips {
 				results <- httpx.Target{Host: target, CustomIP: ip}
 			}
-		case !stringsutil.HasPrefixAny(target, "http://", "https://") && stringsutil.ContainsAny(target, ","):
+		case isVHostInput(target):
 			idxComma := strings.Index(target, ",")
 			results <- httpx.Target{Host: target[idxComma+1:], CustomHost: target[:idxComma]}
 		default:
@@ -1905,13 +1905,12 @@ retry:
 	if err := URL.MergePath(scanopts.RequestURI, scanopts.Unsafe); err != nil {
 		gologger.Debug().Msgf("failed to merge paths of url %v and %v", URL.String(), scanopts.RequestURI)
 	}
-	var (
-		req *retryablehttp.Request
-		ctx context.Context
-	)
-	ctx = context.Background()
+	var req *retryablehttp.Request
+	ctx := context.Background()
 	if target.CustomIP != "" {
 		ctx = httpx.WithPinnedIP(ctx, URL.Hostname(), target.CustomIP)
+	} else {
+		ctx = httpx.WithDialedIP(ctx, URL.Hostname())
 	}
 	req, err = hp.NewRequestWithContext(ctx, method, URL.String())
 	if err != nil {
@@ -2300,8 +2299,12 @@ retry:
 		if onlyHost, _, err := net.SplitHostPort(URL.Host); err == nil && iputil.IsIP(onlyHost) {
 			ip = onlyHost
 		} else {
-			// hp.Dialer.GetDialedIP would return only the last dialed one
-			ip = hp.Dialer.GetDialedIP(URL.Host)
+			// the ip this request was dialed to: the dialer only keeps the
+			// last ip dialed to a host, which may be another request's
+			ip = httpx.DialedIP(req.Context())
+			if ip == "" {
+				ip = hp.Dialer.GetDialedIP(URL.Host)
+			}
 			if ip == "" {
 				ip = hp.Dialer.GetDialedIP(onlyHost)
 			}
@@ -2333,7 +2336,7 @@ retry:
 		}
 	}
 
-	if scanopts.OutputIP || scanopts.ProbeAllIPS {
+	if scanopts.OutputIP || scanopts.ProbeAllIPS || target.CustomIP != "" {
 		_, _ = fmt.Fprintf(builder, " [%s]", ip)
 	}
 
@@ -2342,12 +2345,14 @@ retry:
 	if err != nil {
 		onlyHost = URL.Host
 	}
-	// the host of a pinned target is not resolved: only dns data already
-	// cached, such as that of -pa, is reported, and its ip is in host_ip
-	pinned := target.CustomIP != ""
-	allIps, cnames, resolvers, err := getDNSData(hp, onlyHost, pinned)
-	if err != nil && !pinned {
-		allIps = append(allIps, ip)
+	var allIps, cnames, resolvers []string
+	// like curl --resolve, a target line gives the ip of its host, which is
+	// not resolved
+	if !isTargetLine(origInput) {
+		allIps, cnames, resolvers, err = getDNSData(hp, onlyHost)
+		if err != nil {
+			allIps = append(allIps, ip)
+		}
 	}
 
 	var ips4, ips6 []string
@@ -2841,8 +2846,8 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		}
 	}
 
-	// Clone original request (reuse headers/cookies, and the pinned ip)
-	clone := req.Clone(req.Context())
+	// Clone original request (reuse headers/cookies and the pinned ip)
+	clone := req.Clone(httpx.PinnedContext(req.Request))
 
 	var (
 		faviconMMH3 string
@@ -3050,31 +3055,26 @@ func (r Result) CSVRow(scanopts *ScanOptions) string { //nolint
 	return res
 }
 
-// skipCDNPort checks the ip a target is pinned to, or the first ip of host
-// when it is not pinned.
+// skipCDNPort reports whether a target is skipped as its ip is a CDN ip and
+// port is not allowed for one. The ip is the one the target is pinned to, or
+// else the first ip of host.
 func (r *Runner) skipCDNPort(host, ip, port string) bool {
 	// if the option is not enabled we don't skip
 	if !r.scanopts.ExcludeCDN {
 		return false
 	}
-	hostIP := ip
-	if hostIP == "" {
+	if ip == "" {
 		// uses the dealer to pre-resolve the target
 		dnsData, err := r.hp.Dialer.GetDNSData(host)
 		// if we get an error the target cannot be resolved, so we return false so that the program logic continues as usual and handles the errors accordingly
-		if err != nil {
+		if err != nil || len(dnsData.A) == 0 {
 			return false
 		}
-
-		if len(dnsData.A) == 0 {
-			return false
-		}
-
 		// pick the first ip as target
-		hostIP = dnsData.A[0]
+		ip = dnsData.A[0]
 	}
 
-	isCdnIP, _, _, err := r.hp.CdnCheck(hostIP)
+	isCdnIP, _, _, err := r.hp.CdnCheck(ip)
 	if err != nil {
 		return false
 	}
@@ -3099,14 +3099,8 @@ func (r *Runner) parseURL(url string) (*urlutil.URL, error) {
 	return urlx, err
 }
 
-// getDNSData returns the dns data of hostname, from the cache of the dialer
-// only if cachedOnly is set.
-func getDNSData(hp *httpx.HTTPX, hostname string, cachedOnly bool) (ips, cnames, resolvers []string, err error) {
-	lookup := hp.Dialer.GetDNSData
-	if cachedOnly {
-		lookup = hp.Dialer.GetDNSDataFromCache
-	}
-	dnsData, err := lookup(hostname)
+func getDNSData(hp *httpx.HTTPX, hostname string) (ips, cnames, resolvers []string, err error) {
+	dnsData, err := hp.Dialer.GetDNSData(hostname)
 	if err != nil {
 		return nil, nil, nil, err
 	}

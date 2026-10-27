@@ -129,7 +129,7 @@ func New(options *Options) (*HTTPX, error) {
 		gologger.Warning().Msg("HTTP/3 is experimental and currently falls back to default TLS negotiation")
 	}
 	transport := &http.Transport{
-		DialContext:         httpx.Dialer.Dial,
+		DialContext:         recordDialedIP(httpx.Dialer.Dial),
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -140,7 +140,7 @@ func New(options *Options) (*HTTPX, error) {
 	// Clone before protocol-specific ALPN is applied. Impersonation keeps the
 	// previous base config; utls does not take NextProtos from it.
 	impersonateTLS := transport.TLSClientConfig.Clone()
-	transport.DialTLSContext = httpx.buildTLSDialer(options, impersonateTLS)
+	transport.DialTLSContext = recordDialedIP(httpx.buildTLSDialer(options, impersonateTLS))
 
 	switch httpx.Options.Protocol {
 	case HTTP11:
