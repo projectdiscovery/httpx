@@ -2343,9 +2343,10 @@ retry:
 		onlyHost = URL.Host
 	}
 	// the host of a pinned target is not resolved: only dns data already
-	// cached, such as that of -pa, is reported
-	allIps, cnames, resolvers, err := getDNSData(hp, onlyHost, target.CustomIP != "")
-	if err != nil {
+	// cached, such as that of -pa, is reported, and its ip is in host_ip
+	pinned := target.CustomIP != ""
+	allIps, cnames, resolvers, err := getDNSData(hp, onlyHost, pinned)
+	if err != nil && !pinned {
 		allIps = append(allIps, ip)
 	}
 

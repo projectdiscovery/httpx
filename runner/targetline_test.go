@@ -308,15 +308,16 @@ func TestTargetLineStoresTheResponseOfEachIP(t *testing.T) {
 	}
 }
 
-// Like curl --resolve, the host of a pinned target is not resolved, and the
-// pinned ip is reported as its address.
+// Like curl --resolve, the host of a pinned target is not resolved: the
+// pinned ip is reported in host_ip, and a holds dns data only.
 func TestTargetLineIsNotResolved(t *testing.T) {
 	_, lines := servePair(t)
 	resolver, queries := serveDNS(t, "pinned.test", "127.0.0.2")
 	results := runPinnedWith(t, &Options{Resolvers: []string{resolver}}, lines[0])
 
 	require.Len(t, results, 1)
-	require.Equal(t, []string{"127.0.0.1"}, results[0].A)
+	require.Equal(t, "127.0.0.1", results[0].HostIP)
+	require.Empty(t, results[0].A)
 	require.Zero(t, queries.Load())
 }
 
