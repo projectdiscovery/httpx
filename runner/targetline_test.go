@@ -11,11 +11,14 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/dns/dnsmessage"
 )
 
 func TestParseTargetLine(t *testing.T) {
@@ -222,6 +225,53 @@ func servePair(t *testing.T) (string, []string) {
 	}
 }
 
+// serveDNS runs a resolver that answers the A queries for host with ips, and
+// returns its address and the number of queries for host it got.
+func serveDNS(t *testing.T, host string, ips ...string) (string, *atomic.Int32) {
+	t.Helper()
+	conn, err := net.ListenPacket("udp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
+
+	var queries atomic.Int32
+	go func() {
+		buf := make([]byte, 512)
+		for {
+			n, addr, err := conn.ReadFrom(buf)
+			if err != nil {
+				return
+			}
+			var parser dnsmessage.Parser
+			header, err := parser.Start(buf[:n])
+			if err != nil {
+				continue
+			}
+			question, err := parser.Question()
+			if err != nil {
+				continue
+			}
+			header.Response = true
+			builder := dnsmessage.NewBuilder(nil, header)
+			_ = builder.StartQuestions()
+			_ = builder.Question(question)
+			_ = builder.StartAnswers()
+			if strings.EqualFold(strings.TrimSuffix(question.Name.String(), "."), host) {
+				queries.Add(1)
+				for _, ip := range ips {
+					if question.Type == dnsmessage.TypeA {
+						answer := dnsmessage.ResourceHeader{Name: question.Name, Class: dnsmessage.ClassINET, TTL: 60}
+						_ = builder.AResource(answer, dnsmessage.AResource{A: [4]byte(net.ParseIP(ip).To4())})
+					}
+				}
+			}
+			if msg, err := builder.Finish(); err == nil {
+				_, _ = conn.WriteTo(msg, addr)
+			}
+		}
+	}()
+	return conn.LocalAddr().String(), &queries
+}
+
 func TestTargetLinePinsTheConnection(t *testing.T) {
 	port, lines := servePair(t)
 	results := runPinned(t, lines...)
@@ -255,6 +305,30 @@ func TestTargetLineStoresTheResponseOfEachIP(t *testing.T) {
 		data, err := os.ReadFile(result.StoredResponsePath)
 		require.NoError(t, err)
 		require.Contains(t, string(data), "<title>"+result.Title+"</title>", "the response of %s", result.HostIP)
+	}
+}
+
+// Like curl --resolve, the host of a pinned target is not resolved, and the
+// pinned ip is reported as its address.
+func TestTargetLineIsNotResolved(t *testing.T) {
+	_, lines := servePair(t)
+	resolver, queries := serveDNS(t, "pinned.test", "127.0.0.2")
+	results := runPinnedWith(t, &Options{Resolvers: []string{resolver}}, lines[0])
+
+	require.Len(t, results, 1)
+	require.Equal(t, []string{"127.0.0.1"}, results[0].A)
+	require.Zero(t, queries.Load())
+}
+
+// -pa resolves the host, and each of its results keeps all of its addresses.
+func TestProbeAllIPsKeepsTheAddressesOfTheHost(t *testing.T) {
+	port, _ := servePair(t)
+	resolver, _ := serveDNS(t, "pinned.test", "127.0.0.1", "127.0.0.2")
+	results := runPinnedWith(t, &Options{Resolvers: []string{resolver}, ProbeAllIPS: true}, "http://pinned.test:"+port)
+
+	require.Len(t, results, 2)
+	for _, result := range results {
+		require.ElementsMatch(t, []string{"127.0.0.1", "127.0.0.2"}, result.A, "the result of %s", result.HostIP)
 	}
 }
 

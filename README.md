@@ -380,7 +380,7 @@ echo target.com | httpx -path '/.well-known/security.txt,/.well-known/change-pas
 
 - As default, `httpx` probe with **HTTPS** scheme and fall-back to **HTTP** only if **HTTPS** is not reachable.
 - Burp Suite XML exports can be used as input with `-l burp-export.xml -im burp`
-- A target can be probed through a given IP with a JSON input line, like `curl --resolve`. The hostname is still used for the Host header and SNI, and the connection goes to the IP, which `host_ip` reports. The same host can be listed with several IPs:
+- A target can be probed through a given IP with a JSON input line, like `curl --resolve`. The hostname is still used for the Host header and SNI, but it is not resolved: the connection goes to the IP, which `host_ip` reports. The same host can be listed with several IPs:
   ```
   {"target": "https://app.example.com", "ip": "192.0.2.10"}
   {"target": "https://app.example.com", "ip": "192.0.2.11"}

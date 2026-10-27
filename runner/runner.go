@@ -1836,7 +1836,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 				results <- httpx.Target{Host: target}
 				return
 			}
-			ips, _, _, err := getDNSData(hp, URL.Hostname())
+			ips, _, _, err := getDNSData(hp, URL.Hostname(), false)
 			if err != nil || len(ips) == 0 {
 				results <- httpx.Target{Host: target}
 				return
@@ -2342,7 +2342,9 @@ retry:
 	if err != nil {
 		onlyHost = URL.Host
 	}
-	allIps, cnames, resolvers, err := getDNSData(hp, onlyHost)
+	// the host of a pinned target is not resolved: only dns data already
+	// cached, such as that of -pa, is reported
+	allIps, cnames, resolvers, err := getDNSData(hp, onlyHost, target.CustomIP != "")
 	if err != nil {
 		allIps = append(allIps, ip)
 	}
@@ -3096,8 +3098,14 @@ func (r *Runner) parseURL(url string) (*urlutil.URL, error) {
 	return urlx, err
 }
 
-func getDNSData(hp *httpx.HTTPX, hostname string) (ips, cnames, resolvers []string, err error) {
-	dnsData, err := hp.Dialer.GetDNSData(hostname)
+// getDNSData returns the dns data of hostname, from the cache of the dialer
+// only if cachedOnly is set.
+func getDNSData(hp *httpx.HTTPX, hostname string, cachedOnly bool) (ips, cnames, resolvers []string, err error) {
+	lookup := hp.Dialer.GetDNSData
+	if cachedOnly {
+		lookup = hp.Dialer.GetDNSDataFromCache
+	}
+	dnsData, err := lookup(hostname)
 	if err != nil {
 		return nil, nil, nil, err
 	}
