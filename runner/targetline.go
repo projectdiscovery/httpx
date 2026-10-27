@@ -33,27 +33,36 @@ func isTargetLine(line string) bool {
 	return strings.HasPrefix(strings.TrimSpace(line), "{")
 }
 
-// parseTargetLine decodes a target line. Unknown keys are rejected so that a
-// typo cannot silently probe the host through DNS.
+// parseTargetLine decodes a target line. Unknown keys and an ip that is null
+// or empty are rejected so that a typo cannot silently probe the host through
+// DNS.
 func parseTargetLine(line string) (targetLine, error) {
+	// the ip is kept raw to tell an ip that is null or empty from no ip
+	var decoded struct {
+		Target string          `json:"target"`
+		IP     json.RawMessage `json:"ip"`
+	}
 	decoder := json.NewDecoder(strings.NewReader(line))
 	decoder.DisallowUnknownFields()
-	var parsed targetLine
-	if err := decoder.Decode(&parsed); err != nil {
+	if err := decoder.Decode(&decoded); err != nil {
 		return targetLine{}, fmt.Errorf("invalid target line %q: %w", line, err)
 	}
 	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
 		return targetLine{}, fmt.Errorf("invalid target line %q: unexpected data after the object", line)
 	}
 
-	parsed.Target = strings.TrimSpace(parsed.Target)
+	parsed := targetLine{Target: strings.TrimSpace(decoded.Target)}
 	if parsed.Target == "" {
 		return targetLine{}, fmt.Errorf("target line %q has no target", line)
 	}
-	if parsed.IP == "" {
+	if decoded.IP == nil {
 		return parsed, nil
 	}
-	ip, err := pinnedIP(parsed.Target, parsed.IP)
+	var value string
+	if err := json.Unmarshal(decoded.IP, &value); err != nil {
+		return targetLine{}, fmt.Errorf("invalid target line %q: %w", line, err)
+	}
+	ip, err := pinnedIP(parsed.Target, value)
 	if err != nil {
 		return targetLine{}, fmt.Errorf("target %q: %w", parsed.Target, err)
 	}
