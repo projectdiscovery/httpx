@@ -1263,3 +1263,17 @@ func TestRunner_RateLimiter_Initialization(t *testing.T) {
 	})
 }
 
+
+func TestExtractPotentialFavIconsURLs_IgnoresAlternateLinks(t *testing.T) {
+	page := []byte(`<html><head>
+<link rel="alternate" type="application/rss+xml" href="/feed.xml">
+<link rel="alternate" hreflang="de" href="https://example.com/de/">
+<link rel="alternate icon" href="/favicon.png">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style.css">
+</head></html>`)
+
+	candidates, _, err := extractPotentialFavIconsURLs(page)
+	require.NoError(t, err)
+	require.Equal(t, []string{"/favicon.ico", "/favicon.png"}, candidates)
+}
