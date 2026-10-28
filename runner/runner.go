@@ -1683,7 +1683,14 @@ func (r *Runner) GetScanOpts() ScanOptions {
 	return r.scanopts
 }
 
+// Process probes t, read as an input line is: an invalid line is reported and
+// skipped.
 func (r *Runner) Process(t string, wg *syncutil.AdaptiveWaitGroup, protocol string, scanopts *ScanOptions, output chan Result) {
+	t, err := r.normalizeInput(t)
+	if err != nil {
+		gologger.Error().Msgf("Skipping input: %s\n", err)
+		return
+	}
 	r.process(t, wg, r.hp, protocol, scanopts, output)
 }
 
@@ -1798,9 +1805,8 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 
 		switch {
 		case isTargetLine(target):
-			// input lines were checked when read, but not a line given to
-			// Process
-			line, err := r.parseInputLine(target)
+			// a target line, normalized when read, pins its target to an ip
+			line, err := parseTargetLine(target)
 			if err != nil {
 				gologger.Error().Msgf("Skipping input: %s\n", err)
 				return
@@ -2067,7 +2073,7 @@ retry:
 	if err != nil {
 		if errors.Is(err, httpx.ErrPinnedThroughProxy) {
 			r.pinnedProxyWarning.Do(func() {
-				gologger.Error().Msgf("Targets pinned to an ip cannot be probed through a proxy, which resolves the host itself: with HTTP_PROXY or HTTPS_PROXY set, add their hosts to NO_PROXY\n")
+				gologger.Error().Msgf("Targets pinned to an ip, by a target line or -pa, cannot be probed through the proxy of HTTP_PROXY or HTTPS_PROXY, which resolves the host itself: add their hosts to NO_PROXY\n")
 			})
 		}
 		errString := ""
@@ -2107,6 +2113,7 @@ retry:
 		}
 
 		if r.options.Probe {
+			// the pinned ip tells apart the failures of the ips of a host
 			if target.CustomIP != "" {
 				_, _ = fmt.Fprintf(builder, " [%s]", target.CustomIP)
 			}
@@ -2318,9 +2325,9 @@ retry:
 		if onlyHost, _, err := net.SplitHostPort(URL.Host); err == nil && iputil.IsIP(onlyHost) {
 			ip = onlyHost
 		} else {
-			// the ip this request was dialed to, or else, as for a reused
-			// connection, -unsafe or a proxy, the last ip the dialer dialed
-			// to the host, which may be another request's
+			// the ip this request was dialed to or, if it was not dialed to
+			// its host, as through a proxy, the last ip the dialer dialed to
+			// the host, which may be another request's
 			ip = httpx.DialedIP(req.Context())
 			if ip == "" {
 				ip = hp.Dialer.GetDialedIP(URL.Host)

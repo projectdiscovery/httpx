@@ -19,8 +19,9 @@ var ErrPinnedThroughProxy = errors.New("a host pinned to an ip cannot be reached
 type pinnedHostKey string
 
 // WithPinnedIP returns a copy of ctx in which requests to host connect to ip,
-// like curl --resolve. The host keeps its name for the Host header and SNI,
-// and requests to other hosts, such as redirect targets, are resolved as usual.
+// like curl --resolve, but on every port of host. The host keeps its name for
+// the Host header and SNI, and requests to other hosts, such as redirect
+// targets, are resolved as usual.
 func WithPinnedIP(ctx context.Context, host, ip string) context.Context {
 	host = canonicalHost(host)
 	ctx = fastdialer.WithResolveOverride(ctx, host, ip)

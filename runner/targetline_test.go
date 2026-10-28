@@ -15,7 +15,6 @@ import (
 	"net/netip"
 	"os"
 	"path/filepath"
-	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -27,6 +26,7 @@ import (
 	"github.com/projectdiscovery/gologger/levels"
 	"github.com/projectdiscovery/gologger/writer"
 	"github.com/projectdiscovery/httpx/common/httpx"
+	syncutil "github.com/projectdiscovery/utils/sync"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/dns/dnsmessage"
 )
@@ -124,29 +124,63 @@ func TestRunner_targetLineConflicts(t *testing.T) {
 	}
 }
 
+func TestOptions_ValidateOptions_probeAllIPsWithProxy(t *testing.T) {
+	options := &Options{ProbeAllIPS: true, Proxy: "http://127.0.0.1:8080"}
+	require.ErrorContains(t, options.ValidateOptions(), "-pa/-probe-all-ips cannot be used with -proxy")
+}
+
+// -pa does not resolve a pinned target.
 func TestRunner_targetLine_targets(t *testing.T) {
-	line := `{"target":"https://a.example","ip":"192.0.2.10"}`
-	targetsOf := func(r *Runner) []httpx.Target {
-		var got []httpx.Target
-		for target := range r.targets(r.hp, line) {
-			got = append(got, target)
+	r, err := New(&Options{ProbeAllIPS: true})
+	require.NoError(t, err)
+	defer r.Close()
+
+	var got []httpx.Target
+	for target := range r.targets(r.hp, `{"target":"https://a.example","ip":"192.0.2.10"}`) {
+		got = append(got, target)
+	}
+	require.Equal(t, []httpx.Target{{Host: "https://a.example", CustomIP: "192.0.2.10"}}, got)
+}
+
+// A line given to Process is read as an input line is.
+func TestRunner_Process_readsTheLine(t *testing.T) {
+	port := serveLocal(t, titleHandler("one"))
+	resolver, _ := serveDNS(t, "pinned.test", "127.0.0.1")
+	process := func(t *testing.T, options *Options, line string) []Result {
+		options.Timeout = 5
+		options.Methods = http.MethodGet
+		options.Resolvers = []string{resolver}
+		require.NoError(t, options.ValidateOptions())
+		r, err := New(options)
+		require.NoError(t, err)
+		defer r.Close()
+		wg, err := syncutil.New(syncutil.WithSize(1))
+		require.NoError(t, err)
+
+		output := make(chan Result, 1)
+		r.Process(line, wg, httpx.HTTP, &r.scanopts, output)
+		wg.Wait()
+		close(output)
+		var results []Result
+		for result := range output {
+			results = append(results, result)
 		}
-		return got
+		return results
 	}
 
-	t.Run("-pa does not resolve a pinned target", func(t *testing.T) {
-		r, err := New(&Options{ProbeAllIPS: true})
-		require.NoError(t, err)
-		defer r.Close()
-		require.Equal(t, []httpx.Target{{Host: "https://a.example", CustomIP: "192.0.2.10"}}, targetsOf(r))
+	t.Run("a line without ip is the plain target", func(t *testing.T) {
+		results := process(t, &Options{}, `{"target": "http://pinned.test:`+port+`"}`)
+		require.Len(t, results, 1)
+		require.Equal(t, "http://pinned.test:"+port, results[0].Input)
+		require.Equal(t, []string{"127.0.0.1"}, results[0].A, "its host is resolved")
 	})
-	// a line from another source than the input, such as a certificate name
-	// with -tls-probe, is refused with an option that does not keep to the ip
-	t.Run("conflicts are refused for every target line", func(t *testing.T) {
-		r, err := New(&Options{Unsafe: true})
-		require.NoError(t, err)
-		defer r.Close()
-		require.Empty(t, targetsOf(r))
+	t.Run("a line that conflicts with an option is skipped", func(t *testing.T) {
+		logged := &errorRecorder{}
+		gologger.DefaultLogger.SetWriter(logged)
+		t.Cleanup(func() { gologger.DefaultLogger.SetWriter(writer.NewCLI()) })
+
+		require.Empty(t, process(t, &Options{Unsafe: true}, pinnedLine("http://pinned.test:"+port, "127.0.0.1")))
+		require.Len(t, logged.containing("Skipping input"), 1)
 	})
 }
 
@@ -191,7 +225,7 @@ func TestRunner_loadAndCloseFile_skipsInvalidLines(t *testing.T) {
 	require.Equal(t, 1, count)
 	_, ok := r.hm.Get("a.example")
 	require.True(t, ok)
-	require.Len(t, logged.lines(), 2, "each skipped line is reported")
+	require.Len(t, logged.containing("Skipping input"), 2, "each skipped line is reported")
 }
 
 func TestRunner_skip_pinned(t *testing.T) {
@@ -214,9 +248,10 @@ func TestRunner_skip_pinned(t *testing.T) {
 	require.False(t, skip)
 }
 
-// A proxy, which -pa can be run with, resolves the host itself, so a probe of
-// a pinned target through it fails, which is reported once. A proxy set in
-// the environment is tested in common/httpx.
+// A proxy resolves the host itself, so a probe of a pinned target through it
+// fails, which is reported once. Only the proxy of the environment can be
+// used with pinned targets, but it is read once per process: the proxy of the
+// options stands for it here, and common/httpx tests it.
 func TestRunner_analyze_pinnedThroughProxy(t *testing.T) {
 	logged := &errorRecorder{}
 	gologger.DefaultLogger.SetWriter(logged)
@@ -229,8 +264,7 @@ func TestRunner_analyze_pinnedThroughProxy(t *testing.T) {
 		result := analyzeHTTP(r, httpx.Target{Host: "http://pinned.test", CustomIP: "127.0.0.1"})
 		require.ErrorIs(t, result.Err, httpx.ErrPinnedThroughProxy)
 	}
-	require.Len(t, logged.lines(), 1)
-	require.Contains(t, logged.lines()[0], "NO_PROXY")
+	require.Len(t, logged.containing("NO_PROXY"), 1)
 }
 
 // The names of a certificate shaped like a target line are not probed with
@@ -310,6 +344,17 @@ func TestTargetLineKeepsOtherHostsUnpinned(t *testing.T) {
 	require.Equal(t, "one 127.0.0.1:"+port, results[0].Title)
 }
 
+// The pinned host goes to the ip on every port, as through a redirect.
+func TestTargetLinePinsEveryPortOfTheHost(t *testing.T) {
+	other := servePair(t, titleHandler("one"), titleHandler("two"))
+	redirect := http.RedirectHandler("http://pinned.test:"+other+"/", http.StatusFound)
+	port := servePair(t, titleHandler("one"), redirect)
+	results := probe(t, &Options{FollowRedirects: true, MaxRedirects: 10}, pinnedLines(port, "127.0.0.2")...)
+
+	require.Len(t, results, 1)
+	require.Equal(t, "two pinned.test:"+other, results[0].Title)
+}
+
 // With a matcher, responses are stored after matching, under a name that
 // must differ for each ip of a url.
 func TestTargetLineStoresTheResponseOfEachIP(t *testing.T) {
@@ -353,18 +398,27 @@ func TestProbeAllIPsKeepsTheAddressesOfTheHost(t *testing.T) {
 // A plain target reports the ip it was dialed to, not the one a pinned target
 // of the same host was dialed to meanwhile.
 func TestPlainTargetReportsItsOwnIP(t *testing.T) {
-	slow := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(500 * time.Millisecond)
-		titleHandler("two").ServeHTTP(w, r)
+	pinnedDialed := make(chan struct{})
+	var once sync.Once
+	one := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		once.Do(func() { close(pinnedDialed) })
+		titleHandler("one").ServeHTTP(w, r)
 	})
-	port := servePair(t, titleHandler("one"), slow)
+	// the plain target is answered once the pinned target is dialed
+	two := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-pinnedDialed:
+			titleHandler("two").ServeHTTP(w, r)
+		case <-r.Context().Done():
+		}
+	})
+	port := servePair(t, one, two)
 	resolver, _ := serveDNS(t, "pinned.test", "127.0.0.2")
 	file := filepath.Join(t.TempDir(), "targets.txt")
 	lines := "http://pinned.test:" + port + "\n" + pinnedLines(port, "127.0.0.1")[0] + "\n"
 	require.NoError(t, os.WriteFile(file, []byte(lines), 0o600))
 
-	// the delay dials the plain target first, and its slow server keeps it
-	// open while the pinned target of the same host is dialed
+	// the delay dials the plain target first
 	options := &Options{Resolvers: []string{resolver}, Stream: true, InputFile: file, Threads: 2, Delay: 100 * time.Millisecond}
 	var got []string
 	for _, result := range probe(t, options) {
@@ -458,10 +512,17 @@ func (w *errorRecorder) Write(data []byte, level levels.Level) {
 	}
 }
 
-func (w *errorRecorder) lines() []string {
+// containing returns the errors that contain text.
+func (w *errorRecorder) containing(text string) []string {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	return slices.Clone(w.errors)
+	var lines []string
+	for _, line := range w.errors {
+		if strings.Contains(line, text) {
+			lines = append(lines, line)
+		}
+	}
+	return lines
 }
 
 // selfSignedCertificate returns a certificate whose common name is name.

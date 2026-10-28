@@ -22,7 +22,7 @@ import (
 var errTargetLineConflict = errors.New("a target pinned to an ip cannot be probed with")
 
 // targetLine is an input line that pins a target to an ip, like
-// curl --resolve:
+// curl --resolve, but on every port of its host:
 //
 //	{"target": "https://app.example", "ip": "192.0.2.10"}
 //
@@ -147,32 +147,23 @@ func (r *Runner) readInputLine(line string) (string, bool) {
 }
 
 // normalizeInput validates an input line and returns the form it is stored
-// and deduplicated in.
+// and deduplicated in. A target line with an ip is refused when an option
+// does not keep to the ip.
 func (r *Runner) normalizeInput(line string) (string, error) {
 	line = strings.TrimSpace(line)
 	if !isTargetLine(line) {
 		return line, nil
 	}
-	parsed, err := r.parseInputLine(line)
+	parsed, err := parseTargetLine(line)
 	if err != nil {
 		return "", err
 	}
-	return parsed.key(), nil
-}
-
-// parseInputLine parses a target line, and refuses one with an ip when an
-// option does not keep to the ip.
-func (r *Runner) parseInputLine(line string) (targetLine, error) {
-	parsed, err := parseTargetLine(line)
-	if err != nil {
-		return targetLine{}, err
-	}
 	if parsed.IP != "" {
 		if flags := r.options.targetLineConflicts(); len(flags) > 0 {
-			return targetLine{}, fmt.Errorf("target line %q: %w %s", line, errTargetLineConflict, strings.Join(flags, ", "))
+			return "", fmt.Errorf("target line %q: %w %s", line, errTargetLineConflict, strings.Join(flags, ", "))
 		}
 	}
-	return parsed, nil
+	return parsed.key(), nil
 }
 
 // targetLineConflicts returns the options a target line with an ip cannot be

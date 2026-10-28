@@ -768,6 +768,10 @@ func (options *Options) ValidateOptions() error {
 		return fmt.Errorf("invalid metrics port %d, must be between 0 and 65535", options.MetricsPort)
 	}
 
+	if options.ProbeAllIPS && options.Proxy != "" {
+		return errors.New("-pa/-probe-all-ips cannot be used with -proxy, which resolves the host itself")
+	}
+
 	if options.Silent {
 		incompatibleFlagsList := flagsIncompatibleWithSilent(options)
 		if len(incompatibleFlagsList) > 0 {
