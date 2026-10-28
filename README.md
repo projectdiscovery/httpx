@@ -380,12 +380,15 @@ echo target.com | httpx -path '/.well-known/security.txt,/.well-known/change-pas
 
 - As default, `httpx` probe with **HTTPS** scheme and fall-back to **HTTP** only if **HTTPS** is not reachable.
 - Burp Suite XML exports can be used as input with `-l burp-export.xml -im burp`
-- A target can be pinned to an IP with a JSON input line, like `curl --resolve`: the connection goes to the IP, which `host_ip` reports, and the hostname is kept for the Host header and SNI without being resolved. A host can be listed with several IPs, and a line without `ip` is the plain target:
+- A target can be pinned to an IP with a JSON input line, like `curl --resolve`:
   ```
   {"target": "https://app.example.com", "ip": "192.0.2.10"}
   {"target": "https://app.example.com", "ip": "192.0.2.11"}
   ```
-  Such lines must come from `-l` or stdin, as `-u` splits its value on commas. An invalid line stops the run, or is skipped with an error with `-stream`. Pinned lines are refused with `-proxy`, `-pr http2`, `-unsafe`, `-pipeline`, `-http2`, `-jarm`, `-screenshot` and `-vhost-input`, which do not keep to the IP. A proxy resolves the host itself, so a probe of a pinned target, `-pa` ones included, fails if it would go through one, such as one set with `HTTP_PROXY`/`HTTPS_PROXY`.
+  - The connection goes to the IP, which `host_ip` reports and the output shows, and the hostname is kept for the Host header and SNI without being resolved. A host can be listed with several IPs, and a line without `ip` is the plain target.
+  - Such lines must come from `-l` or stdin, as `-u` splits its value on commas. An invalid line stops the run, or is skipped with a warning with `-stream`.
+  - A line with an IP is refused with `-proxy`, `-pr http2`, `-unsafe`, `-pipeline`, `-http2`, `-jarm`, `-screenshot` and `-vhost-input`, as they do not connect through the IP or, for HTTP/2, share a connection between the IPs of a host. A proxy set with `HTTP_PROXY`/`HTTPS_PROXY` resolves the host itself as well, so a probe that would go through one fails, `-pa` ones included.
+  - The IPs of a host are kept apart, with `-pa` too: `-maxhr` counts their failures and `-sr` stores their responses separately. The names `-tls-probe` and `-csp-probe` find, the pinned host included, are resolved as new targets.
 - The `-no-fallback` flag can be used to probe and display both **HTTP** and **HTTPS** result.
 - Custom scheme for ports can be defined, for example `-ports http:443,http:80,https:8443`
 - Custom resolver supports multiple protocol (**doh|tcp|udp**) in form of `protocol:resolver:port` (e.g. `udp:127.0.0.1:53`)

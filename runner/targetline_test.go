@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -21,27 +22,23 @@ import (
 	"golang.org/x/net/dns/dnsmessage"
 )
 
-// TestMain keeps pinned.test out of a proxy set in the environment, which
-// would resolve the host itself, so that the probes below run behind one too.
-func TestMain(m *testing.M) {
-	for _, name := range []string{"NO_PROXY", "no_proxy"} {
-		_ = os.Setenv(name, strings.TrimPrefix(os.Getenv(name)+",pinned.test", ","))
-	}
-	os.Exit(m.Run())
-}
-
 func TestParseTargetLine(t *testing.T) {
-	valid := map[string]targetLine{
-		`{"target": "https://a.example", "ip": "192.0.2.10"}`: {Target: "https://a.example", IP: "192.0.2.10"},
-		`{"target": " a.example:8443 ", "ip": "2001:DB8::1"}`: {Target: "a.example:8443", IP: "2001:db8::1"},
-		`{"target": "a.example", "ip": "::ffff:192.0.2.10"}`:  {Target: "a.example", IP: "192.0.2.10"},
-		`{"target": "a.example"}`:                             {Target: "a.example"},
+	valid := map[string]struct {
+		line string
+		want targetLine
+	}{
+		"ipv4":           {`{"target": "https://a.example", "ip": "192.0.2.10"}`, targetLine{Target: "https://a.example", IP: "192.0.2.10"}},
+		"ipv6":           {`{"target": " a.example:8443 ", "ip": "2001:DB8::1"}`, targetLine{Target: "a.example:8443", IP: "2001:db8::1"}},
+		"ipv4-mapped":    {`{"target": "a.example", "ip": "::ffff:192.0.2.10"}`, targetLine{Target: "a.example", IP: "192.0.2.10"}},
+		"spaced ip":      {`{"target": "a.example", "ip": " 192.0.2.10 "}`, targetLine{Target: "a.example", IP: "192.0.2.10"}},
+		"no ip":          {`{"target": "a.example"}`, targetLine{Target: "a.example"}},
+		"escaped target": {`{"target": "https://a.example/?a=1&b=2"}`, targetLine{Target: "https://a.example/?a=1&b=2"}},
 	}
-	for line, want := range valid {
-		t.Run(line, func(t *testing.T) {
-			got, err := parseTargetLine(line)
+	for name, tc := range valid {
+		t.Run(name, func(t *testing.T) {
+			got, err := parseTargetLine(tc.line)
 			require.NoError(t, err)
-			require.Equal(t, want, got)
+			require.Equal(t, tc.want, got)
 		})
 	}
 
@@ -95,7 +92,7 @@ func TestRunner_normalizeInput(t *testing.T) {
 	})
 }
 
-func TestRunner_pinnedTargetConflicts(t *testing.T) {
+func TestRunner_targetLineConflicts(t *testing.T) {
 	conflicts := map[string]Options{
 		"-unsafe":      {Unsafe: true},
 		"-pipeline":    {Pipeline: true},
@@ -112,7 +109,7 @@ func TestRunner_pinnedTargetConflicts(t *testing.T) {
 			_, err := r.normalizeInput(`{"target": "https://a.example", "ip": "192.0.2.10"}`)
 			require.ErrorContains(t, err, "cannot be probed with "+flag)
 			_, err = r.normalizeInput(`{"target": "https://a.example"}`)
-			require.NoError(t, err, "only pinned targets conflict")
+			require.NoError(t, err, "only a line with an ip conflicts")
 		})
 	}
 }
@@ -196,31 +193,48 @@ func TestRunner_skip_pinned(t *testing.T) {
 	require.False(t, skip)
 }
 
-// A proxy, set with -proxy for -pa or in the environment, resolves the host
-// itself, so a probe of a pinned target through it fails.
+// A proxy, which -pa can be run with, resolves the host itself, so a probe of
+// a pinned target through it fails. A proxy set in the environment is tested
+// in common/httpx.
 func TestRunner_analyze_pinnedThroughProxy(t *testing.T) {
 	r, err := New(&Options{Proxy: "http://127.0.0.1:1"})
 	require.NoError(t, err)
 	defer r.Close()
 
-	target := httpx.Target{Host: "http://pinned.test", CustomIP: "127.0.0.1"}
-	result := r.analyze(r.hp, httpx.HTTP, target, http.MethodGet, target.Host, &r.scanopts)
+	result := analyzeHTTP(r, httpx.Target{Host: "http://pinned.test", CustomIP: "127.0.0.1"})
 	require.ErrorContains(t, result.Err, "through a proxy")
+}
+
+// A target probed through a proxy has no ip of its own, and does not report
+// the last ip the dialer dialed to its host, here for a pinned target.
+func TestRunner_analyze_proxiedTargetHasNoDialedIP(t *testing.T) {
+	port := serveLocal(t, titleHandler("one"))
+	r, err := New(&Options{Proxy: "http://127.0.0.1:" + serveLocal(t, titleHandler("proxy"))})
+	require.NoError(t, err)
+	defer r.Close()
+	conn, err := r.hp.Dialer.Dial(httpx.WithPinnedIP(context.Background(), "pinned.test", "127.0.0.1"), "tcp", "pinned.test:"+port)
+	require.NoError(t, err)
+	_ = conn.Close()
+
+	result := analyzeHTTP(r, httpx.Target{Host: "http://pinned.test:" + port})
+	require.NoError(t, result.Err)
+	require.Equal(t, "proxy pinned.test:"+port, result.Title)
+	require.Empty(t, result.HostIP)
 }
 
 // -maxhr counts the failures of each ip of a host apart.
 func TestRunner_analyze_hostErrorsPerIP(t *testing.T) {
-	port := portOf(t, serve(t, listen(t, "127.0.0.1:0"), titleHandler("one"), nil).Listener)
+	port := serveLocal(t, titleHandler("one"))
 	r, err := New(&Options{HostMaxErrors: 1, Timeout: 2})
 	require.NoError(t, err)
 	defer r.Close()
-
-	analyze := func(ip string) Result {
-		target := httpx.Target{Host: "http://pinned.test:" + port, CustomIP: ip}
-		return r.analyze(r.hp, httpx.HTTP, target, http.MethodGet, target.Host, &r.scanopts)
+	target := func(ip string) httpx.Target {
+		return httpx.Target{Host: "http://pinned.test:" + port, CustomIP: ip}
 	}
-	require.Error(t, analyze("127.0.0.3").Err, "nothing listens there")
-	require.NoError(t, analyze("127.0.0.1").Err, "the other ip of the host is not skipped")
+
+	require.Error(t, analyzeHTTP(r, target("127.0.0.3")).Err, "nothing listens there")
+	require.ErrorContains(t, analyzeHTTP(r, target("127.0.0.3")).Err, "previously unresponsive")
+	require.NoError(t, analyzeHTTP(r, target("127.0.0.1")).Err, "the other ip of the host is not skipped")
 }
 
 func TestTargetLinePinsTheConnection(t *testing.T) {
@@ -230,6 +244,7 @@ func TestTargetLinePinsTheConnection(t *testing.T) {
 	var got []string
 	for _, result := range results {
 		got = append(got, result.HostIP+" "+result.Title)
+		require.Contains(t, result.str, "["+result.HostIP+"]", "the output shows the ip")
 	}
 	sort.Strings(got)
 	require.Equal(t, []string{
@@ -238,11 +253,17 @@ func TestTargetLinePinsTheConnection(t *testing.T) {
 	}, got)
 }
 
+// The scheme of the target of a line is kept, as for a url given as is.
+func TestTargetLineKeepsTheScheme(t *testing.T) {
+	port := serveLocal(t, titleHandler("one"))
+	results := probe(t, &Options{}, pinnedLine("https://pinned.test:"+port, "127.0.0.1"))
+	require.Empty(t, results, "a plain http server does not answer https")
+}
+
 func TestTargetLineDeduplicatesEquivalentLines(t *testing.T) {
-	port := portOf(t, serve(t, listen(t, "127.0.0.1:0"), titleHandler("one"), nil).Listener)
-	target := "http://pinned.test:" + port
+	target := "http://pinned.test:" + serveLocal(t, titleHandler("one"))
 	results := probe(t, &Options{},
-		fmt.Sprintf(`{"target": %q, "ip": "127.0.0.1"}`, target),
+		pinnedLine(target, "127.0.0.1"),
 		fmt.Sprintf(` {"ip": "::ffff:127.0.0.1", "target": %q}`, target),
 	)
 	require.Len(t, results, 1)
@@ -276,10 +297,10 @@ func TestTargetLineStoresTheResponseOfEachIP(t *testing.T) {
 	}
 }
 
-// Like curl --resolve, the host of a pinned target is not resolved, and a
-// holds dns data only.
+// Like curl --resolve, the host of a pinned target is not resolved, so its
+// result has no A records.
 func TestTargetLineIsNotResolved(t *testing.T) {
-	port := portOf(t, serve(t, listen(t, "127.0.0.1:0"), titleHandler("one"), nil).Listener)
+	port := serveLocal(t, titleHandler("one"))
 	resolver, queries := serveDNS(t, "pinned.test", "127.0.0.2")
 	results := probe(t, &Options{Resolvers: []string{resolver}}, pinnedLines(port, "127.0.0.1")...)
 
@@ -314,21 +335,27 @@ func TestPlainTargetReportsItsOwnIP(t *testing.T) {
 	lines := "http://pinned.test:" + port + "\n" + pinnedLines(port, "127.0.0.1")[0] + "\n"
 	require.NoError(t, os.WriteFile(file, []byte(lines), 0o600))
 
+	// the delay dials the plain target first, and its slow server keeps it
+	// open while the pinned target of the same host is dialed
 	options := &Options{Resolvers: []string{resolver}, Stream: true, InputFile: file, Threads: 2, Delay: 100 * time.Millisecond}
-	results := probe(t, options)
-	require.Len(t, results, 2)
-	for _, result := range results {
-		ip := "127.0.0.1"
-		if strings.HasPrefix(result.Title, "two") {
-			ip = "127.0.0.2"
-		}
-		require.Equal(t, ip, result.HostIP, result.Title)
+	var got []string
+	for _, result := range probe(t, options) {
+		got = append(got, result.HostIP+" "+result.Title)
 	}
+	sort.Strings(got)
+	require.Equal(t, []string{
+		"127.0.0.1 one pinned.test:" + port,
+		"127.0.0.2 two pinned.test:" + port,
+	}, got)
 }
 
 // An IPv6 ip is dialed as well, which -pa relies on for the IPv6 ips of a host.
 func TestTargetLinePinsIPv6(t *testing.T) {
-	port := portOf(t, serve(t, listen(t, "[::1]:0"), titleHandler("six"), nil).Listener)
+	listener, err := net.Listen("tcp", "[::1]:0")
+	if err != nil {
+		t.Skipf("IPv6 is not available: %v", err)
+	}
+	port := portOf(t, serve(t, listener, titleHandler("six"), nil).Listener)
 	results := probe(t, &Options{}, pinnedLines(port, "::1")...)
 
 	require.Len(t, results, 1)
@@ -348,8 +375,7 @@ func TestTargetLineKeepsSNI(t *testing.T) {
 			return nil, nil
 		},
 	})
-	target := "https://pinned.test:" + portOf(t, server.Listener)
-	results := probe(t, &Options{}, fmt.Sprintf(`{"target": %q, "ip": "127.0.0.1"}`, target))
+	results := probe(t, &Options{}, pinnedLine("https://pinned.test:"+portOf(t, server.Listener), "127.0.0.1"))
 
 	require.Len(t, results, 1)
 	mu.Lock()
@@ -364,9 +390,8 @@ func TestTargetLineKeepsSNI(t *testing.T) {
 // pinned ip as well.
 func TestTargetLinePinsTheFaviconAndTLSGrab(t *testing.T) {
 	server := serve(t, listen(t, "127.0.0.1:0"), withFavicon(titleHandler("tls")), &tls.Config{})
-	target := "https://pinned.test:" + portOf(t, server.Listener)
 	options := &Options{Favicon: true, ZTLS: true, TLSGrab: true}
-	results := probe(t, options, fmt.Sprintf(`{"target": %q, "ip": "127.0.0.1"}`, target))
+	results := probe(t, options, pinnedLine("https://pinned.test:"+portOf(t, server.Listener), "127.0.0.1"))
 
 	require.Len(t, results, 1)
 	require.NotEmpty(t, results[0].FavIconMMH3)
@@ -384,7 +409,7 @@ func TestRunner_HandleFaviconHash_keepsTheTraceOfTheProbe(t *testing.T) {
 	require.NoError(t, err)
 	defer r.Close()
 
-	result := r.analyze(r.hp, httpx.HTTP, httpx.Target{Host: page.URL}, http.MethodGet, page.URL, &r.scanopts)
+	result := analyzeHTTP(r, httpx.Target{Host: page.URL})
 	require.NoError(t, result.Err)
 	require.NotEmpty(t, result.FavIconMMH3)
 	require.Equal(t, page.Listener.Addr().String(), fmt.Sprint(result.Trace.GetConn.Info))
@@ -408,13 +433,10 @@ func withFavicon(handler http.Handler) http.Handler {
 	})
 }
 
-// listen listens on addr, and skips the test where addr cannot be bound.
 func listen(t *testing.T, addr string) net.Listener {
 	t.Helper()
 	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		t.Skipf("cannot listen on %s: %v", addr, err)
-	}
+	require.NoError(t, err)
 	return listener
 }
 
@@ -432,6 +454,12 @@ func serve(t *testing.T, listener net.Listener, handler http.Handler, tlsConfig 
 	}
 	t.Cleanup(server.Close)
 	return server
+}
+
+// serveLocal serves handler on 127.0.0.1, and returns the port.
+func serveLocal(t *testing.T, handler http.Handler) string {
+	t.Helper()
+	return portOf(t, serve(t, listen(t, "127.0.0.1:0"), handler, nil).Listener)
 }
 
 func portOf(t *testing.T, listener net.Listener) string {
@@ -463,11 +491,15 @@ func servePair(t *testing.T, one, two http.Handler) string {
 	return ""
 }
 
+func pinnedLine(target, ip string) string {
+	return fmt.Sprintf(`{"target": %q, "ip": %q}`, target, ip)
+}
+
 // pinnedLines returns the lines pinning http://pinned.test:port to each ip.
 func pinnedLines(port string, ips ...string) []string {
 	var lines []string
 	for _, ip := range ips {
-		lines = append(lines, fmt.Sprintf(`{"target": "http://pinned.test:%s", "ip": %q}`, port, ip))
+		lines = append(lines, pinnedLine("http://pinned.test:"+port, ip))
 	}
 	return lines
 }
@@ -523,6 +555,11 @@ func serveDNS(t *testing.T, host string, ips ...string) (string, *atomic.Int32) 
 		}
 	}()
 	return conn.LocalAddr().String(), &queries
+}
+
+// analyzeHTTP probes target over http with r.
+func analyzeHTTP(r *Runner, target httpx.Target) Result {
+	return r.analyze(r.hp, httpx.HTTP, target, http.MethodGet, target.Host, &r.scanopts)
 }
 
 // probe runs a runner on inputs with options, completed with test defaults,

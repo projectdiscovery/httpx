@@ -31,13 +31,22 @@ type targetLine struct {
 // isTargetLine reports whether an input line is a JSON object, the form of a
 // target line.
 func isTargetLine(line string) bool {
-	return strings.HasPrefix(strings.TrimSpace(line), "{")
+	return strings.HasPrefix(line, "{")
 }
 
-// parseTargetLine decodes and validates a target line. Unknown keys and an ip
-// that is null or empty are rejected, so that a typo cannot silently probe the
-// host through DNS.
+// parseTargetLine decodes and validates a target line.
 func parseTargetLine(line string) (targetLine, error) {
+	parsed, err := decodeTargetLine(line)
+	if err != nil {
+		return targetLine{}, fmt.Errorf("invalid target line %q: %w", line, err)
+	}
+	return parsed, nil
+}
+
+// decodeTargetLine decodes a target line, or returns why it is invalid.
+// Unknown keys and an ip that is null or empty are rejected, so that a typo
+// cannot silently probe the host through DNS.
+func decodeTargetLine(line string) (targetLine, error) {
 	// the ip is kept raw to tell an ip that is null or empty from no ip
 	var decoded struct {
 		Target string          `json:"target"`
@@ -46,35 +55,31 @@ func parseTargetLine(line string) (targetLine, error) {
 	decoder := json.NewDecoder(strings.NewReader(line))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&decoded); err != nil {
-		return targetLine{}, invalidTargetLine(line, err)
+		return targetLine{}, err
 	}
 	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
-		return targetLine{}, invalidTargetLine(line, errors.New("unexpected data after the object"))
+		return targetLine{}, errors.New("unexpected data after the object")
 	}
 
 	target := strings.TrimSpace(decoded.Target)
 	if target == "" {
-		return targetLine{}, invalidTargetLine(line, errors.New("no target"))
+		return targetLine{}, errors.New("no target")
 	}
 	if decoded.IP == nil {
 		return targetLine{Target: target}, nil
 	}
+	if err := checkPinnable(target); err != nil {
+		return targetLine{}, err
+	}
 	var ip string
 	if err := json.Unmarshal(decoded.IP, &ip); err != nil {
-		return targetLine{}, invalidTargetLine(line, err)
-	}
-	if err := checkPinnable(target); err != nil {
-		return targetLine{}, invalidTargetLine(line, err)
+		return targetLine{}, err
 	}
 	addr, err := netip.ParseAddr(strings.TrimSpace(ip))
 	if err != nil || addr.Zone() != "" || addr.IsUnspecified() {
-		return targetLine{}, invalidTargetLine(line, fmt.Errorf("invalid ip %q", ip))
+		return targetLine{}, fmt.Errorf("invalid ip %q", ip)
 	}
 	return targetLine{Target: target, IP: addr.Unmap().String()}, nil
-}
-
-func invalidTargetLine(line string, reason error) error {
-	return fmt.Errorf("invalid target line %q: %w", line, reason)
 }
 
 // checkPinnable returns why target cannot be pinned to an ip: only a single
@@ -95,11 +100,6 @@ func checkPinnable(target string) error {
 	return nil
 }
 
-// isVHostInput reports whether target is a vhost,ip input.
-func isVHostInput(target string) bool {
-	return !stringsutil.HasPrefixAny(target, "http://", "https://") && stringsutil.ContainsAny(target, ",")
-}
-
 // key returns the line as it is stored and deduplicated: the target alone
 // when it is not pinned, and a canonical target line otherwise.
 func (t targetLine) key() string {
@@ -113,60 +113,51 @@ func (t targetLine) key() string {
 	return strings.TrimSpace(buf.String())
 }
 
-// pinnedKey returns key for a target that is not pinned, and key@ip for one
-// pinned to ip, as the ips of a host fail and respond independently.
-func pinnedKey(key, ip string) string {
-	if ip == "" {
-		return key
-	}
-	return key + "@" + ip
-}
-
 // targetOf returns the target of an input line: the line itself, or the
 // target of a target line.
-func targetOf(item string) string {
-	if !isTargetLine(item) {
-		return item
+func targetOf(line string) string {
+	if !isTargetLine(line) {
+		return line
 	}
-	if line, err := parseTargetLine(item); err == nil {
-		return line.Target
+	if parsed, err := parseTargetLine(line); err == nil {
+		return parsed.Target
 	}
-	return item
+	return line
 }
 
 // normalizeInput validates an input line and returns the form it is stored
 // and deduplicated in.
-func (r *Runner) normalizeInput(item string) (string, error) {
-	item = strings.TrimSpace(item)
-	if !isTargetLine(item) {
-		return item, nil
+func (r *Runner) normalizeInput(line string) (string, error) {
+	line = strings.TrimSpace(line)
+	if !isTargetLine(line) {
+		return line, nil
 	}
-	line, err := r.parseInputLine(item)
+	parsed, err := r.parseInputLine(line)
 	if err != nil {
 		return "", err
 	}
-	return line.key(), nil
+	return parsed.key(), nil
 }
 
-// parseInputLine parses a target line, and refuses one pinned to an ip with
-// the options that do not keep to it.
-func (r *Runner) parseInputLine(item string) (targetLine, error) {
-	line, err := parseTargetLine(item)
+// parseInputLine parses a target line, and refuses one with an ip when an
+// option does not keep to the ip.
+func (r *Runner) parseInputLine(line string) (targetLine, error) {
+	parsed, err := parseTargetLine(line)
 	if err != nil {
 		return targetLine{}, err
 	}
-	if line.IP != "" {
-		if flags := r.options.pinnedTargetConflicts(); len(flags) > 0 {
-			return targetLine{}, invalidTargetLine(item, fmt.Errorf("a target pinned to an ip cannot be probed with %s", strings.Join(flags, ", ")))
+	if parsed.IP != "" {
+		if flags := r.options.targetLineConflicts(); len(flags) > 0 {
+			return targetLine{}, fmt.Errorf("target line %q: a target pinned to an ip cannot be probed with %s", line, strings.Join(flags, ", "))
 		}
 	}
-	return line, nil
+	return parsed, nil
 }
 
-// pinnedTargetConflicts returns the options whose probes do not connect
-// through the ip a target is pinned to, or share a connection between the ips
-// of a host, as HTTP/2 does.
-func (options *Options) pinnedTargetConflicts() []string {
+// targetLineConflicts returns the options a target line with an ip cannot be
+// probed with: their probes do not connect through the ip, or share a
+// connection between the ips of a host, as HTTP/2 does.
+func (options *Options) targetLineConflicts() []string {
 	var flags []string
 	if options.Unsafe {
 		flags = append(flags, "-unsafe")

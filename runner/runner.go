@@ -743,11 +743,11 @@ func (r *Runner) streamInput() (chan string, error) {
 		}
 		// sendLine normalizes, deduplicates and sends an input line, returning
 		// false if interrupted. The scan has already started, so an invalid
-		// line is skipped with an error.
+		// line is skipped with a warning.
 		sendLine := func(item string) bool {
 			item, err := r.normalizeInput(item)
 			if err != nil {
-				gologger.Error().Msgf("Skipping input: %s\n", err)
+				gologger.Warning().Msgf("Skipping input: %s\n", err)
 				return true
 			}
 			if r.options.SkipDedupe || r.testAndSet(item) {
@@ -1789,6 +1789,11 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 	}
 }
 
+// isVHostInput reports whether target is a vhost,ip input.
+func isVHostInput(target string) bool {
+	return !stringsutil.HasPrefixAny(target, "http://", "https://") && stringsutil.ContainsAny(target, ",")
+}
+
 // returns all the targets within a cidr range or the single target
 func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 	results := make(chan httpx.Target)
@@ -1799,6 +1804,8 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 
 		switch {
 		case isTargetLine(target):
+			// input lines were checked when read, but the names -tls-probe
+			// and -csp-probe find come here directly
 			line, err := r.parseInputLine(target)
 			if err != nil {
 				gologger.Warning().Msgf("Skipping input: %s\n", err)
@@ -1852,6 +1859,16 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 		}
 	}()
 	return results
+}
+
+// pinnedKey returns key for a target that is not pinned, and key@ip for one
+// pinned to ip, from a target line or -pa, as the ips of a host fail and
+// respond independently.
+func pinnedKey(key, ip string) string {
+	if ip == "" {
+		return key
+	}
+	return key + "@" + ip
 }
 
 func (r *Runner) analyze(hp *httpx.HTTPX, protocol string, target httpx.Target, method, origInput string, scanopts *ScanOptions) Result {
@@ -2091,6 +2108,9 @@ retry:
 		}
 
 		if r.options.Probe {
+			if target.CustomIP != "" {
+				_, _ = fmt.Fprintf(builder, " [%s]", target.CustomIP)
+			}
 			return Result{URL: URL.String(), Input: origInput, Timestamp: time.Now(), Err: err, Failed: err != nil, Error: errString, str: builder.String()}
 		} else {
 			return Result{URL: URL.String(), Input: origInput, Timestamp: time.Now(), Err: err}
@@ -2299,14 +2319,15 @@ retry:
 		if onlyHost, _, err := net.SplitHostPort(URL.Host); err == nil && iputil.IsIP(onlyHost) {
 			ip = onlyHost
 		} else {
-			// the ip this request was dialed to: the dialer only keeps the
-			// last ip dialed to a host, which may be another request's
-			ip = httpx.DialedIP(req.Context())
-			if ip == "" {
+			var proxied bool
+			ip, proxied = httpx.DialedIP(req.Context())
+			if ip == "" && !proxied {
+				// no dial was recorded, as for a reused connection or -unsafe:
+				// hp.Dialer.GetDialedIP would return only the last dialed one
 				ip = hp.Dialer.GetDialedIP(URL.Host)
-			}
-			if ip == "" {
-				ip = hp.Dialer.GetDialedIP(onlyHost)
+				if ip == "" {
+					ip = hp.Dialer.GetDialedIP(onlyHost)
+				}
 			}
 		}
 	}

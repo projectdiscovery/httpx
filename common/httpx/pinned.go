@@ -44,7 +44,8 @@ func pinnedIP(req *http.Request) string {
 	return ip
 }
 
-// canonicalHost returns host as net/http dials it, so that a pin matches the
+// canonicalHost folds the case, the IDNA form and a trailing dot of host, as
+// fastdialer keys its resolve overrides, so that a pin matches the requests and
 // dials to its host however the host is spelled.
 func canonicalHost(host string) string {
 	if ascii, err := idna.Lookup.ToASCII(host); err == nil {

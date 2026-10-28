@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
+	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -15,13 +17,14 @@ func TestRefusePinned(t *testing.T) {
 	proxyURL, err := url.Parse("http://127.0.0.1:3128")
 	require.NoError(t, err)
 	proxy := refusePinned(http.ProxyURL(proxyURL))
-	ctx := WithPinnedIP(WithPinnedIP(context.Background(), "Pinned.Test.", "192.0.2.10"), "second.test", "192.0.2.11")
+	ctx := WithPinnedIP(WithPinnedIP(context.Background(), "Pinned.Test.", "192.0.2.10"), "xn--bcher-kva.test", "192.0.2.11")
 
-	for _, rawURL := range []string{"https://pinned.test:8443/", "https://second.test/"} {
+	// each host pinned in a context, however it is spelled
+	for _, rawURL := range []string{"https://PINNED.test.:8443/", "https://bücher.test/"} {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 		require.NoError(t, err)
 		_, err = proxy(req)
-		require.ErrorIs(t, err, errPinnedThroughProxy, "each host pinned in a context")
+		require.ErrorIs(t, err, errPinnedThroughProxy, rawURL)
 	}
 
 	redirect, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://other.test/", nil)
@@ -37,7 +40,28 @@ func TestRefusePinned(t *testing.T) {
 	require.Nil(t, got, "a pinned request without a proxy")
 }
 
-// A pin matches the host as net/http dials it, however the host is spelled.
+// A proxy set in the environment is refused for a pinned request as well. Go
+// reads the proxies of the environment once, so the test runs in a new process.
+func TestRefusePinned_environment(t *testing.T) {
+	if os.Getenv("HTTPX_TEST_ENV_PROXY") == "" {
+		cmd := exec.Command(os.Args[0], "-test.run=^TestRefusePinned_environment$")
+		// the lower case names first: on Windows, the last of two spellings wins
+		cmd.Env = append(os.Environ(), "HTTPX_TEST_ENV_PROXY=1", "http_proxy=", "no_proxy=", "NO_PROXY=", "HTTP_PROXY=http://127.0.0.1:1")
+		output, err := cmd.CombinedOutput()
+		require.NoError(t, err, string(output))
+		return
+	}
+
+	options := DefaultOptions
+	options.RetryMax = 0
+	h, err := New(&options)
+	require.NoError(t, err)
+	req, err := h.NewRequestWithContext(WithPinnedIP(context.Background(), "pinned.test", "127.0.0.1"), http.MethodGet, "http://pinned.test/")
+	require.NoError(t, err)
+	_, err = h.Do(req, UnsafeOptions{})
+	require.ErrorContains(t, err, errPinnedThroughProxy.Error())
+}
+
 func TestCanonicalHost(t *testing.T) {
 	for host, want := range map[string]string{
 		"Pinned.Test.":       "pinned.test",
@@ -72,20 +96,33 @@ func TestRecordDialedIP(t *testing.T) {
 	dial := recordDialedIP(func(ctx context.Context, network, _ string) (net.Conn, error) {
 		return (&net.Dialer{}).DialContext(ctx, network, listener.Addr().String())
 	})
-	ctx := WithDialedIP(context.Background(), "Dialed.Test")
+	ctx := WithDialedIP(context.Background(), "dialed.test")
 
 	conn, err := dial(ctx, "tcp", "proxy.test:3128")
 	require.NoError(t, err)
 	_ = conn.Close()
-	require.Empty(t, DialedIP(ctx), "a dial to another host, such as a proxy")
+	ip, _ := DialedIP(ctx)
+	require.Empty(t, ip, "a dial to another host, such as a proxy")
 
-	conn, err = dial(ctx, "tcp", "dialed.test:80")
+	// net/http dials a host as it is spelled
+	conn, err = dial(ctx, "tcp", "DIALED.test.:80")
 	require.NoError(t, err)
 	_ = conn.Close()
-	require.Equal(t, "127.0.0.1", DialedIP(ctx))
+	ip, _ = DialedIP(ctx)
+	require.Equal(t, "127.0.0.1", ip)
+}
 
-	conn, err = dial(context.Background(), "tcp", "dialed.test:80")
+func TestRecordProxied(t *testing.T) {
+	proxyURL, err := url.Parse("http://127.0.0.1:3128")
 	require.NoError(t, err)
-	_ = conn.Close()
-	require.Empty(t, DialedIP(context.Background()), "a context without WithDialedIP")
+
+	for proxy, want := range map[*url.URL]bool{proxyURL: true, nil: false} {
+		ctx := WithDialedIP(context.Background(), "dialed.test")
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://dialed.test/", nil)
+		require.NoError(t, err)
+		_, err = recordProxied(http.ProxyURL(proxy))(req)
+		require.NoError(t, err)
+		_, proxied := DialedIP(ctx)
+		require.Equal(t, want, proxied)
+	}
 }
