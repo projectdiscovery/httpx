@@ -98,6 +98,7 @@ type Runner struct {
 	httpApiEndpoint    *Server
 	authProvider       authprovider.AuthProvider
 	interruptCh        chan struct{}
+	pinnedProxyWarning sync.Once
 }
 
 func (r *Runner) HTTPX() *httpx.HTTPX {
@@ -555,9 +556,9 @@ func (r *Runner) prepareInput() {
 	// check if input target host(s) have been provided
 	if len(r.options.InputTargetHost) > 0 {
 		for _, target := range r.options.InputTargetHost {
-			target, err := r.normalizeInput(target)
-			if err != nil {
-				gologger.Fatal().Msgf("Could not read input target: %s\n", err)
+			target, ok := r.readInputLine(target)
+			if !ok {
+				continue
 			}
 			expandedTarget, err := r.countTargetFromRawTarget(target)
 			if err == nil && expandedTarget > 0 {
@@ -742,12 +743,10 @@ func (r *Runner) streamInput() (chan string, error) {
 			}
 		}
 		// sendLine normalizes, deduplicates and sends an input line, returning
-		// false if interrupted. The scan has already started, so an invalid
-		// line is skipped with a warning.
+		// false if interrupted.
 		sendLine := func(item string) bool {
-			item, err := r.normalizeInput(item)
-			if err != nil {
-				gologger.Warning().Msgf("Skipping input: %s\n", err)
+			item, ok := r.readInputLine(item)
+			if !ok {
 				return true
 			}
 			if r.options.SkipDedupe || r.testAndSet(item) {
@@ -809,10 +808,9 @@ func (r *Runner) streamInput() (chan string, error) {
 func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	scanner := bufio.NewScanner(finput)
 	for scanner.Scan() {
-		target, err := r.normalizeInput(scanner.Text())
-		if err != nil {
-			_ = finput.Close()
-			return 0, err
+		target, ok := r.readInputLine(scanner.Text())
+		if !ok {
+			continue
 		}
 		// Used just to get the exact number of targets
 		expandedTarget, err := r.countTargetFromRawTarget(target)
@@ -1715,15 +1713,7 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
-							for _, tt := range result.TLSData.SubjectAN {
-								if !r.testAndSet(tt) {
-									continue
-								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
-							}
-							if r.testAndSet(result.TLSData.SubjectCN) {
-								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
-							}
+							r.probeTLSNames(result, wg, hp, protocol, scanopts, output)
 						}
 						if scanopts.CSPProbe && result.CSPData != nil {
 							scanopts.CSPProbe = false
@@ -1769,15 +1759,7 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 						result := r.analyze(hp, protocol, target, method, t, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
-							for _, tt := range result.TLSData.SubjectAN {
-								if !r.testAndSet(tt) {
-									continue
-								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
-							}
-							if r.testAndSet(result.TLSData.SubjectCN) {
-								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
-							}
+							r.probeTLSNames(result, wg, hp, protocol, scanopts, output)
 						}
 					}(port, target, method, wantedProtocol)
 				}
@@ -1785,6 +1767,18 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 		}
 		if r.options.ShowStatistics {
 			r.stats.IncrementCounter("hosts", 1)
+		}
+	}
+}
+
+// probeTLSNames probes the names of the certificate of result, for -tls-probe.
+// A name shaped like a target line is skipped: only an input pins a target to
+// an ip, not the server being probed.
+func (r *Runner) probeTLSNames(result Result, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result) {
+	names := append(slices.Clone(result.TLSData.SubjectAN), result.TLSData.SubjectCN)
+	for _, name := range names {
+		if !isTargetLine(name) && r.testAndSet(name) {
+			r.process(name, wg, hp, protocol, scanopts, output)
 		}
 	}
 }
@@ -1804,11 +1798,11 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 
 		switch {
 		case isTargetLine(target):
-			// input lines were checked when read, but the names -tls-probe
-			// and -csp-probe find come here directly
+			// input lines were checked when read, but not a line given to
+			// Process
 			line, err := r.parseInputLine(target)
 			if err != nil {
-				gologger.Warning().Msgf("Skipping input: %s\n", err)
+				gologger.Error().Msgf("Skipping input: %s\n", err)
 				return
 			}
 			results <- httpx.Target{Host: line.Target, CustomIP: line.IP}
@@ -2071,6 +2065,11 @@ retry:
 		builder.WriteRune(']')
 	}
 	if err != nil {
+		if errors.Is(err, httpx.ErrPinnedThroughProxy) {
+			r.pinnedProxyWarning.Do(func() {
+				gologger.Error().Msgf("Targets pinned to an ip cannot be probed through a proxy, which resolves the host itself: with HTTP_PROXY or HTTPS_PROXY set, add their hosts to NO_PROXY\n")
+			})
+		}
 		errString := ""
 		errString = err.Error()
 		splitErr := strings.Split(errString, ":")
@@ -2319,15 +2318,15 @@ retry:
 		if onlyHost, _, err := net.SplitHostPort(URL.Host); err == nil && iputil.IsIP(onlyHost) {
 			ip = onlyHost
 		} else {
-			var proxied bool
-			ip, proxied = httpx.DialedIP(req.Context())
-			if ip == "" && !proxied {
-				// no dial was recorded, as for a reused connection or -unsafe:
-				// hp.Dialer.GetDialedIP would return only the last dialed one
+			// the ip this request was dialed to, or else, as for a reused
+			// connection, -unsafe or a proxy, the last ip the dialer dialed
+			// to the host, which may be another request's
+			ip = httpx.DialedIP(req.Context())
+			if ip == "" {
 				ip = hp.Dialer.GetDialedIP(URL.Host)
-				if ip == "" {
-					ip = hp.Dialer.GetDialedIP(onlyHost)
-				}
+			}
+			if ip == "" {
+				ip = hp.Dialer.GetDialedIP(onlyHost)
 			}
 		}
 	}

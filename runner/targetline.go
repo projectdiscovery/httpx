@@ -9,12 +9,17 @@ import (
 	"net/netip"
 	"strings"
 
+	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/mapcidr/asn"
 	iputil "github.com/projectdiscovery/utils/ip"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	urlutil "github.com/projectdiscovery/utils/url"
 )
+
+// errTargetLineConflict is the error of a target line with an ip and an option
+// that does not keep to the ip.
+var errTargetLineConflict = errors.New("a target pinned to an ip cannot be probed with")
 
 // targetLine is an input line that pins a target to an ip, like
 // curl --resolve:
@@ -31,7 +36,7 @@ type targetLine struct {
 // isTargetLine reports whether an input line is a JSON object, the form of a
 // target line.
 func isTargetLine(line string) bool {
-	return strings.HasPrefix(line, "{")
+	return strings.HasPrefix(strings.TrimSpace(line), "{")
 }
 
 // parseTargetLine decodes and validates a target line.
@@ -125,6 +130,22 @@ func targetOf(line string) string {
 	return line
 }
 
+// readInputLine returns the form an input line is stored and deduplicated in,
+// and false if the line is skipped: an invalid line is reported and skipped,
+// while a target line that conflicts with the options stops the run, as every
+// such line would.
+func (r *Runner) readInputLine(line string) (string, bool) {
+	key, err := r.normalizeInput(line)
+	if errors.Is(err, errTargetLineConflict) {
+		gologger.Fatal().Msgf("Could not read input: %s\n", err)
+	}
+	if err != nil {
+		gologger.Error().Msgf("Skipping input: %s\n", err)
+		return "", false
+	}
+	return key, true
+}
+
 // normalizeInput validates an input line and returns the form it is stored
 // and deduplicated in.
 func (r *Runner) normalizeInput(line string) (string, error) {
@@ -148,7 +169,7 @@ func (r *Runner) parseInputLine(line string) (targetLine, error) {
 	}
 	if parsed.IP != "" {
 		if flags := r.options.targetLineConflicts(); len(flags) > 0 {
-			return targetLine{}, fmt.Errorf("target line %q: a target pinned to an ip cannot be probed with %s", line, strings.Join(flags, ", "))
+			return targetLine{}, fmt.Errorf("target line %q: %w %s", line, errTargetLineConflict, strings.Join(flags, ", "))
 		}
 	}
 	return parsed, nil

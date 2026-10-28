@@ -24,7 +24,7 @@ func TestRefusePinned(t *testing.T) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 		require.NoError(t, err)
 		_, err = proxy(req)
-		require.ErrorIs(t, err, errPinnedThroughProxy, rawURL)
+		require.ErrorIs(t, err, ErrPinnedThroughProxy, rawURL)
 	}
 
 	redirect, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://other.test/", nil)
@@ -59,7 +59,7 @@ func TestRefusePinned_environment(t *testing.T) {
 	req, err := h.NewRequestWithContext(WithPinnedIP(context.Background(), "pinned.test", "127.0.0.1"), http.MethodGet, "http://pinned.test/")
 	require.NoError(t, err)
 	_, err = h.Do(req, UnsafeOptions{})
-	require.ErrorContains(t, err, errPinnedThroughProxy.Error())
+	require.ErrorIs(t, err, ErrPinnedThroughProxy)
 }
 
 func TestCanonicalHost(t *testing.T) {
@@ -101,28 +101,11 @@ func TestRecordDialedIP(t *testing.T) {
 	conn, err := dial(ctx, "tcp", "proxy.test:3128")
 	require.NoError(t, err)
 	_ = conn.Close()
-	ip, _ := DialedIP(ctx)
-	require.Empty(t, ip, "a dial to another host, such as a proxy")
+	require.Empty(t, DialedIP(ctx), "a dial to another host, such as a proxy")
 
 	// net/http dials a host as it is spelled
 	conn, err = dial(ctx, "tcp", "DIALED.test.:80")
 	require.NoError(t, err)
 	_ = conn.Close()
-	ip, _ = DialedIP(ctx)
-	require.Equal(t, "127.0.0.1", ip)
-}
-
-func TestRecordProxied(t *testing.T) {
-	proxyURL, err := url.Parse("http://127.0.0.1:3128")
-	require.NoError(t, err)
-
-	for proxy, want := range map[*url.URL]bool{proxyURL: true, nil: false} {
-		ctx := WithDialedIP(context.Background(), "dialed.test")
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://dialed.test/", nil)
-		require.NoError(t, err)
-		_, err = recordProxied(http.ProxyURL(proxy))(req)
-		require.NoError(t, err)
-		_, proxied := DialedIP(ctx)
-		require.Equal(t, want, proxied)
-	}
+	require.Equal(t, "127.0.0.1", DialedIP(ctx))
 }

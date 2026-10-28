@@ -1,15 +1,21 @@
 package runner
 
 import (
-	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
+	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -17,6 +23,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/gologger/levels"
+	"github.com/projectdiscovery/gologger/writer"
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/dns/dnsmessage"
@@ -107,6 +116,7 @@ func TestRunner_targetLineConflicts(t *testing.T) {
 		t.Run(flag, func(t *testing.T) {
 			r := &Runner{options: &options}
 			_, err := r.normalizeInput(`{"target": "https://a.example", "ip": "192.0.2.10"}`)
+			require.ErrorIs(t, err, errTargetLineConflict)
 			require.ErrorContains(t, err, "cannot be probed with "+flag)
 			_, err = r.normalizeInput(`{"target": "https://a.example"}`)
 			require.NoError(t, err, "only a line with an ip conflicts")
@@ -160,17 +170,28 @@ func TestRunner_streamInput_skipsInvalidLines(t *testing.T) {
 	require.Equal(t, []string{"a.example", `{"target":"c.example","ip":"192.0.2.10"}`}, got, "the malformed line is skipped")
 }
 
-func TestRunner_loadAndCloseFile_refusesInvalidLines(t *testing.T) {
+// An invalid line, such as a line of another tool's JSON output, is skipped
+// and the other lines are read.
+func TestRunner_loadAndCloseFile_skipsInvalidLines(t *testing.T) {
 	file := filepath.Join(t.TempDir(), "targets.txt")
-	require.NoError(t, os.WriteFile(file, []byte("a.example\n"+`{"target": "b.example", "ip": null}`+"\n"), 0o600))
+	lines := "a.example\n" + `{"host": "b.example"}` + "\n" + `{"target": "c.example", "ip": null}` + "\n"
+	require.NoError(t, os.WriteFile(file, []byte(lines), 0o600))
 	input, err := os.Open(file)
 	require.NoError(t, err)
+
+	logged := &errorRecorder{}
+	gologger.DefaultLogger.SetWriter(logged)
+	t.Cleanup(func() { gologger.DefaultLogger.SetWriter(writer.NewCLI()) })
 
 	r, err := New(&Options{})
 	require.NoError(t, err)
 	defer r.Close()
-	_, err = r.loadAndCloseFile(input)
-	require.ErrorContains(t, err, "invalid ip")
+	count, err := r.loadAndCloseFile(input)
+	require.NoError(t, err)
+	require.Equal(t, 1, count)
+	_, ok := r.hm.Get("a.example")
+	require.True(t, ok)
+	require.Len(t, logged.lines(), 2, "each skipped line is reported")
 }
 
 func TestRunner_skip_pinned(t *testing.T) {
@@ -194,32 +215,39 @@ func TestRunner_skip_pinned(t *testing.T) {
 }
 
 // A proxy, which -pa can be run with, resolves the host itself, so a probe of
-// a pinned target through it fails. A proxy set in the environment is tested
-// in common/httpx.
+// a pinned target through it fails, which is reported once. A proxy set in
+// the environment is tested in common/httpx.
 func TestRunner_analyze_pinnedThroughProxy(t *testing.T) {
-	r, err := New(&Options{Proxy: "http://127.0.0.1:1"})
+	logged := &errorRecorder{}
+	gologger.DefaultLogger.SetWriter(logged)
+	t.Cleanup(func() { gologger.DefaultLogger.SetWriter(writer.NewCLI()) })
+	r, err := New(&Options{Proxy: "http://127.0.0.1:1", HostMaxErrors: -1})
 	require.NoError(t, err)
 	defer r.Close()
 
-	result := analyzeHTTP(r, httpx.Target{Host: "http://pinned.test", CustomIP: "127.0.0.1"})
-	require.ErrorContains(t, result.Err, "through a proxy")
+	for range 2 {
+		result := analyzeHTTP(r, httpx.Target{Host: "http://pinned.test", CustomIP: "127.0.0.1"})
+		require.ErrorIs(t, result.Err, httpx.ErrPinnedThroughProxy)
+	}
+	require.Len(t, logged.lines(), 1)
+	require.Contains(t, logged.lines()[0], "NO_PROXY")
 }
 
-// A target probed through a proxy has no ip of its own, and does not report
-// the last ip the dialer dialed to its host, here for a pinned target.
-func TestRunner_analyze_proxiedTargetHasNoDialedIP(t *testing.T) {
-	port := serveLocal(t, titleHandler("one"))
-	r, err := New(&Options{Proxy: "http://127.0.0.1:" + serveLocal(t, titleHandler("proxy"))})
-	require.NoError(t, err)
-	defer r.Close()
-	conn, err := r.hp.Dialer.Dial(httpx.WithPinnedIP(context.Background(), "pinned.test", "127.0.0.1"), "tcp", "pinned.test:"+port)
-	require.NoError(t, err)
-	_ = conn.Close()
+// The names of a certificate shaped like a target line are not probed with
+// -tls-probe: the server being probed cannot pin a target to an ip.
+func TestRunner_probeTLSNames_skipsTargetLines(t *testing.T) {
+	var requests atomic.Int32
+	// the names are probed over the scheme of the target they come from
+	pinned := serve(t, listen(t, "127.0.0.1:0"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+	}), &tls.Config{})
+	// the leading space is trimmed when the name is read as an input
+	certificate := selfSignedCertificate(t, " "+pinnedLine("https://pinned.test:"+portOf(t, pinned.Listener), "127.0.0.1"))
+	server := serve(t, listen(t, "127.0.0.1:0"), titleHandler("tls"), &tls.Config{Certificates: []tls.Certificate{certificate}})
 
-	result := analyzeHTTP(r, httpx.Target{Host: "http://pinned.test:" + port})
-	require.NoError(t, result.Err)
-	require.Equal(t, "proxy pinned.test:"+port, result.Title)
-	require.Empty(t, result.HostIP)
+	results := probe(t, &Options{TLSProbe: true, TLSGrab: true, Threads: 5}, server.URL)
+	require.NotEmpty(t, results)
+	require.Zero(t, requests.Load())
 }
 
 // -maxhr counts the failures of each ip of a host apart.
@@ -413,6 +441,43 @@ func TestRunner_HandleFaviconHash_keepsTheTraceOfTheProbe(t *testing.T) {
 	require.NoError(t, result.Err)
 	require.NotEmpty(t, result.FavIconMMH3)
 	require.Equal(t, page.Listener.Addr().String(), fmt.Sprint(result.Trace.GetConn.Info))
+}
+
+// errorRecorder is a gologger writer that keeps the errors, which are shown
+// by default.
+type errorRecorder struct {
+	mu     sync.Mutex
+	errors []string
+}
+
+func (w *errorRecorder) Write(data []byte, level levels.Level) {
+	if level == levels.LevelError {
+		w.mu.Lock()
+		w.errors = append(w.errors, string(data))
+		w.mu.Unlock()
+	}
+}
+
+func (w *errorRecorder) lines() []string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return slices.Clone(w.errors)
+}
+
+// selfSignedCertificate returns a certificate whose common name is name.
+func selfSignedCertificate(t *testing.T, name string) tls.Certificate {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: name},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+	}
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	require.NoError(t, err)
+	return tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}
 }
 
 // titleHandler serves a page whose title is name and the Host header.

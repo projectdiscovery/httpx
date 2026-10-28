@@ -3,8 +3,6 @@ package httpx
 import (
 	"context"
 	"net"
-	"net/http"
-	"net/url"
 	"sync"
 )
 
@@ -14,13 +12,11 @@ type dialFunc func(ctx context.Context, network, addr string) (net.Conn, error)
 // dialedIPKey is the context key of the dialedIP of WithDialedIP.
 type dialedIPKey struct{}
 
-// dialedIP is the ip of the last connection dialed to a host, and whether a
-// request went through a proxy instead.
+// dialedIP is the ip of the last connection dialed to a host.
 type dialedIP struct {
-	host    string
-	mu      sync.Mutex
-	ip      string
-	proxied bool
+	host string
+	mu   sync.Mutex
+	ip   string
 }
 
 // WithDialedIP returns a copy of ctx that records the ip of the connections
@@ -31,16 +27,15 @@ func WithDialedIP(ctx context.Context, host string) context.Context {
 }
 
 // DialedIP returns the ip of the last connection dialed to the host of a
-// WithDialedIP context, and whether a request with it went through a proxy,
-// which dials the host itself.
-func DialedIP(ctx context.Context) (ip string, proxied bool) {
+// WithDialedIP context, or "" if none was.
+func DialedIP(ctx context.Context) string {
 	dialed, ok := ctx.Value(dialedIPKey{}).(*dialedIP)
 	if !ok {
-		return "", false
+		return ""
 	}
 	dialed.mu.Lock()
 	defer dialed.mu.Unlock()
-	return dialed.ip, dialed.proxied
+	return dialed.ip
 }
 
 // recordDialedIP wraps dial to record the ip of a connection to the host of a
@@ -61,19 +56,5 @@ func recordDialedIP(dial dialFunc) dialFunc {
 			dialed.mu.Unlock()
 		}
 		return conn, err
-	}
-}
-
-// recordProxied wraps the proxy of a transport to record that a request with
-// a WithDialedIP context goes through a proxy.
-func recordProxied(proxy func(*http.Request) (*url.URL, error)) func(*http.Request) (*url.URL, error) {
-	return func(req *http.Request) (*url.URL, error) {
-		proxyURL, err := proxy(req)
-		if dialed, ok := req.Context().Value(dialedIPKey{}).(*dialedIP); ok && proxyURL != nil {
-			dialed.mu.Lock()
-			dialed.proxied = true
-			dialed.mu.Unlock()
-		}
-		return proxyURL, err
 	}
 }

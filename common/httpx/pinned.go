@@ -11,9 +11,9 @@ import (
 	"golang.org/x/net/idna"
 )
 
-// errPinnedThroughProxy is the error of a request to a pinned host that would
+// ErrPinnedThroughProxy is the error of a request to a pinned host that would
 // go through a proxy, which resolves the host itself.
-var errPinnedThroughProxy = errors.New("a host pinned to an ip cannot be reached through a proxy")
+var ErrPinnedThroughProxy = errors.New("a host pinned to an ip cannot be reached through a proxy")
 
 // pinnedHostKey is the context key of a host pinned with WithPinnedIP.
 type pinnedHostKey string
@@ -60,7 +60,7 @@ func refusePinned(proxy func(*http.Request) (*url.URL, error)) func(*http.Reques
 	return func(req *http.Request) (*url.URL, error) {
 		proxyURL, err := proxy(req)
 		if proxyURL != nil && pinnedIP(req) != "" {
-			return nil, errPinnedThroughProxy
+			return nil, ErrPinnedThroughProxy
 		}
 		return proxyURL, err
 	}
