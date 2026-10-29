@@ -109,9 +109,16 @@ func DecodeData(data []byte, headers http.Header) ([]byte, error) {
 			return Decodebig5(data)
 		}
 
-		// Any other charset declared in the header, such as iso-8859-1
+		// Any other charset declared in the header, such as iso-8859-1. A label
+		// that is not a charset is ignored, and the page is looked at instead.
+		headerCharsetKnown := false
 		if label := charsetParam(contentType); label != "" {
-			return decodeCharset(data, label)
+			if encoding, name := charset.Lookup(label); encoding != nil {
+				headerCharsetKnown = true
+				if name != "utf-8" {
+					return encoding.NewDecoder().Bytes(data)
+				}
+			}
 		}
 
 		// Content-Type from head tag
@@ -132,8 +139,11 @@ func DecodeData(data []byte, headers http.Header) ([]byte, error) {
 			return Decodebig5(data)
 		}
 
-		// Any other charset declared in the page
-		return decodeCharset(data, mcontentType)
+		// Any other charset declared in the page. The header wins over the page
+		// when it names a charset.
+		if !headerCharsetKnown {
+			return decodeCharset(data, mcontentType)
+		}
 	}
 
 	// return as is

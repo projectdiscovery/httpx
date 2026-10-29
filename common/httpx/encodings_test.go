@@ -52,6 +52,24 @@ func TestDecodeDataDeclaredCharset(t *testing.T) {
 			want:        `<meta charset="iso-8859-1"><title>café</title>`,
 		},
 		{
+			name:        "unquoted charset in a meta tag",
+			contentType: "text/html",
+			body:        []byte(`<meta charset=iso-8859-1><title>caf` + "\xe9" + `</title>`),
+			want:        `<meta charset=iso-8859-1><title>café</title>`,
+		},
+		{
+			name:        "an unknown header charset falls back to the page",
+			contentType: "text/html; charset=not-a-charset",
+			body:        append([]byte(`<meta charset="iso-8859-1"><title>caf`), []byte("\xe9</title>")...),
+			want:        `<meta charset="iso-8859-1"><title>café</title>`,
+		},
+		{
+			name:        "the header wins over the page",
+			contentType: "text/html; charset=utf-8",
+			body:        []byte(`<meta charset="iso-8859-1"><title>café</title>`),
+			want:        `<meta charset="iso-8859-1"><title>café</title>`,
+		},
+		{
 			name:        "charset in a meta http-equiv tag",
 			contentType: "text/html",
 			body:        []byte(`<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"><title>caf` + "\xe9" + `</title>`),
