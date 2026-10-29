@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	stringsutil "github.com/projectdiscovery/utils/strings"
+	"golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding/korean"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/encoding/traditionalchinese"
@@ -65,7 +66,33 @@ func charsetParamIs(contentType, charset string) bool {
 	return false
 }
 
-// ExtractTitle from a response
+// charsetParam returns the value of the charset parameter of contentType, or
+// an empty string. contentType is already lowercased and unquoted.
+func charsetParam(contentType string) string {
+	for _, param := range strings.Split(contentType, ";") {
+		name, value, found := strings.Cut(strings.TrimSpace(param), "=")
+		if found && strings.TrimSpace(name) == "charset" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
+}
+
+// decodeCharset converts data from the charset named by label to UTF-8. Data
+// is returned as is when the label is empty, names UTF-8 or is not known.
+func decodeCharset(data []byte, label string) ([]byte, error) {
+	if label == "" {
+		return data, nil
+	}
+	encoding, name := charset.Lookup(label)
+	if encoding == nil || name == "utf-8" {
+		return data, nil
+	}
+	return encoding.NewDecoder().Bytes(data)
+}
+
+// DecodeData converts a response body that is not UTF-8 to UTF-8, using the
+// charset declared in the Content-Type header or in the page itself.
 func DecodeData(data []byte, headers http.Header) ([]byte, error) {
 	// Non UTF-8
 	if contentTypes, ok := headers["Content-Type"]; ok {
@@ -80,6 +107,11 @@ func DecodeData(data []byte, headers http.Header) ([]byte, error) {
 			return DecodeKorean(data)
 		case charsetParamIs(contentType, "big5"):
 			return Decodebig5(data)
+		}
+
+		// Any other charset declared in the header, such as iso-8859-1
+		if label := charsetParam(contentType); label != "" {
+			return decodeCharset(data, label)
 		}
 
 		// Content-Type from head tag
@@ -99,6 +131,9 @@ func DecodeData(data []byte, headers http.Header) ([]byte, error) {
 		case stringsutil.ContainsAny(mcontentType, "big5", "Big5"):
 			return Decodebig5(data)
 		}
+
+		// Any other charset declared in the page
+		return decodeCharset(data, mcontentType)
 	}
 
 	// return as is
