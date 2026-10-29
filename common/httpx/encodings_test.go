@@ -52,6 +52,17 @@ func TestDecodeDataDeclaredCharset(t *testing.T) {
 			want:        `<meta charset="iso-8859-1"><title>café</title>`,
 		},
 		{
+			name: "charset only in a meta tag and no Content-Type",
+			body: []byte(`<meta charset="iso-8859-1"><title>caf` + "\xe9" + `</title>`),
+			want: `<meta charset="iso-8859-1"><title>café</title>`,
+		},
+		{
+			name:        "single quoted charset in the Content-Type header",
+			contentType: "text/html; charset='iso-8859-1'",
+			body:        []byte("<title>caf\xe9</title>"),
+			want:        "<title>café</title>",
+		},
+		{
 			name:        "unquoted charset in a meta tag",
 			contentType: "text/html",
 			body:        []byte(`<meta charset=iso-8859-1><title>caf` + "\xe9" + `</title>`),
@@ -109,7 +120,10 @@ func TestDecodeDataDeclaredCharset(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			headers := http.Header{"Content-Type": []string{tt.contentType}}
+			headers := http.Header{}
+			if tt.contentType != "" {
+				headers.Set("Content-Type", tt.contentType)
+			}
 			got, err := DecodeData(tt.body, headers)
 			require.NoError(t, err)
 			require.Equal(t, tt.want, string(got))

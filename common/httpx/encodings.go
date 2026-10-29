@@ -94,11 +94,13 @@ func decodeCharset(data []byte, label string) ([]byte, error) {
 // DecodeData converts a response body that is not UTF-8 to UTF-8, using the
 // charset declared in the Content-Type header or in the page itself.
 func DecodeData(data []byte, headers http.Header) ([]byte, error) {
-	// Non UTF-8
+	// A charset named by the header wins over the page. An unknown label, or
+	// no Content-Type at all, falls through to the page.
+	headerCharsetKnown := false
 	if contentTypes, ok := headers["Content-Type"]; ok {
 		contentType := strings.ToLower(strings.Join(contentTypes, ";"))
 		// the charset parameter value can be a quoted string (charset="gbk")
-		contentType = strings.ReplaceAll(contentType, `"`, "")
+		contentType = strings.NewReplacer(`"`, "", `'`, "").Replace(contentType)
 
 		switch {
 		case stringsutil.ContainsAny(contentType, "charset=gb2312", "charset=gbk"):
@@ -111,7 +113,6 @@ func DecodeData(data []byte, headers http.Header) ([]byte, error) {
 
 		// Any other charset declared in the header, such as iso-8859-1. A label
 		// that is not a charset is ignored, and the page is looked at instead.
-		headerCharsetKnown := false
 		if label := charsetParam(contentType); label != "" {
 			if encoding, name := charset.Lookup(label); encoding != nil {
 				headerCharsetKnown = true
@@ -120,32 +121,27 @@ func DecodeData(data []byte, headers http.Header) ([]byte, error) {
 				}
 			}
 		}
-
-		// Content-Type from head tag
-		var match = reContentType.FindSubmatch(data)
-		var mcontentType = ""
-		if len(match) != 0 {
-			for i, v := range match {
-				if string(v) != "" && i != 0 {
-					mcontentType = string(v)
-				}
-			}
-			mcontentType = strings.ToLower(mcontentType)
-		}
-		switch {
-		case stringsutil.ContainsAny(mcontentType, "gb2312", "gbk"):
-			return Decodegbk(data)
-		case stringsutil.ContainsAny(mcontentType, "big5", "Big5"):
-			return Decodebig5(data)
-		}
-
-		// Any other charset declared in the page. The header wins over the page
-		// when it names a charset.
-		if !headerCharsetKnown {
-			return decodeCharset(data, mcontentType)
-		}
+	}
+	if headerCharsetKnown {
+		return data, nil
 	}
 
-	// return as is
-	return data, nil
+	// Charset declared in a meta tag. This runs when the header is missing too.
+	var match = reContentType.FindSubmatch(data)
+	var mcontentType = ""
+	if len(match) != 0 {
+		for i, v := range match {
+			if string(v) != "" && i != 0 {
+				mcontentType = string(v)
+			}
+		}
+		mcontentType = strings.ToLower(mcontentType)
+	}
+	switch {
+	case stringsutil.ContainsAny(mcontentType, "gb2312", "gbk"):
+		return Decodegbk(data)
+	case stringsutil.ContainsAny(mcontentType, "big5", "Big5"):
+		return Decodebig5(data)
+	}
+	return decodeCharset(data, mcontentType)
 }
