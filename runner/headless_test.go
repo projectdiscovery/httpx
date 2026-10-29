@@ -101,9 +101,12 @@ func TestBrowserAllowRequest(t *testing.T) {
 	b2.SetNetworkPolicy(allowLoopback, nil)
 	for _, proxy := range []string{"", "http://127.0.0.1:8080"} {
 		b2.proxy = proxy
-		for _, raw := range []string{"http://localhost:8080/", "http://app.localhost:8080/", "http://loopback:8080/"} {
+		for _, raw := range []string{"http://localhost:8080/", "http://app.localhost:8080/"} {
 			require.True(t, b2.allowRequest(mustParse(raw)), raw)
 		}
+		// "loopback" is resolved like any other name, also with a proxy:
+		// without a resolver its address cannot be checked
+		require.False(t, b2.allowRequest(mustParse("http://loopback:8080/")), proxy)
 	}
 }
 
