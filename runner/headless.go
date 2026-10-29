@@ -296,8 +296,9 @@ func (b *Browser) allowRequest(u *url.URL) bool {
 		return true
 	}
 	// with a proxy, the proxy resolves the name and the http client does
-	// not check the target address either
-	if b.proxy != "" {
+	// not check the target address either. Chrome connects to localhost
+	// names directly even with a proxy, so those are still resolved here.
+	if b.proxy != "" && !isProxyBypassName(hostname) {
 		return true
 	}
 	if b.dialer == nil {
@@ -336,6 +337,13 @@ func sameOrigin(a, b *url.URL) bool {
 	return strings.EqualFold(a.Scheme, b.Scheme) &&
 		strings.EqualFold(a.Hostname(), b.Hostname()) &&
 		effectivePort(a) == effectivePort(b)
+}
+
+// isProxyBypassName reports names that Chrome connects to directly even
+// when a proxy is configured.
+func isProxyBypassName(host string) bool {
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	return host == "localhost" || strings.HasSuffix(host, ".localhost")
 }
 
 func effectivePort(u *url.URL) string {

@@ -88,6 +88,9 @@ func TestBrowserAllowRequest(t *testing.T) {
 	b.proxy = "http://127.0.0.1:8080"
 	require.False(t, b.allowRequest(mustParse("http://127.0.0.1/")))
 	require.False(t, b.allowRequest(mustParse("http://example.com:9202/")))
+	// Chrome does not send localhost names through the proxy
+	require.False(t, b.allowRequest(mustParse("http://localhost:8080/")))
+	require.False(t, b.allowRequest(mustParse("http://app.localhost:8080/")))
 }
 
 // TestScreenshotNetworkPolicyAndHeaders runs Chrome: redirects, iframes and
