@@ -3,6 +3,7 @@ package runner
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -41,12 +42,20 @@ func (l *headerLog) get(path string) http.Header {
 func TestRedirectCredentialsStayOnHost(t *testing.T) {
 	log := &headerLog{}
 
-	third := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// [::1] is another host than the 127.0.0.1 target and needs no name resolution
+	ln, err := net.Listen("tcp6", "[::1]:0")
+	if err != nil {
+		t.Skipf("ipv6 loopback is not available: %v", err)
+	}
+	third := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.record("third"+r.URL.Path, r.Header)
 		_, _ = io.WriteString(w, "third")
 	}))
+	_ = third.Listener.Close()
+	third.Listener = ln
+	third.Start()
 	defer third.Close()
-	thirdURL := strings.Replace(third.URL, "127.0.0.1", "localhost", 1)
+	thirdURL := third.URL
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/away", func(w http.ResponseWriter, r *http.Request) {
