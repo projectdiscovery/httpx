@@ -70,6 +70,12 @@ func TestDecodeDataDeclaredCharset(t *testing.T) {
 			want:        `<meta charset="iso-8859-1"><title>café</title>`,
 		},
 		{
+			name:        "charset text outside a meta tag is ignored",
+			contentType: "text/html",
+			body:        []byte(`<script>var s = "charset=utf-8";</script><meta charset="iso-8859-1"><title>caf` + "\xe9" + `</title>`),
+			want:        `<script>var s = "charset=utf-8";</script><meta charset="iso-8859-1"><title>café</title>`,
+		},
+		{
 			name:        "charset in a meta http-equiv tag",
 			contentType: "text/html",
 			body:        []byte(`<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"><title>caf` + "\xe9" + `</title>`),
