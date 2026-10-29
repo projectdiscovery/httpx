@@ -148,3 +148,51 @@ func TestScreenshotNetworkPolicyAndHeaders(t *testing.T) {
 		require.Equal(t, "SECRET-H-KEY", r.Header.Get("X-Api-Key"), r.URL.Path)
 	}
 }
+
+// TestScreenshotNetworkPolicySubframesAndWorkers checks requests from an
+// allowed cross-site iframe (a separate renderer) and from workers.
+func TestScreenshotNetworkPolicySubframesAndWorkers(t *testing.T) {
+	if _, ok := launcher.LookPath(); !ok {
+		t.Skip("chrome is not installed")
+	}
+
+	denied := &requestLog{}
+	internal := httptest.NewServer(denied.handler(func(w http.ResponseWriter, r *http.Request) {}))
+	defer internal.Close()
+
+	framed := &requestLog{}
+	frame := httptest.NewServer(framed.handler(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprintf(w, `<img src="%s/frame-img"><script>fetch(%q).catch(function(){});new Worker(URL.createObjectURL(new Blob(["fetch('%s/frame-worker').catch(function(){})"])))</script>`,
+			internal.URL, internal.URL+"/frame-fetch", internal.URL)
+	}))
+	defer frame.Close()
+	frameURL := strings.Replace(frame.URL, "127.0.0.1", "localhost", 1)
+
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprintf(w, `<iframe src="%s/"></iframe><script>new Worker(URL.createObjectURL(new Blob(["fetch('%s/page-worker').catch(function(){})"])))</script>`,
+			frameURL, internal.URL)
+	}))
+	defer target.Close()
+
+	dialer, err := fastdialer.NewDialer(fastdialer.DefaultOptions)
+	require.NoError(t, err)
+	defer dialer.Close()
+
+	np, err := networkpolicy.New(networkpolicy.Options{DenyPortList: []int{serverPort(t, internal)}})
+	require.NoError(t, err)
+
+	browser, err := NewBrowser("", true, nil)
+	require.NoError(t, err)
+	defer browser.Close()
+	browser.SetNetworkPolicy(np, dialer)
+
+	_, _, _, err = browser.ScreenshotWithBody(target.URL+"/", 10*time.Second, 2*time.Second, nil, false, nil)
+	require.NoError(t, err)
+
+	require.NotEmpty(t, framed.all(), "the allowed iframe was not loaded")
+	for _, r := range denied.all() {
+		t.Errorf("the browser reached a host the network policy denies: %s", r.URL.Path)
+	}
+}
