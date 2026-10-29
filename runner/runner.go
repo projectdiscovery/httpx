@@ -33,7 +33,6 @@ import (
 	"github.com/happyhackingspace/dit"
 	"github.com/mfonda/simhash"
 	asnmap "github.com/projectdiscovery/asnmap/libs"
-	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/httpx/common/customextract"
 	"github.com/projectdiscovery/httpx/common/hashes/jarm"
@@ -99,6 +98,7 @@ type Runner struct {
 	httpApiEndpoint    *Server
 	authProvider       authprovider.AuthProvider
 	interruptCh        chan struct{}
+	pinnedProxyWarning sync.Once
 }
 
 func (r *Runner) HTTPX() *httpx.HTTPX {
@@ -218,6 +218,10 @@ func New(options *Options) (*Runner, error) {
 		options.Proxy = options.SocksProxy
 	}
 	httpxOptions.Proxy = options.Proxy
+	// a proxy resolves the host itself, so it cannot reach each ip of a host
+	if options.ProbeAllIPS && options.Proxy != "" {
+		return nil, errors.New("-pa/-probe-all-ips cannot be used with -proxy, which resolves the host itself")
+	}
 	httpxOptions.Unsafe = options.Unsafe
 	httpxOptions.UnsafeURI = options.RequestURI
 	httpxOptions.CdnCheck = options.OutputCDN
@@ -556,6 +560,10 @@ func (r *Runner) prepareInput() {
 	// check if input target host(s) have been provided
 	if len(r.options.InputTargetHost) > 0 {
 		for _, target := range r.options.InputTargetHost {
+			target, ok := r.readInputLine(target)
+			if !ok {
+				continue
+			}
 			expandedTarget, err := r.countTargetFromRawTarget(target)
 			if err == nil && expandedTarget > 0 {
 				numHosts += expandedTarget
@@ -738,6 +746,18 @@ func (r *Runner) streamInput() (chan string, error) {
 				return true
 			}
 		}
+		// sendLine normalizes, deduplicates and sends an input line, returning
+		// false if interrupted.
+		sendLine := func(item string) bool {
+			item, ok := r.readInputLine(item)
+			if !ok {
+				return true
+			}
+			if r.options.SkipDedupe || r.testAndSet(item) {
+				return trySend(item)
+			}
+			return true
+		}
 
 		if fileutil.FileExists(r.options.InputFile) {
 			// check if input mode is specified for special format handling
@@ -760,13 +780,8 @@ func (r *Runner) streamInput() (chan string, error) {
 				}
 			} else {
 				for item, err := range fileutil.Lines(r.options.InputFile) {
-					if err != nil {
+					if err != nil || !sendLine(item) {
 						return
-					}
-					if r.options.SkipDedupe || r.testAndSet(item) {
-						if !trySend(item) {
-							return
-						}
 					}
 				}
 			}
@@ -777,26 +792,16 @@ func (r *Runner) streamInput() (chan string, error) {
 			}
 			for _, file := range files {
 				for item, err := range fileutil.Lines(file) {
-					if err != nil {
+					if err != nil || !sendLine(item) {
 						return
-					}
-					if r.options.SkipDedupe || r.testAndSet(item) {
-						if !trySend(item) {
-							return
-						}
 					}
 				}
 			}
 		}
 		if fileutil.HasStdin() {
 			for item, err := range fileutil.LinesReader(os.Stdin) {
-				if err != nil {
+				if err != nil || !sendLine(item) {
 					return
-				}
-				if r.options.SkipDedupe || r.testAndSet(item) {
-					if !trySend(item) {
-						return
-					}
 				}
 			}
 		}
@@ -807,7 +812,10 @@ func (r *Runner) streamInput() (chan string, error) {
 func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	scanner := bufio.NewScanner(finput)
 	for scanner.Scan() {
-		target := strings.TrimSpace(scanner.Text())
+		target, ok := r.readInputLine(scanner.Text())
+		if !ok {
+			continue
+		}
 		// Used just to get the exact number of targets
 		expandedTarget, err := r.countTargetFromRawTarget(target)
 		if err == nil && expandedTarget > 0 {
@@ -1538,9 +1546,13 @@ func (r *Runner) RunEnumeration() {
 			}
 		}
 
+		line, ok := r.inputOf(k)
+		if !ok {
+			return nil
+		}
 		protocol := r.options.protocol
 		// attempt to parse url as is
-		if u, err := r.parseURL(k); err == nil {
+		if u, err := r.parseURL(line.Target); err == nil {
 			if r.options.NoFallbackScheme && u.Scheme == httpx.HTTP || u.Scheme == httpx.HTTPS {
 				protocol = u.Scheme
 			}
@@ -1552,10 +1564,10 @@ func (r *Runner) RunEnumeration() {
 					for _, p := range r.options.requestURIs {
 						scanopts := r.scanopts.Clone()
 						scanopts.RequestURI = p
-						r.process(k, wg, r.hp, protocol, scanopts, output)
+						r.process(line, wg, r.hp, protocol, scanopts, output)
 					}
 				} else {
-					r.process(k, wg, r.hp, protocol, &r.scanopts, output)
+					r.process(line, wg, r.hp, protocol, &r.scanopts, output)
 				}
 			}
 		}
@@ -1679,11 +1691,14 @@ func (r *Runner) GetScanOpts() ScanOptions {
 	return r.scanopts
 }
 
+// Process probes t, read as an input line is.
 func (r *Runner) Process(t string, wg *syncutil.AdaptiveWaitGroup, protocol string, scanopts *ScanOptions, output chan Result) {
-	r.process(t, wg, r.hp, protocol, scanopts, output)
+	if line, ok := r.inputOf(t); ok {
+		r.process(line, wg, r.hp, protocol, scanopts, output)
+	}
 }
 
-func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result) {
+func (r *Runner) process(line targetLine, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result) {
 	// attempts to set the workpool size to the number of threads
 	if r.options.Threads > 0 && wg.Size != r.options.Threads {
 		if err := wg.Resize(context.Background(), r.options.Threads); err != nil {
@@ -1696,7 +1711,7 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 		protocols = []string{httpx.HTTPS, httpx.HTTP}
 	}
 
-	for target := range r.targets(hp, t) {
+	for target := range r.targetsOf(hp, line) {
 		// if no custom ports specified then test the default ones
 		if len(customport.Ports) == 0 {
 			for _, method := range scanopts.Methods {
@@ -1706,18 +1721,10 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 					wg.Add()
 					go func(target httpx.Target, method, protocol string) {
 						defer wg.Done()
-						result := r.analyze(hp, protocol, target, method, t, scanopts)
+						result := r.analyze(hp, protocol, target, method, line, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
-							for _, tt := range result.TLSData.SubjectAN {
-								if !r.testAndSet(tt) {
-									continue
-								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
-							}
-							if r.testAndSet(result.TLSData.SubjectCN) {
-								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
-							}
+							r.probeTLSNames(result, wg, hp, protocol, scanopts, output)
 						}
 						if scanopts.CSPProbe && result.CSPData != nil {
 							scanopts.CSPProbe = false
@@ -1727,7 +1734,7 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 								if !r.testAndSet(tt) {
 									continue
 								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
+								r.process(targetLine{Target: tt}, wg, hp, protocol, scanopts, output)
 							}
 						}
 					}(target, method, prot)
@@ -1760,18 +1767,10 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 							urlx.UpdatePort(fmt.Sprint(port))
 							target.Host = urlx.String()
 						}
-						result := r.analyze(hp, protocol, target, method, t, scanopts)
+						result := r.analyze(hp, protocol, target, method, line, scanopts)
 						output <- result
 						if scanopts.TLSProbe && result.TLSData != nil {
-							for _, tt := range result.TLSData.SubjectAN {
-								if !r.testAndSet(tt) {
-									continue
-								}
-								r.process(tt, wg, hp, protocol, scanopts, output)
-							}
-							if r.testAndSet(result.TLSData.SubjectCN) {
-								r.process(result.TLSData.SubjectCN, wg, hp, protocol, scanopts, output)
-							}
+							r.probeTLSNames(result, wg, hp, protocol, scanopts, output)
 						}
 					}(port, target, method, wantedProtocol)
 				}
@@ -1781,6 +1780,33 @@ func (r *Runner) process(t string, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTT
 			r.stats.IncrementCounter("hosts", 1)
 		}
 	}
+}
+
+// probeTLSNames probes the names of the certificate of result, for -tls-probe.
+func (r *Runner) probeTLSNames(result Result, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result) {
+	names := append(slices.Clone(result.TLSData.SubjectAN), result.TLSData.SubjectCN)
+	for _, name := range names {
+		if r.testAndSet(name) {
+			r.process(targetLine{Target: name}, wg, hp, protocol, scanopts, output)
+		}
+	}
+}
+
+// targetsOf returns the targets of an input: the target of a line pinned to an
+// ip, or the targets of a plain input.
+func (r *Runner) targetsOf(hp *httpx.HTTPX, line targetLine) chan httpx.Target {
+	if line.IP == "" {
+		return r.targets(hp, line.Target)
+	}
+	results := make(chan httpx.Target, 1)
+	results <- httpx.Target{Host: line.Target, CustomIP: line.IP}
+	close(results)
+	return results
+}
+
+// isVHostInput reports whether target is a vhost,ip input.
+func isVHostInput(target string) bool {
+	return !stringsutil.HasPrefixAny(target, "http://", "https://") && stringsutil.ContainsAny(target, ",")
 }
 
 // returns all the targets within a cidr range or the single target
@@ -1831,7 +1857,7 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 			for _, ip := range ips {
 				results <- httpx.Target{Host: target, CustomIP: ip}
 			}
-		case !stringsutil.HasPrefixAny(target, "http://", "https://") && stringsutil.ContainsAny(target, ","):
+		case isVHostInput(target):
 			idxComma := strings.Index(target, ",")
 			results <- httpx.Target{Host: target[idxComma+1:], CustomHost: target[:idxComma]}
 		default:
@@ -1841,7 +1867,18 @@ func (r *Runner) targets(hp *httpx.HTTPX, target string) chan httpx.Target {
 	return results
 }
 
-func (r *Runner) analyze(hp *httpx.HTTPX, protocol string, target httpx.Target, method, origInput string, scanopts *ScanOptions) Result {
+// pinnedKey returns key for a target that is not pinned, and key and ip
+// joined by a NUL, which neither holds, for one pinned to ip, from a target
+// line or -pa, as the ips of a host fail and respond independently.
+func pinnedKey(key, ip string) string {
+	if ip == "" {
+		return key
+	}
+	return key + "\x00" + ip
+}
+
+func (r *Runner) analyze(hp *httpx.HTTPX, protocol string, target httpx.Target, method string, input targetLine, scanopts *ScanOptions) Result {
+	origInput := input.key()
 	origProtocol := protocol
 	if protocol == httpx.HTTPorHTTPS || protocol == httpx.HTTPandHTTPS {
 		protocol = determineMostLikelySchemeOrder(target.Host)
@@ -1867,7 +1904,7 @@ retry:
 	}
 
 	// check if we have to skip the host:port as a result of a previous failure
-	hostPort := net.JoinHostPort(URL.Host, URL.Port())
+	hostPort := pinnedKey(net.JoinHostPort(URL.Host, URL.Port()), target.CustomIP)
 	if r.options.HostMaxErrors >= 0 && r.HostErrorsCache.Has(hostPort) {
 		numberOfErrors, err := r.HostErrorsCache.GetIFPresent(hostPort)
 		if err == nil && numberOfErrors >= r.options.HostMaxErrors {
@@ -1892,21 +1929,8 @@ retry:
 	if err := URL.MergePath(scanopts.RequestURI, scanopts.Unsafe); err != nil {
 		gologger.Debug().Msgf("failed to merge paths of url %v and %v", URL.String(), scanopts.RequestURI)
 	}
-	var (
-		req *retryablehttp.Request
-		ctx context.Context
-	)
-	if target.CustomIP != "" {
-		var requestIP string
-		if iputil.IsIPv6(target.CustomIP) {
-			requestIP = fmt.Sprintf("[%s]", target.CustomIP)
-		} else {
-			requestIP = target.CustomIP
-		}
-		ctx = context.WithValue(context.Background(), fastdialer.IP, requestIP)
-	} else {
-		ctx = context.Background()
-	}
+	var req *retryablehttp.Request
+	ctx := httpx.WithHost(context.Background(), URL.Hostname(), target.CustomIP)
 	req, err = hp.NewRequestWithContext(ctx, method, URL.String())
 	if err != nil {
 		return Result{URL: URL.String(), Input: origInput, Err: err}
@@ -2049,6 +2073,11 @@ retry:
 		builder.WriteRune(']')
 	}
 	if err != nil {
+		if errors.Is(err, httpx.ErrPinnedThroughProxy) {
+			r.pinnedProxyWarning.Do(func() {
+				gologger.Error().Msgf("Targets pinned to an ip, by a target line or -pa, cannot be probed through the proxy of HTTP_PROXY or HTTPS_PROXY, which resolves the host itself: add their hosts to NO_PROXY\n")
+			})
+		}
 		errString := ""
 		errString = err.Error()
 		splitErr := strings.Split(errString, ":")
@@ -2086,7 +2115,11 @@ retry:
 		}
 
 		if r.options.Probe {
-			return Result{URL: URL.String(), Input: origInput, Timestamp: time.Now(), Err: err, Failed: err != nil, Error: errString, str: builder.String()}
+			// the pinned ip tells apart the failures of the ips of a host
+			if target.CustomIP != "" {
+				_, _ = fmt.Fprintf(builder, " [%s]", target.CustomIP)
+			}
+			return Result{URL: URL.String(), Input: origInput, Timestamp: time.Now(), Err: err, Failed: err != nil, Error: errString, HostIP: target.CustomIP, str: builder.String()}
 		} else {
 			return Result{URL: URL.String(), Input: origInput, Timestamp: time.Now(), Err: err}
 		}
@@ -2294,8 +2327,13 @@ retry:
 		if onlyHost, _, err := net.SplitHostPort(URL.Host); err == nil && iputil.IsIP(onlyHost) {
 			ip = onlyHost
 		} else {
-			// hp.Dialer.GetDialedIP would return only the last dialed one
-			ip = hp.Dialer.GetDialedIP(URL.Host)
+			// the ip this request was dialed to or, if it was not dialed to
+			// its host, as through a proxy, the last ip the dialer dialed to
+			// the host, which may be another request's
+			ip = httpx.DialedIP(req.Context())
+			if ip == "" {
+				ip = hp.Dialer.GetDialedIP(URL.Host)
+			}
 			if ip == "" {
 				ip = hp.Dialer.GetDialedIP(onlyHost)
 			}
@@ -2327,7 +2365,7 @@ retry:
 		}
 	}
 
-	if scanopts.OutputIP || scanopts.ProbeAllIPS {
+	if scanopts.OutputIP || scanopts.ProbeAllIPS || target.CustomIP != "" {
 		_, _ = fmt.Fprintf(builder, " [%s]", ip)
 	}
 
@@ -2336,9 +2374,14 @@ retry:
 	if err != nil {
 		onlyHost = URL.Host
 	}
-	allIps, cnames, resolvers, err := getDNSData(hp, onlyHost)
-	if err != nil {
-		allIps = append(allIps, ip)
+	var allIps, cnames, resolvers []string
+	// like curl --resolve, a target line gives the ip of its host, which is
+	// not resolved
+	if input.IP == "" {
+		allIps, cnames, resolvers, err = getDNSData(hp, onlyHost)
+		if err != nil {
+			allIps = append(allIps, ip)
+		}
 	}
 
 	var ips4, ips6 []string
@@ -2505,7 +2548,7 @@ retry:
 	}
 
 	// store responses or chain in directory
-	domainFile := method + ":" + URL.EscapedString()
+	domainFile := pinnedKey(method+":"+URL.EscapedString(), target.CustomIP)
 	hash := hashes.Sha1([]byte(domainFile))
 	domainResponseFile := fmt.Sprintf("%s.txt", hash)
 	hostFilename := strings.ReplaceAll(URL.Host, ":", "_")
@@ -2767,7 +2810,7 @@ retry:
 }
 
 func (r *Runner) skip(URL *urlutil.URL, target httpx.Target, origInput string) (bool, Result) {
-	if r.skipCDNPort(URL.Hostname(), URL.Port()) {
+	if r.skipCDNPort(URL.Hostname(), target.CustomIP, URL.Port()) {
 		gologger.Debug().Msgf("Skipping cdn target: %s:%s\n", URL.Host, URL.Port())
 		return true, Result{URL: target.Host, Input: origInput, Err: errors.New("cdn target only allows ports 80 and 443")}
 	}
@@ -2827,8 +2870,8 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		}
 	}
 
-	// Clone original request (reuse headers/cookies)
-	clone := req.Clone(context.Background())
+	// Clone original request (reuse headers/cookies and the pinned ip)
+	clone := req.Clone(httpx.PinnedContext(req.Request))
 
 	var (
 		faviconMMH3 string
@@ -3036,26 +3079,26 @@ func (r Result) CSVRow(scanopts *ScanOptions) string { //nolint
 	return res
 }
 
-func (r *Runner) skipCDNPort(host string, port string) bool {
+// skipCDNPort reports whether a target is skipped as its ip is a CDN ip and
+// port is not allowed for one. The ip is the one the target is pinned to, or
+// else the first ip of host.
+func (r *Runner) skipCDNPort(host, ip, port string) bool {
 	// if the option is not enabled we don't skip
 	if !r.scanopts.ExcludeCDN {
 		return false
 	}
-	// uses the dealer to pre-resolve the target
-	dnsData, err := r.hp.Dialer.GetDNSData(host)
-	// if we get an error the target cannot be resolved, so we return false so that the program logic continues as usual and handles the errors accordingly
-	if err != nil {
-		return false
+	if ip == "" {
+		// uses the dealer to pre-resolve the target
+		dnsData, err := r.hp.Dialer.GetDNSData(host)
+		// if we get an error the target cannot be resolved, so we return false so that the program logic continues as usual and handles the errors accordingly
+		if err != nil || len(dnsData.A) == 0 {
+			return false
+		}
+		// pick the first ip as target
+		ip = dnsData.A[0]
 	}
 
-	if len(dnsData.A) == 0 {
-		return false
-	}
-
-	// pick the first ip as target
-	hostIP := dnsData.A[0]
-
-	isCdnIP, _, _, err := r.hp.CdnCheck(hostIP)
+	isCdnIP, _, _, err := r.hp.CdnCheck(ip)
 	if err != nil {
 		return false
 	}
