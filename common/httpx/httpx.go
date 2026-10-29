@@ -80,8 +80,10 @@ func New(options *Options) (*HTTPX, error) {
 	if httpx.Options.FollowRedirects {
 		// Follow redirects up to a maximum number
 		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
-			// add custom cookies if necessary
-			httpx.setCustomCookies(redirectedRequest)
+			// re-apply secret-file credentials for the new URL and add
+			// custom cookies if the host allows it
+			applyRedirectAuth(redirectedRequest)
+			httpx.setCustomCookies(redirectedRequest, previousRequests)
 
 			if len(previousRequests) >= options.MaxRedirects {
 				// https://github.com/golang/go/issues/10069
@@ -99,8 +101,10 @@ func New(options *Options) (*HTTPX, error) {
 	if httpx.Options.FollowHostRedirects {
 		// Only follow redirects on the same host up to a maximum number
 		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
-			// add custom cookies if necessary
-			httpx.setCustomCookies(redirectedRequest)
+			// re-apply secret-file credentials for the new URL and add
+			// custom cookies if the host allows it
+			applyRedirectAuth(redirectedRequest)
+			httpx.setCustomCookies(redirectedRequest, previousRequests)
 
 			// Check if we get a redirect to a different host
 			var newHost = redirectedRequest.URL.Hostname()
@@ -580,11 +584,53 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string][]
 	}
 }
 
-func (httpx *HTTPX) setCustomCookies(req *http.Request) {
-	if httpx.Options.hasCustomCookies() {
-		for _, cookie := range httpx.Options.customCookies {
-			req.AddCookie(cookie)
+// setCustomCookies adds the -H cookies to a redirect hop. Like net/http for
+// the Cookie header, it does so only when the new host is the first host or
+// one of its subdomains, and it skips cookies the request already has.
+func (httpx *HTTPX) setCustomCookies(req *http.Request, via []*http.Request) {
+	if !httpx.Options.hasCustomCookies() || len(via) == 0 {
+		return
+	}
+	if !isDomainOrSubdomain(req.URL.Hostname(), via[0].URL.Hostname()) {
+		return
+	}
+	present := make(map[string]struct{})
+	for _, cookie := range req.Cookies() {
+		present[cookie.Name] = struct{}{}
+	}
+	for _, cookie := range httpx.Options.customCookies {
+		if _, ok := present[cookie.Name]; ok {
+			continue
 		}
+		req.AddCookie(cookie)
+	}
+}
+
+// isDomainOrSubdomain reports whether sub is parent or a subdomain of it.
+func isDomainOrSubdomain(sub, parent string) bool {
+	sub, parent = strings.ToLower(sub), strings.ToLower(parent)
+	if sub == parent {
+		return true
+	}
+	// an IP address has no subdomains
+	if strings.ContainsAny(sub, ":%") || net.ParseIP(sub) != nil {
+		return false
+	}
+	return strings.HasSuffix(sub, "."+parent)
+}
+
+type redirectAuthKey struct{}
+
+// WithRedirectAuth returns a context that makes the client call apply on
+// every redirect hop of a request made with it. apply must remove the
+// credentials of the first URL and add the ones that match the new URL.
+func WithRedirectAuth(ctx context.Context, apply func(*http.Request)) context.Context {
+	return context.WithValue(ctx, redirectAuthKey{}, apply)
+}
+
+func applyRedirectAuth(req *http.Request) {
+	if apply, ok := req.Context().Value(redirectAuthKey{}).(func(*http.Request)); ok && apply != nil {
+		apply(req)
 	}
 }
 
