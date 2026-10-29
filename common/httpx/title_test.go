@@ -104,9 +104,13 @@ func TestDecodeDataBig5HeaderCharsetIsExact(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "中文", string(decoded))
 
-	for _, contentType := range []string{"text/html; charset=big5-hkscs", "text/html; charset=big50"} {
-		got, err := DecodeData(big5, http.Header{"Content-Type": []string{contentType}})
-		require.NoError(t, err)
-		require.Equal(t, big5, got, contentType)
-	}
+	// big5-hkscs is a different charset name, which is looked up on its own.
+	hkscs, err := DecodeData(big5, http.Header{"Content-Type": []string{"text/html; charset=big5-hkscs"}})
+	require.NoError(t, err)
+	require.Equal(t, "中文", string(hkscs))
+
+	// big50 is not a charset: it must not be taken for big5.
+	got, err := DecodeData(big5, http.Header{"Content-Type": []string{"text/html; charset=big50"}})
+	require.NoError(t, err)
+	require.Equal(t, big5, got)
 }

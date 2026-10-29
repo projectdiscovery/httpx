@@ -15,7 +15,7 @@ import (
 var (
 	cutset                  = "\n\t\v\f\r"
 	reTitle                 = regexp.MustCompile(`(?im)<\s*title.*>(.*?)<\s*/\s*title>`)
-	reContentType           = regexp.MustCompile(`(?im)\s*charset="(.*?)"|charset=(.*?)"\s*`)
+	reContentType           = regexp.MustCompile(`(?is)<meta\b[^>]*?charset\s*=\s*["']?([^"'\s;>/]+)`)
 	supportedTitleMimeTypes = []string{
 		"text/html",
 		"application/xhtml+xml",
