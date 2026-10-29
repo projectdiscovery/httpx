@@ -295,10 +295,14 @@ func (b *Browser) allowRequest(u *url.URL) bool {
 	if iputil.IsIP(hostname) {
 		return true
 	}
+	// Chrome maps localhost names to loopback itself and connects to them
+	// directly, also with a proxy, so check the loopback addresses.
+	if isLoopbackName(hostname) {
+		return b.policy.ValidateAddress("127.0.0.1") && b.policy.ValidateAddress("::1")
+	}
 	// with a proxy, the proxy resolves the name and the http client does
-	// not check the target address either. Chrome connects to localhost
-	// names directly even with a proxy, so those are still resolved here.
-	if b.proxy != "" && !isProxyBypassName(hostname) {
+	// not check the target address either
+	if b.proxy != "" {
 		return true
 	}
 	if b.dialer == nil {
@@ -339,11 +343,11 @@ func sameOrigin(a, b *url.URL) bool {
 		effectivePort(a) == effectivePort(b)
 }
 
-// isProxyBypassName reports names that Chrome connects to directly even
-// when a proxy is configured.
-func isProxyBypassName(host string) bool {
+// isLoopbackName reports names that Chrome sends to loopback directly,
+// without DNS and without the proxy ("loopback" is a Windows bypass name).
+func isLoopbackName(host string) bool {
 	host = strings.ToLower(strings.TrimSuffix(host, "."))
-	return host == "localhost" || strings.HasSuffix(host, ".localhost")
+	return host == "localhost" || host == "loopback" || strings.HasSuffix(host, ".localhost")
 }
 
 func effectivePort(u *url.URL) string {

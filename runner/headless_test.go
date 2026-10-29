@@ -89,8 +89,22 @@ func TestBrowserAllowRequest(t *testing.T) {
 	require.False(t, b.allowRequest(mustParse("http://127.0.0.1/")))
 	require.False(t, b.allowRequest(mustParse("http://example.com:9202/")))
 	// Chrome does not send localhost names through the proxy
-	require.False(t, b.allowRequest(mustParse("http://localhost:8080/")))
-	require.False(t, b.allowRequest(mustParse("http://app.localhost:8080/")))
+	for _, raw := range []string{"http://localhost:8080/", "http://app.localhost:8080/", "http://loopback:8080/", "http://LOCALHOST.:8080/"} {
+		require.False(t, b.allowRequest(mustParse(raw)), raw)
+	}
+
+	// a policy that allows loopback allows localhost names, with or without
+	// a proxy and without DNS
+	allowLoopback, err := networkpolicy.New(networkpolicy.Options{DenyList: []string{"10.0.0.0/8"}})
+	require.NoError(t, err)
+	b2 := &Browser{}
+	b2.SetNetworkPolicy(allowLoopback, nil)
+	for _, proxy := range []string{"", "http://127.0.0.1:8080"} {
+		b2.proxy = proxy
+		for _, raw := range []string{"http://localhost:8080/", "http://app.localhost:8080/", "http://loopback:8080/"} {
+			require.True(t, b2.allowRequest(mustParse(raw)), raw)
+		}
+	}
 }
 
 // TestScreenshotNetworkPolicyAndHeaders runs Chrome: redirects, iframes and
