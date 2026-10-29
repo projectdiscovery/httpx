@@ -2,11 +2,11 @@ package runner
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strconv"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -43,6 +43,20 @@ func serverPort(t *testing.T, s *httptest.Server) int {
 	port, err := strconv.Atoi(u.Port())
 	require.NoError(t, err)
 	return port
+}
+
+// newIPv6LoopbackServer starts a server on [::1], a different site than the
+// 127.0.0.1 servers that needs no name resolution.
+func newIPv6LoopbackServer(t *testing.T, handler http.Handler) *httptest.Server {
+	ln, err := net.Listen("tcp6", "[::1]:0")
+	if err != nil {
+		t.Skipf("ipv6 loopback is not available: %v", err)
+	}
+	s := httptest.NewUnstartedServer(handler)
+	_ = s.Listener.Close()
+	s.Listener = ln
+	s.Start()
+	return s
 }
 
 func TestBrowserAllowRequest(t *testing.T) {
@@ -91,12 +105,12 @@ func TestScreenshotNetworkPolicyAndHeaders(t *testing.T) {
 	defer internal.Close()
 
 	third := &requestLog{}
-	thirdParty := httptest.NewServer(third.handler(func(w http.ResponseWriter, r *http.Request) {
+	thirdParty := newIPv6LoopbackServer(t, third.handler(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/gif")
 	}))
 	defer thirdParty.Close()
 	// a different origin that the policy allows
-	thirdURL := strings.Replace(thirdParty.URL, "127.0.0.1", "localhost", 1)
+	thirdURL := thirdParty.URL
 
 	targetLog := &requestLog{}
 	mux := http.NewServeMux()
@@ -161,13 +175,13 @@ func TestScreenshotNetworkPolicySubframesAndWorkers(t *testing.T) {
 	defer internal.Close()
 
 	framed := &requestLog{}
-	frame := httptest.NewServer(framed.handler(func(w http.ResponseWriter, r *http.Request) {
+	frame := newIPv6LoopbackServer(t, framed.handler(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = fmt.Fprintf(w, `<img src="%s/frame-img"><script>fetch(%q).catch(function(){});new Worker(URL.createObjectURL(new Blob(["fetch('%s/frame-worker').catch(function(){})"])))</script>`,
 			internal.URL, internal.URL+"/frame-fetch", internal.URL)
 	}))
 	defer frame.Close()
-	frameURL := strings.Replace(frame.URL, "127.0.0.1", "localhost", 1)
+	frameURL := frame.URL
 
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
