@@ -364,6 +364,9 @@ func New(options *Options) (*Runner, error) {
 		if err != nil {
 			return nil, err
 		}
+		if policyHasFilters(np) {
+			browser.SetNetworkPolicy(np, runner.hp.Dialer)
+		}
 		runner.browser = browser
 	}
 	scanopts.Screenshot = options.Screenshot
@@ -509,6 +512,15 @@ func (runner *Runner) createNetworkpolicyInstance(options *Options) (*networkpol
 
 	np, err := networkpolicy.New(npOptions)
 	return np, err
+}
+
+// policyHasFilters reports whether np restricts any host, address, port or scheme.
+func policyHasFilters(np *networkpolicy.NetworkPolicy) bool {
+	if np == nil || np.Options == nil {
+		return false
+	}
+	o := np.Options
+	return len(o.DenyList)+len(o.AllowList)+len(o.AllowSchemeList)+len(o.DenySchemeList)+len(o.AllowPortList)+len(o.DenyPortList) > 0
 }
 
 func appendToList(list []string, values ...string) []string {
