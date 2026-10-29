@@ -47,7 +47,12 @@ func TestRedirectCredentialsStayOnHost(t *testing.T) {
 	if err != nil {
 		t.Skipf("ipv6 loopback is not available: %v", err)
 	}
+	var targetURL string
 	third := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/to-target" {
+			http.Redirect(w, r, targetURL+"/inbound", http.StatusFound)
+			return
+		}
 		log.record("third"+r.URL.Path, r.Header)
 		_, _ = io.WriteString(w, "third")
 	}))
@@ -68,8 +73,13 @@ func TestRedirectCredentialsStayOnHost(t *testing.T) {
 		log.record("target/final", r.Header)
 		_, _ = io.WriteString(w, "final")
 	})
+	mux.HandleFunc("/inbound", func(w http.ResponseWriter, r *http.Request) {
+		log.record("target/inbound", r.Header)
+		_, _ = io.WriteString(w, "inbound")
+	})
 	target := httptest.NewServer(mux)
 	defer target.Close()
+	targetURL = target.URL
 
 	targetHost := strings.TrimPrefix(target.URL, "http://")
 	secrets := filepath.Join(t.TempDir(), "secrets.yaml")
@@ -95,7 +105,7 @@ static:
 	var results []Result
 	options := &Options{
 		Methods:         "GET",
-		InputTargetHost: goflags.StringSlice{target.URL + "/away", target.URL + "/stay"},
+		InputTargetHost: goflags.StringSlice{target.URL + "/away", target.URL + "/stay", thirdURL + "/to-target"},
 		FollowRedirects: true,
 		MaxRedirects:    10,
 		SecretFile:      secrets,
@@ -133,4 +143,9 @@ static:
 	}
 	require.Equal(t, 1, counts["sess"], "-H cookie on a same-host redirect: %v", got.Values("Cookie"))
 	require.Equal(t, 1, counts["sfsess"], "secret-file cookie on a same-host redirect: %v", got.Values("Cookie"))
+
+	// the first URL matches no secret, the redirect host does
+	got = log.get("target/inbound")
+	require.NotNil(t, got, "redirect into the secret host was not followed")
+	require.Equal(t, "SECRET-SF-KEY", got.Get("X-Api-Key"), "secret-file header missing after a redirect into its host")
 }

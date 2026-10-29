@@ -1953,15 +1953,14 @@ retry:
 
 	// Apply auth strategies if auth provider is configured
 	if r.authProvider != nil {
-		if strategies := r.authProvider.LookupURLX(URL); len(strategies) > 0 {
-			before := req.Header.Clone()
-			for _, strategy := range strategies {
-				strategy.ApplyOnRR(req)
-			}
-			// net/http copies these headers to every redirect hop, even
-			// to other hosts: scope them to the URLs the secrets name
-			req.WithContext(httpx.WithRedirectAuth(req.Context(), r.redirectAuth(changedHeaders(before, req.Header))))
+		before := req.Header.Clone()
+		for _, strategy := range r.authProvider.LookupURLX(URL) {
+			strategy.ApplyOnRR(req)
 		}
+		// net/http copies these headers to every redirect hop, even to other
+		// hosts: scope them to the URLs the secrets name. This also applies
+		// the secrets of a redirect host when the first URL has none.
+		req.WithContext(httpx.WithRedirectAuth(req.Context(), r.redirectAuth(changedHeaders(before, req.Header))))
 	}
 
 	// We set content-length even if zero to allow net/http to follow 307/308 redirects (it fails on unknown size)
