@@ -2857,6 +2857,12 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		hrefs = append(hrefs, "/favicon.ico")
 	}
 
+	// hrefs are sorted with .ico first, so if the first one is not an .ico none are;
+	// if probing is allowed, try the default /favicon.ico first
+	if defaultProbe && !strings.HasSuffix(strings.ToLower(hrefs[0]), ".ico") {
+		hrefs = append([]string{"/favicon.ico"}, hrefs...)
+	}
+
 	// Determine base URL: prefer finalURL (redirect target) then apply <base href>
 	baseNet, _ := url.Parse(req.String())
 	if finalURL != "" {
