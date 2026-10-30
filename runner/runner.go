@@ -2881,7 +2881,7 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 	if explicitHost == req.URL.Host {
 		explicitHost = ""
 	}
-	requestHostname := req.URL.Hostname()
+	requestHostname := req.Hostname()
 
 	var (
 		faviconMMH3 string
