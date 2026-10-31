@@ -1953,11 +1953,14 @@ retry:
 
 	// Apply auth strategies if auth provider is configured
 	if r.authProvider != nil {
-		if strategies := r.authProvider.LookupURLX(URL); len(strategies) > 0 {
-			for _, strategy := range strategies {
-				strategy.ApplyOnRR(req)
-			}
+		before := req.Header.Clone()
+		for _, strategy := range r.authProvider.LookupURLX(URL) {
+			strategy.ApplyOnRR(req)
 		}
+		// net/http copies these headers to every redirect hop, even to other
+		// hosts: scope them to the URLs the secrets name. This also applies
+		// the secrets of a redirect host when the first URL has none.
+		req.WithContext(httpx.WithRedirectAuth(req.Context(), r.redirectAuth(changedHeaders(before, req.Header))))
 	}
 
 	// We set content-length even if zero to allow net/http to follow 307/308 redirects (it fails on unknown size)
@@ -2807,6 +2810,31 @@ retry:
 		result.Trace = req.TraceInfo
 	}
 	return result
+}
+
+// redirectAuth returns a redirect hook that removes the headers the secret
+// file set for the first URL and applies the secrets that match the new URL.
+func (r *Runner) redirectAuth(headers []string) func(*http.Request) {
+	return func(next *http.Request) {
+		for _, name := range headers {
+			next.Header.Del(name)
+		}
+		for _, strategy := range r.authProvider.LookupURL(next.URL) {
+			strategy.Apply(next)
+		}
+	}
+}
+
+// changedHeaders returns the names of the headers that differ between
+// before and after.
+func changedHeaders(before, after http.Header) []string {
+	var names []string
+	for name, values := range after {
+		if !slices.Equal(before.Values(name), values) {
+			names = append(names, name)
+		}
+	}
+	return names
 }
 
 func (r *Runner) skip(URL *urlutil.URL, target httpx.Target, origInput string) (bool, Result) {
