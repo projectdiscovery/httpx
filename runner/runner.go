@@ -2872,6 +2872,16 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 
 	// Clone original request (reuse headers/cookies and the pinned ip)
 	clone := req.Clone(httpx.PinnedContext(req.Request))
+	// net/http sets Host to the URL host; any other value was set by the user
+	// (-H "Host: ..." or a vhost,ip input) and selects the virtual host the
+	// target serves. It has to be kept for an icon on the hostname the request
+	// was sent to. An icon elsewhere, such as the target of a redirect or a
+	// CDN, is requested by its own host.
+	explicitHost := clone.Host
+	if explicitHost == req.URL.Host {
+		explicitHost = ""
+	}
+	requestHostname := req.Hostname()
 
 	var (
 		faviconMMH3 string
@@ -2917,10 +2927,10 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		}
 
 		clone.SetURL(resolvedURL)
-		// Update Host header to match resolved URL host (important after redirects)
-		if resolvedURL.Host != "" && resolvedURL.Host != clone.Host {
-			clone.Host = resolvedURL.Host
-		}
+		// The icon of a redirect target or a CDN is fetched by its own host; a
+		// Host header set by -H or a vhost,ip input still selects the virtual
+		// host of the hostname the request was sent to.
+		clone.Host = faviconRequestHost(explicitHost, requestHostname, resolvedURL)
 		respFav, err := hp.Do(clone, httpx.UnsafeOptions{})
 		if err != nil || len(respFav.Data) == 0 {
 			tries++
@@ -2958,6 +2968,21 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 	}
 
 	return faviconMMH3, faviconMD5, faviconPath, faviconData, faviconURL, nil
+}
+
+// faviconRequestHost returns the Host header of a favicon request. A Host
+// explicitly set on the page request (-H "Host: ..." or a vhost,ip input)
+// selects the virtual host the target serves, so it is kept for an icon on the
+// hostname the request was sent to. An icon on another hostname, such as the
+// target of a redirect or a CDN, is requested by its own host.
+func faviconRequestHost(explicitHost, requestHostname string, resolvedURL *urlutil.URL) string {
+	if resolvedURL.Host == "" {
+		return explicitHost
+	}
+	if explicitHost != "" && strings.EqualFold(resolvedURL.Hostname(), requestHostname) {
+		return explicitHost
+	}
+	return resolvedURL.Host
 }
 
 func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, string, error) {
