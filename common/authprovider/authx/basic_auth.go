@@ -29,3 +29,13 @@ func (s *BasicAuthStrategy) Apply(req *http.Request) {
 func (s *BasicAuthStrategy) ApplyOnRR(req *retryablehttp.Request) {
 	req.SetBasicAuth(s.Data.Username, s.Data.Password)
 }
+
+// Remove removes the basic auth strategy from the request
+func (s *BasicAuthStrategy) Remove(req *http.Request) {
+	req.Header.Del("Authorization")
+}
+
+// RemoveOnRR removes the basic auth strategy from the retryable request
+func (s *BasicAuthStrategy) RemoveOnRR(req *retryablehttp.Request) {
+	s.Remove(req.Request)
+}

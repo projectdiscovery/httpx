@@ -7,6 +7,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/projectdiscovery/cdncheck"
+	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/networkpolicy"
 )
 
@@ -72,6 +73,7 @@ type Options struct {
 	CDNCheckClient            *cdncheck.Client
 	Protocol                  Proto
 	Trace                     bool
+	AuthProvider              authprovider.AuthProvider
 }
 
 // DefaultOptions contains the default options
