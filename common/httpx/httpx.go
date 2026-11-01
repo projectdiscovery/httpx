@@ -110,13 +110,17 @@ func New(options *Options) (*HTTPX, error) {
 
 			// -secret-file headers are applied for each redirect host according to their own domain rules
 			if httpx.Options.AuthProvider != nil {
-				if len(previousRequests) > 0 && !isSameHostOrSubdomain(newHost, prevHost) {
-					prevStrategies := httpx.Options.AuthProvider.LookupURL(previousRequests[len(previousRequests)-1].URL)
+				newStrategies := httpx.Options.AuthProvider.LookupURL(redirectedRequest.URL)
+
+				// Clean up credentials copied by net/http from prior requests that do not match the destination
+				for _, prevReq := range previousRequests {
+					prevStrategies := httpx.Options.AuthProvider.LookupURL(prevReq.URL)
 					for _, strategy := range prevStrategies {
 						strategy.Remove(redirectedRequest)
 					}
 				}
-				newStrategies := httpx.Options.AuthProvider.LookupURL(redirectedRequest.URL)
+
+				// Apply only strategies that match the destination
 				for _, strategy := range newStrategies {
 					strategy.Apply(redirectedRequest)
 				}

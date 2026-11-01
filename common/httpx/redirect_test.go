@@ -187,3 +187,56 @@ func TestRedirect_AuthProvider_HeadersAppliedPerHostRules(t *testing.T) {
 	// The target host must receive target-secret, NOT initial-secret!
 	require.Equal(t, "target-secret", targetAuthHeaderReceived, "redirect host should receive its own auth secret")
 }
+
+func TestRedirect_QueryAuth_TargetParamPreserved(t *testing.T) {
+	var targetQueryToken string
+
+	targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetQueryToken = r.URL.Query().Get("token")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer targetServer.Close()
+
+	initialServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, targetServer.URL+"?token=target-token", http.StatusFound)
+	}))
+	defer initialServer.Close()
+
+	initialHost := initialServer.Listener.Addr().String()
+
+	// Initial server has a query auth strategy for "token"
+	mockAuth := &mockAuthProvider{
+		strategies: map[string][]authx.AuthStrategy{
+			initialHost: {
+				authx.NewQueryAuthStrategy(&authx.Secret{
+					Params: []authx.KV{{Key: "token", Value: "initial-token"}},
+				}),
+			},
+		},
+	}
+
+	options := DefaultOptions
+	options.FollowRedirects = true
+	options.Timeout = 5 * time.Second
+	options.AuthProvider = mockAuth
+
+	client, err := New(&options)
+	require.NoError(t, err)
+
+	req, err := retryablehttp.NewRequest("GET", initialServer.URL, nil)
+	require.NoError(t, err)
+
+	if strategies := mockAuth.LookupURL(req.URL.URL); len(strategies) > 0 {
+		for _, s := range strategies {
+			s.ApplyOnRR(req)
+		}
+	}
+
+	resp, err := client.Do(req, UnsafeOptions{})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// Target token provided by Location redirect must be preserved
+	require.Equal(t, "target-token", targetQueryToken)
+}
