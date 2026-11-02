@@ -13,7 +13,9 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -548,6 +550,43 @@ func TestStoreResponse_withMatcherSetsFlag(t *testing.T) {
 	err := opts.ValidateOptions()
 	require.Nil(t, err)
 	require.True(t, opts.HasMatcherOrFilter())
+}
+
+func TestStoreResponse_withMatcherOmitsBody(t *testing.T) {
+	const body = "response-body-marker"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, body)
+	}))
+	t.Cleanup(srv.Close)
+
+	dir := t.TempDir()
+	options := &Options{
+		Threads:               1,
+		RateLimit:             10,
+		Retries:               0,
+		Timeout:               5,
+		Methods:               http.MethodGet,
+		Delay:                 -1,
+		StoreResponse:         true,
+		StoreResponseDir:      dir,
+		OmitBody:              true,
+		OutputMatchStatusCode: "200",
+		InputTargetHost:       []string{srv.URL},
+	}
+	require.NoError(t, options.ValidateOptions())
+
+	r, err := New(options)
+	require.NoError(t, err)
+	defer r.Close()
+	r.RunEnumeration()
+
+	files, err := filepath.Glob(filepath.Join(dir, "response", "*", "*.txt"))
+	require.NoError(t, err)
+	require.Len(t, files, 1)
+	stored, err := os.ReadFile(files[0])
+	require.NoError(t, err)
+	require.Contains(t, string(stored), "HTTP/1.1 200 OK")
+	require.NotContains(t, string(stored), body)
 }
 
 func TestProtocolValidation(t *testing.T) {
