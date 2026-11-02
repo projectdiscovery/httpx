@@ -85,15 +85,11 @@ func New(options *Options) (*HTTPX, error) {
 				return http.ErrUseLastResponse
 			}
 
-			var initialHost, prevHost, newHost string
+			var initialHost, newHost string
 			if len(previousRequests) > 0 {
 				initialHost = previousRequests[0].URL.Hostname()
 				if initialHost == "" {
 					initialHost = previousRequests[0].Host
-				}
-				prevHost = previousRequests[len(previousRequests)-1].URL.Hostname()
-				if prevHost == "" {
-					prevHost = previousRequests[len(previousRequests)-1].Host
 				}
 			}
 			newHost = redirectedRequest.URL.Hostname()
