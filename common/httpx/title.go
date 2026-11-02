@@ -16,6 +16,7 @@ var (
 	cutset                  = "\n\t\v\f\r"
 	reTitle                 = regexp.MustCompile(`(?im)<\s*title.*>(.*?)<\s*/\s*title>`)
 	reContentType           = regexp.MustCompile(`(?is)<meta\b[^>]*?charset\s*=\s*["']?([^"'\s;>/]+)`)
+	reGenerator             = regexp.MustCompile(`(?i)<meta\b[^>]*?name\s*=\s*["']generator["'][^>]*?content\s*=\s*["']([^"']+)["']|<meta\b[^>]*?content\s*=\s*["']([^"']+)["'][^>]*?name\s*=\s*["']generator["']`)
 	supportedTitleMimeTypes = []string{
 		"text/html",
 		"application/xhtml+xml",
@@ -48,6 +49,20 @@ func ExtractTitle(r *Response) (title string) {
 	title = stringsutil.ReplaceAll(title, "", "\n", "\t", "\v", "\f", "\r")
 
 	return title
+}
+
+// ExtractGenerator extracts the content of <meta name="generator"> from a response.
+func ExtractGenerator(r *Response) string {
+	matches := reGenerator.FindSubmatch(r.Data)
+	if len(matches) >= 3 {
+		if len(matches[1]) > 0 {
+			return strings.TrimSpace(string(matches[1]))
+		}
+		if len(matches[2]) > 0 {
+			return strings.TrimSpace(string(matches[2]))
+		}
+	}
+	return ""
 }
 
 func CanHaveTitleTag(mimeType string) bool {

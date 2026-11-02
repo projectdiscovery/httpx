@@ -2197,8 +2197,10 @@ retry:
 	}
 
 	var title string
+	var generator string
 	if httpx.CanHaveTitleTag(resp.GetHeaderPart("Content-Type", ";")) {
 		title = httpx.ExtractTitle(resp)
+		generator = httpx.ExtractGenerator(resp)
 	}
 
 	if scanopts.OutputTitle && title != "" {
@@ -2754,6 +2756,7 @@ retry:
 		Location:         resp.GetHeaderPart("Location", ";"),
 		ContentType:      resp.GetHeaderPart("Content-Type", ";"),
 		Title:            title,
+		Generator:        generator,
 		str:              builder.String(),
 		VHost:            isvhost,
 		WebServer:        serverHeader,
