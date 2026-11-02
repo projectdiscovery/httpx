@@ -50,6 +50,7 @@ type Result struct {
 	Input              string                        `json:"input,omitempty" csv:"input" md:"input" mapstructure:"input"`
 	Location           string                        `json:"location,omitempty" csv:"location" md:"location" mapstructure:"location"`
 	Title              string                        `json:"title,omitempty" csv:"title" md:"title" mapstructure:"title"`
+	Generator          string                        `json:"generator,omitempty" csv:"generator" md:"generator" mapstructure:"generator"`
 	str                string                        `json:"-" csv:"-" md:"-" mapstructure:"-"`
 	Scheme             string                        `json:"scheme,omitempty" csv:"scheme" md:"scheme" mapstructure:"scheme"`
 	Error              string                        `json:"error,omitempty" csv:"error" md:"error" mapstructure:"error"`

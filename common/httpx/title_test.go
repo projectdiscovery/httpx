@@ -98,6 +98,25 @@ func TestExtractTitleDecodesBig5HeaderCharset(t *testing.T) {
 	require.Equal(t, "中文", ExtractTitle(resp))
 }
 
+func TestExtractGenerator(t *testing.T) {
+	tests := []struct {
+		name string
+		html string
+		want string
+	}{
+		{"name then content", `<meta name="generator" content="WordPress 6.4">`, "WordPress 6.4"},
+		{"content then name", `<meta content="Drupal 10" name="generator">`, "Drupal 10"},
+		{"decoded entity", `<meta name="generator" content="Bob&#39;s CMS">`, "Bob's CMS"},
+		{"nul stripped", "<meta name=\"generator\" content=\"Bad\x00CMS\">", "BadCMS"},
+		{"absent", `<meta name="viewport" content="width=device-width">`, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, ExtractGenerator(&Response{Data: []byte(tt.html)}))
+		})
+	}
+}
+
 func TestDecodeDataBig5HeaderCharsetIsExact(t *testing.T) {
 	big5 := []byte{0xa4, 0xa4, 0xa4, 0xe5}
 	decoded, err := DecodeData(big5, http.Header{"Content-Type": []string{`text/html; charset="Big5"`}})

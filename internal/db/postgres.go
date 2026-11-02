@@ -72,6 +72,7 @@ func (p *postgresDatabase) EnsureSchema(ctx context.Context) error {
 			content_length INTEGER,
 			content_type TEXT,
 			title TEXT,
+			generator TEXT,
 			webserver TEXT,
 			response_time TEXT,
 			location TEXT,
@@ -163,6 +164,7 @@ func (p *postgresDatabase) EnsureSchema(ctx context.Context) error {
 		-- migration framework (e.g. golang-migrate / goose) once more schema
 		-- changes accumulate.
 		ALTER TABLE %s ADD COLUMN IF NOT EXISTS cpe JSONB;
+		ALTER TABLE %s ADD COLUMN IF NOT EXISTS generator TEXT;
 
 		CREATE INDEX IF NOT EXISTS %s ON %s(timestamp DESC);
 		CREATE INDEX IF NOT EXISTS %s ON %s(url);
@@ -170,6 +172,7 @@ func (p *postgresDatabase) EnsureSchema(ctx context.Context) error {
 		CREATE INDEX IF NOT EXISTS %s ON %s(status_code);
 		CREATE INDEX IF NOT EXISTS %s ON %s USING GIN(tech);
 	`,
+		tableName,
 		tableName,
 		tableName,
 		idxTimestamp, tableName,
@@ -204,7 +207,7 @@ func (p *postgresDatabase) InsertBatch(ctx context.Context, results []runner.Res
 	query := fmt.Sprintf(`
 		INSERT INTO %s (
 			timestamp, url, input, host, port, scheme, path, method, final_url,
-			status_code, content_length, content_type, title, webserver, response_time,
+			status_code, content_length, content_type, title, generator, webserver, response_time,
 			location, body, body_preview, raw_header, request,
 			host_ip, a, aaaa, cname, resolvers, body_fqdn, body_domains, sni,
 			tech, hash, favicon, favicon_md5, favicon_path, favicon_url, jarm_hash,
@@ -217,17 +220,17 @@ func (p *postgresDatabase) InsertBatch(ctx context.Context, results []runner.Res
 			cpe
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9,
-			$10, $11, $12, $13, $14, $15,
-			$16, $17, $18, $19, $20,
-			$21, $22, $23, $24, $25, $26, $27, $28,
-			$29, $30, $31, $32, $33, $34, $35,
-			$36, $37, $38, $39, $40, $41,
-			$42, $43, $44, $45, $46, $47,
-			$48, $49, $50, $51, $52,
-			$53, $54,
-			$55, $56, $57, $58, $59,
-			$60, $61, $62,
-			$63
+			$10, $11, $12, $13, $14, $15, $16,
+			$17, $18, $19, $20, $21,
+			$22, $23, $24, $25, $26, $27, $28, $29,
+			$30, $31, $32, $33, $34, $35, $36,
+			$37, $38, $39, $40, $41, $42,
+			$43, $44, $45, $46, $47, $48,
+			$49, $50, $51, $52, $53,
+			$54, $55,
+			$56, $57, $58, $59, $60,
+			$61, $62, $63,
+			$64
 		)`, tableName)
 
 	stmt, err := tx.PrepareContext(ctx, query)
@@ -253,7 +256,7 @@ func (p *postgresDatabase) InsertBatch(ctx context.Context, results []runner.Res
 
 		_, err = stmt.ExecContext(ctx,
 			r.Timestamp, r.URL, r.Input, r.Host, r.Port, r.Scheme, r.Path, r.Method, r.FinalURL,
-			r.StatusCode, r.ContentLength, r.ContentType, r.Title, r.WebServer, r.ResponseTime,
+			r.StatusCode, r.ContentLength, r.ContentType, r.Title, r.Generator, r.WebServer, r.ResponseTime,
 			r.Location, r.ResponseBody, r.BodyPreview, r.RawHeaders, r.Request,
 			r.HostIP, pq.Array(r.A), pq.Array(r.AAAA), pq.Array(r.CNAMEs), pq.Array(r.Resolvers), pq.Array(r.Fqdns), pq.Array(r.Domains), r.SNI,
 			pq.Array(r.Technologies), hashJSON, r.FavIconMMH3, r.FavIconMD5, r.FaviconPath, r.FaviconURL, r.JarmHash,
