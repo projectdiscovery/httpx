@@ -54,15 +54,20 @@ func ExtractTitle(r *Response) (title string) {
 // ExtractGenerator extracts the content of <meta name="generator"> from a response.
 func ExtractGenerator(r *Response) string {
 	matches := reGenerator.FindSubmatch(r.Data)
+	var raw []byte
 	if len(matches) >= 3 {
 		if len(matches[1]) > 0 {
-			return strings.TrimSpace(string(matches[1]))
-		}
-		if len(matches[2]) > 0 {
-			return strings.TrimSpace(string(matches[2]))
+			raw = matches[1]
+		} else if len(matches[2]) > 0 {
+			raw = matches[2]
 		}
 	}
-	return ""
+	if len(raw) == 0 {
+		return ""
+	}
+	// Postgres rejects NUL in TEXT, and one bad value rolls back the whole batch.
+	value := strings.ReplaceAll(string(raw), "\x00", "")
+	return strings.TrimSpace(html.UnescapeString(value))
 }
 
 func CanHaveTitleTag(mimeType string) bool {

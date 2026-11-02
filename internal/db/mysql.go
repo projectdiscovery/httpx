@@ -175,6 +175,9 @@ func (m *mysqlDatabase) EnsureSchema(ctx context.Context) error {
 	if err := m.ensureColumn(ctx, "cpe", "JSON"); err != nil {
 		return fmt.Errorf("failed to ensure cpe column: %w", err)
 	}
+	if err := m.ensureColumn(ctx, "generator", "TEXT"); err != nil {
+		return fmt.Errorf("failed to ensure generator column: %w", err)
+	}
 
 	return nil
 }

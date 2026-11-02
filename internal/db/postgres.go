@@ -164,6 +164,7 @@ func (p *postgresDatabase) EnsureSchema(ctx context.Context) error {
 		-- migration framework (e.g. golang-migrate / goose) once more schema
 		-- changes accumulate.
 		ALTER TABLE %s ADD COLUMN IF NOT EXISTS cpe JSONB;
+		ALTER TABLE %s ADD COLUMN IF NOT EXISTS generator TEXT;
 
 		CREATE INDEX IF NOT EXISTS %s ON %s(timestamp DESC);
 		CREATE INDEX IF NOT EXISTS %s ON %s(url);
@@ -171,6 +172,7 @@ func (p *postgresDatabase) EnsureSchema(ctx context.Context) error {
 		CREATE INDEX IF NOT EXISTS %s ON %s(status_code);
 		CREATE INDEX IF NOT EXISTS %s ON %s USING GIN(tech);
 	`,
+		tableName,
 		tableName,
 		tableName,
 		idxTimestamp, tableName,
