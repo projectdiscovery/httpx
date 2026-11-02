@@ -339,6 +339,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputLocation = options.Location
 	scanopts.OutputContentLength = options.ContentLength
 	scanopts.StoreResponse = options.StoreResponse
+	scanopts.OmitBody = options.OmitBody
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.ResponseHeadersInStdout = options.ResponseHeadersInStdout
@@ -1378,8 +1379,8 @@ func (r *Runner) RunEnumeration() {
 				var responsePath, screenshotPath, screenshotPathRel string
 				// store response
 				if r.scanopts.StoreResponse || r.scanopts.StoreChain {
-					if r.scanopts.OmitBody {
-						resp.Raw = strings.ReplaceAll(resp.Raw, resp.ResponseBody, "")
+					if r.scanopts.OmitBody && resp.Response != nil {
+						resp.Raw = resp.Response.RawHeaders
 					}
 
 					responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
@@ -2606,7 +2607,7 @@ retry:
 
 		if !r.options.HasMatcherOrFilter() {
 			if r.options.OmitBody {
-				resp.Raw = strings.ReplaceAll(resp.Raw, string(resp.Data), "")
+				resp.Raw = resp.RawHeaders
 			}
 			responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
 			// URL.EscapedString returns that can be used as filename
