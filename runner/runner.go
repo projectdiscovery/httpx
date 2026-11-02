@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"image"
 	"io"
+	"iter"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -26,6 +27,8 @@ import (
 	"time"
 
 	"golang.org/x/exp/maps"
+	"golang.org/x/text/encoding/unicode"
+	"golang.org/x/text/transform"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/corona10/goimagehash"
@@ -268,6 +271,17 @@ func New(options *Options) (*Runner, error) {
 	}
 	httpxOptions.SniName = options.SniName
 
+	if options.SecretFile != "" {
+		authProviderOpts := &authprovider.AuthProviderOptions{
+			SecretsFiles: []string{options.SecretFile},
+		}
+		runner.authProvider, err = authprovider.NewAuthProvider(authProviderOpts)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not create auth provider")
+		}
+		httpxOptions.AuthProvider = runner.authProvider
+	}
+
 	runner.hp, err = httpx.New(&httpxOptions)
 	if err != nil {
 		gologger.Fatal().Msgf("Could not create httpx instance: %s\n", err)
@@ -325,6 +339,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.OutputLocation = options.Location
 	scanopts.OutputContentLength = options.ContentLength
 	scanopts.StoreResponse = options.StoreResponse
+	scanopts.OmitBody = options.OmitBody
 	scanopts.StoreResponseDirectory = options.StoreResponseDir
 	scanopts.OutputServerHeader = options.OutputServerHeader
 	scanopts.ResponseHeadersInStdout = options.ResponseHeadersInStdout
@@ -363,6 +378,9 @@ func New(options *Options) (*Runner, error) {
 		browser, err := NewBrowser(options.HTTPProxy, options.UseInstalledChrome, options.ParseHeadlessOptionalArguments())
 		if err != nil {
 			return nil, err
+		}
+		if policyHasFilters(np) {
+			browser.SetNetworkPolicy(np, runner.hp.Dialer)
 		}
 		runner.browser = browser
 	}
@@ -453,15 +471,7 @@ func New(options *Options) (*Runner, error) {
 		runner.ditClassifier = ditClassifier
 	}
 
-	if options.SecretFile != "" {
-		authProviderOpts := &authprovider.AuthProviderOptions{
-			SecretsFiles: []string{options.SecretFile},
-		}
-		runner.authProvider, err = authprovider.NewAuthProvider(authProviderOpts)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not create auth provider")
-		}
-	}
+// authProvider already initialized above
 
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)
@@ -509,6 +519,15 @@ func (runner *Runner) createNetworkpolicyInstance(options *Options) (*networkpol
 
 	np, err := networkpolicy.New(npOptions)
 	return np, err
+}
+
+// policyHasFilters reports whether np restricts any host, address, port or scheme.
+func policyHasFilters(np *networkpolicy.NetworkPolicy) bool {
+	if np == nil || np.Options == nil {
+		return false
+	}
+	o := np.Options
+	return len(o.DenyList)+len(o.AllowList)+len(o.AllowSchemeList)+len(o.DenySchemeList)+len(o.AllowPortList)+len(o.DenyPortList) > 0
 }
 
 func appendToList(list []string, values ...string) []string {
@@ -779,7 +798,7 @@ func (r *Runner) streamInput() (chan string, error) {
 					return
 				}
 			} else {
-				for item, err := range fileutil.Lines(r.options.InputFile) {
+				for item, err := range inputFileLines(r.options.InputFile) {
 					if err != nil || !sendLine(item) {
 						return
 					}
@@ -791,7 +810,7 @@ func (r *Runner) streamInput() (chan string, error) {
 				gologger.Fatal().Msgf("No input provided: %s", err)
 			}
 			for _, file := range files {
-				for item, err := range fileutil.Lines(file) {
+				for item, err := range inputFileLines(file) {
 					if err != nil || !sendLine(item) {
 						return
 					}
@@ -799,7 +818,7 @@ func (r *Runner) streamInput() (chan string, error) {
 			}
 		}
 		if fileutil.HasStdin() {
-			for item, err := range fileutil.LinesReader(os.Stdin) {
+			for item, err := range fileutil.LinesReader(decodeInput(os.Stdin)) {
 				if err != nil || !sendLine(item) {
 					return
 				}
@@ -810,7 +829,7 @@ func (r *Runner) streamInput() (chan string, error) {
 }
 
 func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
-	scanner := bufio.NewScanner(finput)
+	scanner := bufio.NewScanner(decodeInput(finput))
 	for scanner.Scan() {
 		target, ok := r.readInputLine(scanner.Text())
 		if !ok {
@@ -831,6 +850,30 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	}
 	err = finput.Close()
 	return numTargets, err
+}
+
+// decodeInput converts input starting with a UTF-16 byte order mark to UTF-8
+// (Windows PowerShell writes UTF-16) and strips a UTF-8 one. Input without a
+// byte order mark is passed through.
+func decodeInput(r io.Reader) io.Reader {
+	return transform.NewReader(r, unicode.BOMOverride(transform.Nop))
+}
+
+// inputFileLines streams the lines of an input file, decoded as decodeInput does.
+func inputFileLines(name string) iter.Seq2[string, error] {
+	return func(yield func(string, error) bool) {
+		f, err := os.Open(name)
+		if err != nil {
+			yield("", err)
+			return
+		}
+		defer f.Close() //nolint:errcheck
+		for line, err := range fileutil.LinesReader(decodeInput(f)) {
+			if !yield(line, err) {
+				return
+			}
+		}
+	}
 }
 
 func (r *Runner) loadFromFormat(filePath string, format inputformats.Format) (numTargets int, err error) {
@@ -1336,8 +1379,8 @@ func (r *Runner) RunEnumeration() {
 				var responsePath, screenshotPath, screenshotPathRel string
 				// store response
 				if r.scanopts.StoreResponse || r.scanopts.StoreChain {
-					if r.scanopts.OmitBody {
-						resp.Raw = strings.ReplaceAll(resp.Raw, resp.ResponseBody, "")
+					if r.scanopts.OmitBody && resp.Response != nil {
+						resp.Raw = resp.Response.RawHeaders
 					}
 
 					responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
@@ -1953,14 +1996,11 @@ retry:
 
 	// Apply auth strategies if auth provider is configured
 	if r.authProvider != nil {
-		before := req.Header.Clone()
-		for _, strategy := range r.authProvider.LookupURLX(URL) {
-			strategy.ApplyOnRR(req)
+		if strategies := r.authProvider.LookupURLX(URL); len(strategies) > 0 {
+			for _, strategy := range strategies {
+				strategy.ApplyOnRR(req)
+			}
 		}
-		// net/http copies these headers to every redirect hop, even to other
-		// hosts: scope them to the URLs the secrets name. This also applies
-		// the secrets of a redirect host when the first URL has none.
-		req.WithContext(httpx.WithRedirectAuth(req.Context(), r.redirectAuth(changedHeaders(before, req.Header))))
 	}
 
 	// We set content-length even if zero to allow net/http to follow 307/308 redirects (it fails on unknown size)
@@ -2140,8 +2180,10 @@ retry:
 					builder.WriteString(aurora.Yellow(strconv.Itoa(statusCode)).String())
 				case statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError:
 					builder.WriteString(aurora.Red(strconv.Itoa(statusCode)).String())
-				case resp.StatusCode > http.StatusInternalServerError:
+				case statusCode >= http.StatusInternalServerError:
 					builder.WriteString(aurora.Bold(aurora.Yellow(strconv.Itoa(statusCode))).String())
+				default:
+					builder.WriteString(strconv.Itoa(statusCode))
 				}
 			} else {
 				builder.WriteString(strconv.Itoa(statusCode))
@@ -2162,9 +2204,9 @@ retry:
 	if scanopts.OutputLocation {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Magenta(resp.GetHeaderPart("Location", ";")).String())
+			builder.WriteString(aurora.Magenta(resp.GetHeader("Location")).String())
 		} else {
-			builder.WriteString(resp.GetHeaderPart("Location", ";"))
+			builder.WriteString(resp.GetHeader("Location"))
 		}
 		builder.WriteRune(']')
 	}
@@ -2200,8 +2242,10 @@ retry:
 	}
 
 	var title string
+	var generator string
 	if httpx.CanHaveTitleTag(resp.GetHeaderPart("Content-Type", ";")) {
 		title = httpx.ExtractTitle(resp)
+		generator = httpx.ExtractGenerator(resp)
 	}
 
 	if scanopts.OutputTitle && title != "" {
@@ -2567,7 +2611,7 @@ retry:
 
 		if !r.options.HasMatcherOrFilter() {
 			if r.options.OmitBody {
-				resp.Raw = strings.ReplaceAll(resp.Raw, string(resp.Data), "")
+				resp.Raw = resp.RawHeaders
 			}
 			responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
 			// URL.EscapedString returns that can be used as filename
@@ -2754,9 +2798,10 @@ retry:
 		ChainStatusCodes: chainStatusCodes,
 		Chain:            chainItems,
 		StatusCode:       resp.StatusCode,
-		Location:         resp.GetHeaderPart("Location", ";"),
+		Location:         resp.GetHeader("Location"),
 		ContentType:      resp.GetHeaderPart("Content-Type", ";"),
 		Title:            title,
+		Generator:        generator,
 		str:              builder.String(),
 		VHost:            isvhost,
 		WebServer:        serverHeader,
@@ -2810,31 +2855,6 @@ retry:
 		result.Trace = req.TraceInfo
 	}
 	return result
-}
-
-// redirectAuth returns a redirect hook that removes the headers the secret
-// file set for the first URL and applies the secrets that match the new URL.
-func (r *Runner) redirectAuth(headers []string) func(*http.Request) {
-	return func(next *http.Request) {
-		for _, name := range headers {
-			next.Header.Del(name)
-		}
-		for _, strategy := range r.authProvider.LookupURL(next.URL) {
-			strategy.Apply(next)
-		}
-	}
-}
-
-// changedHeaders returns the names of the headers that differ between
-// before and after.
-func changedHeaders(before, after http.Header) []string {
-	var names []string
-	for name, values := range after {
-		if !slices.Equal(before.Values(name), values) {
-			names = append(names, name)
-		}
-	}
-	return names
 }
 
 func (r *Runner) skip(URL *urlutil.URL, target httpx.Target, origInput string) (bool, Result) {
@@ -2900,6 +2920,16 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 
 	// Clone original request (reuse headers/cookies and the pinned ip)
 	clone := req.Clone(httpx.PinnedContext(req.Request))
+	// net/http sets Host to the URL host; any other value was set by the user
+	// (-H "Host: ..." or a vhost,ip input) and selects the virtual host the
+	// target serves. It has to be kept for an icon on the hostname the request
+	// was sent to. An icon elsewhere, such as the target of a redirect or a
+	// CDN, is requested by its own host.
+	explicitHost := clone.Host
+	if explicitHost == req.URL.Host {
+		explicitHost = ""
+	}
+	requestHostname := req.Hostname()
 
 	var (
 		faviconMMH3 string
@@ -2945,10 +2975,10 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 		}
 
 		clone.SetURL(resolvedURL)
-		// Update Host header to match resolved URL host (important after redirects)
-		if resolvedURL.Host != "" && resolvedURL.Host != clone.Host {
-			clone.Host = resolvedURL.Host
-		}
+		// The icon of a redirect target or a CDN is fetched by its own host; a
+		// Host header set by -H or a vhost,ip input still selects the virtual
+		// host of the hostname the request was sent to.
+		clone.Host = faviconRequestHost(explicitHost, requestHostname, resolvedURL)
 		respFav, err := hp.Do(clone, httpx.UnsafeOptions{})
 		if err != nil || len(respFav.Data) == 0 {
 			tries++
@@ -2986,6 +3016,21 @@ func (r *Runner) HandleFaviconHash(hp *httpx.HTTPX, req *retryablehttp.Request, 
 	}
 
 	return faviconMMH3, faviconMD5, faviconPath, faviconData, faviconURL, nil
+}
+
+// faviconRequestHost returns the Host header of a favicon request. A Host
+// explicitly set on the page request (-H "Host: ..." or a vhost,ip input)
+// selects the virtual host the target serves, so it is kept for an icon on the
+// hostname the request was sent to. An icon on another hostname, such as the
+// target of a redirect or a CDN, is requested by its own host.
+func faviconRequestHost(explicitHost, requestHostname string, resolvedURL *urlutil.URL) string {
+	if resolvedURL.Host == "" {
+		return explicitHost
+	}
+	if explicitHost != "" && strings.EqualFold(resolvedURL.Hostname(), requestHostname) {
+		return explicitHost
+	}
+	return resolvedURL.Host
 }
 
 func (r *Runner) calculateFaviconHashWithRaw(data []byte) (string, string, error) {

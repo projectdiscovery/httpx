@@ -3,6 +3,7 @@ package httpx
 import (
 	"context"
 	"crypto/tls"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -351,4 +352,138 @@ func TestNewFastdialerOptions(t *testing.T) {
 		require.False(t, opts.EnableFallback)
 		require.Equal(t, resolvers, opts.BaseResolvers)
 	})
+}
+
+// A redirect to an unreachable target keeps the last response of the chain
+// instead of failing the whole request.
+func TestDo_FollowRedirectsToUnreachableTarget(t *testing.T) {
+	closed, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	unreachable := "http://" + closed.Addr().String() + "/"
+	require.NoError(t, closed.Close())
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/start" {
+			http.Redirect(w, r, "/moved", http.StatusFound)
+			return
+		}
+		w.Header().Set("Location", unreachable)
+		w.WriteHeader(http.StatusMovedPermanently)
+		_, _ = w.Write([]byte("moved"))
+	}))
+	defer ts.Close()
+
+	policies := map[string]func(*Options){
+		"-fr":  func(o *Options) { o.FollowRedirects = true },
+		"-fhr": func(o *Options) { o.FollowHostRedirects = true },
+	}
+	for name, policy := range policies {
+		t.Run(name, func(t *testing.T) {
+			options := DefaultOptions
+			options.CdnCheck = "false"
+			options.Timeout = 5 * time.Second
+			options.RetryMax = 0
+			options.MaxRedirects = 10
+			policy(&options)
+			ht, err := New(&options)
+			require.NoError(t, err)
+
+			req, err := retryablehttp.NewRequest(http.MethodGet, ts.URL+"/start", nil)
+			require.NoError(t, err)
+			resp, err := ht.Do(req, UnsafeOptions{})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusMovedPermanently, resp.StatusCode)
+			require.Equal(t, "moved", string(resp.Data))
+			require.Len(t, resp.Chain, 2)
+		})
+	}
+}
+
+// A canceled request fails even if a redirect response was kept.
+func TestDo_FollowRedirectsCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/start" {
+			http.Redirect(w, r, "/next", http.StatusFound)
+			return
+		}
+		cancel()
+		<-r.Context().Done()
+	}))
+	defer ts.Close()
+
+	options := DefaultOptions
+	options.CdnCheck = "false"
+	options.Timeout = 5 * time.Second
+	options.RetryMax = 0
+	options.FollowRedirects = true
+	options.MaxRedirects = 10
+	ht, err := New(&options)
+	require.NoError(t, err)
+
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/start", nil)
+	require.NoError(t, err)
+	_, err = ht.Do(req, UnsafeOptions{})
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+
+type trackingReadCloser struct {
+	closed bool
+}
+
+func (*trackingReadCloser) Read([]byte) (int, error) {
+	select {}
+}
+
+func (t *trackingReadCloser) Close() error {
+	t.closed = true
+	return nil
+}
+
+type trackingSwitchingProtocolsRoundTripper struct {
+	body *trackingReadCloser
+}
+
+func (rt trackingSwitchingProtocolsRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return &http.Response{
+		Status:     "101 Switching Protocols",
+		StatusCode: http.StatusSwitchingProtocols,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header: http.Header{
+			"Upgrade":    {"websocket"},
+			"Connection": {"Upgrade"},
+		},
+		Body:    rt.body,
+		Request: req,
+	}, nil
+}
+
+func TestDoSwitchingProtocolsClosesBody(t *testing.T) {
+	for _, maxBody := range []int64{0, 1024, 2 * 1024 * 1024} {
+		options := DefaultOptions
+		options.CdnCheck = "false"
+		options.Timeout = 2 * time.Second
+		options.RetryMax = 0
+		options.MaxResponseBodySizeToRead = maxBody
+
+		ht, err := New(&options)
+		require.NoError(t, err)
+
+		body := &trackingReadCloser{}
+		rt := trackingSwitchingProtocolsRoundTripper{body: body}
+		ht.client.HTTPClient.Transport = rt
+		ht.client.HTTPClient2.Transport = rt
+
+		req, err := retryablehttp.NewRequest(http.MethodGet, "http://example.com", nil)
+		require.NoError(t, err)
+
+		resp, err := ht.Do(req, UnsafeOptions{})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
+		require.True(t, body.closed, "101 Switching Protocols body was not closed when MaxResponseBodySizeToRead=%d", maxBody)
+	}
 }
