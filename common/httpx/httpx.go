@@ -372,13 +372,25 @@ get_response:
 	// bodies (or infinite streams) in memory
 	bodyTruncated := h.Options.MaxResponseBodySizeToRead > 0 && httpresp.ContentLength > h.Options.MaxResponseBodySizeToRead
 	if h.Options.MaxResponseBodySizeToRead > 0 {
-		httpresp.Body = io.NopCloser(io.LimitReader(httpresp.Body, h.Options.MaxResponseBodySizeToRead))
+		origBody := httpresp.Body
+		httpresp.Body = &readCloser{
+			Reader: io.LimitReader(origBody, h.Options.MaxResponseBodySizeToRead),
+			Closer: origBody,
+		}
 		if !shouldSkipBodyRead {
 			defer func() {
 				_, _ = io.Copy(io.Discard, httpresp.Body)
 				_ = httpresp.Body.Close()
 			}()
+		} else {
+			defer func() {
+				_ = httpresp.Body.Close()
+			}()
 		}
+	} else if shouldSkipBodyRead {
+		defer func() {
+			_ = httpresp.Body.Close()
+		}()
 	}
 
 	// httputil.DumpResponse does not handle websockets
@@ -679,4 +691,19 @@ func (httpx *HTTPX) Sanitize(respStr string, trimLine, normalizeSpaces bool) str
 		respStr = httputilz.NormalizeSpaces(respStr)
 	}
 	return respStr
+}
+
+
+type readCloser struct {
+	io.Reader
+	io.Closer
+}
+
+func (r *readCloser) Close() error {
+	if r.Closer == nil {
+		return nil
+	}
+	err := r.Closer.Close()
+	r.Closer = nil
+	return err
 }
