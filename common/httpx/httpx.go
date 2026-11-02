@@ -98,9 +98,8 @@ func New(options *Options) (*HTTPX, error) {
 			}
 
 			// Custom cookies are kept only for the same host (or its subdomains)
-			if isSameHostOrSubdomain(newHost, initialHost) {
-				httpx.setCustomCookies(redirectedRequest)
-			} else {
+			sameScope := isSameHostOrSubdomain(newHost, initialHost)
+			if !sameScope {
 				redirectedRequest.Header.Del("Cookie")
 			}
 
@@ -120,6 +119,12 @@ func New(options *Options) (*HTTPX, error) {
 				for _, strategy := range newStrategies {
 					strategy.Apply(redirectedRequest)
 				}
+			}
+
+			// After the secret cleanup, which removes cookies by name, so a -H
+			// cookie that shares a name with a removed secret cookie comes back
+			if sameScope {
+				httpx.setCustomCookies(redirectedRequest)
 			}
 
 			if options.RespectHSTS {
