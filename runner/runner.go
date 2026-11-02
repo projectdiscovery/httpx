@@ -2189,9 +2189,9 @@ retry:
 	if scanopts.OutputLocation {
 		builder.WriteString(" [")
 		if !scanopts.OutputWithNoColor {
-			builder.WriteString(aurora.Magenta(resp.GetHeaderPart("Location", ";")).String())
+			builder.WriteString(aurora.Magenta(resp.GetHeader("Location")).String())
 		} else {
-			builder.WriteString(resp.GetHeaderPart("Location", ";"))
+			builder.WriteString(resp.GetHeader("Location"))
 		}
 		builder.WriteRune(']')
 	}
@@ -2781,7 +2781,7 @@ retry:
 		ChainStatusCodes: chainStatusCodes,
 		Chain:            chainItems,
 		StatusCode:       resp.StatusCode,
-		Location:         resp.GetHeaderPart("Location", ";"),
+		Location:         resp.GetHeader("Location"),
 		ContentType:      resp.GetHeaderPart("Content-Type", ";"),
 		Title:            title,
 		str:              builder.String(),
