@@ -1368,7 +1368,7 @@ func (r *Runner) RunEnumeration() {
 				// store response
 				if r.scanopts.StoreResponse || r.scanopts.StoreChain {
 					if r.scanopts.OmitBody && resp.Response != nil {
-						resp.Raw = strings.ReplaceAll(resp.Raw, string(resp.Response.Data), "")
+						resp.Raw = resp.Response.RawHeaders
 					}
 
 					responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
@@ -2595,7 +2595,7 @@ retry:
 
 		if !r.options.HasMatcherOrFilter() {
 			if r.options.OmitBody {
-				resp.Raw = strings.ReplaceAll(resp.Raw, string(resp.Data), "")
+				resp.Raw = resp.RawHeaders
 			}
 			responsePath = fileutilz.AbsPathOrDefault(filepath.Join(responseBaseDir, domainResponseFile))
 			// URL.EscapedString returns that can be used as filename
