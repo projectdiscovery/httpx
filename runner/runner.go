@@ -271,6 +271,17 @@ func New(options *Options) (*Runner, error) {
 	}
 	httpxOptions.SniName = options.SniName
 
+	if options.SecretFile != "" {
+		authProviderOpts := &authprovider.AuthProviderOptions{
+			SecretsFiles: []string{options.SecretFile},
+		}
+		runner.authProvider, err = authprovider.NewAuthProvider(authProviderOpts)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not create auth provider")
+		}
+		httpxOptions.AuthProvider = runner.authProvider
+	}
+
 	runner.hp, err = httpx.New(&httpxOptions)
 	if err != nil {
 		gologger.Fatal().Msgf("Could not create httpx instance: %s\n", err)
@@ -456,15 +467,7 @@ func New(options *Options) (*Runner, error) {
 		runner.ditClassifier = ditClassifier
 	}
 
-	if options.SecretFile != "" {
-		authProviderOpts := &authprovider.AuthProviderOptions{
-			SecretsFiles: []string{options.SecretFile},
-		}
-		runner.authProvider, err = authprovider.NewAuthProvider(authProviderOpts)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not create auth provider")
-		}
-	}
+// authProvider already initialized above
 
 	if options.HttpApiEndpoint != "" {
 		apiServer := NewServer(options.HttpApiEndpoint, options)

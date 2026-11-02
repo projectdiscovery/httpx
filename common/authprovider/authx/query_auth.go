@@ -40,3 +40,10 @@ func (s *QueryAuthStrategy) ApplyOnRR(req *retryablehttp.Request) {
 	}
 	req.Request.URL.RawQuery = q.Encode()
 }
+
+// Remove is a no-op for query auth on redirect requests to preserve
+// query parameters explicitly supplied by the redirect destination URL.
+func (s *QueryAuthStrategy) Remove(req *http.Request) {}
+
+// RemoveOnRR is a no-op for query auth on redirect requests.
+func (s *QueryAuthStrategy) RemoveOnRR(req *retryablehttp.Request) {}

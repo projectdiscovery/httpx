@@ -80,12 +80,46 @@ func New(options *Options) (*HTTPX, error) {
 	if httpx.Options.FollowRedirects {
 		// Follow redirects up to a maximum number
 		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
-			// add custom cookies if necessary
-			httpx.setCustomCookies(redirectedRequest)
-
 			if len(previousRequests) >= options.MaxRedirects {
 				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
+			}
+
+			var initialHost, newHost string
+			if len(previousRequests) > 0 {
+				initialHost = previousRequests[0].URL.Hostname()
+				if initialHost == "" {
+					initialHost = previousRequests[0].Host
+				}
+			}
+			newHost = redirectedRequest.URL.Hostname()
+			if newHost == "" {
+				newHost = redirectedRequest.Host
+			}
+
+			// Custom cookies are kept only for the same host (or its subdomains)
+			if isSameHostOrSubdomain(newHost, initialHost) {
+				httpx.setCustomCookies(redirectedRequest)
+			} else {
+				redirectedRequest.Header.Del("Cookie")
+			}
+
+			// -secret-file headers are applied for each redirect host according to their own domain rules
+			if httpx.Options.AuthProvider != nil {
+				newStrategies := httpx.Options.AuthProvider.LookupURL(redirectedRequest.URL)
+
+				// Clean up credentials copied by net/http from prior requests that do not match the destination
+				for _, prevReq := range previousRequests {
+					prevStrategies := httpx.Options.AuthProvider.LookupURL(prevReq.URL)
+					for _, strategy := range prevStrategies {
+						strategy.Remove(redirectedRequest)
+					}
+				}
+
+				// Apply only strategies that match the destination
+				for _, strategy := range newStrategies {
+					strategy.Apply(redirectedRequest)
+				}
 			}
 
 			if options.RespectHSTS {
@@ -586,6 +620,18 @@ func (httpx *HTTPX) setCustomCookies(req *http.Request) {
 			req.AddCookie(cookie)
 		}
 	}
+}
+
+func isSameHostOrSubdomain(child, parent string) bool {
+	child = strings.ToLower(strings.TrimSpace(child))
+	parent = strings.ToLower(strings.TrimSpace(parent))
+	if child == "" || parent == "" {
+		return false
+	}
+	if child == parent {
+		return true
+	}
+	return strings.HasSuffix(child, "."+parent)
 }
 
 func (httpx *HTTPX) Sanitize(respStr string, trimLine, normalizeSpaces bool) string {
