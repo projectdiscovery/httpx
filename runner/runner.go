@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"image"
 	"io"
+	"iter"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -26,6 +27,8 @@ import (
 	"time"
 
 	"golang.org/x/exp/maps"
+	"golang.org/x/text/encoding/unicode"
+	"golang.org/x/text/transform"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/corona10/goimagehash"
@@ -779,7 +782,7 @@ func (r *Runner) streamInput() (chan string, error) {
 					return
 				}
 			} else {
-				for item, err := range fileutil.Lines(r.options.InputFile) {
+				for item, err := range inputFileLines(r.options.InputFile) {
 					if err != nil || !sendLine(item) {
 						return
 					}
@@ -791,7 +794,7 @@ func (r *Runner) streamInput() (chan string, error) {
 				gologger.Fatal().Msgf("No input provided: %s", err)
 			}
 			for _, file := range files {
-				for item, err := range fileutil.Lines(file) {
+				for item, err := range inputFileLines(file) {
 					if err != nil || !sendLine(item) {
 						return
 					}
@@ -799,7 +802,7 @@ func (r *Runner) streamInput() (chan string, error) {
 			}
 		}
 		if fileutil.HasStdin() {
-			for item, err := range fileutil.LinesReader(os.Stdin) {
+			for item, err := range fileutil.LinesReader(decodeInput(os.Stdin)) {
 				if err != nil || !sendLine(item) {
 					return
 				}
@@ -810,7 +813,7 @@ func (r *Runner) streamInput() (chan string, error) {
 }
 
 func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
-	scanner := bufio.NewScanner(finput)
+	scanner := bufio.NewScanner(decodeInput(finput))
 	for scanner.Scan() {
 		target, ok := r.readInputLine(scanner.Text())
 		if !ok {
@@ -831,6 +834,30 @@ func (r *Runner) loadAndCloseFile(finput *os.File) (numTargets int, err error) {
 	}
 	err = finput.Close()
 	return numTargets, err
+}
+
+// decodeInput converts input starting with a UTF-16 byte order mark to UTF-8
+// (Windows PowerShell writes UTF-16) and strips a UTF-8 one. Input without a
+// byte order mark is passed through.
+func decodeInput(r io.Reader) io.Reader {
+	return transform.NewReader(r, unicode.BOMOverride(transform.Nop))
+}
+
+// inputFileLines streams the lines of an input file, decoded as decodeInput does.
+func inputFileLines(name string) iter.Seq2[string, error] {
+	return func(yield func(string, error) bool) {
+		f, err := os.Open(name)
+		if err != nil {
+			yield("", err)
+			return
+		}
+		defer f.Close() //nolint:errcheck
+		for line, err := range fileutil.LinesReader(decodeInput(f)) {
+			if !yield(line, err) {
+				return
+			}
+		}
+	}
 }
 
 func (r *Runner) loadFromFormat(filePath string, format inputformats.Format) (numTargets int, err error) {
