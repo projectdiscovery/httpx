@@ -426,3 +426,64 @@ func TestDo_FollowRedirectsCanceled(t *testing.T) {
 	_, err = ht.Do(req, UnsafeOptions{})
 	require.ErrorIs(t, err, context.Canceled)
 }
+
+
+type trackingReadCloser struct {
+	closed bool
+}
+
+func (*trackingReadCloser) Read([]byte) (int, error) {
+	select {}
+}
+
+func (t *trackingReadCloser) Close() error {
+	t.closed = true
+	return nil
+}
+
+type trackingSwitchingProtocolsRoundTripper struct {
+	body *trackingReadCloser
+}
+
+func (rt trackingSwitchingProtocolsRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return &http.Response{
+		Status:     "101 Switching Protocols",
+		StatusCode: http.StatusSwitchingProtocols,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header: http.Header{
+			"Upgrade":    {"websocket"},
+			"Connection": {"Upgrade"},
+		},
+		Body:    rt.body,
+		Request: req,
+	}, nil
+}
+
+func TestDoSwitchingProtocolsClosesBody(t *testing.T) {
+	for _, maxBody := range []int64{0, 1024, 2 * 1024 * 1024} {
+		options := DefaultOptions
+		options.CdnCheck = "false"
+		options.Timeout = 2 * time.Second
+		options.RetryMax = 0
+		options.MaxResponseBodySizeToRead = maxBody
+
+		ht, err := New(&options)
+		require.NoError(t, err)
+
+		body := &trackingReadCloser{}
+		rt := trackingSwitchingProtocolsRoundTripper{body: body}
+		ht.client.HTTPClient.Transport = rt
+		ht.client.HTTPClient2.Transport = rt
+
+		req, err := retryablehttp.NewRequest(http.MethodGet, "http://example.com", nil)
+		require.NoError(t, err)
+
+		resp, err := ht.Do(req, UnsafeOptions{})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
+		require.True(t, body.closed, "101 Switching Protocols body was not closed when MaxResponseBodySizeToRead=%d", maxBody)
+	}
+}
