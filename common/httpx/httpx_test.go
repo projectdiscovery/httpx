@@ -3,6 +3,7 @@ package httpx
 import (
 	"context"
 	"crypto/tls"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -351,4 +352,49 @@ func TestNewFastdialerOptions(t *testing.T) {
 		require.False(t, opts.EnableFallback)
 		require.Equal(t, resolvers, opts.BaseResolvers)
 	})
+}
+
+// A redirect to an unreachable target keeps the last response of the chain
+// instead of failing the whole request.
+func TestDo_FollowRedirectsToUnreachableTarget(t *testing.T) {
+	closed, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	unreachable := "http://" + closed.Addr().String() + "/"
+	require.NoError(t, closed.Close())
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/start" {
+			http.Redirect(w, r, "/moved", http.StatusFound)
+			return
+		}
+		w.Header().Set("Location", unreachable)
+		w.WriteHeader(http.StatusMovedPermanently)
+		_, _ = w.Write([]byte("moved"))
+	}))
+	defer ts.Close()
+
+	policies := map[string]func(*Options){
+		"-fr":  func(o *Options) { o.FollowRedirects = true },
+		"-fhr": func(o *Options) { o.FollowHostRedirects = true },
+	}
+	for name, policy := range policies {
+		t.Run(name, func(t *testing.T) {
+			options := DefaultOptions
+			options.CdnCheck = "false"
+			options.Timeout = 5 * time.Second
+			options.RetryMax = 0
+			options.MaxRedirects = 10
+			policy(&options)
+			ht, err := New(&options)
+			require.NoError(t, err)
+
+			req, err := retryablehttp.NewRequest(http.MethodGet, ts.URL+"/start", nil)
+			require.NoError(t, err)
+			resp, err := ht.Do(req, UnsafeOptions{})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusMovedPermanently, resp.StatusCode)
+			require.Equal(t, "moved", string(resp.Data))
+			require.Len(t, resp.Chain, 2)
+		})
+	}
 }

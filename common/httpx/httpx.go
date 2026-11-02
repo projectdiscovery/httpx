@@ -92,6 +92,7 @@ func New(options *Options) (*HTTPX, error) {
 				handleHSTS(redirectedRequest)
 			}
 
+			httpx.keepRedirectResponse(redirectedRequest)
 			return nil
 		}
 	}
@@ -121,6 +122,7 @@ func New(options *Options) (*HTTPX, error) {
 				handleHSTS(redirectedRequest)
 			}
 
+			httpx.keepRedirectResponse(redirectedRequest)
 			return nil
 		}
 	}
@@ -477,7 +479,37 @@ func (h *HTTPX) getResponse(req *retryablehttp.Request, unsafeOptions UnsafeOpti
 	if h.Options.Unsafe {
 		return h.doUnsafeWithOptions(req, unsafeOptions)
 	}
-	return h.client.Do(req)
+	last := &lastRedirect{}
+	req.WithContext(context.WithValue(req.Context(), lastRedirectKey{}, last))
+	resp, err = h.client.Do(req)
+	if err != nil && last.resp != nil {
+		gologger.Debug().Msgf("Could not follow redirect from %s: %s\n", last.resp.Request.URL, err)
+		last.resp.Body = io.NopCloser(bytes.NewReader(last.body))
+		return last.resp, nil
+	}
+	return resp, err
+}
+
+type lastRedirectKey struct{}
+
+// lastRedirect is the last response of a redirect chain followed for a request
+type lastRedirect struct {
+	resp *http.Response
+	body []byte
+}
+
+// keepRedirectResponse keeps the response that redirected to req, so it can be
+// reported if the redirect target cannot be reached. The client closes its
+// body before following, so the body is read first.
+func (h *HTTPX) keepRedirectResponse(req *http.Request) {
+	last, ok := req.Context().Value(lastRedirectKey{}).(*lastRedirect)
+	if !ok || req.Response == nil {
+		return
+	}
+	body, _ := io.ReadAll(io.LimitReader(req.Response.Body, h.Options.MaxResponseBodySizeToRead))
+	_ = req.Response.Body.Close()
+	req.Response.Body = http.NoBody
+	last.resp, last.body = req.Response, body
 }
 
 // doUnsafe does an unsafe http request
