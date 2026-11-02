@@ -219,6 +219,50 @@ func TestRunner_skipsInvalidLines(t *testing.T) {
 	})
 }
 
+// A file saved with a byte order mark, such as UTF-16 written by Windows
+// PowerShell, is decoded before its lines are read.
+func TestRunner_readsInputWithBOM(t *testing.T) {
+	want := []string{"a.example", "b.example"}
+	encodings := map[string][]byte{
+		"utf-16le": {0xff, 0xfe, 'a', 0, '.', 0, 'e', 0, 'x', 0, 'a', 0, 'm', 0, 'p', 0, 'l', 0, 'e', 0, '\r', 0, '\n', 0, 'b', 0, '.', 0, 'e', 0, 'x', 0, 'a', 0, 'm', 0, 'p', 0, 'l', 0, 'e', 0, '\r', 0, '\n', 0},
+		"utf-16be": {0xfe, 0xff, 0, 'a', 0, '.', 0, 'e', 0, 'x', 0, 'a', 0, 'm', 0, 'p', 0, 'l', 0, 'e', 0, '\n', 0, 'b', 0, '.', 0, 'e', 0, 'x', 0, 'a', 0, 'm', 0, 'p', 0, 'l', 0, 'e', 0, '\n'},
+		"utf-8":    append([]byte{0xef, 0xbb, 0xbf}, "a.example\nb.example\n"...),
+	}
+	for name, content := range encodings {
+		file := filepath.Join(t.TempDir(), "targets.txt")
+		require.NoError(t, os.WriteFile(file, content, 0o600))
+
+		t.Run(name+" -l", func(t *testing.T) {
+			r, err := New(&Options{})
+			require.NoError(t, err)
+			defer r.Close()
+			input, err := os.Open(file)
+			require.NoError(t, err)
+
+			count, err := r.loadAndCloseFile(input)
+			require.NoError(t, err)
+			require.Equal(t, len(want), count)
+			for _, key := range want {
+				_, ok := r.hm.Get(key)
+				require.True(t, ok, key)
+			}
+		})
+		t.Run(name+" -stream", func(t *testing.T) {
+			r, err := New(&Options{Stream: true, InputFile: file})
+			require.NoError(t, err)
+			defer r.Close()
+			out, err := r.streamInput()
+			require.NoError(t, err)
+
+			var got []string
+			for item := range out {
+				got = append(got, item)
+			}
+			require.Equal(t, want, got)
+		})
+	}
+}
+
 func TestRunner_skip_pinned(t *testing.T) {
 	r, err := New(&Options{Exclude: []string{"cdn"}})
 	require.NoError(t, err)
