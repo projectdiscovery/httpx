@@ -2180,8 +2180,10 @@ retry:
 					builder.WriteString(aurora.Yellow(strconv.Itoa(statusCode)).String())
 				case statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError:
 					builder.WriteString(aurora.Red(strconv.Itoa(statusCode)).String())
-				case resp.StatusCode > http.StatusInternalServerError:
+				case statusCode >= http.StatusInternalServerError:
 					builder.WriteString(aurora.Bold(aurora.Yellow(strconv.Itoa(statusCode))).String())
+				default:
+					builder.WriteString(strconv.Itoa(statusCode))
 				}
 			} else {
 				builder.WriteString(strconv.Itoa(statusCode))
