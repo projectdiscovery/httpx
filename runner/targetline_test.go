@@ -751,10 +751,6 @@ func probe(t *testing.T, options *Options, inputs ...string) []Result {
 	if options.Timeout == 0 {
 		options.Timeout = 5
 	}
-	if options.MaxResponseBodySizeToRead == 0 {
-		options.MaxResponseBodySizeToRead = int(httpx.DefaultMaxResponseBodySize)
-		options.MaxResponseBodySizeToSave = int(httpx.DefaultMaxResponseBodySize)
-	}
 	options.Methods = http.MethodGet
 	options.InputTargetHost = inputs
 	require.NoError(t, options.ValidateOptions())
@@ -780,4 +776,15 @@ func probe(t *testing.T, options *Options, inputs ...string) []Result {
 	mu.Lock()
 	defer mu.Unlock()
 	return results
+}
+
+func TestProbeDefaultOptionsReadBody(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("<html>body</html>"))
+	}))
+	defer ts.Close()
+
+	results := probe(t, &Options{OutputMatchCondition: `regex("html", body)`}, ts.URL)
+	require.Len(t, results, 1)
+	require.Equal(t, "<html>body</html>", results[0].ResponseBody)
 }

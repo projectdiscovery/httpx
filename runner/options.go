@@ -891,6 +891,14 @@ func (options *Options) ValidateOptions() error {
 		options.Threads = defaultThreads
 	}
 
+	// library callers skip flag defaults; a zero size would read and keep no body
+	if options.MaxResponseBodySizeToRead <= 0 {
+		options.MaxResponseBodySizeToRead = int(httpxcommon.DefaultMaxResponseBodySize)
+	}
+	if options.MaxResponseBodySizeToSave <= 0 {
+		options.MaxResponseBodySizeToSave = int(httpxcommon.DefaultMaxResponseBodySize)
+	}
+
 	return nil
 }
 
