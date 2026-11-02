@@ -482,7 +482,7 @@ func (h *HTTPX) getResponse(req *retryablehttp.Request, unsafeOptions UnsafeOpti
 	last := &lastRedirect{}
 	req.WithContext(context.WithValue(req.Context(), lastRedirectKey{}, last))
 	resp, err = h.client.Do(req)
-	if err != nil && last.resp != nil {
+	if err != nil && last.resp != nil && req.Context().Err() == nil {
 		gologger.Debug().Msgf("Could not follow redirect from %s: %s\n", last.resp.Request.URL, err)
 		last.resp.Body = io.NopCloser(bytes.NewReader(last.body))
 		return last.resp, nil
@@ -506,9 +506,13 @@ func (h *HTTPX) keepRedirectResponse(req *http.Request) {
 	if !ok || req.Response == nil {
 		return
 	}
-	body, _ := io.ReadAll(io.LimitReader(req.Response.Body, h.Options.MaxResponseBodySizeToRead))
+	body, err := io.ReadAll(io.LimitReader(req.Response.Body, h.Options.MaxResponseBodySizeToRead))
 	_ = req.Response.Body.Close()
 	req.Response.Body = http.NoBody
+	if err != nil {
+		last.resp, last.body = nil, nil
+		return
+	}
 	last.resp, last.body = req.Response, body
 }
 

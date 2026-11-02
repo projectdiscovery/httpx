@@ -398,3 +398,31 @@ func TestDo_FollowRedirectsToUnreachableTarget(t *testing.T) {
 		})
 	}
 }
+
+// A canceled request fails even if a redirect response was kept.
+func TestDo_FollowRedirectsCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/start" {
+			http.Redirect(w, r, "/next", http.StatusFound)
+			return
+		}
+		cancel()
+		<-r.Context().Done()
+	}))
+	defer ts.Close()
+
+	options := DefaultOptions
+	options.CdnCheck = "false"
+	options.Timeout = 5 * time.Second
+	options.RetryMax = 0
+	options.FollowRedirects = true
+	options.MaxRedirects = 10
+	ht, err := New(&options)
+	require.NoError(t, err)
+
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/start", nil)
+	require.NoError(t, err)
+	_, err = ht.Do(req, UnsafeOptions{})
+	require.ErrorIs(t, err, context.Canceled)
+}
