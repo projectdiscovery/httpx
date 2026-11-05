@@ -166,48 +166,53 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, header
 	networkRequests := sliceutil.NewSyncSlice[NetworkRequest]()
 	requestsMap := mapsutil.NewSyncLockMap[string, *NetworkRequest]()
 
-	// Intercept outbound requests
-	go page.EachEvent(func(e *proto.NetworkRequestWillBeSent) {
-		if !stringsutil.HasPrefixAnyI(e.Request.URL, "http://", "https://") {
-			return
-		}
-		req := &NetworkRequest{
-			RequestID:  string(e.RequestID),
-			URL:        e.Request.URL,
-			Method:     e.Request.Method,
-			StatusCode: -1,
-			ErrorType:  "QUIT_BEFORE_RESOURCE_LOADING_END",
-		}
-		_ = requestsMap.Set(string(e.RequestID), req)
-	})()
-	// Intercept inbound responses
-	go page.EachEvent(func(e *proto.NetworkResponseReceived) {
-		if requestsMap.Has(string(e.RequestID)) {
-			req, _ := requestsMap.Get(string(e.RequestID))
-			req.StatusCode = e.Response.Status
-		}
-	})()
-	// Intercept network end requests
-	go page.EachEvent(func(e *proto.NetworkLoadingFinished) {
-		if requestsMap.Has(string(e.RequestID)) {
-			req, _ := requestsMap.Get(string(e.RequestID))
-			if req.StatusCode > 0 {
-				req.ErrorType = ""
+	// Track requests from outbound to finished or failed. The handlers share
+	// the *NetworkRequest values, so they are registered in one EachEvent,
+	// which calls them one at a time from a single goroutine.
+	go page.EachEvent(
+		// Intercept outbound requests
+		func(e *proto.NetworkRequestWillBeSent) {
+			if !stringsutil.HasPrefixAnyI(e.Request.URL, "http://", "https://") {
+				return
 			}
-			networkRequests.Append(*req)
-		}
-	})()
-	// Intercept failed request
-	go page.EachEvent(func(e *proto.NetworkLoadingFailed) {
-		if requestsMap.Has(string(e.RequestID)) {
-			req, _ := requestsMap.Get(string(e.RequestID))
-			req.StatusCode = 0 // mark to zero
-			req.ErrorType = getSimpleErrorType(e.ErrorText, string(e.Type), string(e.BlockedReason))
-			if stringsutil.HasPrefixAnyI(req.URL, "http://", "https://") {
+			req := &NetworkRequest{
+				RequestID:  string(e.RequestID),
+				URL:        e.Request.URL,
+				Method:     e.Request.Method,
+				StatusCode: -1,
+				ErrorType:  "QUIT_BEFORE_RESOURCE_LOADING_END",
+			}
+			_ = requestsMap.Set(string(e.RequestID), req)
+		},
+		// Intercept inbound responses
+		func(e *proto.NetworkResponseReceived) {
+			if requestsMap.Has(string(e.RequestID)) {
+				req, _ := requestsMap.Get(string(e.RequestID))
+				req.StatusCode = e.Response.Status
+			}
+		},
+		// Intercept network end requests
+		func(e *proto.NetworkLoadingFinished) {
+			if requestsMap.Has(string(e.RequestID)) {
+				req, _ := requestsMap.Get(string(e.RequestID))
+				if req.StatusCode > 0 {
+					req.ErrorType = ""
+				}
 				networkRequests.Append(*req)
 			}
-		}
-	})()
+		},
+		// Intercept failed request
+		func(e *proto.NetworkLoadingFailed) {
+			if requestsMap.Has(string(e.RequestID)) {
+				req, _ := requestsMap.Get(string(e.RequestID))
+				req.StatusCode = 0 // mark to zero
+				req.ErrorType = getSimpleErrorType(e.ErrorText, string(e.Type), string(e.BlockedReason))
+				if stringsutil.HasPrefixAnyI(req.URL, "http://", "https://") {
+					networkRequests.Append(*req)
+				}
+			}
+		},
+	)()
 
 	// Handle any popup dialogs
 	go page.EachEvent(func(e *proto.PageJavascriptDialogOpening) {
@@ -222,25 +227,25 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, header
 	// Page-wide SetExtraHeaders would send them to every origin.
 	router, err := b.hijackRequests(page, url, parseHeaders(headers))
 	if err != nil {
-		return page, nil, networkRequests.Slice, err
+		return page, nil, snapshot(networkRequests), err
 	}
 
 	page = page.Timeout(timeout)
 
 	if err := page.Navigate(url); err != nil {
-		return page, router, networkRequests.Slice, err
+		return page, router, snapshot(networkRequests), err
 	}
 
 	if len(jsCodes) > 0 {
 		_, err := b.ExecuteJavascriptCodesWithPage(page, jsCodes)
 		if err != nil {
-			return page, router, networkRequests.Slice, err
+			return page, router, snapshot(networkRequests), err
 		}
 	}
 
 	page.Timeout(5 * time.Second).WaitNavigation(proto.PageLifecycleEventNameFirstMeaningfulPaint)()
 
-	return page, router, networkRequests.Slice, nil
+	return page, router, snapshot(networkRequests), nil
 }
 
 // hijackRequests intercepts the page requests. WebSocket connections are not
@@ -484,4 +489,15 @@ func (b *Browser) ExecuteJavascriptCodesWithPage(page *rod.Page, jsc []string) (
 		outputs = append(outputs, output)
 	}
 	return outputs, nil
+}
+
+// snapshot copies the requests collected so far. The event handlers keep
+// appending while the page loads, so the slice must not be read directly.
+func snapshot(requests *sliceutil.SyncSlice[NetworkRequest]) []NetworkRequest {
+	out := make([]NetworkRequest, 0, requests.Len())
+	requests.Each(func(_ int, req NetworkRequest) error {
+		out = append(out, req)
+		return nil
+	})
+	return out
 }
