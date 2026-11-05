@@ -487,3 +487,55 @@ func TestDoSwitchingProtocolsClosesBody(t *testing.T) {
 		require.True(t, body.closed, "101 Switching Protocols body was not closed when MaxResponseBodySizeToRead=%d", maxBody)
 	}
 }
+
+func TestDoExtractCSP(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set("Content-Security-Policy", "default-src 'self' https://cdn.csp.example.com")
+		_, _ = w.Write([]byte(`<html><head>` +
+			`<meta http-equiv="content-security-policy" content="img-src https://img.meta.example.net">` +
+			`<meta http-equiv="refresh" content="0; url=https://refresh.example.io">` +
+			`</head><a href="https://body.example.org">x</a></html>`))
+	}))
+	defer srv.Close()
+
+	do := func(t *testing.T, options Options) *Response {
+		ht, err := New(&options)
+		require.Nil(t, err)
+		t.Cleanup(ht.Dialer.Close)
+		req, err := retryablehttp.NewRequest(http.MethodGet, srv.URL, nil)
+		require.Nil(t, err)
+		resp, err := ht.Do(req, UnsafeOptions{})
+		require.Nil(t, err)
+		return resp
+	}
+
+	t.Run("csp only", func(t *testing.T) {
+		options := DefaultOptions
+		options.ExtractCSP = true
+		resp := do(t, options)
+		require.NotNil(t, resp.CSPData)
+		require.Contains(t, resp.CSPData.Domains, "example.com")
+		require.Contains(t, resp.CSPData.Fqdns, "cdn.csp.example.com")
+		require.Contains(t, resp.CSPData.Fqdns, "img.meta.example.net")
+		require.NotContains(t, resp.CSPData.Domains, "example.io")
+		require.Nil(t, resp.BodyDomains)
+	})
+
+	t.Run("efqdn extracts CSP and body domains", func(t *testing.T) {
+		options := DefaultOptions
+		options.ExtractFqdn = true
+		resp := do(t, options)
+		require.NotNil(t, resp.CSPData)
+		require.Contains(t, resp.CSPData.Fqdns, "cdn.csp.example.com")
+		require.NotNil(t, resp.BodyDomains)
+		require.Contains(t, resp.BodyDomains.Domains, "example.org")
+		require.Contains(t, resp.BodyDomains.Fqdns, "body.example.org")
+	})
+
+	t.Run("nothing extracted by default", func(t *testing.T) {
+		resp := do(t, DefaultOptions)
+		require.Nil(t, resp.CSPData)
+		require.Nil(t, resp.BodyDomains)
+	})
+}

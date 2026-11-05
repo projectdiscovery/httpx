@@ -42,6 +42,8 @@ type Options struct {
 	CdnCheck    string
 	ExcludeCdn  bool
 	ExtractFqdn bool
+	// ExtractCSP extracts the domains of the Content-Security-Policy
+	ExtractCSP bool
 	// Timeout is the maximum time to wait for the request
 	Timeout time.Duration
 	// RetryMax is the maximum number of retries

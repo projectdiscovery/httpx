@@ -496,8 +496,10 @@ get_response:
 		}
 	}
 
-	if h.Options.ExtractFqdn {
+	if h.Options.ExtractFqdn || h.Options.ExtractCSP {
 		resp.CSPData = h.CSPGrab(&resp)
+	}
+	if h.Options.ExtractFqdn {
 		resp.BodyDomains = h.BodyDomainGrab(&resp)
 	}
 

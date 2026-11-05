@@ -45,7 +45,7 @@ func (h *HTTPX) CSPGrab(r *Response) *CSPData {
 		doc, err := goquery.NewDocumentFromReader(bytes.NewReader(r.Data))
 		if err == nil {
 			doc.Find("meta").Each(func(i int, s *goquery.Selection) {
-				if _, ok := s.Attr("http-equiv"); ok {
+				if httpEquiv, ok := s.Attr("http-equiv"); ok && isCSPHeader(httpEquiv) {
 					if content, ok := s.Attr("content"); ok {
 						parsePotentialDomains(fqdns, domains, content)
 					}
@@ -58,6 +58,18 @@ func (h *HTTPX) CSPGrab(r *Response) *CSPData {
 		return &CSPData{Domains: mapsutil.GetKeys(domains), Fqdns: mapsutil.GetKeys(fqdns)}
 	}
 	return nil
+}
+
+// isCSPHeader reports whether name is one of CSPHeaders, ignoring case like
+// http-equiv does. Other http-equiv values, such as refresh, are not a CSP.
+func isCSPHeader(name string) bool {
+	name = strings.TrimSpace(name)
+	for _, cspHeader := range CSPHeaders {
+		if strings.EqualFold(name, cspHeader) {
+			return true
+		}
+	}
+	return false
 }
 
 func parsePotentialDomains(fqdns, domains map[string]struct{}, data string) {
