@@ -230,6 +230,8 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.CdnCheck = options.OutputCDN
 	httpxOptions.ExcludeCdn = runner.excludeCdn
 	httpxOptions.ExtractFqdn = options.ExtractFqdn
+	// -csp-probe probes the domains of the CSP, so it needs them extracted
+	httpxOptions.ExtractCSP = options.CSPProbe
 	if options.CustomHeaders.Has("User-Agent:") {
 		httpxOptions.RandomAgent = false
 	} else {
@@ -1770,15 +1772,7 @@ func (r *Runner) process(line targetLine, wg *syncutil.AdaptiveWaitGroup, hp *ht
 							r.probeTLSNames(result, wg, hp, protocol, scanopts, output)
 						}
 						if scanopts.CSPProbe && result.CSPData != nil {
-							scanopts.CSPProbe = false
-							domains := result.CSPData.Domains
-							domains = append(domains, result.CSPData.Fqdns...)
-							for _, tt := range domains {
-								if !r.testAndSet(tt) {
-									continue
-								}
-								r.process(targetLine{Target: tt}, wg, hp, protocol, scanopts, output)
-							}
+							r.probeCSPDomains(result, wg, hp, protocol, scanopts, output)
 						}
 					}(target, method, prot)
 				}
@@ -1831,6 +1825,22 @@ func (r *Runner) probeTLSNames(result Result, wg *syncutil.AdaptiveWaitGroup, hp
 	for _, name := range names {
 		if r.testAndSet(name) {
 			r.process(targetLine{Target: name}, wg, hp, protocol, scanopts, output)
+		}
+	}
+}
+
+// probeCSPDomains probes the domains of the CSP of result, for -csp-probe.
+// scanopts is shared by every target, so only the copy given to the probes
+// turns -csp-probe off, which stops them from probing their own CSP domains.
+// The copy is a plain struct copy: ScanOptions.Clone leaves out some fields,
+// such as ExcludeCDN and ProbeAllIPS, which the probes still need.
+func (r *Runner) probeCSPDomains(result Result, wg *syncutil.AdaptiveWaitGroup, hp *httpx.HTTPX, protocol string, scanopts *ScanOptions, output chan Result) {
+	probeopts := *scanopts
+	probeopts.CSPProbe = false
+	domains := append(slices.Clone(result.CSPData.Domains), result.CSPData.Fqdns...)
+	for _, domain := range domains {
+		if r.testAndSet(domain) {
+			r.process(targetLine{Target: domain}, wg, hp, protocol, &probeopts, output)
 		}
 	}
 }
