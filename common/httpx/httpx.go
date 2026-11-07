@@ -98,9 +98,8 @@ func New(options *Options) (*HTTPX, error) {
 			}
 
 			// Custom cookies are kept only for the same host (or its subdomains)
-			if isSameHostOrSubdomain(newHost, initialHost) {
-				httpx.setCustomCookies(redirectedRequest)
-			} else {
+			sameScope := isSameHostOrSubdomain(newHost, initialHost)
+			if !sameScope {
 				redirectedRequest.Header.Del("Cookie")
 			}
 
@@ -120,6 +119,12 @@ func New(options *Options) (*HTTPX, error) {
 				for _, strategy := range newStrategies {
 					strategy.Apply(redirectedRequest)
 				}
+			}
+
+			// After the secret cleanup, which removes cookies by name, so a -H
+			// cookie that shares a name with a removed secret cookie comes back
+			if sameScope {
+				httpx.setCustomCookies(redirectedRequest)
 			}
 
 			if options.RespectHSTS {
@@ -664,11 +669,21 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string][]
 	}
 }
 
+// setCustomCookies adds the -H cookies to a redirect hop. On a same-host hop
+// net/http has already copied them, so cookies the request has are skipped.
 func (httpx *HTTPX) setCustomCookies(req *http.Request) {
-	if httpx.Options.hasCustomCookies() {
-		for _, cookie := range httpx.Options.customCookies {
-			req.AddCookie(cookie)
+	if !httpx.Options.hasCustomCookies() {
+		return
+	}
+	present := make(map[string]struct{})
+	for _, cookie := range req.Cookies() {
+		present[cookie.Name] = struct{}{}
+	}
+	for _, cookie := range httpx.Options.customCookies {
+		if _, ok := present[cookie.Name]; ok {
+			continue
 		}
+		req.AddCookie(cookie)
 	}
 }
 
