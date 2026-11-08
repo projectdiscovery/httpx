@@ -34,13 +34,13 @@ require (
 	github.com/projectdiscovery/gologger v1.1.73
 	github.com/projectdiscovery/hmap v0.0.102
 	github.com/projectdiscovery/mapcidr v1.1.97
-	github.com/projectdiscovery/networkpolicy v0.1.56
+	github.com/projectdiscovery/networkpolicy v0.1.58
 	github.com/projectdiscovery/ratelimit v0.0.92
 	github.com/projectdiscovery/rawhttp v0.1.92
 	github.com/projectdiscovery/retryablehttp-go v1.3.31
 	github.com/projectdiscovery/tlsx v1.4.3-0.20261024214833-47f755e7cc69
 	github.com/projectdiscovery/useragent v0.0.109
-	github.com/projectdiscovery/utils v0.11.10-0.20261013234757-73f5497aaf2e
+	github.com/projectdiscovery/utils v0.11.13
 	github.com/projectdiscovery/wappalyzergo v0.3.5
 	github.com/rs/xid v1.6.0
 	github.com/seh-msft/burpxml v1.0.1
