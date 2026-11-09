@@ -1,6 +1,6 @@
 module github.com/projectdiscovery/httpx
 
-go 1.27
+go 1.27.0
 
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
@@ -22,26 +22,26 @@ require (
 	github.com/mfonda/simhash v0.0.0-20151007195837-79f94a1100d6
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/pkg/errors v0.9.1
-	github.com/projectdiscovery/asnmap v1.1.1
+	github.com/projectdiscovery/asnmap v1.2.0
 	github.com/projectdiscovery/awesome-search-queries v0.0.0-20260104120501-961ef30f7193
-	github.com/projectdiscovery/cdncheck v1.3.2
-	github.com/projectdiscovery/clistats v0.1.7
-	github.com/projectdiscovery/dsl v0.8.24
-	github.com/projectdiscovery/fastdialer v0.6.0
-	github.com/projectdiscovery/fdmax v0.0.4
+	github.com/projectdiscovery/cdncheck v1.4.0
+	github.com/projectdiscovery/clistats v0.1.9
+	github.com/projectdiscovery/dsl v0.9.2
+	github.com/projectdiscovery/fastdialer v0.6.2
+	github.com/projectdiscovery/fdmax v0.0.6
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.2.1
-	github.com/projectdiscovery/gologger v1.1.73
-	github.com/projectdiscovery/hmap v0.0.102
+	github.com/projectdiscovery/gologger v1.1.75
+	github.com/projectdiscovery/hmap v0.0.104
 	github.com/projectdiscovery/mapcidr v1.1.97
-	github.com/projectdiscovery/networkpolicy v0.1.56
-	github.com/projectdiscovery/ratelimit v0.0.92
-	github.com/projectdiscovery/rawhttp v0.1.92
-	github.com/projectdiscovery/retryablehttp-go v1.3.31
-	github.com/projectdiscovery/tlsx v1.4.3-0.20261024214833-47f755e7cc69
-	github.com/projectdiscovery/useragent v0.0.109
-	github.com/projectdiscovery/utils v0.11.10-0.20261013234757-73f5497aaf2e
-	github.com/projectdiscovery/wappalyzergo v0.3.5
+	github.com/projectdiscovery/networkpolicy v0.1.57
+	github.com/projectdiscovery/ratelimit v0.0.94
+	github.com/projectdiscovery/rawhttp v0.2.2
+	github.com/projectdiscovery/retryablehttp-go v1.3.34
+	github.com/projectdiscovery/tlsx v1.4.4
+	github.com/projectdiscovery/useragent v0.0.110
+	github.com/projectdiscovery/utils v0.11.12
+	github.com/projectdiscovery/wappalyzergo v0.3.6
 	github.com/rs/xid v1.6.0
 	github.com/seh-msft/burpxml v1.0.1
 	github.com/spaolacci/murmur3 v1.1.0
@@ -60,7 +60,6 @@ require (
 	aead.dev/minisign v0.2.0 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/Masterminds/semver/v3 v3.5.0 // indirect
-	github.com/Mzack9999/go-http-digest-auth-client v0.6.1-0.20220414142836-eb8883508809 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/akrylysov/pogreb v0.10.2 // indirect
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
@@ -123,7 +122,7 @@ require (
 	github.com/projectdiscovery/govaluate v0.0.0-20260504230327-80320480bb6e // indirect
 	github.com/projectdiscovery/jarm-go v0.0.0-20260910160638-430e2bae86f6 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20250715113114-c77eb3567582 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.116 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.118 // indirect
 	github.com/refraction-networking/utls v1.8.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
@@ -151,7 +150,7 @@ require (
 	github.com/ysmood/got v0.40.0 // indirect
 	github.com/ysmood/gson v0.7.3 // indirect
 	github.com/ysmood/leakless v0.9.0 // indirect
-	github.com/yuin/goldmark v1.7.17 // indirect
+	github.com/yuin/goldmark v1.8.6 // indirect
 	github.com/yuin/goldmark-emoji v1.0.3 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zcalusic/sysinfo v1.0.2 // indirect
