@@ -54,24 +54,47 @@ type Browser struct {
 
 // preferSystemBrowser reports whether screenshots must launch an installed
 // browser instead of the Chromium build go-rod downloads.
-func preferSystemBrowser(executablePath string, useLocal bool) bool {
-	if useLocal {
-		return true
-	}
-	muslBinary, _ := fileutil.UseMusl(executablePath)
-	return muslBinary || hostUsesMusl()
+func preferSystemBrowser(useLocal bool) bool {
+	return useLocal || hostUsesMusl()
 }
 
-// hostUsesMusl reports whether this machine's libc is musl. The loader file
-// is present even when the httpx binary is fully static.
+// hostUsesMusl reports whether this machine's own libc is musl.
+// Release binaries are built with CGO_ENABLED=0, so the executable has no
+// libc to inspect. /bin/sh does: Alpine's shell is musl, and Debian's shell
+// stays glibc even when the musl package has installed an ld-musl loader.
+// A static shell falls back to the loaders, and a glibc loader wins so that
+// side-installed musl does not hide go-rod's browser.
 func hostUsesMusl() bool {
-	for _, pattern := range []string{
-		"/lib/ld-musl-*.so*",
-		"/lib/libc.musl-*.so*",
-		"/lib64/ld-musl-*.so*",
-		"/usr/lib/ld-musl-*.so*",
-	} {
-		matches, err := filepath.Glob(pattern)
+	return muslHost("/")
+}
+
+func muslHost(root string) bool {
+	if musl, err := fileutil.UseMusl(filepath.Join(root, "bin/sh")); err == nil && musl {
+		return true
+	}
+	if pathGlobExists(root, glibcLoaderPatterns) {
+		return false
+	}
+	return pathGlobExists(root, muslLoaderPatterns)
+}
+
+var glibcLoaderPatterns = []string{
+	"lib/ld-linux*.so*",
+	"lib64/ld-linux*.so*",
+	"usr/lib/ld-linux*.so*",
+	"usr/lib64/ld-linux*.so*",
+}
+
+var muslLoaderPatterns = []string{
+	"lib/ld-musl-*.so*",
+	"lib/libc.musl-*.so*",
+	"lib64/ld-musl-*.so*",
+	"usr/lib/ld-musl-*.so*",
+}
+
+func pathGlobExists(root string, patterns []string) bool {
+	for _, pattern := range patterns {
+		matches, err := filepath.Glob(filepath.Join(root, pattern))
 		if err == nil && len(matches) > 0 {
 			return true
 		}
@@ -106,15 +129,8 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 		chromeLauncher = chromeLauncher.NoSandbox(true)
 	}
 
-	executablePath, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-
-	// go-rod downloads a glibc Chromium, which cannot run on musl. Release
-	// binaries are built with CGO_ENABLED=0, so the executable itself has no
-	// libc to inspect; the host dynamic linker decides.
-	if preferSystemBrowser(executablePath, useLocal) {
+	// go-rod downloads a glibc Chromium, which cannot run on a musl host.
+	if preferSystemBrowser(useLocal) {
 		if chromePath, hasChrome := launcher.LookPath(); hasChrome {
 			chromeLauncher.Bin(chromePath)
 		} else {

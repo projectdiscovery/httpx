@@ -1,12 +1,14 @@
 package runner
 
 import (
+	"encoding/binary"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"sync"
@@ -234,17 +236,101 @@ func TestScreenshotNetworkPolicySubframesAndWorkers(t *testing.T) {
 }
 
 func TestPreferSystemBrowser(t *testing.T) {
-	require.True(t, preferSystemBrowser("", true))
+	require.True(t, preferSystemBrowser(true))
 
-	got := preferSystemBrowser("", false)
+	got := preferSystemBrowser(false)
 	switch {
 	case pathExists("/etc/alpine-release"):
-		require.True(t, got, "static binary on Alpine did not select the system browser")
+		require.True(t, got, "Alpine did not select the system browser")
 	case pathExists("/etc/debian_version"):
-		require.False(t, got, "static binary on a glibc system selected the system browser")
+		require.False(t, got, "a glibc system selected the system browser")
 	case runtime.GOOS != "linux":
-		require.False(t, got, "static binary on %s selected the system browser", runtime.GOOS)
+		require.False(t, got, "preferSystemBrowser(false) = true on %s", runtime.GOOS)
 	}
+}
+
+func TestMuslHost(t *testing.T) {
+	t.Run("alpine shell", func(t *testing.T) {
+		root := t.TempDir()
+		writeELF(t, filepath.Join(root, "bin/sh"), "libc.musl-x86_64.so.1")
+		touch(t, filepath.Join(root, "lib64/ld-linux-x86-64.so.2"))
+		require.True(t, muslHost(root))
+	})
+
+	t.Run("debian with the musl package", func(t *testing.T) {
+		root := t.TempDir()
+		writeELF(t, filepath.Join(root, "bin/sh"), "libc.so.6")
+		touch(t, filepath.Join(root, "lib/ld-musl-x86_64.so.1"))
+		touch(t, filepath.Join(root, "lib64/ld-linux-x86-64.so.2"))
+		require.False(t, muslHost(root))
+	})
+
+	t.Run("static shell on alpine", func(t *testing.T) {
+		root := t.TempDir()
+		touch(t, filepath.Join(root, "bin/sh"))
+		touch(t, filepath.Join(root, "lib/ld-musl-aarch64.so.1"))
+		require.True(t, muslHost(root))
+	})
+
+	t.Run("glibc only", func(t *testing.T) {
+		root := t.TempDir()
+		writeELF(t, filepath.Join(root, "bin/sh"), "libc.so.6")
+		touch(t, filepath.Join(root, "lib64/ld-linux-x86-64.so.2"))
+		require.False(t, muslHost(root))
+	})
+
+	t.Run("empty", func(t *testing.T) {
+		require.False(t, muslHost(t.TempDir()))
+	})
+}
+
+func touch(t *testing.T, path string) {
+	t.Helper()
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+	require.NoError(t, os.WriteFile(path, nil, 0o755))
+}
+
+// writeELF writes an ELF whose only dynamic dependency is lib, which is
+// enough for fileutil.UseMusl to classify the file.
+func writeELF(t *testing.T, path, lib string) {
+	t.Helper()
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+	require.NoError(t, os.WriteFile(path, elf64WithNeeded(lib), 0o755))
+}
+
+func elf64WithNeeded(lib string) []byte {
+	dynstr := append(append([]byte{0}, lib...), 0)
+	const ehSize = 64
+	const shSize = 64
+	dynstrOff := ehSize
+	dynOff := (dynstrOff + len(dynstr) + 7) &^ 7
+	const dynSize = 32
+	shOff := (dynOff + dynSize + 7) &^ 7
+	const shNum = 3
+
+	b := make([]byte, shOff+shNum*shSize)
+	copy(b, []byte{0x7f, 'E', 'L', 'F', 2, 1, 1})
+	binary.LittleEndian.PutUint16(b[16:], 3)  // ET_DYN
+	binary.LittleEndian.PutUint16(b[18:], 62) // EM_X86_64
+	binary.LittleEndian.PutUint32(b[20:], 1)
+	binary.LittleEndian.PutUint64(b[40:], uint64(shOff))
+	binary.LittleEndian.PutUint16(b[52:], ehSize)
+	binary.LittleEndian.PutUint16(b[58:], shSize)
+	binary.LittleEndian.PutUint16(b[60:], shNum)
+	copy(b[dynstrOff:], dynstr)
+	binary.LittleEndian.PutUint64(b[dynOff:], 1) // DT_NEEDED
+	binary.LittleEndian.PutUint64(b[dynOff+8:], 1)
+
+	sh := func(i int) int { return shOff + i*shSize }
+	binary.LittleEndian.PutUint32(b[sh(1)+4:], 3) // SHT_STRTAB
+	binary.LittleEndian.PutUint64(b[sh(1)+24:], uint64(dynstrOff))
+	binary.LittleEndian.PutUint64(b[sh(1)+32:], uint64(len(dynstr)))
+	binary.LittleEndian.PutUint32(b[sh(2)+4:], 6) // SHT_DYNAMIC
+	binary.LittleEndian.PutUint64(b[sh(2)+24:], uint64(dynOff))
+	binary.LittleEndian.PutUint64(b[sh(2)+32:], dynSize)
+	binary.LittleEndian.PutUint32(b[sh(2)+40:], 1) // sh_link
+	binary.LittleEndian.PutUint64(b[sh(2)+56:], 16)
+	return b
 }
 
 func pathExists(path string) bool {
