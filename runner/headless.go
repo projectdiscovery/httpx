@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -51,6 +52,33 @@ type Browser struct {
 	// pids    map[int32]struct{}
 }
 
+// preferSystemBrowser reports whether screenshots must launch an installed
+// browser instead of the Chromium build go-rod downloads.
+func preferSystemBrowser(executablePath string, useLocal bool) bool {
+	if useLocal {
+		return true
+	}
+	muslBinary, _ := fileutil.UseMusl(executablePath)
+	return muslBinary || hostUsesMusl()
+}
+
+// hostUsesMusl reports whether this machine's libc is musl. The loader file
+// is present even when the httpx binary is fully static.
+func hostUsesMusl() bool {
+	for _, pattern := range []string{
+		"/lib/ld-musl-*.so*",
+		"/lib/libc.musl-*.so*",
+		"/lib64/ld-musl-*.so*",
+		"/usr/lib/ld-musl-*.so*",
+	} {
+		matches, err := filepath.Glob(pattern)
+		if err == nil && len(matches) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*Browser, error) {
 	dataStore, err := os.MkdirTemp("", "nuclei-*")
 	if err != nil {
@@ -83,9 +111,10 @@ func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*B
 		return nil, err
 	}
 
-	// if musl is used, most likely we are on alpine linux which is not supported by go-rod, so we fallback to default chrome
-	useMusl, _ := fileutil.UseMusl(executablePath)
-	if useLocal || useMusl {
+	// go-rod downloads a glibc Chromium, which cannot run on musl. Release
+	// binaries are built with CGO_ENABLED=0, so the executable itself has no
+	// libc to inspect; the host dynamic linker decides.
+	if preferSystemBrowser(executablePath, useLocal) {
 		if chromePath, hasChrome := launcher.LookPath(); hasChrome {
 			chromeLauncher.Bin(chromePath)
 		} else {

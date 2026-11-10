@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"runtime"
 	"strconv"
 	"sync"
 	"testing"
@@ -229,4 +231,23 @@ func TestScreenshotNetworkPolicySubframesAndWorkers(t *testing.T) {
 	for _, r := range denied.all() {
 		t.Errorf("the browser reached a host the network policy denies: %s", r.URL.Path)
 	}
+}
+
+func TestPreferSystemBrowser(t *testing.T) {
+	require.True(t, preferSystemBrowser("", true))
+
+	got := preferSystemBrowser("", false)
+	switch {
+	case pathExists("/etc/alpine-release"):
+		require.True(t, got, "static binary on Alpine did not select the system browser")
+	case pathExists("/etc/debian_version"):
+		require.False(t, got, "static binary on a glibc system selected the system browser")
+	case runtime.GOOS != "linux":
+		require.False(t, got, "static binary on %s selected the system browser", runtime.GOOS)
+	}
+}
+
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
