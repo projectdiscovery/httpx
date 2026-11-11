@@ -23,6 +23,19 @@ func TestSetRangeMergesProtocolPerPort(t *testing.T) {
 	}, Ports)
 }
 
+func TestSetPreservesHTTPandHTTPS(t *testing.T) {
+	Ports = make(map[int]string)
+	t.Cleanup(func() { Ports = make(map[int]string) })
+
+	var ports CustomPorts
+	require.NoError(t, ports.Set("http:8080-8081,https:8081,https:8080-8081"))
+
+	require.Equal(t, map[int]string{
+		8080: httpx.HTTPandHTTPS,
+		8081: httpx.HTTPandHTTPS,
+	}, Ports)
+}
+
 func TestSetRangeReportsLastPort(t *testing.T) {
 	Ports = make(map[int]string)
 	t.Cleanup(func() { Ports = make(map[int]string) })
