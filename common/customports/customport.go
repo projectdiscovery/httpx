@@ -80,7 +80,7 @@ func (c *CustomPorts) Set(value string) error {
 				return errors.Wrap(err, fmt.Sprintf("could not cast last port of your port range(%s) to integer from your value: %s", potentialPort, potentialRange[1]))
 			}
 			if err := checkPortValue(highP); err != nil {
-				return errors.Wrap(err, fmt.Sprintf("last port of your range(%d)", lowP))
+				return errors.Wrap(err, fmt.Sprintf("last port of your range(%d)", highP))
 			}
 
 			if lowP > highP {
@@ -88,12 +88,13 @@ func (c *CustomPorts) Set(value string) error {
 			}
 
 			for i := lowP; i <= highP; i++ {
+				portProtocol := protocol
 				if existingProtocol, ok := Ports[i]; ok {
 					if existingProtocol == httpx.HTTP && protocol == httpx.HTTPS || existingProtocol == httpx.HTTPS && protocol == httpx.HTTP {
-						protocol = httpx.HTTPandHTTPS
+						portProtocol = httpx.HTTPandHTTPS
 					}
 				}
-				Ports[i] = protocol
+				Ports[i] = portProtocol
 			}
 		}
 	}
