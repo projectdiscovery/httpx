@@ -60,12 +60,7 @@ func (c *CustomPorts) Set(value string) error {
 			if err := checkPortValue(p); err != nil {
 				return err
 			}
-			if existingProtocol, ok := Ports[p]; ok {
-				if existingProtocol == httpx.HTTP && protocol == httpx.HTTPS || existingProtocol == httpx.HTTPS && protocol == httpx.HTTP {
-					protocol = httpx.HTTPandHTTPS
-				}
-			}
-			Ports[p] = protocol
+			Ports[p] = mergeProtocols(Ports[p], protocol)
 		} else {
 			// expand range
 			lowP, err := strconv.Atoi(potentialRange[0])
@@ -80,7 +75,7 @@ func (c *CustomPorts) Set(value string) error {
 				return errors.Wrap(err, fmt.Sprintf("could not cast last port of your port range(%s) to integer from your value: %s", potentialPort, potentialRange[1]))
 			}
 			if err := checkPortValue(highP); err != nil {
-				return errors.Wrap(err, fmt.Sprintf("last port of your range(%d)", lowP))
+				return errors.Wrap(err, fmt.Sprintf("last port of your range(%d)", highP))
 			}
 
 			if lowP > highP {
@@ -88,12 +83,7 @@ func (c *CustomPorts) Set(value string) error {
 			}
 
 			for i := lowP; i <= highP; i++ {
-				if existingProtocol, ok := Ports[i]; ok {
-					if existingProtocol == httpx.HTTP && protocol == httpx.HTTPS || existingProtocol == httpx.HTTPS && protocol == httpx.HTTP {
-						protocol = httpx.HTTPandHTTPS
-					}
-				}
-				Ports[i] = protocol
+				Ports[i] = mergeProtocols(Ports[i], protocol)
 			}
 		}
 	}
@@ -107,4 +97,13 @@ func checkPortValue(port int) error {
 		return errors.New("port value is bigger than 65535")
 	}
 	return nil
+}
+
+func mergeProtocols(existing, incoming string) string {
+	if existing == httpx.HTTPandHTTPS || incoming == httpx.HTTPandHTTPS ||
+		(existing == httpx.HTTP && incoming == httpx.HTTPS) ||
+		(existing == httpx.HTTPS && incoming == httpx.HTTP) {
+		return httpx.HTTPandHTTPS
+	}
+	return incoming
 }
