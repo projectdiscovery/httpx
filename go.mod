@@ -1,6 +1,6 @@
 module github.com/projectdiscovery/httpx
 
-go 1.27
+go 1.27.4
 
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
@@ -9,7 +9,6 @@ require (
 	github.com/dop251/goja v0.0.0-20260311135729-065cd970411c
 	github.com/dustin/go-humanize v1.1.0
 	github.com/go-faker/faker/v4 v4.12.0
-	github.com/go-rod/rod v0.116.2
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1
@@ -38,6 +37,7 @@ require (
 	github.com/projectdiscovery/ratelimit v0.0.92
 	github.com/projectdiscovery/rawhttp v0.1.92
 	github.com/projectdiscovery/retryablehttp-go v1.3.31
+	github.com/projectdiscovery/rod v0.116.3-0.20261113131459-cf8f6e3b8a54
 	github.com/projectdiscovery/tlsx v1.4.3-0.20261024214833-47f755e7cc69
 	github.com/projectdiscovery/useragent v0.0.109
 	github.com/projectdiscovery/utils v0.11.10-0.20261013234757-73f5497aaf2e
@@ -146,11 +146,7 @@ require (
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
-	github.com/ysmood/fetchup v0.2.3 // indirect
-	github.com/ysmood/goob v0.4.0 // indirect
-	github.com/ysmood/got v0.40.0 // indirect
 	github.com/ysmood/gson v0.7.3 // indirect
-	github.com/ysmood/leakless v0.9.0 // indirect
 	github.com/yuin/goldmark v1.7.17 // indirect
 	github.com/yuin/goldmark-emoji v1.0.3 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
