@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-rod/rod/lib/launcher"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/networkpolicy"
+	"github.com/projectdiscovery/rod/lib/launcher"
 	"github.com/stretchr/testify/require"
 )
 
