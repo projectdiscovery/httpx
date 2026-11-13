@@ -37,7 +37,7 @@ require (
 	github.com/projectdiscovery/ratelimit v0.0.92
 	github.com/projectdiscovery/rawhttp v0.1.92
 	github.com/projectdiscovery/retryablehttp-go v1.3.31
-	github.com/projectdiscovery/rod v0.116.3-0.20261113150229-d775599ff53d
+	github.com/projectdiscovery/rod v0.116.3-0.20261113162100-f88159f348b0
 	github.com/projectdiscovery/tlsx v1.4.3-0.20261024214833-47f755e7cc69
 	github.com/projectdiscovery/useragent v0.0.109
 	github.com/projectdiscovery/utils v0.11.10-0.20261013234757-73f5497aaf2e
