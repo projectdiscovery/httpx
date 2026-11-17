@@ -576,6 +576,16 @@ func (r *Runner) prepareInputPaths() {
 
 var duplicateTargetErr = errors.New("duplicate target")
 
+// readsStdin reports whether targets are read from stdin. It is skipped when
+// -u or -l give the targets: a non-tty stdin that is never closed (ssh without
+// a tty, an inherited subprocess pipe) would block before probing starts.
+func (r *Runner) readsStdin() bool {
+	return !r.options.DisableStdin &&
+		len(r.options.InputTargetHost) == 0 &&
+		r.options.InputFile == "" &&
+		fileutil.HasStdin()
+}
+
 func (r *Runner) prepareInput() {
 	var numHosts int
 	// check if input target host(s) have been provided
@@ -634,7 +644,7 @@ func (r *Runner) prepareInput() {
 			numHosts += numTargetsFile
 		}
 	}
-	if !r.options.DisableStdin && fileutil.HasStdin() {
+	if r.readsStdin() {
 		numTargetsStdin, err := r.loadAndCloseFile(os.Stdin)
 		if err != nil {
 			gologger.Fatal().Msgf("Could not read input from stdin: %s\n", err)
@@ -819,7 +829,7 @@ func (r *Runner) streamInput() (chan string, error) {
 				}
 			}
 		}
-		if fileutil.HasStdin() {
+		if r.readsStdin() {
 			for item, err := range fileutil.LinesReader(decodeInput(os.Stdin)) {
 				if err != nil || !sendLine(item) {
 					return
