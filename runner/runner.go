@@ -780,6 +780,12 @@ func (r *Runner) streamInput() (chan string, error) {
 			return true
 		}
 
+		for _, item := range r.options.InputTargetHost {
+			if !sendLine(item) {
+				return
+			}
+		}
+
 		if fileutil.FileExists(r.options.InputFile) {
 			// check if input mode is specified for special format handling
 			if format := r.getInputFormat(); format != nil {
