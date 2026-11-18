@@ -88,8 +88,13 @@ func formatMarkdownValue(v reflect.Value) string {
 }
 
 func escapeMarkdown(s string) string {
+	// Escape backslashes as well as pipes so a literal "\|" keeps its backslash,
+	// and flatten every line ending so one result stays on one table row.
 	replacer := strings.NewReplacer(
+		"\\", "\\\\",
 		"|", "\\|",
+		"\r\n", " ",
+		"\r", " ",
 		"\n", " ",
 	)
 	return strings.TrimSpace(replacer.Replace(s))
