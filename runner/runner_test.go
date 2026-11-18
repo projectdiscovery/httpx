@@ -300,6 +300,37 @@ func TestRunner_urlWithComma_targets(t *testing.T) {
 	require.ElementsMatch(t, expected, got, "could not expected output")
 }
 
+func TestRunner_streamInput_targetHosts(t *testing.T) {
+	// A non-tty stdin would be read and could block, so point it at /dev/null.
+	devNull, err := os.Open(os.DevNull)
+	require.NoError(t, err)
+	stdin := os.Stdin
+	os.Stdin = devNull
+	t.Cleanup(func() {
+		os.Stdin = stdin
+		_ = devNull.Close()
+	})
+
+	file := filepath.Join(t.TempDir(), "targets.txt")
+	require.NoError(t, os.WriteFile(file, []byte("b.example\na.example\n"), 0o600))
+
+	r, err := New(&Options{
+		Stream:          true,
+		InputTargetHost: []string{"a.example", " ", "a.example"},
+		InputFile:       file,
+	})
+	require.NoError(t, err)
+	defer r.Close()
+
+	out, err := r.streamInput()
+	require.NoError(t, err)
+	var got []string
+	for item := range out {
+		got = append(got, item)
+	}
+	require.Equal(t, []string{"a.example", "b.example"}, got, "-u targets are streamed first and deduped with -l")
+}
+
 func TestRunner_CSVRow(t *testing.T) {
 	// Create a result with fields that would be vulnerable to CSV injection
 	result := Result{
