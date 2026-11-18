@@ -25,23 +25,23 @@ require (
 	github.com/projectdiscovery/asnmap v1.2.0
 	github.com/projectdiscovery/awesome-search-queries v0.0.0-20260104120501-961ef30f7193
 	github.com/projectdiscovery/cdncheck v1.4.0
-	github.com/projectdiscovery/clistats v0.1.9
-	github.com/projectdiscovery/dsl v0.9.2
-	github.com/projectdiscovery/fastdialer v0.6.2
+	github.com/projectdiscovery/clistats v0.1.10
+	github.com/projectdiscovery/dsl v0.9.3
+	github.com/projectdiscovery/fastdialer v0.6.3
 	github.com/projectdiscovery/fdmax v0.0.6
 	github.com/projectdiscovery/goconfig v0.0.1
 	github.com/projectdiscovery/goflags v0.2.1
-	github.com/projectdiscovery/gologger v1.1.75
-	github.com/projectdiscovery/hmap v0.0.104
+	github.com/projectdiscovery/gologger v1.1.76
+	github.com/projectdiscovery/hmap v0.0.105
 	github.com/projectdiscovery/mapcidr v1.1.97
-	github.com/projectdiscovery/networkpolicy v0.1.57
-	github.com/projectdiscovery/ratelimit v0.0.94
-	github.com/projectdiscovery/rawhttp v0.3.0
-	github.com/projectdiscovery/retryablehttp-go v1.3.34
+	github.com/projectdiscovery/networkpolicy v0.1.58
+	github.com/projectdiscovery/ratelimit v0.0.95
+	github.com/projectdiscovery/rawhttp v0.3.1
+	github.com/projectdiscovery/retryablehttp-go v1.3.35
 	github.com/projectdiscovery/tlsx v1.4.3-0.20261024214833-47f755e7cc69
 	github.com/projectdiscovery/useragent v0.0.110
-	github.com/projectdiscovery/utils v0.11.12
-	github.com/projectdiscovery/wappalyzergo v0.3.6
+	github.com/projectdiscovery/utils v0.11.13
+	github.com/projectdiscovery/wappalyzergo v0.3.8
 	github.com/rs/xid v1.6.0
 	github.com/seh-msft/burpxml v1.0.1
 	github.com/spaolacci/murmur3 v1.1.0
@@ -117,7 +117,7 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/projectdiscovery/blackrock v0.0.2 // indirect
-	github.com/projectdiscovery/freeport v0.0.7 // indirect
+	github.com/projectdiscovery/freeport v0.0.8 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/govaluate v0.0.0-20260504230327-80320480bb6e // indirect
 	github.com/projectdiscovery/jarm-go v0.0.0-20260910160638-430e2bae86f6 // indirect
