@@ -1,6 +1,6 @@
 module github.com/projectdiscovery/httpx
 
-go 1.27.0
+go 1.27.3
 
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
@@ -38,7 +38,7 @@ require (
 	github.com/projectdiscovery/ratelimit v0.0.95
 	github.com/projectdiscovery/rawhttp v0.3.1
 	github.com/projectdiscovery/retryablehttp-go v1.3.35
-	github.com/projectdiscovery/tlsx v1.4.3-0.20261024214833-47f755e7cc69
+	github.com/projectdiscovery/tlsx v1.5.0
 	github.com/projectdiscovery/useragent v0.0.110
 	github.com/projectdiscovery/utils v0.11.13
 	github.com/projectdiscovery/wappalyzergo v0.3.8
