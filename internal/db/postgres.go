@@ -154,7 +154,10 @@ func (p *postgresDatabase) EnsureSchema(ctx context.Context) error {
 			trace JSONB,
 
 			-- CPE (Common Platform Enumeration)
-			cpe JSONB
+			cpe JSONB,
+
+			-- WordPress plugins and themes
+			wordpress JSONB
 		);
 
 		-- Back-compat for databases whose schema was created before CPE support.
@@ -165,6 +168,7 @@ func (p *postgresDatabase) EnsureSchema(ctx context.Context) error {
 		-- changes accumulate.
 		ALTER TABLE %s ADD COLUMN IF NOT EXISTS cpe JSONB;
 		ALTER TABLE %s ADD COLUMN IF NOT EXISTS generator TEXT;
+		ALTER TABLE %s ADD COLUMN IF NOT EXISTS wordpress JSONB;
 
 		CREATE INDEX IF NOT EXISTS %s ON %s(timestamp DESC);
 		CREATE INDEX IF NOT EXISTS %s ON %s(url);
@@ -172,6 +176,7 @@ func (p *postgresDatabase) EnsureSchema(ctx context.Context) error {
 		CREATE INDEX IF NOT EXISTS %s ON %s(status_code);
 		CREATE INDEX IF NOT EXISTS %s ON %s USING GIN(tech);
 	`,
+		tableName,
 		tableName,
 		tableName,
 		tableName,
@@ -217,7 +222,7 @@ func (p *postgresDatabase) InsertBatch(ctx context.Context, results []runner.Res
 			chain, chain_status_codes,
 			headless_body, screenshot_bytes, screenshot_path, screenshot_path_rel, stored_response_path,
 			knowledgebase, link_request, trace,
-			cpe
+			cpe, wordpress
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9,
 			$10, $11, $12, $13, $14, $15, $16,
@@ -230,7 +235,7 @@ func (p *postgresDatabase) InsertBatch(ctx context.Context, results []runner.Res
 			$54, $55,
 			$56, $57, $58, $59, $60,
 			$61, $62, $63,
-			$64
+			$64, $65
 		)`, tableName)
 
 	stmt, err := tx.PrepareContext(ctx, query)
@@ -253,6 +258,7 @@ func (p *postgresDatabase) InsertBatch(ctx context.Context, results []runner.Res
 		linkReqJSON, _ := json.Marshal(r.LinkRequest)
 		traceJSON, _ := json.Marshal(r.Trace)
 		cpeJSON, _ := json.Marshal(r.CPE)
+		wordpressJSON, _ := json.Marshal(r.WordPress)
 
 		_, err = stmt.ExecContext(ctx,
 			r.Timestamp, r.URL, r.Input, r.Host, r.Port, r.Scheme, r.Path, r.Method, r.FinalURL,
@@ -266,7 +272,7 @@ func (p *postgresDatabase) InsertBatch(ctx context.Context, results []runner.Res
 			chainJSON, pq.Array(r.ChainStatusCodes),
 			r.HeadlessBody, r.ScreenshotBytes, r.ScreenshotPath, r.ScreenshotPathRel, r.StoredResponsePath,
 			kbJSON, linkReqJSON, traceJSON,
-			cpeJSON,
+			cpeJSON, wordpressJSON,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert result: %w", err)
