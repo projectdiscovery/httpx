@@ -49,6 +49,26 @@ var (
 	TeamIDEnv  = env.GetEnvOrDefault("PDCP_TEAM_ID", "")
 )
 
+// patternTrimCutset mirrors the quotes goflags strips from a slice value.
+var patternTrimCutset = string([]byte{'"', '\'', '`'})
+
+// normalizedPatternStringSliceOptions keeps the comma tokenization, quote
+// trimming and whitespace handling of the goflags option set it replaces, but
+// leaves the value itself intact. -ms and -fs compare literal strings, so
+// stripping a `#` comment truncated every pattern that held a `#`.
+var normalizedPatternStringSliceOptions = goflags.Options{
+	IsEmpty:   func(value string) bool { return strings.TrimSpace(value) == "" },
+	Normalize: normalizePattern,
+}
+
+func normalizePattern(value string) string {
+	return stringsutil.NormalizeWithOptions(value, stringsutil.NormalizeOptions{
+		TrimCutset: patternTrimCutset,
+		TrimSpaces: true,
+		Lowercase:  true,
+	})
+}
+
 // OnResultCallback (hostResult)
 type OnResultCallback func(Result)
 
@@ -449,7 +469,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "match response body with specified line count (-mlc 423,532)"),
 		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-word-count", "mwc", "", "match response body with specified word count (-mwc 43,55)"),
 		flagSet.StringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", nil, "match response with specified favicon hash (-mfc 1494302000)", goflags.NormalizedStringSliceOptions),
-		flagSet.StringSliceVarP(&options.OutputMatchString, "match-string", "ms", nil, "match response with specified string (-ms admin)", goflags.NormalizedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.OutputMatchString, "match-string", "ms", nil, "match response with specified string (-ms admin)", normalizedPatternStringSliceOptions),
 		flagSet.StringSliceVarP(&options.OutputMatchRegex, "match-regex", "mr", nil, "match response with specified regex (-mr admin)", goflags.StringSliceOptions),
 		flagSet.StringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", nil, fmt.Sprintf("match host with specified cdn provider (%s)", cdncheck.DefaultCDNProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputMatchResponseTime, "match-response-time", "mrt", "", "match response with specified response time in seconds (-mrt '< 1')"),
@@ -470,7 +490,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "filter response body with specified line count (-flc 423,532)"),
 		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-word-count", "fwc", "", "filter response body with specified word count (-fwc 423,532)"),
 		flagSet.StringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", nil, "filter response with specified favicon hash (-ffc 1494302000)", goflags.NormalizedStringSliceOptions),
-		flagSet.StringSliceVarP(&options.OutputFilterString, "filter-string", "fs", nil, "filter response with specified string (-fs admin)", goflags.NormalizedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.OutputFilterString, "filter-string", "fs", nil, "filter response with specified string (-fs admin)", normalizedPatternStringSliceOptions),
 		flagSet.StringSliceVarP(&options.OutputFilterRegex, "filter-regex", "fe", nil, "filter response with specified regex (-fe admin)", goflags.StringSliceOptions),
 		flagSet.StringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", nil, fmt.Sprintf("filter host with specified cdn provider (%s)", cdncheck.DefaultCDNProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
