@@ -1,9 +1,12 @@
 package runner
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 func (r Result) MarkdownHeader() string { //nolint
@@ -74,17 +77,33 @@ func formatMarkdownValue(v reflect.Value) string {
 		if v.Len() == 0 {
 			return ""
 		}
-		var items []string
-		for i := 0; i < v.Len(); i++ {
-			items = append(items, fmt.Sprintf("%v", v.Index(i).Interface()))
+		if b, ok := v.Interface().([]byte); ok {
+			return base64.StdEncoding.EncodeToString(b)
 		}
-		return escapeMarkdown(strings.Join(items, ", "))
-	default:
-		if v.CanInterface() {
-			return escapeMarkdown(fmt.Sprintf("%v", v.Interface()))
+		if k := v.Type().Elem().Kind(); k == reflect.String || k == reflect.Int {
+			var items []string
+			for i := 0; i < v.Len(); i++ {
+				items = append(items, fmt.Sprintf("%v", v.Index(i).Interface()))
+			}
+			return escapeMarkdown(strings.Join(items, ", "))
 		}
+	case reflect.Pointer:
+		if v.IsNil() {
+			return ""
+		}
+	}
+	if !v.CanInterface() {
 		return ""
 	}
+	if t, ok := v.Interface().(time.Time); ok {
+		return t.Format(time.RFC3339Nano)
+	}
+	// Structured values render as in the JSON output; %v would print Go syntax.
+	b, err := json.Marshal(v.Interface())
+	if err != nil {
+		return ""
+	}
+	return escapeMarkdown(string(b))
 }
 
 func escapeMarkdown(s string) string {
