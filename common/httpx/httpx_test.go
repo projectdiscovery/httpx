@@ -539,3 +539,12 @@ func TestDoExtractCSP(t *testing.T) {
 		require.Nil(t, resp.BodyDomains)
 	})
 }
+
+// Browsers no longer send Accept-Charset and some WAFs block it (discussion #2242).
+func TestNewRequestOmitsAcceptCharset(t *testing.T) {
+	h := &HTTPX{Options: &Options{DefaultUserAgent: "httpx"}}
+	req, err := h.NewRequest(http.MethodGet, "https://example.com")
+	require.NoError(t, err)
+	require.NotContains(t, req.Header, "Accept-Charset")
+	require.Equal(t, "httpx", req.Header.Get("User-Agent"))
+}

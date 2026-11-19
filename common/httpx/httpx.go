@@ -619,10 +619,7 @@ func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL str
 	}
 	// Skip if unsafe is used
 	if !h.Options.Unsafe {
-		// set default user agent
 		req.Header.Set("User-Agent", h.Options.DefaultUserAgent)
-		// set default encoding to accept utf8
-		req.Header.Add("Accept-Charset", "utf-8")
 	}
 	return
 }
