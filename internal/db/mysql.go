@@ -155,6 +155,9 @@ func (m *mysqlDatabase) EnsureSchema(ctx context.Context) error {
 			-- CPE (Common Platform Enumeration)
 			cpe JSON,
 
+			-- WordPress plugins and themes
+			wordpress JSON,
+
 			INDEX idx_timestamp (timestamp),
 			INDEX idx_url (url(255)),
 			INDEX idx_host (host),
@@ -177,6 +180,9 @@ func (m *mysqlDatabase) EnsureSchema(ctx context.Context) error {
 	}
 	if err := m.ensureColumn(ctx, "generator", "TEXT"); err != nil {
 		return fmt.Errorf("failed to ensure generator column: %w", err)
+	}
+	if err := m.ensureColumn(ctx, "wordpress", "JSON"); err != nil {
+		return fmt.Errorf("failed to ensure wordpress column: %w", err)
 	}
 
 	return nil
@@ -230,7 +236,7 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 			chain, chain_status_codes,
 			headless_body, screenshot_bytes, screenshot_path, screenshot_path_rel, stored_response_path,
 			knowledgebase, link_request, trace,
-			cpe
+			cpe, wordpress
 		) VALUES (
 			?, ?, ?, ?, ?, ?, ?, ?, ?,
 			?, ?, ?, ?, ?, ?, ?,
@@ -243,7 +249,7 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 			?, ?,
 			?, ?, ?, ?, ?,
 			?, ?, ?,
-			?
+			?, ?
 		)`, tableName)
 
 	stmt, err := tx.PrepareContext(ctx, query)
@@ -275,6 +281,7 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 		linkReqJSON, _ := json.Marshal(r.LinkRequest)
 		traceJSON, _ := json.Marshal(r.Trace)
 		cpeJSON, _ := json.Marshal(r.CPE)
+		wordpressJSON, _ := json.Marshal(r.WordPress)
 
 		_, err = stmt.ExecContext(ctx,
 			r.Timestamp, r.URL, r.Input, r.Host, r.Port, r.Scheme, r.Path, r.Method, r.FinalURL,
@@ -288,7 +295,7 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 			chainJSON, chainStatusJSON,
 			r.HeadlessBody, r.ScreenshotBytes, r.ScreenshotPath, r.ScreenshotPathRel, r.StoredResponsePath,
 			kbJSON, linkReqJSON, traceJSON,
-			cpeJSON,
+			cpeJSON, wordpressJSON,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert result: %w", err)
