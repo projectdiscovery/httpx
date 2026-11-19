@@ -2,6 +2,8 @@ module github.com/projectdiscovery/httpx
 
 go 1.27.3
 
+toolchain go1.27.4
+
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
 	github.com/PuerkitoBio/goquery v1.13.0
