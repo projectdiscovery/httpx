@@ -1,8 +1,10 @@
 package runner
 
 import (
+	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -61,4 +63,28 @@ func countMarkdownCells(line string) int {
 		}
 	}
 	return cells
+}
+
+// Structured values must render like the JSON output, not as Go's %v dump.
+func TestFormatMarkdownValue(t *testing.T) {
+	ts := time.Date(2026, 11, 19, 18, 16, 24, 700533000, time.UTC)
+	tests := []struct {
+		name string
+		in   any
+		want string
+	}{
+		{name: "strings", in: []string{"a", "b"}, want: "a, b"},
+		{name: "ints", in: []int{301, 200}, want: "301, 200"},
+		{name: "empty slice", in: []CPEInfo{}, want: ""},
+		{name: "nil pointer", in: (*WordPressInfo)(nil), want: ""},
+		{name: "pointer to struct", in: &WordPressInfo{Plugins: []string{"akismet"}}, want: `{"plugins":["akismet"]}`},
+		{name: "slice of structs", in: []CPEInfo{{Product: "grafana", Vendor: "grafana"}}, want: `[{"product":"grafana","vendor":"grafana"}]`},
+		{name: "bytes", in: []byte("png"), want: "cG5n"},
+		{name: "time", in: ts, want: "2026-11-19T18:16:24.700533Z"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, formatMarkdownValue(reflect.ValueOf(tt.in)))
+		})
+	}
 }
