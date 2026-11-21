@@ -40,7 +40,7 @@ require (
 	github.com/projectdiscovery/rod v0.116.3-0.20261113214723-dd0abeca2a24
 	github.com/projectdiscovery/tlsx v1.5.0
 	github.com/projectdiscovery/useragent v0.0.110
-	github.com/projectdiscovery/utils v0.11.13
+	github.com/projectdiscovery/utils v0.11.16-0.20261121174127-8c4aad4f7a3a
 	github.com/projectdiscovery/wappalyzergo v0.3.8
 	github.com/rs/xid v1.6.0
 	github.com/seh-msft/burpxml v1.0.1
@@ -122,7 +122,7 @@ require (
 	github.com/projectdiscovery/govaluate v0.0.0-20260504230327-80320480bb6e // indirect
 	github.com/projectdiscovery/jarm-go v0.0.0-20260910160638-430e2bae86f6 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20250715113114-c77eb3567582 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.118 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.119 // indirect
 	github.com/refraction-networking/utls v1.8.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
