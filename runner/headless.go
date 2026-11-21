@@ -4,19 +4,24 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"net/url"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/launcher"
-	"github.com/go-rod/rod/lib/launcher/flags"
-	"github.com/go-rod/rod/lib/proto"
 	"github.com/pkg/errors"
+	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/networkpolicy"
+	"github.com/projectdiscovery/rod"
+	"github.com/projectdiscovery/rod/lib/launcher"
+	"github.com/projectdiscovery/rod/lib/launcher/flags"
+	"github.com/projectdiscovery/rod/lib/proto"
 	"github.com/projectdiscovery/utils/chromeshell"
 	fileutil "github.com/projectdiscovery/utils/file"
+	iputil "github.com/projectdiscovery/utils/ip"
 	mapsutil "github.com/projectdiscovery/utils/maps"
 	osutils "github.com/projectdiscovery/utils/os"
 	sliceutil "github.com/projectdiscovery/utils/slice"
@@ -41,10 +46,64 @@ func MustDisableSandbox() bool {
 type Browser struct {
 	tempDir string
 	engine  *rod.Browser
+	proxy   string
+	// policy and dialer restrict every request the browser makes
+	policy *networkpolicy.NetworkPolicy
+	dialer *fastdialer.Dialer
 	// TODO: Remove the Chrome PID kill code in favor of using Leakless(true).
 	// This change will be made if there are no complaints about zombie Chrome processes.
 	// Reference: https://github.com/projectdiscovery/httpx/pull/1426
 	// pids    map[int32]struct{}
+}
+
+// preferSystemBrowser reports whether screenshots must launch an installed
+// browser instead of the Chromium build go-rod downloads.
+func preferSystemBrowser(useLocal bool) bool {
+	return useLocal || hostUsesMusl()
+}
+
+// hostUsesMusl reports whether this machine's own libc is musl.
+// Release binaries are built with CGO_ENABLED=0, so the executable has no
+// libc to inspect. /bin/sh does: Alpine's shell is musl, and Debian's shell
+// stays glibc even when the musl package has installed an ld-musl loader.
+// A static shell falls back to the loaders, and a glibc loader wins so that
+// side-installed musl does not hide go-rod's browser.
+func hostUsesMusl() bool {
+	return muslHost("/")
+}
+
+func muslHost(root string) bool {
+	if musl, err := fileutil.UseMusl(filepath.Join(root, "bin/sh")); err == nil && musl {
+		return true
+	}
+	if pathGlobExists(root, glibcLoaderPatterns) {
+		return false
+	}
+	return pathGlobExists(root, muslLoaderPatterns)
+}
+
+var glibcLoaderPatterns = []string{
+	"lib/ld-linux*.so*",
+	"lib64/ld-linux*.so*",
+	"usr/lib/ld-linux*.so*",
+	"usr/lib64/ld-linux*.so*",
+}
+
+var muslLoaderPatterns = []string{
+	"lib/ld-musl-*.so*",
+	"lib/libc.musl-*.so*",
+	"lib64/ld-musl-*.so*",
+	"usr/lib/ld-musl-*.so*",
+}
+
+func pathGlobExists(root string, patterns []string) bool {
+	for _, pattern := range patterns {
+		matches, err := filepath.Glob(filepath.Join(root, pattern))
+		if err == nil && len(matches) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func NewBrowser(proxy string, useLocal bool, optionalArgs map[string]string) (*Browser, error) {
@@ -104,15 +163,9 @@ func newBrowser(proxy, downloadProxy string, useLocal bool, optionalArgs map[str
 		chromeLauncher = chromeLauncher.NoSandbox(true)
 	}
 
-	executablePath, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-
-	// if musl is used, most likely we are on alpine linux which is not supported by go-rod, so we fallback to default chrome
-	useMusl, _ := fileutil.UseMusl(executablePath)
+	// go-rod downloads a glibc Chromium, which cannot run on a musl host.
 	usingChromeShell := false
-	if useLocal || useMusl {
+	if preferSystemBrowser(useLocal) {
 		if chromePath, hasChrome := launcher.LookPath(); hasChrome {
 			chromeLauncher.Bin(chromePath)
 		} else {
@@ -165,13 +218,24 @@ func newBrowser(proxy, downloadProxy string, useLocal bool, optionalArgs map[str
 	engine := &Browser{
 		tempDir: dataStore,
 		engine:  browser,
+		proxy:   proxy,
 		// pids:    pids,
 	}
 	return engine, nil
 }
 
+// SetNetworkPolicy makes the browser check every request, redirects and
+// sub-resources included, against np. Host names are resolved with dialer.
+func (b *Browser) SetNetworkPolicy(np *networkpolicy.NetworkPolicy, dialer *fastdialer.Dialer) {
+	b.policy = np
+	b.dialer = dialer
+}
+
 func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle time.Duration, headers []string, fullPage bool, jsCodes []string) ([]byte, string, []NetworkRequest, error) {
-	page, networkRequests, err := b.setupPageAndNavigate(url, timeout, idle, headers, jsCodes)
+	page, router, networkRequests, err := b.setupPageAndNavigate(url, timeout, idle, headers, jsCodes)
+	if router != nil {
+		defer func() { _ = router.Stop() }()
+	}
 	if err != nil {
 		return nil, "", []NetworkRequest{}, err
 	}
@@ -186,10 +250,10 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 }
 
 // setupPageAndNavigate opens a page, performs all adaptive actions including JS injection
-func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle time.Duration, headers []string, jsCodes []string) (*rod.Page, []NetworkRequest, error) {
+func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle time.Duration, headers []string, jsCodes []string) (*rod.Page, *rod.HijackRouter, []NetworkRequest, error) {
 	page, err := b.engine.Page(proto.TargetCreateTarget{})
 	if err != nil {
-		return nil, []NetworkRequest{}, err
+		return nil, nil, []NetworkRequest{}, err
 	}
 
 	// Enable network
@@ -197,60 +261,54 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle t
 
 	networkRequests := sliceutil.NewSyncSlice[NetworkRequest]()
 	requestsMap := mapsutil.NewSyncLockMap[string, *NetworkRequest]()
-	// each event type runs in its own goroutine, so field updates on a shared
-	// *NetworkRequest must be serialized
-	var requestMu sync.Mutex
 
-	// Intercept outbound requests
-	go page.EachEvent(func(e *proto.NetworkRequestWillBeSent) {
-		if !stringsutil.HasPrefixAnyI(e.Request.URL, "http://", "https://") {
-			return
-		}
-		req := &NetworkRequest{
-			RequestID:  string(e.RequestID),
-			URL:        e.Request.URL,
-			Method:     e.Request.Method,
-			StatusCode: -1,
-			ErrorType:  "QUIT_BEFORE_RESOURCE_LOADING_END",
-		}
-		_ = requestsMap.Set(string(e.RequestID), req)
-	})()
-	// Intercept inbound responses
-	go page.EachEvent(func(e *proto.NetworkResponseReceived) {
-		if requestsMap.Has(string(e.RequestID)) {
-			req, _ := requestsMap.Get(string(e.RequestID))
-			requestMu.Lock()
-			req.StatusCode = e.Response.Status
-			requestMu.Unlock()
-		}
-	})()
-	// Intercept network end requests
-	go page.EachEvent(func(e *proto.NetworkLoadingFinished) {
-		if requestsMap.Has(string(e.RequestID)) {
-			req, _ := requestsMap.Get(string(e.RequestID))
-			requestMu.Lock()
-			if req.StatusCode > 0 {
-				req.ErrorType = ""
+	// Track requests from outbound to finished or failed. The handlers share
+	// the *NetworkRequest values, so they are registered in one EachEvent,
+	// which calls them one at a time from a single goroutine.
+	go page.EachEvent(
+		// Intercept outbound requests
+		func(e *proto.NetworkRequestWillBeSent) {
+			if !stringsutil.HasPrefixAnyI(e.Request.URL, "http://", "https://") {
+				return
 			}
-			finished := *req
-			requestMu.Unlock()
-			networkRequests.Append(finished)
-		}
-	})()
-	// Intercept failed request
-	go page.EachEvent(func(e *proto.NetworkLoadingFailed) {
-		if requestsMap.Has(string(e.RequestID)) {
-			req, _ := requestsMap.Get(string(e.RequestID))
-			requestMu.Lock()
-			req.StatusCode = 0 // mark to zero
-			req.ErrorType = getSimpleErrorType(e.ErrorText, string(e.Type), string(e.BlockedReason))
-			failed := *req
-			requestMu.Unlock()
-			if stringsutil.HasPrefixAnyI(failed.URL, "http://", "https://") {
-				networkRequests.Append(failed)
+			req := &NetworkRequest{
+				RequestID:  string(e.RequestID),
+				URL:        e.Request.URL,
+				Method:     e.Request.Method,
+				StatusCode: -1,
+				ErrorType:  "QUIT_BEFORE_RESOURCE_LOADING_END",
 			}
-		}
-	})()
+			_ = requestsMap.Set(string(e.RequestID), req)
+		},
+		// Intercept inbound responses
+		func(e *proto.NetworkResponseReceived) {
+			if requestsMap.Has(string(e.RequestID)) {
+				req, _ := requestsMap.Get(string(e.RequestID))
+				req.StatusCode = e.Response.Status
+			}
+		},
+		// Intercept network end requests
+		func(e *proto.NetworkLoadingFinished) {
+			if requestsMap.Has(string(e.RequestID)) {
+				req, _ := requestsMap.Get(string(e.RequestID))
+				if req.StatusCode > 0 {
+					req.ErrorType = ""
+				}
+				networkRequests.Append(*req)
+			}
+		},
+		// Intercept failed request
+		func(e *proto.NetworkLoadingFailed) {
+			if requestsMap.Has(string(e.RequestID)) {
+				req, _ := requestsMap.Get(string(e.RequestID))
+				req.StatusCode = 0 // mark to zero
+				req.ErrorType = getSimpleErrorType(e.ErrorText, string(e.Type), string(e.BlockedReason))
+				if stringsutil.HasPrefixAnyI(req.URL, "http://", "https://") {
+					networkRequests.Append(*req)
+				}
+			}
+		},
+	)()
 
 	// Handle any popup dialogs
 	go page.EachEvent(func(e *proto.PageJavascriptDialogOpening) {
@@ -260,14 +318,12 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle t
 		}.Call(page)
 	})()
 
-	for _, header := range headers {
-		headerParts := strings.SplitN(header, ":", 2)
-		if len(headerParts) != 2 {
-			continue
-		}
-		key := strings.TrimSpace(headerParts[0])
-		value := strings.TrimSpace(headerParts[1])
-		_, _ = page.SetExtraHeaders([]string{key, value})
+	// Every request goes through the hijack router: it applies the network
+	// policy and adds the custom headers only to the probed origin.
+	// Page-wide SetExtraHeaders would send them to every origin.
+	router, err := b.hijackRequests(page, url, parseHeaders(headers))
+	if err != nil {
+		return page, nil, snapshot(networkRequests), err
 	}
 
 	page = page.Timeout(timeout)
@@ -280,19 +336,165 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle t
 	}
 
 	if err := page.Navigate(url); err != nil {
-		return page, snapshotRequests(networkRequests), err
+		return page, router, snapshot(networkRequests), err
 	}
 
 	if len(jsCodes) > 0 {
 		_, err := b.ExecuteJavascriptCodesWithPage(page, jsCodes)
 		if err != nil {
-			return page, snapshotRequests(networkRequests), err
+			return page, router, snapshot(networkRequests), err
 		}
 	}
 
 	b.waitPageReady(page, idle, waitReqIdle)
 
-	return page, snapshotRequests(networkRequests), nil
+	return page, router, snapshot(networkRequests), nil
+}
+
+// hijackRequests intercepts the page requests. WebSocket connections are not
+// visible to the Fetch domain, so they are blocked when a policy is set.
+func (b *Browser) hijackRequests(page *rod.Page, targetURL string, headers map[string]string) (*rod.HijackRouter, error) {
+	if b.policy == nil && len(headers) == 0 {
+		return nil, nil
+	}
+	target, err := url.Parse(targetURL)
+	if err != nil {
+		return nil, err
+	}
+	if b.policy != nil {
+		if err := (proto.NetworkSetBlockedURLs{Urls: []string{"ws://*", "wss://*"}}).Call(page); err != nil {
+			return nil, err
+		}
+	}
+	router := page.HijackRequests()
+	if err := router.Add("*", "", func(h *rod.Hijack) {
+		reqURL := h.Request.URL()
+		if !b.allowRequest(reqURL) {
+			h.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
+			return
+		}
+		continueRequest := &proto.FetchContinueRequest{}
+		if len(headers) > 0 && sameOrigin(target, reqURL) {
+			continueRequest.Headers = mergeRequestHeaders(h.Request.Headers(), headers)
+		}
+		h.ContinueRequest(continueRequest)
+	}); err != nil {
+		return nil, err
+	}
+	go router.Run()
+	return router, nil
+}
+
+// allowRequest reports whether the browser may send a request to u. Only
+// http and https are allowed. With a network policy, the host, the port and
+// every resolved address must pass it, as for the http client.
+func (b *Browser) allowRequest(u *url.URL) bool {
+	if u == nil || !stringsutil.EqualFoldAny(u.Scheme, "http", "https") {
+		return false
+	}
+	if b.policy == nil {
+		return true
+	}
+	hostname := u.Hostname()
+	port, err := strconv.Atoi(effectivePort(u))
+	if err != nil || !b.policy.Validate(hostname) || !b.policy.ValidatePort(port) {
+		return false
+	}
+	if iputil.IsIP(hostname) {
+		return true
+	}
+	// Chrome maps localhost names to loopback itself and connects to them
+	// directly, also with a proxy, so check the loopback addresses.
+	if isLocalhostName(hostname) {
+		return b.policy.ValidateAddress("127.0.0.1") && b.policy.ValidateAddress("::1")
+	}
+	// with a proxy, the proxy resolves the name and the http client does
+	// not check the target address either. Chrome on Windows sends
+	// "loopback" directly, so that name is still resolved here.
+	if b.proxy != "" && !isLoopbackBypassName(hostname) {
+		return true
+	}
+	if b.dialer == nil {
+		return false
+	}
+	dnsData, err := b.dialer.GetDNSData(hostname)
+	if err != nil || dnsData == nil || len(dnsData.A)+len(dnsData.AAAA) == 0 {
+		return false
+	}
+	for _, ip := range append(append([]string{}, dnsData.A...), dnsData.AAAA...) {
+		if !b.policy.ValidateAddress(ip) {
+			return false
+		}
+	}
+	return true
+}
+
+// parseHeaders turns "Name: value" items into a map.
+func parseHeaders(headers []string) map[string]string {
+	parsed := make(map[string]string, len(headers))
+	for _, header := range headers {
+		headerParts := strings.SplitN(header, ":", 2)
+		if len(headerParts) != 2 {
+			continue
+		}
+		parsed[strings.TrimSpace(headerParts[0])] = strings.TrimSpace(headerParts[1])
+	}
+	return parsed
+}
+
+// sameOrigin compares scheme, hostname and effective port.
+func sameOrigin(a, b *url.URL) bool {
+	if a == nil || b == nil {
+		return false
+	}
+	return strings.EqualFold(a.Scheme, b.Scheme) &&
+		strings.EqualFold(a.Hostname(), b.Hostname()) &&
+		effectivePort(a) == effectivePort(b)
+}
+
+// isLocalhostName reports names that Chrome maps to loopback itself and
+// connects to directly, without DNS and without the proxy.
+func isLocalhostName(host string) bool {
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	return host == "localhost" || strings.HasSuffix(host, ".localhost")
+}
+
+// isLoopbackBypassName reports "loopback", a name that Chrome on Windows
+// resolves normally but connects to without the proxy.
+func isLoopbackBypassName(host string) bool {
+	return strings.EqualFold(strings.TrimSuffix(host, "."), "loopback")
+}
+
+func effectivePort(u *url.URL) string {
+	if p := u.Port(); p != "" {
+		return p
+	}
+	switch strings.ToLower(u.Scheme) {
+	case "https":
+		return "443"
+	case "http":
+		return "80"
+	default:
+		return ""
+	}
+}
+
+// mergeRequestHeaders overlays extra on the request headers. Continuing a
+// Fetch request with Headers replaces the whole set.
+func mergeRequestHeaders(existing proto.NetworkHeaders, extra map[string]string) []*proto.FetchHeaderEntry {
+	out := make([]*proto.FetchHeaderEntry, 0, len(existing)+len(extra))
+	seen := make(map[string]struct{}, len(extra))
+	for name, value := range extra {
+		out = append(out, &proto.FetchHeaderEntry{Name: name, Value: value})
+		seen[strings.ToLower(name)] = struct{}{}
+	}
+	for name, value := range existing {
+		if _, ok := seen[strings.ToLower(name)]; ok {
+			continue
+		}
+		out = append(out, &proto.FetchHeaderEntry{Name: name, Value: value.Str()})
+	}
+	return out
 }
 
 // waitPageReady blocks until the page is visually settled so we don't capture a
@@ -431,13 +633,13 @@ func (b *Browser) ExecuteJavascriptCodesWithPage(page *rod.Page, jsc []string) (
 	return outputs, nil
 }
 
-// snapshotRequests copies the collected requests under the slice lock: event
-// goroutines can still append after the page returns.
-func snapshotRequests(requests *sliceutil.SyncSlice[NetworkRequest]) []NetworkRequest {
-	snapshot := make([]NetworkRequest, 0, requests.Len())
-	requests.Each(func(_ int, request NetworkRequest) error {
-		snapshot = append(snapshot, request)
+// snapshot copies the requests collected so far. The event handlers keep
+// appending while the page loads, so the slice must not be read directly.
+func snapshot(requests *sliceutil.SyncSlice[NetworkRequest]) []NetworkRequest {
+	out := make([]NetworkRequest, 0, requests.Len())
+	requests.Each(func(_ int, req NetworkRequest) error {
+		out = append(out, req)
 		return nil
 	})
-	return snapshot
+	return out
 }

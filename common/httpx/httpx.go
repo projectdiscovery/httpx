@@ -80,18 +80,58 @@ func New(options *Options) (*HTTPX, error) {
 	if httpx.Options.FollowRedirects {
 		// Follow redirects up to a maximum number
 		redirectFunc = func(redirectedRequest *http.Request, previousRequests []*http.Request) error {
-			// add custom cookies if necessary
-			httpx.setCustomCookies(redirectedRequest)
-
 			if len(previousRequests) >= options.MaxRedirects {
 				// https://github.com/golang/go/issues/10069
 				return http.ErrUseLastResponse
+			}
+
+			var initialHost, newHost string
+			if len(previousRequests) > 0 {
+				initialHost = previousRequests[0].URL.Hostname()
+				if initialHost == "" {
+					initialHost = previousRequests[0].Host
+				}
+			}
+			newHost = redirectedRequest.URL.Hostname()
+			if newHost == "" {
+				newHost = redirectedRequest.Host
+			}
+
+			// Custom cookies are kept only for the same host (or its subdomains)
+			sameScope := isSameHostOrSubdomain(newHost, initialHost)
+			if !sameScope {
+				redirectedRequest.Header.Del("Cookie")
+			}
+
+			// -secret-file headers are applied for each redirect host according to their own domain rules
+			if httpx.Options.AuthProvider != nil {
+				newStrategies := httpx.Options.AuthProvider.LookupURL(redirectedRequest.URL)
+
+				// Clean up credentials copied by net/http from prior requests that do not match the destination
+				for _, prevReq := range previousRequests {
+					prevStrategies := httpx.Options.AuthProvider.LookupURL(prevReq.URL)
+					for _, strategy := range prevStrategies {
+						strategy.Remove(redirectedRequest)
+					}
+				}
+
+				// Apply only strategies that match the destination
+				for _, strategy := range newStrategies {
+					strategy.Apply(redirectedRequest)
+				}
+			}
+
+			// After the secret cleanup, which removes cookies by name, so a -H
+			// cookie that shares a name with a removed secret cookie comes back
+			if sameScope {
+				httpx.setCustomCookies(redirectedRequest)
 			}
 
 			if options.RespectHSTS {
 				handleHSTS(redirectedRequest)
 			}
 
+			httpx.keepRedirectResponse(redirectedRequest)
 			return nil
 		}
 	}
@@ -121,6 +161,7 @@ func New(options *Options) (*HTTPX, error) {
 				handleHSTS(redirectedRequest)
 			}
 
+			httpx.keepRedirectResponse(redirectedRequest)
 			return nil
 		}
 	}
@@ -129,7 +170,7 @@ func New(options *Options) (*HTTPX, error) {
 		gologger.Warning().Msg("HTTP/3 is experimental and currently falls back to default TLS negotiation")
 	}
 	transport := &http.Transport{
-		DialContext:         httpx.Dialer.Dial,
+		DialContext:         recordDialedIP(httpx.Dialer.Dial),
 		MaxIdleConnsPerHost: -1,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -140,7 +181,7 @@ func New(options *Options) (*HTTPX, error) {
 	// Clone before protocol-specific ALPN is applied. Impersonation keeps the
 	// previous base config; utls does not take NextProtos from it.
 	impersonateTLS := transport.TLSClientConfig.Clone()
-	transport.DialTLSContext = httpx.buildTLSDialer(options, impersonateTLS)
+	transport.DialTLSContext = recordDialedIP(httpx.buildTLSDialer(options, impersonateTLS))
 
 	switch httpx.Options.Protocol {
 	case HTTP11:
@@ -176,6 +217,7 @@ func New(options *Options) (*HTTPX, error) {
 	} else {
 		transport.Proxy = http.ProxyFromEnvironment
 	}
+	transport.Proxy = refusePinned(transport.Proxy)
 
 	httpx.client = retryablehttp.NewWithHTTPClient(&http.Client{
 		Transport:     transport,
@@ -335,13 +377,25 @@ get_response:
 	// bodies (or infinite streams) in memory
 	bodyTruncated := h.Options.MaxResponseBodySizeToRead > 0 && httpresp.ContentLength > h.Options.MaxResponseBodySizeToRead
 	if h.Options.MaxResponseBodySizeToRead > 0 {
-		httpresp.Body = io.NopCloser(io.LimitReader(httpresp.Body, h.Options.MaxResponseBodySizeToRead))
+		origBody := httpresp.Body
+		httpresp.Body = &readCloser{
+			Reader: io.LimitReader(origBody, h.Options.MaxResponseBodySizeToRead),
+			Closer: origBody,
+		}
 		if !shouldSkipBodyRead {
 			defer func() {
 				_, _ = io.Copy(io.Discard, httpresp.Body)
 				_ = httpresp.Body.Close()
 			}()
+		} else {
+			defer func() {
+				_ = httpresp.Body.Close()
+			}()
 		}
+	} else if shouldSkipBodyRead {
+		defer func() {
+			_ = httpresp.Body.Close()
+		}()
 	}
 
 	// httputil.DumpResponse does not handle websockets
@@ -447,8 +501,10 @@ get_response:
 		}
 	}
 
-	if h.Options.ExtractFqdn {
+	if h.Options.ExtractFqdn || h.Options.ExtractCSP {
 		resp.CSPData = h.CSPGrab(&resp)
+	}
+	if h.Options.ExtractFqdn {
 		resp.BodyDomains = h.BodyDomainGrab(&resp)
 	}
 
@@ -476,7 +532,41 @@ func (h *HTTPX) getResponse(req *retryablehttp.Request, unsafeOptions UnsafeOpti
 	if h.Options.Unsafe {
 		return h.doUnsafeWithOptions(req, unsafeOptions)
 	}
-	return h.client.Do(req)
+	last := &lastRedirect{}
+	req.WithContext(context.WithValue(req.Context(), lastRedirectKey{}, last))
+	resp, err = h.client.Do(req)
+	if err != nil && last.resp != nil && req.Context().Err() == nil {
+		gologger.Debug().Msgf("Could not follow redirect from %s: %s\n", last.resp.Request.URL, err)
+		last.resp.Body = io.NopCloser(bytes.NewReader(last.body))
+		return last.resp, nil
+	}
+	return resp, err
+}
+
+type lastRedirectKey struct{}
+
+// lastRedirect is the last response of a redirect chain followed for a request
+type lastRedirect struct {
+	resp *http.Response
+	body []byte
+}
+
+// keepRedirectResponse keeps the response that redirected to req, so it can be
+// reported if the redirect target cannot be reached. The client closes its
+// body before following, so the body is read first.
+func (h *HTTPX) keepRedirectResponse(req *http.Request) {
+	last, ok := req.Context().Value(lastRedirectKey{}).(*lastRedirect)
+	if !ok || req.Response == nil {
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(req.Response.Body, h.Options.MaxResponseBodySizeToRead))
+	_ = req.Response.Body.Close()
+	req.Response.Body = http.NoBody
+	if err != nil {
+		last.resp, last.body = nil, nil
+		return
+	}
+	last.resp, last.body = req.Response, body
 }
 
 // doUnsafe does an unsafe http request
@@ -534,10 +624,7 @@ func (h *HTTPX) NewRequestWithContext(ctx context.Context, method, targetURL str
 	}
 	// Skip if unsafe is used
 	if !h.Options.Unsafe {
-		// set default user agent
 		req.Header.Set("User-Agent", h.Options.DefaultUserAgent)
-		// set default encoding to accept utf8
-		req.Header.Add("Accept-Charset", "utf-8")
 	}
 	return
 }
@@ -579,12 +666,34 @@ func (h *HTTPX) SetCustomHeaders(r *retryablehttp.Request, headers map[string][]
 	}
 }
 
+// setCustomCookies adds the -H cookies to a redirect hop. On a same-host hop
+// net/http has already copied them, so cookies the request has are skipped.
 func (httpx *HTTPX) setCustomCookies(req *http.Request) {
-	if httpx.Options.hasCustomCookies() {
-		for _, cookie := range httpx.Options.customCookies {
-			req.AddCookie(cookie)
-		}
+	if !httpx.Options.hasCustomCookies() {
+		return
 	}
+	present := make(map[string]struct{})
+	for _, cookie := range req.Cookies() {
+		present[cookie.Name] = struct{}{}
+	}
+	for _, cookie := range httpx.Options.customCookies {
+		if _, ok := present[cookie.Name]; ok {
+			continue
+		}
+		req.AddCookie(cookie)
+	}
+}
+
+func isSameHostOrSubdomain(child, parent string) bool {
+	child = strings.ToLower(strings.TrimSpace(child))
+	parent = strings.ToLower(strings.TrimSpace(parent))
+	if child == "" || parent == "" {
+		return false
+	}
+	if child == parent {
+		return true
+	}
+	return strings.HasSuffix(child, "."+parent)
 }
 
 func (httpx *HTTPX) Sanitize(respStr string, trimLine, normalizeSpaces bool) string {
@@ -596,4 +705,19 @@ func (httpx *HTTPX) Sanitize(respStr string, trimLine, normalizeSpaces bool) str
 		respStr = httputilz.NormalizeSpaces(respStr)
 	}
 	return respStr
+}
+
+
+type readCloser struct {
+	io.Reader
+	io.Closer
+}
+
+func (r *readCloser) Close() error {
+	if r.Closer == nil {
+		return nil
+	}
+	err := r.Closer.Close()
+	r.Closer = nil
+	return err
 }

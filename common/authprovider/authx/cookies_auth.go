@@ -60,3 +60,23 @@ func (s *CookiesAuthStrategy) ApplyOnRR(req *retryablehttp.Request) {
 		})
 	}
 }
+
+// Remove removes the cookies auth strategy from the request
+func (s *CookiesAuthStrategy) Remove(req *http.Request) {
+	secretCookieNames := make(map[string]struct{}, len(s.Data.Cookies))
+	for _, cookie := range s.Data.Cookies {
+		secretCookieNames[cookie.Key] = struct{}{}
+	}
+	existingCookies := req.Cookies()
+	req.Header.Del("Cookie")
+	for _, cookie := range existingCookies {
+		if _, exists := secretCookieNames[cookie.Name]; !exists {
+			req.AddCookie(cookie)
+		}
+	}
+}
+
+// RemoveOnRR removes the cookies auth strategy from the retryable request
+func (s *CookiesAuthStrategy) RemoveOnRR(req *retryablehttp.Request) {
+	s.Remove(req.Request)
+}

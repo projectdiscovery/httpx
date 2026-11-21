@@ -37,3 +37,16 @@ func (s *HeadersAuthStrategy) ApplyOnRR(req *retryablehttp.Request) {
 		req.Header[header.Key] = []string{header.Value}
 	}
 }
+
+// Remove removes the headers auth strategy from the request
+func (s *HeadersAuthStrategy) Remove(req *http.Request) {
+	for _, header := range s.Data.Headers {
+		delete(req.Header, header.Key)
+		req.Header.Del(header.Key)
+	}
+}
+
+// RemoveOnRR removes the headers auth strategy from the retryable request
+func (s *HeadersAuthStrategy) RemoveOnRR(req *retryablehttp.Request) {
+	s.Remove(req.Request)
+}

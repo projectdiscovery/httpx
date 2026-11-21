@@ -13,7 +13,9 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -298,6 +300,37 @@ func TestRunner_urlWithComma_targets(t *testing.T) {
 	require.ElementsMatch(t, expected, got, "could not expected output")
 }
 
+func TestRunner_streamInput_targetHosts(t *testing.T) {
+	// A non-tty stdin would be read and could block, so point it at /dev/null.
+	devNull, err := os.Open(os.DevNull)
+	require.NoError(t, err)
+	stdin := os.Stdin
+	os.Stdin = devNull
+	t.Cleanup(func() {
+		os.Stdin = stdin
+		_ = devNull.Close()
+	})
+
+	file := filepath.Join(t.TempDir(), "targets.txt")
+	require.NoError(t, os.WriteFile(file, []byte("b.example\na.example\n"), 0o600))
+
+	r, err := New(&Options{
+		Stream:          true,
+		InputTargetHost: []string{"a.example", " ", "a.example"},
+		InputFile:       file,
+	})
+	require.NoError(t, err)
+	defer r.Close()
+
+	out, err := r.streamInput()
+	require.NoError(t, err)
+	var got []string
+	for item := range out {
+		got = append(got, item)
+	}
+	require.Equal(t, []string{"a.example", "b.example"}, got, "-u targets are streamed first and deduped with -l")
+}
+
 func TestRunner_CSVRow(t *testing.T) {
 	// Create a result with fields that would be vulnerable to CSV injection
 	result := Result{
@@ -548,6 +581,61 @@ func TestStoreResponse_withMatcherSetsFlag(t *testing.T) {
 	err := opts.ValidateOptions()
 	require.Nil(t, err)
 	require.True(t, opts.HasMatcherOrFilter())
+}
+
+// -ob stores the status line and headers only, with or without a matcher.
+// Cutting the body text out of the raw response missed bodies the charset
+// decoding had changed, and cut a short body such as "OK" out of the status line.
+func TestStoreResponse_omitBodyStoresHeadersOnly(t *testing.T) {
+	tests := []struct {
+		name, contentType, body, marker string
+	}{
+		{"latin-1 body", "text/html; charset=iso-8859-1", "caf\xe9 response-body-marker", "response-body-marker"},
+		{"short body", "text/plain", "OK", ""},
+	}
+	for _, tt := range tests {
+		for _, matchCode := range []string{"", "200"} {
+			t.Run(fmt.Sprintf("%s, -mc %q", tt.name, matchCode), func(t *testing.T) {
+				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", tt.contentType)
+					_, _ = io.WriteString(w, tt.body)
+				}))
+				t.Cleanup(srv.Close)
+
+				dir := t.TempDir()
+				options := &Options{
+					Threads:               1,
+					RateLimit:             10,
+					Retries:               0,
+					Timeout:               5,
+					Methods:               http.MethodGet,
+					Delay:                 -1,
+					StoreResponse:         true,
+					StoreResponseDir:      dir,
+					OmitBody:              true,
+					OutputMatchStatusCode: matchCode,
+					InputTargetHost:       []string{srv.URL},
+				}
+				require.NoError(t, options.ValidateOptions())
+
+				r, err := New(options)
+				require.NoError(t, err)
+				defer r.Close()
+				r.RunEnumeration()
+
+				files, err := filepath.Glob(filepath.Join(dir, "response", "*", "*.txt"))
+				require.NoError(t, err)
+				require.Len(t, files, 1)
+				stored, err := os.ReadFile(files[0])
+				require.NoError(t, err)
+				require.Contains(t, string(stored), "HTTP/1.1 200 OK\r\n")
+				require.Contains(t, string(stored), "Content-Type: "+tt.contentType+"\r\n")
+				if tt.marker != "" {
+					require.NotContains(t, string(stored), tt.marker)
+				}
+			})
+		}
+	}
 }
 
 func TestProtocolValidation(t *testing.T) {
