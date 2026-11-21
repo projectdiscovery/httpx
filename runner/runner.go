@@ -214,7 +214,10 @@ func New(options *Options) (*Runner, error) {
 	httpxOptions.FollowRedirects = options.FollowRedirects
 	httpxOptions.FollowHostRedirects = options.FollowHostRedirects
 	httpxOptions.RespectHSTS = options.RespectHSTS
-	httpxOptions.MaxRedirects = options.MaxRedirects
+	// Options built in code leave this at 0; keep the client default then.
+	if options.MaxRedirects > 0 {
+		httpxOptions.MaxRedirects = options.MaxRedirects
+	}
 	if options.HTTPProxy != "" {
 		options.Proxy = options.HTTPProxy
 	} else if options.SocksProxy != "" {
