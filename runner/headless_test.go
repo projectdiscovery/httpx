@@ -236,6 +236,73 @@ func TestScreenshotNetworkPolicySubframesAndWorkers(t *testing.T) {
 	}
 }
 
+// TestScreenshotWorkerPageIsNotDelayed checks that a page which starts
+// dedicated workers is captured once its own requests are done. Chrome reports
+// the end of a worker script request only on the worker target.
+func TestScreenshotWorkerPageIsNotDelayed(t *testing.T) {
+	if _, ok := launcher.LookPath(); !ok {
+		t.Skip("chrome is not installed")
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/worker.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/javascript")
+		_, _ = fmt.Fprint(w, "fetch('/from-worker').catch(function(){})")
+	})
+	mux.HandleFunc("/from-worker", func(w http.ResponseWriter, r *http.Request) {})
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, `<h1>worker-page</h1><script>new Worker("/worker.js");new Worker(URL.createObjectURL(new Blob(["1"])))</script>`)
+	})
+	target := httptest.NewServer(mux)
+	defer target.Close()
+
+	browser, err := NewBrowser("", true, nil)
+	require.NoError(t, err)
+	defer browser.Close()
+
+	timeout := 10 * time.Second
+	start := time.Now()
+	_, body, _, err := browser.ScreenshotWithBody(target.URL+"/", timeout, 200*time.Millisecond, nil, false, nil)
+	elapsed := time.Since(start)
+	require.NoError(t, err)
+	require.Contains(t, body, "worker-page")
+	require.Less(t, elapsed, timeout/2, "the screenshot waited for the worker script requests")
+}
+
+// TestScreenshotHangingRequestStillCaptures checks that a request that never
+// ends delays the screenshot but does not make it fail.
+func TestScreenshotHangingRequestStillCaptures(t *testing.T) {
+	if _, ok := launcher.LookPath(); !ok {
+		t.Skip("chrome is not installed")
+	}
+
+	release := make(chan struct{})
+	mux := http.NewServeMux()
+	mux.HandleFunc("/hang", func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-release:
+		case <-r.Context().Done():
+		}
+	})
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, `<h1>hanging-page</h1><script>fetch("/hang").catch(function(){})</script>`)
+	})
+	target := httptest.NewServer(mux)
+	defer target.Close()
+	defer close(release)
+
+	browser, err := NewBrowser("", true, nil)
+	require.NoError(t, err)
+	defer browser.Close()
+
+	screenshot, body, _, err := browser.ScreenshotWithBody(target.URL+"/", 4*time.Second, 200*time.Millisecond, nil, false, nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, screenshot)
+	require.Contains(t, body, "hanging-page")
+}
+
 func TestPreferSystemBrowser(t *testing.T) {
 	require.True(t, preferSystemBrowser(true))
 

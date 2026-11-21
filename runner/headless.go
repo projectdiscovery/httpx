@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/projectdiscovery/rod/lib/launcher"
 	"github.com/projectdiscovery/rod/lib/launcher/flags"
 	"github.com/projectdiscovery/rod/lib/proto"
+	rodutils "github.com/projectdiscovery/rod/lib/utils"
 	"github.com/projectdiscovery/utils/chromeshell"
 	fileutil "github.com/projectdiscovery/utils/file"
 	iputil "github.com/projectdiscovery/utils/ip"
@@ -327,12 +329,16 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle t
 	}
 
 	page = page.Timeout(timeout)
-	var waitReqIdle func()
+	// The readiness waits stop early enough to leave time for the capture,
+	// so a request that never ends delays the screenshot but does not fail it.
+	readyCtx, cancelReady := context.WithTimeout(page.GetContext(), timeout-timeout/4)
+	defer cancelReady()
+	var waitReqIdle func(context.Context)
 	if idle > 0 {
 		// Register before Navigate so the first SPA XHRs are tracked by the
-		// request-idle waiter. Zero/negative idle skips this (WaitRequestIdle
+		// request-idle waiter. Zero/negative idle skips this (the idle waiter
 		// and WaitDOMStable reject non-positive durations).
-		waitReqIdle = page.WaitRequestIdle(idle, nil, nil, nil)
+		waitReqIdle = waitRequestIdle(page, idle)
 	}
 
 	if err := page.Navigate(url); err != nil {
@@ -346,7 +352,7 @@ func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle t
 		}
 	}
 
-	b.waitPageReady(page, idle, waitReqIdle)
+	b.waitPageReady(page.Context(readyCtx), idle, waitReqIdle)
 
 	return page, router, snapshot(networkRequests), nil
 }
@@ -508,13 +514,63 @@ func mergeRequestHeaders(existing proto.NetworkHeaders, extra map[string]string)
 // request-idle alone can fire on the boot screen. Requiring DOM stability on top
 // closes that gap. DOM stability is re-checked after the network settles so the
 // first snapshot is taken post-hydration rather than on the boot screen.
-func (b *Browser) waitPageReady(page *rod.Page, idle time.Duration, waitReqIdle func()) {
+func (b *Browser) waitPageReady(page *rod.Page, idle time.Duration, waitReqIdle func(context.Context)) {
 	_ = page.WaitLoad()
 	if idle <= 0 || waitReqIdle == nil {
 		return
 	}
-	waitReqIdle()
+	waitReqIdle(page.GetContext())
 	_ = page.WaitDOMStable(idle, 0)
+}
+
+// idleIgnoredTypes are the request types that do not delay the screenshot,
+// the same as the defaults of rod's WaitRequestIdle.
+var idleIgnoredTypes = []proto.NetworkResourceType{
+	proto.NetworkResourceTypeWebSocket,
+	proto.NetworkResourceTypeEventSource,
+	proto.NetworkResourceTypeMedia,
+	proto.NetworkResourceTypeImage,
+	proto.NetworkResourceTypeFont,
+}
+
+// waitRequestIdle starts tracking the page requests and returns a function
+// that blocks until no tracked request was pending for d, or until its
+// context ends. It is rod's WaitRequestIdle without the requests that have
+// no loader: Chrome reports the main script request of a dedicated worker
+// on the page session with an empty loader id, but reports its end on the
+// worker target, which is not attached. rod would wait for that request
+// until the page timeout.
+func waitRequestIdle(page *rod.Page, d time.Duration) func(context.Context) {
+	page, cancel := page.WithCancel()
+	pending := map[proto.NetworkRequestID]struct{}{}
+	idle := rodutils.NewIdleCounter(d)
+	done := func(id proto.NetworkRequestID) {
+		if _, ok := pending[id]; ok {
+			delete(pending, id)
+			idle.Done()
+		}
+	}
+	wait := page.EachEvent(func(e *proto.NetworkRequestWillBeSent) {
+		if e.LoaderID == "" || slices.Contains(idleIgnoredTypes, e.Type) {
+			return
+		}
+		// a redirect sends the same request id again
+		if _, ok := pending[e.RequestID]; !ok {
+			pending[e.RequestID] = struct{}{}
+			idle.Add()
+		}
+	}, func(e *proto.NetworkLoadingFinished) {
+		done(e.RequestID)
+	}, func(e *proto.NetworkLoadingFailed) {
+		done(e.RequestID)
+	})
+	return func(ctx context.Context) {
+		go func() {
+			idle.Wait(ctx)
+			cancel()
+		}()
+		wait()
+	}
 }
 
 // defaultBrowserLauncher returns a new launcher with the flags of configured,
