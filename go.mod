@@ -40,7 +40,7 @@ require (
 	github.com/projectdiscovery/rod v0.116.3-0.20261113214723-dd0abeca2a24
 	github.com/projectdiscovery/tlsx v1.5.0
 	github.com/projectdiscovery/useragent v0.0.110
-	github.com/projectdiscovery/utils v0.11.16-0.20261121174127-8c4aad4f7a3a
+	github.com/projectdiscovery/utils v0.11.17-0.20261122142141-bb5b328c030e
 	github.com/projectdiscovery/wappalyzergo v0.3.8
 	github.com/rs/xid v1.6.0
 	github.com/seh-msft/burpxml v1.0.1
