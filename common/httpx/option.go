@@ -7,6 +7,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/projectdiscovery/cdncheck"
+	"github.com/projectdiscovery/httpx/common/authprovider"
 	"github.com/projectdiscovery/networkpolicy"
 )
 
@@ -41,6 +42,8 @@ type Options struct {
 	CdnCheck    string
 	ExcludeCdn  bool
 	ExtractFqdn bool
+	// ExtractCSP extracts the domains of the Content-Security-Policy
+	ExtractCSP bool
 	// Timeout is the maximum time to wait for the request
 	Timeout time.Duration
 	// RetryMax is the maximum number of retries
@@ -72,6 +75,7 @@ type Options struct {
 	CDNCheckClient            *cdncheck.Client
 	Protocol                  Proto
 	Trace                     bool
+	AuthProvider              authprovider.AuthProvider
 }
 
 // DefaultOptions contains the default options

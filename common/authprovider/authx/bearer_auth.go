@@ -29,3 +29,13 @@ func (s *BearerTokenAuthStrategy) Apply(req *http.Request) {
 func (s *BearerTokenAuthStrategy) ApplyOnRR(req *retryablehttp.Request) {
 	req.Header.Set("Authorization", "Bearer "+s.Data.Token)
 }
+
+// Remove removes the bearer token auth strategy from the request
+func (s *BearerTokenAuthStrategy) Remove(req *http.Request) {
+	req.Header.Del("Authorization")
+}
+
+// RemoveOnRR removes the bearer token auth strategy from the retryable request
+func (s *BearerTokenAuthStrategy) RemoveOnRR(req *retryablehttp.Request) {
+	s.Remove(req.Request)
+}

@@ -1,9 +1,12 @@
+version: 2
+
 before:
   hooks:
     - go mod tidy
 
 builds:
-- env:
+- id: httpx
+  env:
   - CGO_ENABLED=0
   goos:
     - windows
@@ -26,13 +29,54 @@ builds:
   binary: '{{ .ProjectName }}'
   main: cmd/httpx/httpx.go
 
+# docker-only: chromium is not packaged for Alpine armhf (arm/v6), so the
+# linux/arm image is built from an armv7 binary that no archive ships.
+- id: httpx-docker-armv7
+  env:
+  - CGO_ENABLED=0
+  goos:
+    - linux
+  goarch:
+    - arm
+  goarm:
+    - 7
+
+  binary: '{{ .ProjectName }}'
+  main: cmd/httpx/httpx.go
+
 archives:
-- formats:
+- ids:
+  - httpx
+  formats:
   - zip
   name_template: '{{ .ProjectName }}_{{ .Version }}_{{ if eq .Os "darwin" }}macOS{{ else }}{{ .Os }}{{ end }}_{{ .Arch }}'
 
 checksum:
   algorithm: sha256
+
+dockers_v2:
+- ids:
+  - httpx
+  - httpx-docker-armv7
+  images:
+    - projectdiscovery/httpx
+  tags:
+    - '{{ .Tag }}'
+    - 'v{{ .Major }}.{{ .Minor }}'
+    - 'v{{ .Major }}'
+    - latest
+  labels:
+    org.opencontainers.image.created: '{{ .Date }}'
+    org.opencontainers.image.ref.name: '{{ .Tag }}'
+    org.opencontainers.image.revision: '{{ .FullCommit }}'
+    org.opencontainers.image.version: '{{ .Version }}'
+  platforms:
+    - linux/amd64
+    - linux/arm64
+    - linux/arm/v7
+  # NOTE: release-test runs a snapshot on runners without QEMU; only build images
+  # in CI on real releases.
+  disable: '{{ and .IsSnapshot (isEnvSet "CI") }}'
 
 announce:
   slack:
