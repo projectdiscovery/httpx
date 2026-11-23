@@ -3248,7 +3248,8 @@ func normalizeHeaders(headers map[string][]string) map[string]interface{} {
 
 var (
 	// Connection: Upgrade alone is not enough: servers send it for h2c too.
-	webSocketHeaders = regexp.MustCompile(`(?mi)^(?:Sec-WebSocket-Accept:\s*\S|Upgrade:\s*websocket\b)`)
+	// Upgrade may list several protocols, optionally versioned (RFC 9110 7.8).
+	webSocketHeaders = regexp.MustCompile(`(?mi)^(?:Sec-WebSocket-Accept:[ \t]*\S|Upgrade:(?:[^\r\n]*,)?[ \t]*websocket(?:/[^,\r\n]*)?[ \t]*(?:,|\r?$))`)
 	webSocketBody    = regexp.MustCompile(`{"socket":true,"socketUrl":"wss?://.*"}|{"sid":"[^"]*","upgrades":\["websocket"\].*}`)
 )
 
