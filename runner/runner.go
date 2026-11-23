@@ -350,7 +350,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
 	scanopts.extractRegexps = make(map[string]*regexp.Regexp)
 	if options.Screenshot || options.TechDetectRuntime {
-		browser, err := NewBrowser(options.HTTPProxy, options.UseInstalledChrome, options.ParseHeadlessOptionalArguments())
+		browser, err := NewBrowser(options.Proxy, options.UseInstalledChrome, options.ParseHeadlessOptionalArguments())
 		if err != nil {
 			return nil, err
 		}
@@ -699,6 +699,21 @@ func (r *Runner) fingerprintTechnologiesWithRuntime(fullURL string, headers map[
 	})
 }
 
+// technologyInfo resolves wappalyzer metadata for a detected technology, which may
+// carry a ":version" suffix, mirroring wappalyzer's FingerprintWithInfo lookup.
+func (r *Runner) technologyInfo(match string) (wappalyzer.AppInfo, bool) {
+	apps := r.wappalyzer.GetCompiledFingerprints().Apps
+	if fingerprint, ok := apps[match]; ok {
+		return wappalyzer.AppInfoFromFingerprint(fingerprint), true
+	}
+	if name, _, found := strings.Cut(match, ":"); found {
+		if fingerprint, ok := apps[name]; ok {
+			return wappalyzer.AppInfoFromFingerprint(fingerprint), true
+		}
+	}
+	return wappalyzer.AppInfo{}, false
+}
+
 func (r *Runner) testAndSet(k string) bool {
 	r.seenMux.Lock()
 	defer r.seenMux.Unlock()
@@ -944,7 +959,7 @@ func (r *Runner) Close() {
 	if r.options.HostMaxErrors >= 0 {
 		r.HostErrorsCache.Purge()
 	}
-	if r.options.Screenshot {
+	if r.browser != nil {
 		r.browser.Close()
 	}
 	if r.options.ShowStatistics {
@@ -2369,9 +2384,15 @@ retry:
 			runtimeMatches, err := r.fingerprintTechnologiesWithRuntime(fullURL, resp.Headers, resp.Data, scanopts.ScreenshotTimeout)
 			if err != nil {
 				gologger.Warning().Msgf("Could not run runtime technology detection '%s': %s", fullURL, err)
-			} else {
+			}
+			// on collection errors runtimeMatches still holds passive and partial runtime matches;
+			// it is empty only when navigation failed, in which case we fall back to passive detection
+			if len(runtimeMatches) > 0 {
 				for match := range runtimeMatches {
 					technologies = append(technologies, match)
+					if info, ok := r.technologyInfo(match); ok {
+						technologyDetails[match] = info
+					}
 				}
 				usedRuntimeDetection = true
 			}
