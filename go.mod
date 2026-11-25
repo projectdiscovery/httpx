@@ -24,24 +24,24 @@ require (
 	github.com/projectdiscovery/asnmap v1.2.0
 	github.com/projectdiscovery/awesome-search-queries v0.0.0-20260104120501-961ef30f7193
 	github.com/projectdiscovery/cdncheck v1.4.0
-	github.com/projectdiscovery/clistats v0.1.10
-	github.com/projectdiscovery/dsl v0.9.3
-	github.com/projectdiscovery/fastdialer v0.6.3
-	github.com/projectdiscovery/fdmax v0.0.6
-	github.com/projectdiscovery/goconfig v0.0.1
-	github.com/projectdiscovery/goflags v0.2.1
-	github.com/projectdiscovery/gologger v1.1.76
-	github.com/projectdiscovery/hmap v0.0.105
+	github.com/projectdiscovery/clistats v0.1.11
+	github.com/projectdiscovery/dsl v0.9.4
+	github.com/projectdiscovery/fastdialer v0.6.4
+	github.com/projectdiscovery/fdmax v0.0.7
+	github.com/projectdiscovery/goconfig v0.0.2
+	github.com/projectdiscovery/goflags v0.2.2
+	github.com/projectdiscovery/gologger v1.1.77
+	github.com/projectdiscovery/hmap v0.0.106
 	github.com/projectdiscovery/mapcidr v1.1.97
-	github.com/projectdiscovery/networkpolicy v0.1.58
-	github.com/projectdiscovery/ratelimit v0.0.95
-	github.com/projectdiscovery/rawhttp v0.3.1
-	github.com/projectdiscovery/retryablehttp-go v1.3.35
-	github.com/projectdiscovery/rod v0.116.3-0.20261113214723-dd0abeca2a24
+	github.com/projectdiscovery/networkpolicy v0.1.59
+	github.com/projectdiscovery/ratelimit v0.1.0
+	github.com/projectdiscovery/rawhttp v0.3.2
+	github.com/projectdiscovery/retryablehttp-go v1.3.36
+	github.com/projectdiscovery/rod v0.117.0
 	github.com/projectdiscovery/tlsx v1.5.0
 	github.com/projectdiscovery/useragent v0.0.110
-	github.com/projectdiscovery/utils v0.11.13
-	github.com/projectdiscovery/wappalyzergo v0.3.8
+	github.com/projectdiscovery/utils v0.11.15
+	github.com/projectdiscovery/wappalyzergo v0.3.11
 	github.com/rs/xid v1.6.0
 	github.com/seh-msft/burpxml v1.0.1
 	github.com/spaolacci/murmur3 v1.1.0
@@ -122,7 +122,7 @@ require (
 	github.com/projectdiscovery/govaluate v0.0.0-20260504230327-80320480bb6e // indirect
 	github.com/projectdiscovery/jarm-go v0.0.0-20260910160638-430e2bae86f6 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20250715113114-c77eb3567582 // indirect
-	github.com/projectdiscovery/retryabledns v1.0.118 // indirect
+	github.com/projectdiscovery/retryabledns v1.0.119 // indirect
 	github.com/refraction-networking/utls v1.8.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
@@ -158,5 +158,5 @@ require (
 	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/term v0.48.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	gopkg.in/ini.v1 v1.67.0 // indirect
+	gopkg.in/ini.v1 v1.68.0 // indirect
 )
