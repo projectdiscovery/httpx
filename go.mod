@@ -4,12 +4,12 @@ go 1.27.4
 
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
-	github.com/PuerkitoBio/goquery v1.13.0
+	github.com/PuerkitoBio/goquery v1.14.0
 	github.com/corona10/goimagehash v1.1.0
 	github.com/dop251/goja v0.0.0-20260311135729-065cd970411c
 	github.com/dustin/go-humanize v1.1.0
 	github.com/go-faker/faker/v4 v4.12.0
-	github.com/go-sql-driver/mysql v1.10.1
+	github.com/go-sql-driver/mysql v1.10.2
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1
 	github.com/happyhackingspace/dit v0.0.36
@@ -51,7 +51,7 @@ require (
 	go.mongodb.org/mongo-driver v1.17.10
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 	golang.org/x/text v0.44.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -64,7 +64,7 @@ require (
 	github.com/akrylysov/pogreb v0.10.2 // indirect
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
 	github.com/andybalholm/brotli v1.2.7 // indirect
-	github.com/andybalholm/cascadia v1.3.4 // indirect
+	github.com/andybalholm/cascadia v1.3.5 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
