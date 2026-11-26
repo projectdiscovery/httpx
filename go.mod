@@ -4,12 +4,12 @@ go 1.27.4
 
 require (
 	github.com/Mzack9999/gcache v0.0.0-20230410081825-519e28eab057
-	github.com/PuerkitoBio/goquery v1.13.0
+	github.com/PuerkitoBio/goquery v1.14.0
 	github.com/corona10/goimagehash v1.1.0
 	github.com/dop251/goja v0.0.0-20260311135729-065cd970411c
 	github.com/dustin/go-humanize v1.1.0
 	github.com/go-faker/faker/v4 v4.12.0
-	github.com/go-sql-driver/mysql v1.10.1
+	github.com/go-sql-driver/mysql v1.10.2
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1
 	github.com/happyhackingspace/dit v0.0.36
@@ -24,24 +24,24 @@ require (
 	github.com/projectdiscovery/asnmap v1.2.0
 	github.com/projectdiscovery/awesome-search-queries v0.0.0-20260104120501-961ef30f7193
 	github.com/projectdiscovery/cdncheck v1.4.0
-	github.com/projectdiscovery/clistats v0.1.10
-	github.com/projectdiscovery/dsl v0.9.3
-	github.com/projectdiscovery/fastdialer v0.6.3
-	github.com/projectdiscovery/fdmax v0.0.6
-	github.com/projectdiscovery/goconfig v0.0.1
-	github.com/projectdiscovery/goflags v0.2.1
-	github.com/projectdiscovery/gologger v1.1.76
-	github.com/projectdiscovery/hmap v0.0.105
+	github.com/projectdiscovery/clistats v0.1.11
+	github.com/projectdiscovery/dsl v0.9.4
+	github.com/projectdiscovery/fastdialer v0.6.4
+	github.com/projectdiscovery/fdmax v0.0.7
+	github.com/projectdiscovery/goconfig v0.0.2
+	github.com/projectdiscovery/goflags v0.2.2
+	github.com/projectdiscovery/gologger v1.1.77
+	github.com/projectdiscovery/hmap v0.0.106
 	github.com/projectdiscovery/mapcidr v1.1.97
-	github.com/projectdiscovery/networkpolicy v0.1.58
-	github.com/projectdiscovery/ratelimit v0.0.95
-	github.com/projectdiscovery/rawhttp v0.3.1
-	github.com/projectdiscovery/retryablehttp-go v1.3.35
-	github.com/projectdiscovery/rod v0.116.3-0.20261113214723-dd0abeca2a24
+	github.com/projectdiscovery/networkpolicy v0.1.59
+	github.com/projectdiscovery/ratelimit v0.1.0
+	github.com/projectdiscovery/rawhttp v0.3.2
+	github.com/projectdiscovery/retryablehttp-go v1.3.36
+	github.com/projectdiscovery/rod v0.117.0
 	github.com/projectdiscovery/tlsx v1.5.0
 	github.com/projectdiscovery/useragent v0.0.110
-	github.com/projectdiscovery/utils v0.11.17-0.20261122142141-bb5b328c030e
-	github.com/projectdiscovery/wappalyzergo v0.3.8
+	github.com/projectdiscovery/utils v0.11.17
+	github.com/projectdiscovery/wappalyzergo v0.3.11
 	github.com/rs/xid v1.6.0
 	github.com/seh-msft/burpxml v1.0.1
 	github.com/spaolacci/murmur3 v1.1.0
@@ -51,7 +51,7 @@ require (
 	go.mongodb.org/mongo-driver v1.17.10
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 	golang.org/x/text v0.44.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -64,7 +64,7 @@ require (
 	github.com/akrylysov/pogreb v0.10.2 // indirect
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
 	github.com/andybalholm/brotli v1.2.7 // indirect
-	github.com/andybalholm/cascadia v1.3.4 // indirect
+	github.com/andybalholm/cascadia v1.3.5 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
@@ -116,7 +116,7 @@ require (
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
-	github.com/projectdiscovery/blackrock v0.0.2 // indirect
+	github.com/projectdiscovery/blackrock v0.0.4 // indirect
 	github.com/projectdiscovery/freeport v0.0.8 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/govaluate v0.0.0-20260504230327-80320480bb6e // indirect
@@ -158,5 +158,5 @@ require (
 	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/term v0.48.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	gopkg.in/ini.v1 v1.67.0 // indirect
+	gopkg.in/ini.v1 v1.68.0 // indirect
 )
