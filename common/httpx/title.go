@@ -15,7 +15,8 @@ import (
 var (
 	cutset                  = "\n\t\v\f\r"
 	reTitle                 = regexp.MustCompile(`(?im)<\s*title.*>(.*?)<\s*/\s*title>`)
-	reContentType           = regexp.MustCompile(`(?im)\s*charset="(.*?)"|charset=(.*?)"\s*`)
+	reContentType           = regexp.MustCompile(`(?is)<meta\b[^>]*?charset\s*=\s*["']?([^"'\s;>/]+)`)
+	reGenerator             = regexp.MustCompile(`(?i)<meta\b[^>]*?name\s*=\s*["']generator["'][^>]*?content\s*=\s*["']([^"']+)["']|<meta\b[^>]*?content\s*=\s*["']([^"']+)["'][^>]*?name\s*=\s*["']generator["']`)
 	supportedTitleMimeTypes = []string{
 		"text/html",
 		"application/xhtml+xml",
@@ -50,9 +51,28 @@ func ExtractTitle(r *Response) (title string) {
 	return title
 }
 
-func CanHaveTitleTag(mimeType string) bool {  
-    return slices.Contains(supportedTitleMimeTypes, mimeType)  
-}  
+// ExtractGenerator extracts the content of <meta name="generator"> from a response.
+func ExtractGenerator(r *Response) string {
+	matches := reGenerator.FindSubmatch(r.Data)
+	var raw []byte
+	if len(matches) >= 3 {
+		if len(matches[1]) > 0 {
+			raw = matches[1]
+		} else if len(matches[2]) > 0 {
+			raw = matches[2]
+		}
+	}
+	if len(raw) == 0 {
+		return ""
+	}
+	// Postgres rejects NUL in TEXT, and one bad value rolls back the whole batch.
+	value := strings.ReplaceAll(string(raw), "\x00", "")
+	return strings.TrimSpace(html.UnescapeString(value))
+}
+
+func CanHaveTitleTag(mimeType string) bool {
+	return slices.Contains(supportedTitleMimeTypes, strings.ToLower(strings.TrimSpace(mimeType)))
+}
 
 func getTitleWithDom(r *Response) (*html.Node, error) {
 	var title *html.Node
@@ -85,10 +105,10 @@ func renderNode(n *html.Node) string {
 }
 
 func trimTitleTags(title string) string {
-    titleBegin := strings.Index(title, ">")
-    titleEnd := strings.Index(title, "</")
-    if titleEnd < 0 || titleBegin < 0 || titleEnd <= titleBegin {
-        return title
-    }
-    return title[titleBegin+1 : titleEnd]
+	titleBegin := strings.Index(title, ">")
+	titleEnd := strings.Index(title, "</")
+	if titleEnd < 0 || titleBegin < 0 || titleEnd <= titleBegin {
+		return title
+	}
+	return title[titleBegin+1 : titleEnd]
 }

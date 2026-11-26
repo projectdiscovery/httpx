@@ -71,6 +71,7 @@ func (m *mysqlDatabase) EnsureSchema(ctx context.Context) error {
 			content_length INT,
 			content_type VARCHAR(255),
 			title TEXT,
+			generator TEXT,
 			webserver VARCHAR(255),
 			response_time VARCHAR(50),
 			location TEXT,
@@ -154,6 +155,9 @@ func (m *mysqlDatabase) EnsureSchema(ctx context.Context) error {
 			-- CPE (Common Platform Enumeration)
 			cpe JSON,
 
+			-- WordPress plugins and themes
+			wordpress JSON,
+
 			INDEX idx_timestamp (timestamp),
 			INDEX idx_url (url(255)),
 			INDEX idx_host (host),
@@ -173,6 +177,12 @@ func (m *mysqlDatabase) EnsureSchema(ctx context.Context) error {
 	// framework (e.g. golang-migrate / goose) once more schema changes accumulate.
 	if err := m.ensureColumn(ctx, "cpe", "JSON"); err != nil {
 		return fmt.Errorf("failed to ensure cpe column: %w", err)
+	}
+	if err := m.ensureColumn(ctx, "generator", "TEXT"); err != nil {
+		return fmt.Errorf("failed to ensure generator column: %w", err)
+	}
+	if err := m.ensureColumn(ctx, "wordpress", "JSON"); err != nil {
+		return fmt.Errorf("failed to ensure wordpress column: %w", err)
 	}
 
 	return nil
@@ -216,7 +226,7 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 	query := fmt.Sprintf(`
 		INSERT INTO %s (
 			timestamp, url, input, host, port, scheme, path, method, final_url,
-			status_code, content_length, content_type, title, webserver, response_time,
+			status_code, content_length, content_type, title, generator, webserver, response_time,
 			location, body, body_preview, raw_header, request,
 			host_ip, a, aaaa, cname, resolvers, body_fqdn, body_domains, sni,
 			tech, hash, favicon, favicon_md5, favicon_path, favicon_url, jarm_hash,
@@ -226,10 +236,10 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 			chain, chain_status_codes,
 			headless_body, screenshot_bytes, screenshot_path, screenshot_path_rel, stored_response_path,
 			knowledgebase, link_request, trace,
-			cpe
+			cpe, wordpress
 		) VALUES (
 			?, ?, ?, ?, ?, ?, ?, ?, ?,
-			?, ?, ?, ?, ?, ?,
+			?, ?, ?, ?, ?, ?, ?,
 			?, ?, ?, ?, ?,
 			?, ?, ?, ?, ?, ?, ?, ?,
 			?, ?, ?, ?, ?, ?, ?,
@@ -239,7 +249,7 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 			?, ?,
 			?, ?, ?, ?, ?,
 			?, ?, ?,
-			?
+			?, ?
 		)`, tableName)
 
 	stmt, err := tx.PrepareContext(ctx, query)
@@ -271,10 +281,11 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 		linkReqJSON, _ := json.Marshal(r.LinkRequest)
 		traceJSON, _ := json.Marshal(r.Trace)
 		cpeJSON, _ := json.Marshal(r.CPE)
+		wordpressJSON, _ := json.Marshal(r.WordPress)
 
 		_, err = stmt.ExecContext(ctx,
 			r.Timestamp, r.URL, r.Input, r.Host, r.Port, r.Scheme, r.Path, r.Method, r.FinalURL,
-			r.StatusCode, r.ContentLength, r.ContentType, r.Title, r.WebServer, r.ResponseTime,
+			r.StatusCode, r.ContentLength, r.ContentType, r.Title, r.Generator, r.WebServer, r.ResponseTime,
 			r.Location, r.ResponseBody, r.BodyPreview, r.RawHeaders, r.Request,
 			r.HostIP, aJSON, aaaaJSON, cnameJSON, resolversJSON, fqdnJSON, domainsJSON, r.SNI,
 			techJSON, hashJSON, r.FavIconMMH3, r.FavIconMD5, r.FaviconPath, r.FaviconURL, r.JarmHash,
@@ -284,7 +295,7 @@ func (m *mysqlDatabase) InsertBatch(ctx context.Context, results []runner.Result
 			chainJSON, chainStatusJSON,
 			r.HeadlessBody, r.ScreenshotBytes, r.ScreenshotPath, r.ScreenshotPathRel, r.StoredResponsePath,
 			kbJSON, linkReqJSON, traceJSON,
-			cpeJSON,
+			cpeJSON, wordpressJSON,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert result: %w", err)

@@ -13,4 +13,8 @@ type AuthStrategy interface {
 	Apply(*http.Request)
 	// ApplyOnRR applies the strategy to the retryable request
 	ApplyOnRR(*retryablehttp.Request)
+	// Remove removes the strategy from the request
+	Remove(*http.Request)
+	// RemoveOnRR removes the strategy from the retryable request
+	RemoveOnRR(*retryablehttp.Request)
 }

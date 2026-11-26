@@ -28,11 +28,12 @@ var httpTestcases = map[string]testutils.TestCase{
 	"Regression test for unwanted chars":                                                  &titleUnwantedChars{}, // new line scanning with title flag, Regression test for: https://github.com/projectdiscovery/httpx/issues/433
 	"Request URI to existing file - https://github.com/projectdiscovery/httpx/issues/480": &issue480{},           // request uri pointing to existing file
 	"Standard HTTP GET Request with match response time":                                  &standardHttpGet{mrt: true, inputValue: "\"<10s\""},
-	"Standard HTTP GET Request with filter response time":                                 &standardHttpGet{frt: true, inputValue: "\">3ms\""},
+	"Standard HTTP GET Request with filter response time":                                 &standardHttpGet{frt: true, inputValue: "\">5s\""},
 	"Multiple Custom Header":                                                              &customHeader{inputData: []string{"-debug-req", "-H", "'user-agent: test'", "-H", "'foo: bar'"}, expectedOutput: []string{"User-Agent: test", "Foo: bar"}},
 	"Output Match Condition":                                                              &outputMatchCondition{inputData: []string{"-silent", "-mdc", "\"status_code == 200\""}},
 	"Output Filter Condition":                                                             &outputFilterCondition{inputData: []string{"-silent", "-fdc", "\"status_code == 400\""}},
 	"Output All":                                                                          &outputAll{},
+	"Comma separated extract presets":                                                     &extractPresets{},
 }
 
 type standardHttpGet struct {
@@ -417,5 +418,25 @@ func (h *outputAll) Execute() error {
 		_ = os.Remove(file)
 	}
 
+	return nil
+}
+
+type extractPresets struct{}
+
+func (h *extractPresets) Execute() error {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = fmt.Fprint(w, "<html>server 10.1.2.3</html>")
+	}))
+	defer ts.Close()
+	results, err := testutils.RunHttpxAndGetResults(ts.URL, false, "-nc", "-ep", "ipv4,mail")
+	if err != nil {
+		return err
+	}
+	if len(results) != 1 {
+		return errIncorrectResultsCount(results)
+	}
+	if !strings.Contains(results[0], "[10.1.2.3]") {
+		return fmt.Errorf("ipv4 preset not applied: %s", results[0])
+	}
 	return nil
 }

@@ -12,6 +12,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/projectdiscovery/cdncheck"
+	"github.com/projectdiscovery/clistats"
 	"github.com/projectdiscovery/goconfig"
 	"github.com/projectdiscovery/goflags"
 	"github.com/projectdiscovery/gologger"
@@ -47,6 +48,26 @@ var (
 	PDCPApiKey = ""
 	TeamIDEnv  = env.GetEnvOrDefault("PDCP_TEAM_ID", "")
 )
+
+// patternTrimCutset mirrors the quotes goflags strips from a slice value.
+var patternTrimCutset = string([]byte{'"', '\'', '`'})
+
+// normalizedPatternStringSliceOptions keeps the comma tokenization, quote
+// trimming and whitespace handling of the goflags option set it replaces, but
+// leaves the value itself intact. -ms and -fs compare literal strings, so
+// stripping a `#` comment truncated every pattern that held a `#`.
+var normalizedPatternStringSliceOptions = goflags.Options{
+	IsEmpty:   func(value string) bool { return strings.TrimSpace(value) == "" },
+	Normalize: normalizePattern,
+}
+
+func normalizePattern(value string) string {
+	return stringsutil.NormalizeWithOptions(value, stringsutil.NormalizeOptions{
+		TrimCutset: patternTrimCutset,
+		TrimSpaces: true,
+		Lowercase:  true,
+	})
+}
 
 // OnResultCallback (hostResult)
 type OnResultCallback func(Result)
@@ -207,6 +228,9 @@ type Options struct {
 	// KnowledgeBase enables knowledge base classification using dit. It is
 	// implied by OutputFilterPageType/OutputFilterErrorPage, which need it.
 	KnowledgeBase             bool
+	// PageTypeModel overrides the model used by knowledge base classification.
+	// It does not enable classification on its own.
+	PageTypeModel             string
 	FilterOutDuplicates       bool
 	OutputFilterContentLength string
 	InputRawRequest           string
@@ -275,6 +299,7 @@ type Options struct {
 	protocol                  string
 	ShowStatistics            bool
 	StatsInterval             int
+	MetricsPort               int
 	RandomAgent               bool
 	AutoReferer               bool
 	StoreChain                bool
@@ -444,7 +469,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputMatchLinesCount, "match-line-count", "mlc", "", "match response body with specified line count (-mlc 423,532)"),
 		flagSet.StringVarP(&options.OutputMatchWordsCount, "match-word-count", "mwc", "", "match response body with specified word count (-mwc 43,55)"),
 		flagSet.StringSliceVarP(&options.OutputMatchFavicon, "match-favicon", "mfc", nil, "match response with specified favicon hash (-mfc 1494302000)", goflags.NormalizedStringSliceOptions),
-		flagSet.StringSliceVarP(&options.OutputMatchString, "match-string", "ms", nil, "match response with specified string (-ms admin)", goflags.NormalizedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.OutputMatchString, "match-string", "ms", nil, "match response with specified string (-ms admin)", normalizedPatternStringSliceOptions),
 		flagSet.StringSliceVarP(&options.OutputMatchRegex, "match-regex", "mr", nil, "match response with specified regex (-mr admin)", goflags.StringSliceOptions),
 		flagSet.StringSliceVarP(&options.OutputMatchCdn, "match-cdn", "mcdn", nil, fmt.Sprintf("match host with specified cdn provider (%s)", cdncheck.DefaultCDNProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputMatchResponseTime, "match-response-time", "mrt", "", "match response with specified response time in seconds (-mrt '< 1')"),
@@ -453,7 +478,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("extractor", "Extractor",
 		flagSet.StringSliceVarP(&options.OutputExtractRegexs, "extract-regex", "er", nil, "display response content with matched regex", goflags.StringSliceOptions),
-		flagSet.StringSliceVarP(&options.OutputExtractPresets, "extract-preset", "ep", nil, fmt.Sprintf("display response content matched by a pre-defined regex (%s)", strings.Join(maps.Keys(customextract.ExtractPresets), ",")), goflags.StringSliceOptions),
+		flagSet.StringSliceVarP(&options.OutputExtractPresets, "extract-preset", "ep", nil, fmt.Sprintf("display response content matched by a pre-defined regex (%s)", strings.Join(maps.Keys(customextract.ExtractPresets), ",")), goflags.CommaSeparatedStringSliceOptions),
 	)
 
 	flagSet.CreateGroup("filters", "Filters",
@@ -465,7 +490,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.OutputFilterLinesCount, "filter-line-count", "flc", "", "filter response body with specified line count (-flc 423,532)"),
 		flagSet.StringVarP(&options.OutputFilterWordsCount, "filter-word-count", "fwc", "", "filter response body with specified word count (-fwc 423,532)"),
 		flagSet.StringSliceVarP(&options.OutputFilterFavicon, "filter-favicon", "ffc", nil, "filter response with specified favicon hash (-ffc 1494302000)", goflags.NormalizedStringSliceOptions),
-		flagSet.StringSliceVarP(&options.OutputFilterString, "filter-string", "fs", nil, "filter response with specified string (-fs admin)", goflags.NormalizedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.OutputFilterString, "filter-string", "fs", nil, "filter response with specified string (-fs admin)", normalizedPatternStringSliceOptions),
 		flagSet.StringSliceVarP(&options.OutputFilterRegex, "filter-regex", "fe", nil, "filter response with specified regex (-fe admin)", goflags.StringSliceOptions),
 		flagSet.StringSliceVarP(&options.OutputFilterCdn, "filter-cdn", "fcdn", nil, fmt.Sprintf("filter host with specified cdn provider (%s)", cdncheck.DefaultCDNProviders), goflags.NormalizedStringSliceOptions),
 		flagSet.StringVarP(&options.OutputFilterResponseTime, "filter-response-time", "frt", "", "filter response with specified response time in seconds (-frt '> 1')"),
@@ -529,6 +554,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("configs", "Configurations",
 		flagSet.StringVar(&cfgFile, "config", "", "path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)"),
+		flagSet.StringVarP(&options.PageTypeModel, "page-type-model", "ptm", "", "path to a local dit model for page classification (requires -kb or -fpt; skips model download)"),
 		flagSet.StringSliceVarP(&options.Resolvers, "resolvers", "r", nil, "list of custom resolver (file or comma separated)", goflags.NormalizedStringSliceOptions),
 		flagSet.Var(&options.Allow, "allow", "allowed list of IP/CIDR's to process (file or comma separated)"),
 		flagSet.Var(&options.Deny, "deny", "denied list of IP/CIDR's to process (file or comma separated)"),
@@ -568,6 +594,7 @@ func ParseOptions() *Options {
 		flagSet.BoolVar(&options.Silent, "silent", false, "silent mode"),
 		flagSet.BoolVarP(&options.Verbose, "verbose", "v", false, "verbose mode"),
 		flagSet.IntVarP(&options.StatsInterval, "stats-interval", "si", 0, "number of seconds to wait between showing a statistics update (default: 5)"),
+		flagSet.IntVarP(&options.MetricsPort, "metrics-port", "mp", clistats.DefaultOptions.ListenPort, "port to expose httpx metrics on"),
 		flagSet.BoolVarP(&options.NoColor, "no-color", "nc", false, "disable colors in cli output"),
 		flagSet.BoolVarP(&options.Trace, "trace", "tr", false, "trace"),
 	)
@@ -757,6 +784,10 @@ func (options *Options) ValidateOptions() error {
 		return errors.New("-im/-input-mode requires -l/-list to specify an input file")
 	}
 
+	if options.MetricsPort < 0 || options.MetricsPort > 65535 {
+		return fmt.Errorf("invalid metrics port %d, must be between 0 and 65535", options.MetricsPort)
+	}
+
 	if options.Silent {
 		incompatibleFlagsList := flagsIncompatibleWithSilent(options)
 		if len(incompatibleFlagsList) > 0 {
@@ -871,13 +902,21 @@ func (options *Options) ValidateOptions() error {
 		options.OutputCDN = "true"
 	}
 
-	if !stringsutil.EqualFoldAny(options.Protocol, string(httpxcommon.UNKNOWN), string(httpxcommon.HTTP11)) {
+	if !stringsutil.EqualFoldAny(options.Protocol, string(httpxcommon.UNKNOWN), string(httpxcommon.HTTP11), string(httpxcommon.HTTP2), string(httpxcommon.HTTP3)) {
 		return fmt.Errorf("invalid protocol: %s", options.Protocol)
 	}
 
 	if options.Threads == 0 {
 		gologger.Info().Msgf("Threads automatically set to %d", defaultThreads)
 		options.Threads = defaultThreads
+	}
+
+	// library callers skip flag defaults; a zero size would read and keep no body
+	if options.MaxResponseBodySizeToRead <= 0 {
+		options.MaxResponseBodySizeToRead = int(httpxcommon.DefaultMaxResponseBodySize)
+	}
+	if options.MaxResponseBodySizeToSave <= 0 {
+		options.MaxResponseBodySizeToSave = int(httpxcommon.DefaultMaxResponseBodySize)
 	}
 
 	return nil
@@ -972,4 +1011,13 @@ func flagsIncompatibleWithSilent(options *Options) []string {
 		}
 	}
 	return incompatibleFlagsList
+}
+
+// metricsPort returns the port the -stats metrics server is asked to listen
+// on: the -metrics-port value, or the clistats default when it is not set.
+func (options *Options) metricsPort() int {
+	if options.MetricsPort > 0 {
+		return options.MetricsPort
+	}
+	return clistats.DefaultOptions.ListenPort
 }

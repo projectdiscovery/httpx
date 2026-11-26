@@ -62,7 +62,7 @@
 
 # Installation Instructions
 
-`httpx` requires **go >=1.25.0** to install successfully. Run the following command to get the repo:
+`httpx` requires **go >=1.26.10** to install successfully. Run the following command to get the repo:
 
 ```sh
 go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
@@ -217,6 +217,7 @@ OUTPUT:
 
 CONFIGURATIONS:
    -config string                   path to the httpx configuration file (default $HOME/.config/httpx/config.yaml)
+   -ptm, -page-type-model string    path to a local dit model for page classification (requires -kb or -fpt; skips model download)
    -r, -resolvers string[]          list of custom resolver (file or comma separated)
    -allow string[]                  allowed list of IP/CIDR's to process (file or comma separated)
    -deny string[]                   denied list of IP/CIDR's to process (file or comma separated)
@@ -255,6 +256,7 @@ DEBUG:
    -silent                   silent mode
    -v, -verbose              verbose mode
    -si, -stats-interval int  number of seconds to wait between showing a statistics update (default: 5)
+   -mp, -metrics-port int    port to expose httpx metrics on (default 63636)
    -nc, -no-color            disable colors in cli output
    -tr, -trace               trace
 
@@ -285,6 +287,19 @@ For details about running httpx, see https://docs.projectdiscovery.io/tools/http
 
 ### Using `httpx` as a library
 `httpx` can be used as a library by creating an instance of the `Option` struct and populating it with the same options that would be specified via CLI. Once validated, the struct should be passed to a runner instance (to be closed at the end of the program) and the `RunEnumeration` method should be called. A minimal example of how to do it is in the [examples](examples/) folder.
+
+### Using a local page classification model
+
+For environments that cannot reach Hugging Face, provision the [dit model.json](https://huggingface.co/datasets/happyhackingspace/dit/resolve/main/model.json) on an accessible machine and copy it to the scanning environment. Select it with `-page-type-model` (`-ptm`):
+
+```bash
+httpx -l hosts.txt -kb -json -ptm /opt/httpx/model.json
+httpx -l hosts.txt -fpt error,parked -ptm /opt/httpx/model.json
+```
+
+The path selects a local model and bypasses automatic model discovery and downloading. A missing or unreadable model, or invalid model JSON, stops initialization instead of falling back to a download. Classification remains opt-in: use `-kb` or `-fpt` (the deprecated `-fep` is also supported). Setting `-ptm` alone does not load the model or enable classification. Library users can set `Options.PageTypeModel` alongside `KnowledgeBase` or `OutputFilterPageType`. Without a custom path, the existing model discovery and download behavior is unchanged.
+
+Explicit models must also pass a page and form classification check before scanning starts or existing output indexes are changed. This checks that the model can run, rather than certifying every part of its contents. A later classification error leaves that response without page-type information; diagnostics are available with `-debug`.
 
 ## Common Recipes
 
@@ -365,6 +380,17 @@ echo target.com | httpx -path '/.well-known/security.txt,/.well-known/change-pas
 
 - As default, `httpx` probe with **HTTPS** scheme and fall-back to **HTTP** only if **HTTPS** is not reachable.
 - Burp Suite XML exports can be used as input with `-l burp-export.xml -im burp`
+- A target can be pinned to an IP with a JSON input line, in the format of nuclei target lines, like `curl --resolve` but on every port of its host:
+  ```
+  {"target": "https://app.example.com", "ip": "192.0.2.10"}
+  {"target": "https://app.example.com", "ip": "192.0.2.11"}
+  ```
+  - Every connection to the hostname, redirects included, goes to the IP, which `host_ip` reports and the output shows. The hostname is kept for the Host header and SNI and is not resolved. A host can be listed with several IPs, and a line without `ip` is the plain target.
+  - The keys nuclei uses to select templates, such as `tags`, are ignored, and any other key makes the line invalid. An invalid line is reported and skipped. The `input` of a result is the line in a canonical form.
+  - `-u` splits its value on commas, so pass such lines in a file (`-l`) or on stdin.
+  - A line with an IP stops the run with `-proxy`, `-pr http2`, `-unsafe`, `-pipeline`, `-http2`, `-jarm`, `-screenshot` and `-vhost-input`, as they do not connect through the IP or, for HTTP/2, share a connection between the IPs of a host. A proxy set with `HTTP_PROXY`/`HTTPS_PROXY` resolves the host itself too, so a probe through it fails: add the pinned hosts to `NO_PROXY`.
+  - `-pa` probes each IP of a host the same way, so it cannot be used with `-proxy` either. The IPs of a host are kept apart: `-maxhr` counts their failures and `-sr` stores their responses separately.
+  - Hostnames found by `-tls-probe` and `-csp-probe`, the pinned one included, are probed as new targets and resolved.
 - The `-no-fallback` flag can be used to probe and display both **HTTP** and **HTTPS** result.
 - Custom scheme for ports can be defined, for example `-ports http:443,http:80,https:8443`
 - Custom resolver supports multiple protocol (**doh|tcp|udp**) in form of `protocol:resolver:port` (e.g. `udp:127.0.0.1:53`)

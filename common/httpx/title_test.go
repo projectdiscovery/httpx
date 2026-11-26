@@ -1,0 +1,135 @@
+package httpx
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/projectdiscovery/retryablehttp-go"
+	"github.com/stretchr/testify/require"
+)
+
+func TestCanHaveTitleTag(t *testing.T) {
+	tests := []struct {
+		mimeType string
+		expected bool
+	}{
+		{"text/html", true},
+		{"TEXT/HTML", true},
+		{"Text/Html", true},
+		{"text/html ", true},
+		{" application/xhtml+xml", true},
+		{"text/plain", false},
+		{"application/json", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.mimeType, func(t *testing.T) {
+			require.Equal(t, tt.expected, CanHaveTitleTag(tt.mimeType))
+		})
+	}
+}
+
+func TestExtractTitleDecodesCharset(t *testing.T) {
+	options := DefaultOptions
+	options.CdnCheck = "false"
+	options.Timeout = 2 * time.Second
+	options.RetryMax = 0
+
+	ht, err := New(&options)
+	require.Nil(t, err)
+
+	// <title>中文</title> with the title text encoded in GBK
+	gbk := []byte{0xd6, 0xd0, 0xce, 0xc4}
+	body := append([]byte("<html><head><title>"), gbk...)
+	body = append(body, []byte("</title></head></html>")...)
+
+	tests := []struct {
+		name        string
+		contentType string
+	}{
+		{"quoted charset", `text/html; charset="gbk"`},
+		{"unquoted charset", "text/html; charset=gbk"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", tt.contentType)
+				_, _ = w.Write(body)
+			}))
+			defer srv.Close()
+
+			req, err := retryablehttp.NewRequest(http.MethodGet, srv.URL, nil)
+			require.Nil(t, err)
+			resp, err := ht.Do(req, UnsafeOptions{})
+			require.Nil(t, err)
+			require.Equal(t, "中文", ExtractTitle(resp))
+		})
+	}
+}
+
+func TestExtractTitleDecodesBig5HeaderCharset(t *testing.T) {
+	options := DefaultOptions
+	options.CdnCheck = "false"
+	options.Timeout = 2 * time.Second
+	options.RetryMax = 0
+
+	ht, err := New(&options)
+	require.Nil(t, err)
+
+	// <title>中文</title> with the title text encoded in Big5 and no <meta> charset
+	big5 := []byte{0xa4, 0xa4, 0xa4, 0xe5}
+	body := append([]byte("<html><head><title>"), big5...)
+	body = append(body, []byte("</title></head></html>")...)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=Big5")
+		_, _ = w.Write(body)
+	}))
+	defer srv.Close()
+
+	req, err := retryablehttp.NewRequest(http.MethodGet, srv.URL, nil)
+	require.Nil(t, err)
+	resp, err := ht.Do(req, UnsafeOptions{})
+	require.Nil(t, err)
+	require.Equal(t, "中文", ExtractTitle(resp))
+}
+
+func TestExtractGenerator(t *testing.T) {
+	tests := []struct {
+		name string
+		html string
+		want string
+	}{
+		{"name then content", `<meta name="generator" content="WordPress 6.4">`, "WordPress 6.4"},
+		{"content then name", `<meta content="Drupal 10" name="generator">`, "Drupal 10"},
+		{"decoded entity", `<meta name="generator" content="Bob&#39;s CMS">`, "Bob's CMS"},
+		{"nul stripped", "<meta name=\"generator\" content=\"Bad\x00CMS\">", "BadCMS"},
+		{"absent", `<meta name="viewport" content="width=device-width">`, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, ExtractGenerator(&Response{Data: []byte(tt.html)}))
+		})
+	}
+}
+
+func TestDecodeDataBig5HeaderCharsetIsExact(t *testing.T) {
+	big5 := []byte{0xa4, 0xa4, 0xa4, 0xe5}
+	decoded, err := DecodeData(big5, http.Header{"Content-Type": []string{`text/html; charset="Big5"`}})
+	require.NoError(t, err)
+	require.Equal(t, "中文", string(decoded))
+
+	// big5-hkscs is a different charset name, which is looked up on its own.
+	hkscs, err := DecodeData(big5, http.Header{"Content-Type": []string{"text/html; charset=big5-hkscs"}})
+	require.NoError(t, err)
+	require.Equal(t, "中文", string(hkscs))
+
+	// big50 is not a charset: it must not be taken for big5.
+	got, err := DecodeData(big5, http.Header{"Content-Type": []string{"text/html; charset=big50"}})
+	require.NoError(t, err)
+	require.Equal(t, big5, got)
+}
