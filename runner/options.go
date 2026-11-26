@@ -769,6 +769,9 @@ func (options *Options) classificationEnabled() bool {
 }
 
 func (options *Options) ValidateOptions() error {
+	if options.TechDetectRuntime && !options.TechDetect {
+		return errors.New("-tdr/-tech-detect-runtime requires -td/-tech-detect")
+	}
 	if options.InputFile != "" && !fileutilz.FileNameIsGlob(options.InputFile) && !fileutil.FileExists(options.InputFile) {
 		return fmt.Errorf("file '%s' does not exist", options.InputFile)
 	}

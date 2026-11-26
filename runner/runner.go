@@ -78,7 +78,6 @@ import (
 	iputil "github.com/projectdiscovery/utils/ip"
 	syncutil "github.com/projectdiscovery/utils/sync"
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
-	wappalyzerheadless "github.com/projectdiscovery/wappalyzergo/headless"
 )
 
 // Runner is a client for running the enumeration process.
@@ -741,19 +740,18 @@ func (r *Runner) classifyPage(headlessBody, body string, pHash uint64) map[strin
 // fingerprintTechnologiesWithRuntime renders fullURL in the headless browser and runs
 // wappalyzer's runtime fingerprinting against it, combining the passive header/body
 // evidence with JavaScript/DOM/script evidence collected from the rendered page.
-func (r *Runner) fingerprintTechnologiesWithRuntime(fullURL string, headers map[string][]string, body []byte, timeout time.Duration) (map[string]struct{}, error) {
-	page, err := r.browser.NavigatePage(fullURL, timeout, r.options.CustomHeaders)
+func (r *Runner) fingerprintTechnologiesWithRuntime(fullURL string, headers map[string][]string, body []byte, timeout, idle time.Duration) (map[string]struct{}, error) {
+	page, cleanup, err := r.browser.NavigateForRuntime(fullURL, timeout, idle, r.options.CustomHeaders)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = page.Close() }()
+	defer cleanup()
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	collector := wappalyzerheadless.New(page)
 	return r.wappalyzer.FingerprintWithRuntime(ctx, headers, body, wappalyzer.RuntimeOptions{
-		Collector: collector,
+		Collector: newRuntimeCollector(page),
 		Timeout:   timeout,
 	})
 }
@@ -2527,7 +2525,7 @@ retry:
 	if scanopts.TechDetect {
 		usedRuntimeDetection := false
 		if scanopts.TechDetectRuntime && r.browser != nil {
-			runtimeMatches, err := r.fingerprintTechnologiesWithRuntime(fullURL, resp.Headers, resp.Data, scanopts.ScreenshotTimeout)
+			runtimeMatches, err := r.fingerprintTechnologiesWithRuntime(fullURL, resp.Headers, resp.Data, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle)
 			if err != nil {
 				gologger.Warning().Msgf("Could not run runtime technology detection '%s': %s", fullURL, err)
 			}
