@@ -18,3 +18,12 @@ func TestExtractPresetsMatchInsideResponse(t *testing.T) {
 		require.Equal(t, want, ExtractPresets[preset].FindAllString(raw, -1), preset)
 	}
 }
+
+func TestExtractPresetsTrimTrailingPunctuation(t *testing.T) {
+	require.Equal(t, []string{"https://example.com/path"}, ExtractPresets["url"].FindAllString("Visit (https://example.com/path).", -1))
+	require.Equal(t, []string{"https://en.wikipedia.org/wiki/Foo_(bar)"}, ExtractPresets["url"].FindAllString("see https://en.wikipedia.org/wiki/Foo_(bar).", -1))
+}
+
+func TestExtractPresetsMailApostrophe(t *testing.T) {
+	require.Equal(t, []string{"o'brien@example.com"}, ExtractPresets["mail"].FindAllString("contact o'brien@example.com today", -1))
+}
