@@ -52,10 +52,6 @@ type Browser struct {
 	// policy and dialer restrict every request the browser makes
 	policy *networkpolicy.NetworkPolicy
 	dialer *fastdialer.Dialer
-	// TODO: Remove the Chrome PID kill code in favor of using Leakless(true).
-	// This change will be made if there are no complaints about zombie Chrome processes.
-	// Reference: https://github.com/projectdiscovery/httpx/pull/1426
-	// pids    map[int32]struct{}
 }
 
 // preferSystemBrowser reports whether screenshots must launch an installed
@@ -119,8 +115,6 @@ func newBrowser(proxy, downloadProxy string, useLocal bool, optionalArgs map[str
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create temporary directory")
 	}
-
-	// pids := processutil.FindProcesses(processutil.IsChromeProcess)
 
 	chromeLauncher := launcher.New().
 		Leakless(true).
@@ -221,7 +215,6 @@ func newBrowser(proxy, downloadProxy string, useLocal bool, optionalArgs map[str
 		tempDir: dataStore,
 		engine:  browser,
 		proxy:   proxy,
-		// pids:    pids,
 	}
 	return engine, nil
 }
@@ -620,7 +613,6 @@ func (b *Browser) closePage(page *rod.Page) {
 func (b *Browser) Close() {
 	_ = b.engine.Close()
 	_ = os.RemoveAll(b.tempDir)
-	// processutil.CloseProcesses(processutil.IsChromeProcess, b.pids)
 }
 func getSimpleErrorType(errorText, errorType, blockedReason string) string {
 	switch blockedReason {
