@@ -3247,28 +3247,17 @@ func normalizeHeaders(headers map[string][]string) map[string]interface{} {
 	return normalized
 }
 
+var (
+	// Connection: Upgrade alone is not enough: servers send it for h2c too.
+	// Upgrade may list several protocols, optionally versioned (RFC 9110 7.8).
+	webSocketHeaders = regexp.MustCompile(`(?mi)^(?:Sec-WebSocket-Accept:[ \t]*\S|Upgrade:(?:[^\r\n]*,)?[ \t]*websocket(?:/[^,\r\n]*)?[ \t]*(?:,|\r?$))`)
+	webSocketBody    = regexp.MustCompile(`{"socket":true,"socketUrl":"wss?://.*"}|{"sid":"[^"]*","upgrades":\["websocket"\].*}`)
+)
+
 func isWebSocket(resp *httpx.Response) bool {
-	if resp.StatusCode == 101 {
-		return true
-	}
-	// TODO: improve this checks
-	// Check for specific headers that indicate WebSocket support
-	keyHeaders := []string{`^Sec-WebSocket-Accept:\s+.+`, `^Upgrade:\s+websocket`, `^Connection:\s+upgrade`}
-	for _, header := range keyHeaders {
-		re := regexp.MustCompile(header)
-		if re.MatchString(resp.RawHeaders) {
-			return true
-		}
-	}
-	// Check for specific data that indicates WebSocket support
-	keyData := []string{`{"socket":true,"socketUrl":"(?:wss?|ws)://.*"}`, `{"sid":"[^"]*","upgrades":\["websocket"\].*}`}
-	for _, data := range keyData {
-		re := regexp.MustCompile(data)
-		if re.Match(resp.RawData) {
-			return true
-		}
-	}
-	return false
+	return resp.StatusCode == 101 ||
+		webSocketHeaders.MatchString(resp.RawHeaders) ||
+		webSocketBody.Match(resp.RawData)
 }
 
 // stripANSI removes ANSI color codes from a string using pre-compiled regex
