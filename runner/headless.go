@@ -244,6 +244,28 @@ func (b *Browser) ScreenshotWithBody(url string, timeout time.Duration, idle tim
 	return screenshot, body, networkRequests, nil
 }
 
+// NavigateForRuntime loads url the same way a screenshot does, so the network
+// policy and header routing apply, and returns the live page. Request routing
+// stays active until the returned cleanup runs, which stops the router and
+// closes the page. The cleanup is never nil and is safe to call on every path,
+// including after an error, where it does nothing.
+func (b *Browser) NavigateForRuntime(url string, timeout, idle time.Duration, headers []string) (*rod.Page, func(), error) {
+	page, router, _, err := b.setupPageAndNavigate(url, timeout, idle, headers, nil)
+	cleanup := func() {
+		if router != nil {
+			_ = router.Stop()
+		}
+		if page != nil {
+			b.closePage(page)
+		}
+	}
+	if err != nil {
+		cleanup()
+		return nil, func() {}, err
+	}
+	return page, cleanup, nil
+}
+
 // setupPageAndNavigate opens a page, performs all adaptive actions including JS injection
 func (b *Browser) setupPageAndNavigate(url string, timeout time.Duration, idle time.Duration, headers []string, jsCodes []string) (*rod.Page, *rod.HijackRouter, []NetworkRequest, error) {
 	page, err := b.engine.Page(proto.TargetCreateTarget{})

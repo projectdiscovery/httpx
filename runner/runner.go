@@ -379,7 +379,7 @@ func New(options *Options) (*Runner, error) {
 	scanopts.MaxResponseBodySizeToSave = options.MaxResponseBodySizeToSave
 	scanopts.MaxResponseBodySizeToRead = options.MaxResponseBodySizeToRead
 	scanopts.extractRegexps = make(map[string]*regexp.Regexp)
-	if options.Screenshot {
+	if options.Screenshot || options.TechDetectRuntime {
 		// The browser download goes through -proxy / -http-proxy too.
 		browser, err := newBrowser(options.HTTPProxy, options.Proxy, options.UseInstalledChrome, options.ParseHeadlessOptionalArguments())
 		if err != nil {
@@ -391,6 +391,7 @@ func New(options *Options) (*Runner, error) {
 		runner.browser = browser
 	}
 	scanopts.Screenshot = options.Screenshot
+	scanopts.TechDetectRuntime = options.TechDetectRuntime
 	scanopts.NoScreenshotBytes = options.NoScreenshotBytes
 	scanopts.NoHeadlessBody = options.NoHeadlessBody
 	scanopts.NoScreenshotFullPage = options.NoScreenshotFullPage
@@ -736,6 +737,40 @@ func (r *Runner) classifyPage(headlessBody, body string, pHash uint64) map[strin
 	return kb
 }
 
+// fingerprintTechnologiesWithRuntime renders fullURL in the headless browser and runs
+// wappalyzer's runtime fingerprinting against it, combining the passive header/body
+// evidence with JavaScript/DOM/script evidence collected from the rendered page.
+func (r *Runner) fingerprintTechnologiesWithRuntime(fullURL string, headers map[string][]string, body []byte, timeout, idle time.Duration) (map[string]struct{}, error) {
+	page, cleanup, err := r.browser.NavigateForRuntime(fullURL, timeout, idle, r.options.CustomHeaders)
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	return r.wappalyzer.FingerprintWithRuntime(ctx, headers, body, wappalyzer.RuntimeOptions{
+		Collector: newRuntimeCollector(page),
+		Timeout:   timeout,
+	})
+}
+
+// technologyInfo resolves wappalyzer metadata for a detected technology, which may
+// carry a ":version" suffix, mirroring wappalyzer's FingerprintWithInfo lookup.
+func (r *Runner) technologyInfo(match string) (wappalyzer.AppInfo, bool) {
+	apps := r.wappalyzer.GetCompiledFingerprints().Apps
+	if fingerprint, ok := apps[match]; ok {
+		return wappalyzer.AppInfoFromFingerprint(fingerprint), true
+	}
+	if name, _, found := strings.Cut(match, ":"); found {
+		if fingerprint, ok := apps[name]; ok {
+			return wappalyzer.AppInfoFromFingerprint(fingerprint), true
+		}
+	}
+	return wappalyzer.AppInfo{}, false
+}
+
 func (r *Runner) testAndSet(k string) bool {
 	r.seenMux.Lock()
 	defer r.seenMux.Unlock()
@@ -1013,7 +1048,7 @@ func (r *Runner) Close() {
 	if r.options.HostMaxErrors >= 0 {
 		r.HostErrorsCache.Purge()
 	}
-	if r.options.Screenshot {
+	if r.browser != nil {
 		r.browser.Close()
 	}
 	if r.options.ShowStatistics {
@@ -2488,10 +2523,30 @@ retry:
 	technologyDetails := make(map[string]wappalyzer.AppInfo)
 	var technologies []string
 	if scanopts.TechDetect {
-		matches := r.wappalyzer.FingerprintWithInfo(resp.Headers, resp.Data)
-		for match, data := range matches {
-			technologies = append(technologies, match)
-			technologyDetails[match] = data
+		usedRuntimeDetection := false
+		if scanopts.TechDetectRuntime && r.browser != nil {
+			runtimeMatches, err := r.fingerprintTechnologiesWithRuntime(fullURL, resp.Headers, resp.Data, scanopts.ScreenshotTimeout, scanopts.ScreenshotIdle)
+			if err != nil {
+				gologger.Warning().Msgf("Could not run runtime technology detection '%s': %s", fullURL, err)
+			}
+			// on collection errors runtimeMatches still holds passive and partial runtime matches;
+			// it is empty only when navigation failed, in which case we fall back to passive detection
+			if len(runtimeMatches) > 0 {
+				for match := range runtimeMatches {
+					technologies = append(technologies, match)
+					if info, ok := r.technologyInfo(match); ok {
+						technologyDetails[match] = info
+					}
+				}
+				usedRuntimeDetection = true
+			}
+		}
+		if !usedRuntimeDetection {
+			matches := r.wappalyzer.FingerprintWithInfo(resp.Headers, resp.Data)
+			for match, data := range matches {
+				technologies = append(technologies, match)
+				technologyDetails[match] = data
+			}
 		}
 	}
 
