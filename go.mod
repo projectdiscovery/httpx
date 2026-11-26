@@ -40,7 +40,7 @@ require (
 	github.com/projectdiscovery/rod v0.117.0
 	github.com/projectdiscovery/tlsx v1.5.0
 	github.com/projectdiscovery/useragent v0.0.110
-	github.com/projectdiscovery/utils v0.11.15
+	github.com/projectdiscovery/utils v0.11.17
 	github.com/projectdiscovery/wappalyzergo v0.3.11
 	github.com/rs/xid v1.6.0
 	github.com/seh-msft/burpxml v1.0.1
@@ -116,7 +116,7 @@ require (
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
-	github.com/projectdiscovery/blackrock v0.0.2 // indirect
+	github.com/projectdiscovery/blackrock v0.0.4 // indirect
 	github.com/projectdiscovery/freeport v0.0.8 // indirect
 	github.com/projectdiscovery/gostruct v0.0.2 // indirect
 	github.com/projectdiscovery/govaluate v0.0.0-20260504230327-80320480bb6e // indirect
