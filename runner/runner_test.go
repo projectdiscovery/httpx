@@ -547,6 +547,11 @@ func TestOptions_hasMatcherOrFilter(t *testing.T) {
 			options:  Options{OutputFilterPageType: []string{"error"}},
 			expected: true,
 		},
+		{
+			name:     "filter duplicates",
+			options:  Options{FilterOutDuplicates: true},
+			expected: true,
+		},
 	}
 
 	for _, tc := range tests {
@@ -636,6 +641,48 @@ func TestStoreResponse_omitBodyStoresHeadersOnly(t *testing.T) {
 			})
 		}
 	}
+}
+
+// -sr with -fd stores only the responses that -fd keeps, as it does for the
+// other filters: a near-duplicate that is not printed must not be stored.
+func TestStoreResponse_filterDuplicatesStoresFirstOnly(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = io.WriteString(w, "<html><head><title>same</title></head><body>the same page on every target</body></html>")
+	})
+	var targets []string
+	for range 3 {
+		srv := httptest.NewServer(handler)
+		t.Cleanup(srv.Close)
+		targets = append(targets, srv.URL)
+	}
+
+	var results []Result
+	dir := t.TempDir()
+	options := &Options{
+		Threads:             1,
+		RateLimit:           10,
+		Retries:             0,
+		Timeout:             5,
+		Methods:             http.MethodGet,
+		Delay:               -1,
+		StoreResponse:       true,
+		StoreResponseDir:    dir,
+		FilterOutDuplicates: true,
+		OnResult:            func(r Result) { results = append(results, r) },
+		InputTargetHost:     targets,
+	}
+	require.NoError(t, options.ValidateOptions())
+
+	r, err := New(options)
+	require.NoError(t, err)
+	defer r.Close()
+	r.RunEnumeration()
+
+	require.Len(t, results, 1, "-fd should keep one of the identical responses")
+	files, err := filepath.Glob(filepath.Join(dir, "response", "*", "*.txt"))
+	require.NoError(t, err)
+	require.Len(t, files, 1, "only the kept response should be stored, got %v", files)
 }
 
 func TestProtocolValidation(t *testing.T) {
