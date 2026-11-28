@@ -745,6 +745,7 @@ func (options *Options) HasMatcherOrFilter() bool {
 		len(options.OutputMatchCdn) > 0 ||
 		len(options.OutputFilterCdn) > 0 ||
 		len(options.OutputFilterPageType) > 0 ||
+		options.FilterOutDuplicates ||
 		options.OutputMatchCondition != "" ||
 		options.OutputFilterCondition != "" ||
 		options.OutputMatchResponseTime != "" ||
