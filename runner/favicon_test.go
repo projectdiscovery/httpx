@@ -176,3 +176,58 @@ func TestFaviconRequestHost(t *testing.T) {
 		})
 	}
 }
+
+// -ffc filters on the whole favicon hash, like -mfc matches on it. A hash
+// that only contains the filter value (for example -1315956186 for
+// -ffc 1315956186) is a different favicon and must be kept.
+func TestFilterFaviconComparesWholeHash(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		switch req.URL.Path {
+		case "/":
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = w.Write([]byte(`<html><head><title>icon</title></head><body>icon</body></html>`))
+		case "/favicon.ico":
+			w.Header().Set("Content-Type", "image/x-icon")
+			_, _ = w.Write(testFaviconGIF)
+		default:
+			http.NotFound(w, req)
+		}
+	}))
+	defer srv.Close()
+
+	mmh3, _, err := stringz.FaviconHash(testFaviconGIF)
+	require.NoError(t, err)
+	hash := fmt.Sprintf("%d", mmh3)
+
+	run := func(filter string) []Result {
+		var results []Result
+		options := &Options{
+			Threads:   1,
+			RateLimit: 10,
+			Retries:   0,
+			Timeout:   5,
+			Methods:   http.MethodGet,
+			Delay:     -1,
+			Favicon:   true,
+			// The CLI sets these; with 0 no body is read and no icon is found.
+			MaxResponseBodySizeToRead: 1 << 20,
+			MaxResponseBodySizeToSave: 1 << 20,
+			OutputFilterFavicon:       []string{filter},
+			OnResult:                  func(result Result) { results = append(results, result) },
+			InputTargetHost:           []string{srv.URL},
+		}
+		r, err := New(options)
+		require.NoError(t, err)
+		defer r.Close()
+		r.RunEnumeration()
+		return results
+	}
+
+	// hash[1:] is another hash value (the sign or first digit dropped) that
+	// is a substring of the real one.
+	results := run(hash[1:])
+	require.Len(t, results, 1, "-ffc %s must not filter favicon %s", hash[1:], hash)
+	require.Equal(t, hash, results[0].FavIconMMH3)
+
+	require.Empty(t, run(hash), "-ffc %s must filter favicon %s", hash, hash)
+}
