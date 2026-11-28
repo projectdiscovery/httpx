@@ -1089,30 +1089,20 @@ func (r *Runner) RunEnumeration() {
 
 		if r.options.Output != "" && r.options.OutputAll {
 			plainFile = openOrCreateFile(r.options.Resume, r.options.Output)
-			defer func() {
-				_ = plainFile.Close()
-			}()
+			defer closeOutput(plainFile)
 			jsonFile = openOrCreateFile(r.options.Resume, r.options.Output+".json")
-			defer func() {
-				_ = jsonFile.Close()
-			}()
+			defer closeOutput(jsonFile)
 			csvFile = openOrCreateFile(r.options.Resume, r.options.Output+".csv")
-			defer func() {
-				_ = csvFile.Close()
-			}()
+			defer closeOutput(csvFile)
 			mdFile = openOrCreateFile(r.options.Resume, r.options.Output+".md")
-			defer func() {
-				_ = mdFile.Close()
-			}()
+			defer closeOutput(mdFile)
 		}
 
 		jsonOrCsvOrMD := (r.options.JSONOutput || r.options.CSVOutput || r.options.MarkDownOutput)
 		jsonAndCsvAndMD := (r.options.JSONOutput && r.options.CSVOutput && r.options.MarkDownOutput)
 		if r.options.Output != "" && plainFile == nil && !jsonOrCsvOrMD {
 			plainFile = openOrCreateFile(r.options.Resume, r.options.Output)
-			defer func() {
-				_ = plainFile.Close()
-			}()
+			defer closeOutput(plainFile)
 		}
 
 		if r.options.Output != "" && r.options.JSONOutput && jsonFile == nil {
@@ -1121,9 +1111,7 @@ func (r *Runner) RunEnumeration() {
 				ext = ".json"
 			}
 			jsonFile = openOrCreateFile(r.options.Resume, r.options.Output+ext)
-			defer func() {
-				_ = jsonFile.Close()
-			}()
+			defer closeOutput(jsonFile)
 		}
 
 		if r.options.Output != "" && r.options.CSVOutput && csvFile == nil {
@@ -1132,9 +1120,7 @@ func (r *Runner) RunEnumeration() {
 				ext = ".csv"
 			}
 			csvFile = openOrCreateFile(r.options.Resume, r.options.Output+ext)
-			defer func() {
-				_ = csvFile.Close()
-			}()
+			defer closeOutput(csvFile)
 		}
 
 		if r.options.Output != "" && r.options.MarkDownOutput && mdFile == nil {
@@ -1143,9 +1129,7 @@ func (r *Runner) RunEnumeration() {
 				ext = ".md"
 			}
 			mdFile = openOrCreateFile(r.options.Resume, r.options.Output+ext)
-			defer func() {
-				_ = mdFile.Close()
-			}()
+			defer closeOutput(mdFile)
 		}
 
 		if r.options.CSVOutput {
@@ -1167,8 +1151,7 @@ func (r *Runner) RunEnumeration() {
 			}
 
 			if csvFile != nil {
-				//nolint:errcheck // this method needs a small refactor to reduce complexity
-				csvFile.WriteString(headers + "\n")
+				writeOutput(csvFile, headers+"\n")
 			}
 		}
 		if r.options.StoreResponseDir != "" {
@@ -1185,9 +1168,9 @@ func (r *Runner) RunEnumeration() {
 				indexFile, err = os.Create(indexPath)
 			}
 			if err != nil {
-				gologger.Fatal().Msgf("Could not open/create index file '%s': %s\n", r.options.Output, err)
+				gologger.Fatal().Msgf("Could not open/create index file '%s': %s\n", indexPath, err)
 			}
-			defer indexFile.Close() //nolint
+			defer closeOutput(indexFile)
 		}
 
 		if r.options.Screenshot {
@@ -1200,9 +1183,9 @@ func (r *Runner) RunEnumeration() {
 				indexScreenshotFile, err = os.Create(indexScreenshotPath)
 			}
 			if err != nil {
-				gologger.Fatal().Msgf("Could not open/create index screenshot file '%s': %s\n", r.options.Output, err)
+				gologger.Fatal().Msgf("Could not open/create index screenshot file '%s': %s\n", indexScreenshotPath, err)
 			}
-			defer indexScreenshotFile.Close() //nolint
+			defer closeOutput(indexScreenshotFile)
 		}
 
 		for resp := range output {
@@ -1419,10 +1402,12 @@ func (r *Runner) RunEnumeration() {
 					data = append(data, respRaw...)
 					data = append(data, []byte("\n\n\n")...)
 					data = append(data, []byte(resp.URL)...)
-					_ = fileutil.CreateFolder(responseBaseDir)
+					if err := fileutil.CreateFolder(responseBaseDir); err != nil {
+						gologger.Fatal().Msgf("Could not create response directory '%s': %s", responseBaseDir, err)
+					}
 					writeErr := os.WriteFile(responsePath, data, 0644)
 					if writeErr != nil {
-						gologger.Error().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
+						gologger.Fatal().Msgf("Could not write response at path '%s', to disk: %s", responsePath, writeErr)
 					}
 					resp.StoredResponsePath = responsePath
 				}
@@ -1430,10 +1415,12 @@ func (r *Runner) RunEnumeration() {
 				if r.scanopts.Screenshot {
 					screenshotPath = fileutilz.AbsPathOrDefault(filepath.Join(screenshotBaseDir, screenshotResponseFile))
 					screenshotPathRel = filepath.Join(hostFilename, screenshotResponseFile)
-					_ = fileutil.CreateFolder(screenshotBaseDir)
+					if err := fileutil.CreateFolder(screenshotBaseDir); err != nil {
+						gologger.Fatal().Msgf("Could not create screenshot directory '%s': %s", screenshotBaseDir, err)
+					}
 					err := os.WriteFile(screenshotPath, resp.ScreenshotBytes, 0644)
 					if err != nil {
-						gologger.Error().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
+						gologger.Fatal().Msgf("Could not write screenshot at path '%s', to disk: %s", screenshotPath, err)
 					}
 
 					resp.ScreenshotPath = screenshotPath
@@ -1445,11 +1432,11 @@ func (r *Runner) RunEnumeration() {
 
 				if indexFile != nil {
 					indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.StoredResponsePath, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
-					_, _ = indexFile.WriteString(indexData)
+					writeOutput(indexFile, indexData)
 				}
 				if indexScreenshotFile != nil && resp.ScreenshotPathRel != "" {
 					indexData := fmt.Sprintf("%s %s (%d %s)\n", resp.ScreenshotPathRel, resp.URL, resp.StatusCode, http.StatusText(resp.StatusCode))
-					_, _ = indexScreenshotFile.WriteString(indexData)
+					writeOutput(indexScreenshotFile, indexData)
 				}
 
 				if r.scanopts.StoreVisionReconClusters {
@@ -1474,9 +1461,8 @@ func (r *Runner) RunEnumeration() {
 				}
 			}
 
-			//nolint:errcheck // this method needs a small refactor to reduce complexity
 			if plainFile != nil {
-				plainFile.WriteString(handleStripAnsiCharacters(resp.str, r.options.NoColor) + "\n")
+				writeOutput(plainFile, handleStripAnsiCharacters(resp.str, r.options.NoColor)+"\n")
 			}
 
 			if len(r.options.ExcludeOutputFields) > 0 {
@@ -1498,9 +1484,8 @@ func (r *Runner) RunEnumeration() {
 					gologger.Silent().Msgf("%s\n", row)
 				}
 
-				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				if jsonFile != nil {
-					jsonFile.WriteString(row + "\n")
+					writeOutput(jsonFile, row+"\n")
 				}
 			}
 
@@ -1511,9 +1496,8 @@ func (r *Runner) RunEnumeration() {
 					gologger.Silent().Msgf("%s\n", row)
 				}
 
-				//nolint:errcheck // this method needs a small refactor to reduce complexity
 				if csvFile != nil {
-					csvFile.WriteString(row + "\n")
+					writeOutput(csvFile, row+"\n")
 				}
 			}
 
@@ -1524,7 +1508,7 @@ func (r *Runner) RunEnumeration() {
 						gologger.Silent().Msgf("%s", header)
 					}
 					if mdFile != nil {
-						_, _ = mdFile.WriteString(header)
+						writeOutput(mdFile, header)
 					}
 					markdownHeaderWritten = true
 				}
@@ -1535,7 +1519,7 @@ func (r *Runner) RunEnumeration() {
 					gologger.Silent().Msgf("%s", row)
 				}
 				if mdFile != nil {
-					_, _ = mdFile.WriteString(row)
+					writeOutput(mdFile, row)
 				}
 			}
 
@@ -1556,11 +1540,9 @@ func (r *Runner) RunEnumeration() {
 			screenshotHtmlPath := filepath.Join(r.options.StoreResponseDir, "screenshot", "screenshot.html")
 			screenshotHtml, err := os.Create(screenshotHtmlPath)
 			if err != nil {
-				gologger.Warning().Msgf("Could not create HTML file %s\n", err)
+				gologger.Fatal().Msgf("Could not create HTML file '%s': %s", screenshotHtmlPath, err)
 			}
-			defer func() {
-				_ = screenshotHtml.Close()
-			}()
+			defer closeOutput(screenshotHtml)
 
 			templateMap := template.FuncMap{
 				"safeURL": func(u string) template.URL {
@@ -1575,7 +1557,7 @@ func (r *Runner) RunEnumeration() {
 				Funcs(templateMap).
 				Parse(static.HtmlTemplate)
 			if err != nil {
-				gologger.Warning().Msgf("Could not create HTML template: %v\n", err)
+				gologger.Fatal().Msgf("Could not create HTML template: %v", err)
 			}
 
 			if err = tmpl.Execute(screenshotHtml, struct {
@@ -1585,7 +1567,7 @@ func (r *Runner) RunEnumeration() {
 				Options: *r.options,
 				Output:  output,
 			}); err != nil {
-				gologger.Warning().Msgf("Could not execute HTML template: %v\n", err)
+				gologger.Fatal().Msgf("Could not write HTML file '%s': %v", screenshotHtmlPath, err)
 			}
 		}
 
@@ -1679,9 +1661,7 @@ func (r *Runner) RunEnumeration() {
 		if err != nil {
 			gologger.Fatal().Msgf("Failed to create JSON file: %v", err)
 		}
-		defer func() {
-			_ = file.Close()
-		}()
+		defer closeOutput(file)
 
 		_, err = file.Write(clusterReportJSON)
 		if err != nil {
@@ -1712,9 +1692,7 @@ func logFilteredErrorPage(fileName, url string) {
 		gologger.Fatal().Msgf("Could not open/create output file '%s': %s\n", fileName, err)
 		return
 	}
-	defer func() {
-		_ = file.Close()
-	}()
+	defer closeOutput(file)
 
 	info := map[string]interface{}{
 		"url":           url,
@@ -1750,6 +1728,18 @@ func openOrCreateFile(resume bool, filename string) *os.File {
 		gologger.Fatal().Msgf("Could not open/create output file '%s': %s\n", filename, err)
 	}
 	return f
+}
+
+func writeOutput(file *os.File, data string) {
+	if _, err := file.WriteString(data); err != nil {
+		gologger.Fatal().Msgf("Could not write output file '%s': %s", file.Name(), err)
+	}
+}
+
+func closeOutput(file *os.File) {
+	if err := file.Close(); err != nil {
+		gologger.Fatal().Msgf("Could not close output file '%s': %s", file.Name(), err)
+	}
 }
 
 func (r *Runner) GetScanOpts() ScanOptions {
